@@ -1170,7 +1170,10 @@ def _align_text_origin_to_attach_centerline(
 		chain_attach_site=chain_attach_site,
 		font_name=font_name,
 	)
-	center_x, _center_y = attach_contract.endpoint_target.centroid()
+	# Use attach_target (the specific attachment atom box) for text
+	# positioning, not endpoint_target (which may be the full label box
+	# under label_box mode).
+	center_x, _center_y = attach_contract.attach_target.centroid()
 	return (text_x + (target_center_x - center_x), text_y)
 
 
