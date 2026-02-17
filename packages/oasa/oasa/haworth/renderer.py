@@ -839,8 +839,14 @@ def _add_simple_label_ops(
 		label_color: str) -> None:
 	"""Add one connector line + one label."""
 	end_point = (vertex[0] + dx * length, vertex[1] + dy * length)
-	text = _text.format_label_text(label, anchor=anchor)
 	is_chain_like_label = _text.is_chain_like_label(str(label))
+	# Chain-like labels (CH2OH, CHOH, etc.) use format_chain_label_text for
+	# side-aware flipping (CH2OH -> HOH2C at anchor=end) so the carbon
+	# faces the ring and the label does not overlap ring bonds.
+	if is_chain_like_label:
+		text = _text.format_chain_label_text(label, anchor=anchor)
+	else:
+		text = _text.format_label_text(label, anchor=anchor)
 	draw_font_size = font_size * text_scale
 	anchor_x = _text.anchor_x_offset(text, anchor, font_size)
 	text_x = end_point[0] + anchor_x
@@ -866,7 +872,15 @@ def _add_simple_label_ops(
 	nominal_vertical_direction = abs(dx) <= 1e-9 and abs(dy) > 1e-9
 	attach_element = "C" if is_chain_like_label else None
 	attach_site = "core_center" if is_chain_like_label else None
-	attach_atom_for_policy = attach_atom if attach_atom is not None else ("first" if is_chain_like_label else None)
+	# Reversed chain labels (HOH2C) have the carbon at the end, not the start.
+	visible_text = re.sub(r"<[^>]+>", "", text or "")
+	if is_chain_like_label and visible_text.endswith("C"):
+		default_attach = "last"
+	elif is_chain_like_label:
+		default_attach = "first"
+	else:
+		default_attach = None
+	attach_atom_for_policy = attach_atom if attach_atom is not None else default_attach
 	if nominal_vertical_direction:
 		text_x, text_y = _align_text_origin_to_attach_centerline(
 			text_x=text_x,
@@ -924,7 +938,7 @@ def _add_simple_label_ops(
 		line_width=connector_width,
 		constraints=constraints,
 		epsilon=RETREAT_SOLVER_EPSILON,
-		attach_atom=attach_atom,
+		attach_atom=attach_atom_for_policy,
 		attach_element=attach_element,
 		attach_site=attach_site,
 		chain_attach_site="core_center",

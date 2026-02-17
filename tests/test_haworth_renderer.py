@@ -1691,8 +1691,17 @@ def test_render_arabinose_furanose_ch2oh_connector_hits_leading_carbon_center():
 	_, ops = _render("ALRDM", "furanose", "alpha", show_hydrogens=False)
 	label = _text_by_id(ops, "C4_up_label")
 	line = _line_by_id(ops, "C4_up_connector")
-	assert label.text == "CH<sub>2</sub>OH"
-	label_box = _connector_bbox_for_label(label)
+	# ML slot (anchor=end) reverses CH2OH to HOH2C so the carbon faces the ring
+	assert label.text == "HOH<sub>2</sub>C"
+	# Use trailing-carbon (last) attach target for reversed HOH2C text
+	label_box = render_geometry.label_attach_target_from_text_origin(
+		text_x=label.x,
+		text_y=label.y,
+		text=label.text,
+		anchor=label.anchor,
+		font_size=label.font_size,
+		attach_atom="last",
+	).box
 	assert _point_on_box_edge(line.p2, label_box, tol=render_geometry.ATTACH_GAP_TARGET + 0.5)
 
 
@@ -1737,7 +1746,8 @@ def test_render_arabinose_furanose_beta_top_labels_are_not_flat_aligned():
 	right_oh = _text_by_id(ops, "C1_up_label")
 	left_chain = _text_by_id(ops, "C4_up_label")
 	assert right_oh.text == "OH"
-	assert left_chain.text == "CH<sub>2</sub>OH"
+	# ML slot (anchor=end) reverses CH2OH to HOH2C
+	assert left_chain.text == "HOH<sub>2</sub>C"
 	assert right_oh.y > left_chain.y
 	assert (right_oh.y - left_chain.y) >= (right_oh.font_size * 0.09)
 

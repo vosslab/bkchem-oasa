@@ -1,6 +1,16 @@
 # Changelog
 
 ## 2026-02-17
+- Add 3-KETO ring rules to Haworth spec
+  ([packages/oasa/oasa/haworth/spec.py](packages/oasa/oasa/haworth/spec.py)):
+  furanose (anomeric=3, closure=6, min_carbons=6) and pyranose (anomeric=3,
+  closure=7, min_carbons=7).  Handle 3-KETO anomeric substituent with
+  CH(OH)CH2OH pre-anomeric chain.  Enables rendering of 3-ketohexoses.
+- Fix CH2OH label overlap on left-side furanose ring slots.  Chain-like labels
+  (CH2OH, CHOH) at anchor=end slots (ML, BL) now render as HOH2C/HOHC via
+  `format_chain_label_text`, so the carbon atom faces the ring and the label
+  does not overlap ring bonds.  Connector attach-atom policy updated to target
+  the trailing carbon in reversed text.
 - Add sugar codes HTML gallery script
   [tools/sugar_codes_summary.py](tools/sugar_codes_summary.py) that reads all
   106 sugar codes from
