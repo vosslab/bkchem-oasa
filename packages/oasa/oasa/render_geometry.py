@@ -1450,7 +1450,7 @@ def default_label_attach_policy(text, chain_attach_site="core_center") -> LabelA
 			attach_atom="first",
 			attach_element="C",
 			attach_site=site,
-			target_kind="attach_box",
+			target_kind="label_box",
 		)
 	return LabelAttachPolicy(
 		attach_atom="first",
@@ -1485,7 +1485,7 @@ def _resolve_label_attach_policy(
 	else:
 		resolved_site = _normalize_attach_site(attach_site)
 	resolved_target_kind = default_policy.target_kind if target_kind is None else str(target_kind).strip().lower()
-	if resolved_target_kind not in ("attach_box", "oxygen_circle"):
+	if resolved_target_kind not in ("attach_box", "label_box", "oxygen_circle"):
 		raise ValueError(f"Unsupported label endpoint target_kind: {target_kind!r}")
 	return LabelAttachPolicy(
 		attach_atom=resolved_atom,
@@ -1618,14 +1618,20 @@ def label_attach_contract_from_text_origin(
 		font_name=font_name,
 	)
 	endpoint_target = attach_target
-	if policy.target_kind == "oxygen_circle":
+	if policy.target_kind == "label_box":
+		# Full-box bond trimming: use the entire label bounding box
+		# for both endpoint and paint-allowed targets.
+		endpoint_target = full_target
+	elif policy.target_kind == "oxygen_circle":
 		endpoint_target = _oxygen_circle_target_from_attach_target(
 			attach_target=attach_target,
 			font_size=font_size,
 			line_width=line_width,
 		)
 	allowed_target = endpoint_target
-	if policy.target_kind == "oxygen_circle":
+	if policy.target_kind == "label_box":
+		allowed_target = full_target
+	elif policy.target_kind == "oxygen_circle":
 		allowed_target = _oxygen_allowed_target(
 			full_target=full_target,
 			endpoint_target=endpoint_target,
@@ -1689,16 +1695,24 @@ def resolve_label_connector_endpoint_from_text_origin(
 		interior_hint=contract.endpoint_target.centroid(),
 		constraints=constraints,
 	)
-	alignment_center = constraints.alignment_center
-	if alignment_center is None:
-		alignment_center = contract.attach_target.centroid()
-	endpoint = _correct_endpoint_for_alignment(
-		bond_start=bond_start,
-		endpoint=endpoint,
-		alignment_center=alignment_center,
-		target=contract.endpoint_target,
-		tolerance=constraints.alignment_tolerance,
-	)
+	# Label-box mode skips automatic alignment toward the attach-atom
+	# centroid (the caller already positioned the text via anchor_x_offset
+	# or _align_text_origin_*). An explicit alignment_center in
+	# constraints is still honoured (used by chain ops for collinearity).
+	if contract.policy.target_kind == "label_box":
+		alignment_center = constraints.alignment_center
+	else:
+		alignment_center = constraints.alignment_center
+		if alignment_center is None:
+			alignment_center = contract.attach_target.centroid()
+	if alignment_center is not None:
+		endpoint = _correct_endpoint_for_alignment(
+			bond_start=bond_start,
+			endpoint=endpoint,
+			alignment_center=alignment_center,
+			target=contract.endpoint_target,
+			tolerance=constraints.alignment_tolerance,
+		)
 	endpoint = retreat_endpoint_until_legal(
 		line_start=bond_start,
 		line_end=endpoint,
@@ -1714,22 +1728,25 @@ def resolve_label_connector_endpoint_from_text_origin(
 			target_gap=constraints.target_gap,
 			forbidden_regions=[contract.endpoint_target],
 		)
-		# After retreating from the endpoint atom, the bond may still be
-		# too close to the full label box (e.g. the bond over "HOH2C"
-		# clears the C glyph but passes above the "2" subscript).
-		# Apply a minimum gap from the full label using the base gap
-		# constant, not the (possibly larger) connector-specific target.
-		full_text_min_gap = ATTACH_GAP_TARGET
-		full_gap = _min_distance_point_to_target_boundary(
-			endpoint, contract.full_target,
-		)
-		if full_gap < full_text_min_gap:
-			endpoint = _retreat_to_target_gap(
-				line_start=bond_start,
-				legal_endpoint=endpoint,
-				target_gap=full_text_min_gap,
-				forbidden_regions=[contract.full_target],
+		# When endpoint_target is already the full label box (label_box
+		# mode), the second retreat is redundant -- skip it.
+		if contract.policy.target_kind != "label_box":
+			# After retreating from the endpoint atom, the bond may still be
+			# too close to the full label box (e.g. the bond over "HOH2C"
+			# clears the C glyph but passes above the "2" subscript).
+			# Apply a minimum gap from the full label using the base gap
+			# constant, not the (possibly larger) connector-specific target.
+			full_text_min_gap = ATTACH_GAP_TARGET
+			full_gap = _min_distance_point_to_target_boundary(
+				endpoint, contract.full_target,
 			)
+			if full_gap < full_text_min_gap:
+				endpoint = _retreat_to_target_gap(
+					line_start=bond_start,
+					legal_endpoint=endpoint,
+					target_gap=full_text_min_gap,
+					forbidden_regions=[contract.full_target],
+				)
 	return endpoint, contract
 
 

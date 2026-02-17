@@ -870,17 +870,9 @@ def _add_simple_label_ops(
 		and is_chain_like_label
 	)
 	nominal_vertical_direction = abs(dx) <= 1e-9 and abs(dy) > 1e-9
-	attach_element = "C" if is_chain_like_label else None
-	attach_site = "core_center" if is_chain_like_label else None
-	# Reversed chain labels (HOH2C) have the carbon at the end, not the start.
-	visible_text = re.sub(r"<[^>]+>", "", text or "")
-	if is_chain_like_label and visible_text.endswith("C"):
-		default_attach = "last"
-	elif is_chain_like_label:
-		default_attach = "first"
-	else:
-		default_attach = None
-	attach_atom_for_policy = attach_atom if attach_atom is not None else default_attach
+	# Carbon element and site for text positioning/alignment (not bond trimming).
+	align_attach_element = "C" if is_chain_like_label else None
+	align_attach_site = "core_center" if is_chain_like_label else None
 	if nominal_vertical_direction:
 		text_x, text_y = _align_text_origin_to_attach_centerline(
 			text_x=text_x,
@@ -889,9 +881,9 @@ def _add_simple_label_ops(
 			anchor=anchor,
 			font_size=draw_font_size,
 			target_center_x=vertex[0],
-			attach_atom=attach_atom_for_policy,
-			attach_element=attach_element,
-			attach_site=attach_site,
+			attach_atom=attach_atom,
+			attach_element=align_attach_element,
+			attach_site=align_attach_site,
 			chain_attach_site="core_center",
 			font_name=font_name,
 		)
@@ -903,7 +895,7 @@ def _add_simple_label_ops(
 			text=text,
 			anchor=anchor,
 			font_size=draw_font_size,
-			attach_atom=attach_atom_for_policy,
+			attach_atom=attach_atom,
 			attach_element="C",
 			attach_site="core_center",
 			font_name=font_name,
@@ -938,10 +930,6 @@ def _add_simple_label_ops(
 		line_width=connector_width,
 		constraints=constraints,
 		epsilon=RETREAT_SOLVER_EPSILON,
-		attach_atom=attach_atom_for_policy,
-		attach_element=attach_element,
-		attach_site=attach_site,
-		chain_attach_site="core_center",
 		font_name=font_name,
 	)
 	ops.append(
@@ -1245,6 +1233,8 @@ def _add_chain_ops(
 		anchor_x = _text.anchor_x_offset(text, anchor, font_size)
 		text_x = nominal_end[0] + anchor_x
 		text_y = nominal_end[1] + _text.baseline_shift(direction, font_size, text)
+		# Chain ops keep attach_box targeting (the label box can extend past
+		# the bond start, collapsing short connectors under full-box mode).
 		connector_end, _contract = _render_geometry.resolve_label_connector_endpoint_from_text_origin(
 			bond_start=start,
 			text_x=text_x,
@@ -1253,12 +1243,17 @@ def _add_chain_ops(
 			anchor=anchor,
 			font_size=font_size,
 			line_width=connector_width,
-			constraints=_render_geometry.make_attach_constraints(font_size=font_size, target_gap=_render_geometry.ATTACH_GAP_TARGET, direction_policy="auto"),
+			constraints=_render_geometry.make_attach_constraints(
+				font_size=font_size,
+				target_gap=_render_geometry.ATTACH_GAP_TARGET,
+				direction_policy="auto",
+			),
 			epsilon=RETREAT_SOLVER_EPSILON,
 			attach_atom="first",
 			attach_element="C",
 			attach_site="core_center",
 			chain_attach_site="core_center",
+			target_kind="attach_box",
 			font_name=font_name,
 		)
 		ops.append(
@@ -1437,6 +1432,7 @@ def _add_furanose_two_carbon_tail_ops(
 		attach_element="C",
 		attach_site="core_center",
 		chain_attach_site="core_center",
+		target_kind="attach_box",
 		font_name=font_name,
 	)
 	ch2_attach_target = ch2_contract.allowed_target

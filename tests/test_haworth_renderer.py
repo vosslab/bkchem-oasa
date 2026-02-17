@@ -990,6 +990,7 @@ def test_render_furanose_chain2_connector_matches_shared_resolver_endpoint():
 		attach_element="C",
 		attach_site="core_center",
 		chain_attach_site="core_center",
+		target_kind="attach_box",
 		font_name=label.font_name,
 	)
 	assert line.p2 == pytest.approx(resolved)
@@ -1672,7 +1673,8 @@ def test_render_ch2oh_connector_hits_leading_carbon_center():
 	label = _text_by_id(ops, "C5_up_label")
 	line = _line_by_id(ops, "C5_up_connector")
 	assert label.text == "CH<sub>2</sub>OH"
-	label_box = _connector_bbox_for_label(label)
+	# Full-box bond trimming: connector hits the full label bounding box edge.
+	label_box = _label_bbox(label)
 	assert _point_on_box_edge(line.p2, label_box, tol=render_geometry.ATTACH_GAP_TARGET + 0.5)
 
 
@@ -1682,7 +1684,8 @@ def test_render_cooh_connector_hits_leading_carbon_center():
 	label = _text_by_id(ops, "C5_up_label")
 	line = _line_by_id(ops, "C5_up_connector")
 	assert label.text == "COOH"
-	label_box = _connector_bbox_for_label(label)
+	# Full-box bond trimming: connector hits the full label bounding box edge.
+	label_box = _label_bbox(label)
 	assert _point_on_box_edge(line.p2, label_box, tol=render_geometry.ATTACH_GAP_TARGET + 0.5)
 
 
@@ -1693,15 +1696,8 @@ def test_render_arabinose_furanose_ch2oh_connector_hits_leading_carbon_center():
 	line = _line_by_id(ops, "C4_up_connector")
 	# ML slot (anchor=end) reverses CH2OH to HOH2C so the carbon faces the ring
 	assert label.text == "HOH<sub>2</sub>C"
-	# Use trailing-carbon (last) attach target for reversed HOH2C text
-	label_box = render_geometry.label_attach_target_from_text_origin(
-		text_x=label.x,
-		text_y=label.y,
-		text=label.text,
-		anchor=label.anchor,
-		font_size=label.font_size,
-		attach_atom="last",
-	).box
+	# Full-box bond trimming: connector hits the full label bounding box edge.
+	label_box = _label_bbox(label)
 	assert _point_on_box_edge(line.p2, label_box, tol=render_geometry.ATTACH_GAP_TARGET + 0.5)
 
 
@@ -1712,7 +1708,8 @@ def test_render_ketopentose_furanose_down_ch2oh_connector_hits_leading_carbon_ce
 	label = _text_by_id(ops, "C2_down_label")
 	line = _line_by_id(ops, "C2_down_connector")
 	assert label.text == "CH<sub>2</sub>OH"
-	label_box = _connector_bbox_for_label(label)
+	# Full-box bond trimming: connector hits the full label bounding box edge.
+	label_box = _label_bbox(label)
 	assert _point_on_box_edge(line.p2, label_box, tol=render_geometry.ATTACH_GAP_TARGET + 0.5)
 
 

@@ -1,6 +1,13 @@
 # Changelog
 
 ## 2026-02-17
+- Switch chain-like labels (CH2OH, CHOH, CH3, HOH2C, etc.) to full-box bond
+  trimming (`target_kind="label_box"`) in the Haworth renderer.  Connector
+  endpoints now resolve against the full label bounding box instead of
+  narrowing to the specific carbon glyph.  Removes the `endswith("C")` hack
+  for reversed labels.  Hydroxyl (OH/HO) labels keep oxygen-circle targeting;
+  two-carbon tail ops and multi-segment chain ops keep explicit `attach_box`
+  targeting.
 - Add 3-KETO ring rules to Haworth spec
   ([packages/oasa/oasa/haworth/spec.py](packages/oasa/oasa/haworth/spec.py)):
   furanose (anomeric=3, closure=6, min_carbons=6) and pyranose (anomeric=3,
