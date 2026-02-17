@@ -22,6 +22,10 @@ _RING_RULES = {
 		"furanose": {"anomeric": 2, "closure": 5, "min_carbons": 5},
 		"pyranose": {"anomeric": 2, "closure": 6, "min_carbons": 6},
 	},
+	"3-KETO": {
+		"furanose": {"anomeric": 3, "closure": 6, "min_carbons": 6},
+		"pyranose": {"anomeric": 3, "closure": 7, "min_carbons": 7},
+	},
 }
 
 _STEREO_TO_LABELS = {
@@ -104,9 +108,18 @@ def generate(
 		substituents[f"C{carbon}_up"] = "H"
 		substituents[f"C{carbon}_down"] = "H"
 
-	# 1) anomeric OH orientation, including ketose C1 CH2OH pre-anomeric group.
+	# 1) anomeric OH orientation, including ketose pre-anomeric group.
 	oh_dir = _anomeric_oh_direction(parsed.config, anomeric)
-	if parsed.prefix == "KETO":
+	if parsed.prefix == "3-KETO":
+		# pre-anomeric chain is C1-C2 (2 carbons before anomeric C3)
+		pre_chain = "CH(OH)CH2OH"
+		_set_pair(
+			substituents,
+			anomeric_carbon,
+			up_label="OH" if oh_dir == "up" else pre_chain,
+			down_label="OH" if oh_dir == "down" else pre_chain,
+		)
+	elif parsed.prefix == "KETO":
 		_set_pair(
 			substituents,
 			anomeric_carbon,
@@ -167,8 +180,8 @@ def _resolve_ring_rule(parsed: ParsedSugarCode, ring_type: str) -> dict[str, int
 	prefix_rules = _RING_RULES.get(parsed.prefix)
 	if prefix_rules is None:
 		raise ValueError(
-			"Haworth Phase 0 supports prefixes A/MK only for conversion; got prefix=%s "
-			"(sugar_code=%s)"
+			"Haworth Phase 0 supports prefixes A/MK/MRK/MLK only for conversion; "
+			"got prefix=%s (sugar_code=%s)"
 			% (parsed.prefix, parsed.sugar_code)
 		)
 	return prefix_rules[ring_type]
