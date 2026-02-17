@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-02-17
+- Add sugar codes HTML gallery script
+  [tools/sugar_codes_summary.py](tools/sugar_codes_summary.py) that reads all
+  106 sugar codes from
+  [packages/oasa/oasa_data/sugar_codes.yml](packages/oasa/oasa_data/sugar_codes.yml),
+  renders each valid ring/anomeric combination as a Haworth projection SVG
+  file, and writes two separate HTML gallery pages:
+  `output_smoke/sugar_codes_pyranose.html` and
+  `output_smoke/sugar_codes_furanose.html`.  SVG previews are written to
+  `output_smoke/sugar_codes_previews/` and referenced via `<img>` tags.  Each
+  page has a cross-link to the other ring type gallery in the sticky header.
+  Uses the same earth-tone CSS theme and `_normalize_generated_svg` viewBox
+  logic as `tools/archive_matrix_summary.py`.  Grouped by YAML category with
+  section headers; sugars that cannot form valid rings show "No valid
+  [ring type] ring forms".
+
 ## 2026-02-15
 - Add macOS DMG build script
   [devel/build_macos_dmg.py](devel/build_macos_dmg.py) that produces a
