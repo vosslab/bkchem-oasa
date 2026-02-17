@@ -1262,13 +1262,10 @@ class BKChem( Tk):
   def read_smiles( self, smiles=None):
     if not oasa_bridge.oasa_available:
       return
-    lt = _("""Before you use this tool, be warned that not all features of SMILES are currently supported.
-There is no support for stereo-related information, for the square brackets [] and a few more things.
-
-Enter SMILES:""")
+    lt = _("Enter a SMILES or IsoSMILES string:")
     if not smiles:
       dial = Pmw.PromptDialog( self,
-                               title='Smiles',
+                               title='SMILES',
                                label_text=lt,
                                entryfield_labelpos = 'n',
                                buttons=(_('OK'),_('Cancel')))
@@ -1281,12 +1278,20 @@ Enter SMILES:""")
       text = smiles
 
     if text:
-      mol = oasa_bridge.read_smiles(text, self.paper)
-      self.paper.stack.append(mol)
-      mol.draw()
+      # route through CDML: SMILES -> OASA -> CDML element -> BKChem import
+      self.paper.onread_id_sandbox_activate()
+      elements = oasa_bridge.smiles_to_cdml_elements( text, self.paper)
+      imported = []
+      for element in elements:
+        mol = self.paper.add_object_from_package( element)
+        imported.append( mol)
+        mol.draw()
+      self.paper.onread_id_sandbox_finish( apply_to=imported)
       self.paper.add_bindings()
       self.paper.start_new_undo_record()
-      return mol
+      if len( imported) == 1:
+        return imported[0]
+      return imported
 
 
   def read_inchi( self, inchi=None):

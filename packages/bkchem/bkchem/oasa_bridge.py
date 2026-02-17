@@ -26,6 +26,7 @@ except ImportError:
   oasa_available = 0
 
 from oasa import transform3d
+from oasa import cdml_writer
 
 import bond
 import atom
@@ -88,11 +89,100 @@ def write_codec_file_from_selected_molecule( codec_name, paper, file_obj, **kwar
   _write_codec_file_from_bkchem_mol( codec_name, selected, file_obj, **kwargs)
 
 
-def read_smiles( text, paper):
+def _calculate_coords( mol, bond_length=1.0, force=1):
+  """Generate 2D coordinates using RDKit if available, then coords_generator2, else old generator."""
+  try:
+    from oasa.rdkit_bridge import calculate_coords_rdkit
+    calculate_coords_rdkit( mol, bond_length=bond_length)
+    return
+  except ImportError:
+    pass
+  # prefer the improved 3-layer generator over the legacy one
+  try:
+    import oasa.coords_generator2
+    oasa.coords_generator2.calculate_coords( mol, bond_length=bond_length, force=force)
+  except ImportError:
+    oasa.coords_generator.calculate_coords( mol, bond_length=bond_length, force=force)
+
+
+def smiles_to_cdml_elements( smiles_text, paper):
+  """Convert SMILES text to a list of CDML molecule DOM elements.
+
+  Routes through the canonical CDML serialization path:
+  SMILES -> OASA molecule -> 2D coords -> scale to cm -> CDML element.
+  Handles disconnected SMILES (e.g. "CC.OO") by splitting into
+  separate CDML elements, one per connected component.
+
+  Args:
+    smiles_text: SMILES or IsoSMILES string
+    paper: BKChem paper object (provides standard bond length)
+
+  Returns:
+    list of xml.dom.minidom.Element, each a <molecule> element
+  """
+  if not smiles_text or not smiles_text.strip():
+    raise ValueError("Empty SMILES string")
+  # parse SMILES to OASA molecule
   codec = _get_codec( "smiles")
-  mol = codec.read_text( text)
-  oasa.coords_generator.calculate_coords( mol, bond_length=1.0, force=1)
-  return oasa_mol_to_bkchem_mol( mol, paper)
+  mol = codec.read_text( smiles_text)
+  # remove zero-order bonds so dot-disconnected components separate
+  mol.remove_zero_order_bonds()
+  # split disconnected components
+  if not mol.is_connected():
+    parts = mol.get_disconnected_subgraphs()
+  else:
+    parts = [mol]
+  # convert each component to a CDML element
+  elements = []
+  for part in parts:
+    element = _oasa_mol_to_cdml_element( part, paper)
+    elements.append( element)
+  return elements
+
+
+def _oasa_mol_to_cdml_element( mol, paper):
+  """Convert a single connected OASA molecule to a CDML DOM element.
+
+  Generates 2D coordinates, rescales to match the paper standard bond
+  length in cm, centers the molecule, and serializes to CDML.
+
+  Args:
+    mol: OASA molecule object (must be connected)
+    paper: BKChem paper object
+
+  Returns:
+    xml.dom.minidom.Element for a <molecule>
+  """
+  # generate 2D coordinates (abstract units, avg bond ~ 1.0)
+  _calculate_coords( mol, bond_length=1.0, force=1)
+  # compute average bond length from generated coords
+  bond_lengths = []
+  for b in mol.edges:
+    v1, v2 = b.vertices
+    dx = v1.x - v2.x
+    dy = v1.y - v2.y
+    bond_lengths.append( math.sqrt( dx * dx + dy * dy))
+  avg_bl = sum( bond_lengths) / len( bond_lengths) if bond_lengths else 1.0
+  # compute desired bond length in screen pixels from paper standard
+  bond_length_px = Screen.any_to_px( paper.standard.bond_length)
+  # scale and center at (320, 240) pixels, matching oasa_mol_to_bkchem_mol
+  scale = bond_length_px / avg_bl
+  # compute centroid of generated coords
+  xs = [a.x for a in mol.vertices]
+  ys = [a.y for a in mol.vertices]
+  cx = sum( xs) / len( xs)
+  cy = sum( ys) / len( ys)
+  # apply transform: center at origin, scale, move to (320, 240)
+  trans = transform3d.transform3d()
+  trans.set_move( -cx, -cy, 0)
+  trans.set_scaling( scale)
+  trans.set_move( 320, 240, 0)
+  for a in mol.vertices:
+    a.x, a.y, a.z = trans.transform_xyz( a.x, a.y, a.z)
+  # serialize to CDML element with coordinates in cm via Screen
+  element = cdml_writer.write_cdml_molecule_element(
+    mol, coord_to_text=Screen.px_to_text_with_unit)
+  return element
 
 
 def mol_to_smiles( mol):

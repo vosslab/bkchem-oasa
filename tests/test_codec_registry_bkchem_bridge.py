@@ -81,25 +81,6 @@ class DummyObject:
 
 
 #============================================
-def test_oasa_bridge_read_smiles_uses_registry(monkeypatch):
-	codec = DummyCodec()
-	dummy_mol = DummyMol()
-	codec.read_text_result = dummy_mol
-	monkeypatch.setattr(oasa.codec_registry, "get_codec", lambda name: codec)
-
-	coords_calls = []
-	monkeypatch.setattr(oasa.coords_generator, "calculate_coords",
-						lambda mol, bond_length=1.0, force=1: coords_calls.append((mol, bond_length, force)))
-	monkeypatch.setattr(oasa_bridge, "oasa_mol_to_bkchem_mol",
-						lambda mol, paper: ("bkchem", mol, paper))
-
-	result = oasa_bridge.read_smiles("C", paper="paper")
-	assert result == ("bkchem", dummy_mol, "paper")
-	assert codec.read_text_calls[0][0] == "C"
-	assert coords_calls
-
-
-#============================================
 def test_oasa_bridge_mol_to_smiles_uses_registry(monkeypatch):
 	codec = DummyCodec()
 	codec.write_text_result = "CC"

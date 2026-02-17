@@ -8,6 +8,59 @@
   for reversed labels.  Hydroxyl (OH/HO) labels keep oxygen-circle targeting;
   two-carbon tail ops and multi-segment chain ops keep explicit `attach_box`
   targeting.
+- Route BKChem SMILES import through CDML: replace direct
+  `oasa_mol_to_bkchem_mol` bridge with `smiles_to_cdml_elements()` in
+  [packages/bkchem/bkchem/oasa_bridge.py](packages/bkchem/bkchem/oasa_bridge.py),
+  update `read_smiles()` dialog in
+  [packages/bkchem/bkchem/main.py](packages/bkchem/bkchem/main.py) to use
+  `paper.add_object_from_package()`, and remove old `read_smiles` bridge
+  function. Updated dialog text to indicate IsoSMILES support.
+- Add pytest test suite
+  [tests/test_smiles_cdml_import.py](tests/test_smiles_cdml_import.py) for the
+  `smiles_to_cdml_elements()` function in `oasa_bridge.py` (7 tests covering
+  ethanol, benzene, coordinate units, bond length, disconnected SMILES, empty
+  input, and atom names).
+- Fix disconnected SMILES handling in `smiles_to_cdml_elements()` in
+  [packages/bkchem/bkchem/oasa_bridge.py](packages/bkchem/bkchem/oasa_bridge.py):
+  add `mol.remove_zero_order_bonds()` call so dot-separated SMILES like "CC.OO"
+  are correctly split into separate CDML molecule elements.
+- Add SMILES/IsoSMILES CDML import plan
+  [docs/active_plans/SMILES_CDML_IMPORT_PLAN.md](docs/active_plans/SMILES_CDML_IMPORT_PLAN.md)
+  to route SMILES import through the canonical CDML serialization path instead
+  of the direct `oasa_mol_to_bkchem_mol` bridge.
+- Add three-layer 2D coordinate generator
+  [packages/oasa/oasa/coords_generator2.py](packages/oasa/oasa/coords_generator2.py)
+  that produces RDKit-quality 2D layouts without the RDKit dependency.
+  Implements ring system assembly (fused, spiro, bridged), BFS chain/substituent
+  placement, collision detection with flip/nudge resolution, and force-field
+  refinement (bond stretch + angle bend + non-bonded repulsion).
+- Add coordinate generator tests
+  [tests/test_coords_generator2.py](tests/test_coords_generator2.py) covering
+  single atoms, chains, benzene, naphthalene, spiro, steroid skeleton, triple
+  bonds, branching, and force parameter behavior (23 tests).
+- Add visual comparison tool
+  [tools/coords_comparison.py](tools/coords_comparison.py) that renders
+  side-by-side HTML galleries of old vs new vs RDKit 2D coordinate layouts
+  for 24 test molecules.
+- Update [packages/bkchem/bkchem/oasa_bridge.py](packages/bkchem/bkchem/oasa_bridge.py)
+  to prefer `coords_generator2` over legacy `coords_generator` when RDKit is not
+  available, with graceful fallback to the old generator.
+- Add RDKit bridge module
+  [packages/oasa/oasa/rdkit_bridge.py](packages/oasa/oasa/rdkit_bridge.py) for
+  converting between OASA and RDKit molecule representations and generating 2D
+  coordinates via `AllChem.Compute2DCoords`.  Provides `oasa_to_rdkit_mol`,
+  `rdkit_to_oasa_mol`, and `calculate_coords_rdkit` functions following the same
+  pattern as the existing `pybel_bridge.py`.
+- Add RDKit sugar comparison gallery tool
+  [tools/rdkit_sugar_comparison.py](tools/rdkit_sugar_comparison.py) that
+  renders side-by-side Haworth projection SVGs and RDKit 2D depiction SVGs for
+  all sugar codes.  Outputs `output_smoke/rdkit_comparison_pyranose.html` and
+  `output_smoke/rdkit_comparison_furanose.html` with comparison pairs.
+- Wire RDKit coordinate generation into bkchem SMILES import pipeline.
+  [packages/bkchem/bkchem/oasa_bridge.py](packages/bkchem/bkchem/oasa_bridge.py)
+  now uses `rdkit_bridge.calculate_coords_rdkit` when RDKit is available,
+  falling back to OASA's native `coords_generator` when it is not.
+- Add `rdkit` to [pip_requirements.txt](pip_requirements.txt).
 - Add 3-KETO ring rules to Haworth spec
   ([packages/oasa/oasa/haworth/spec.py](packages/oasa/oasa/haworth/spec.py)):
   furanose (anomeric=3, closure=6, min_carbons=6) and pyranose (anomeric=3,

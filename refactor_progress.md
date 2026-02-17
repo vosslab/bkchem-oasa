@@ -13,6 +13,9 @@ Last updated: 2026-02-15
 - Data reorg: OASA isotope data moved to JSON and legacy data sources removed.
 
 ## Not started
+- [docs/active_plans/SMILES_CDML_IMPORT_PLAN.md](docs/active_plans/SMILES_CDML_IMPORT_PLAN.md):
+  Route SMILES/IsoSMILES import through CDML instead of direct bridge; plan
+  documented, implementation not started.
 - Menu refactor implementation:
   [docs/active_plans/MENU_REFACTOR_SUMMARY.md](docs/active_plans/MENU_REFACTOR_SUMMARY.md) and the supporting
   docs define the plan, but no code migration has landed yet.
