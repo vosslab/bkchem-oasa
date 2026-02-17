@@ -1,6 +1,33 @@
 # Changelog
 
 ## 2026-02-17
+- Route all complex substituents through `coords_generator2` in
+  [packages/oasa/oasa/haworth/fragment_layout.py](packages/oasa/oasa/haworth/fragment_layout.py):
+  remove `_two_carbon_tail_fragment()` special case and `branch_length` parameter.
+  CH(OH)CH2OH and CHAIN<N> now use the same 120-degree lattice-aligned molecular
+  geometry path. Down-direction two-carbon tails produce symmetric 30/150 degree
+  branch angles instead of side-dependent orientation.
+- Route CHAIN<N> labels through `_add_fragment_ops()` in
+  [packages/oasa/oasa/haworth/renderer.py](packages/oasa/oasa/haworth/renderer.py):
+  CHAIN3+ labels now use `coords_generator2` zigzag geometry with proper OH
+  branches at each junction, replacing the collinear `_add_chain_ops()` path.
+  Add `_fragment_chain_numbers()` for sequential chain segment op_id naming
+  (chain1, chain1_oh, chain2, chain2_oh, chain3).
+- Add fragment-based substituent layout module
+  [packages/oasa/oasa/haworth/fragment_layout.py](packages/oasa/oasa/haworth/fragment_layout.py):
+  uses `coords_generator2` to identify display groups from SMILES fragments, and
+  provides `FragmentAtom` dataclass and `layout_fragment()` for computing
+  positioned atom groups for complex substituents (CH(OH)CH2OH, CHAIN<N>).
+- Add unified `_add_fragment_ops()` renderer path in
+  [packages/oasa/oasa/haworth/renderer.py](packages/oasa/oasa/haworth/renderer.py):
+  replaces `_add_furanose_two_carbon_tail_ops()` for branched CH(OH)CH2OH tails
+  using the new fragment layout infrastructure. Produces backwards-compatible
+  op_ids and rendering (connectors, text labels, hashed bonds). Legacy
+  `_add_chain_ops` retained for sequential CHAIN<N> rendering.
+- Add 25 unit tests in
+  [tests/test_haworth_fragment_layout.py](tests/test_haworth_fragment_layout.py)
+  covering SMILES lookup, fragment grouping, two-carbon tail geometry (branch
+  angles, bond styles, parent indices), and CHAIN<N> group identification.
 - Switch chain-like labels (CH2OH, CHOH, CH3, HOH2C, etc.) to full-box bond
   trimming (`target_kind="label_box"`) in the Haworth renderer.  Connector
   endpoints now resolve against the full label bounding box instead of
@@ -8,6 +35,10 @@
   for reversed labels.  Hydroxyl (OH/HO) labels keep oxygen-circle targeting;
   two-carbon tail ops and multi-segment chain ops keep explicit `attach_box`
   targeting.
+- Fix IndexError crash when rotating molecules with double bonds in
+  [packages/bkchem/bkchem/bond_display.py](packages/bkchem/bkchem/bond_display.py):
+  guard `self.second[0]` access in `transform()` since the render-ops draw path
+  never populates `self.second` for double bonds.
 - Route BKChem SMILES import through CDML: replace direct
   `oasa_mol_to_bkchem_mol` bridge with `smiles_to_cdml_elements()` in
   [packages/bkchem/bkchem/oasa_bridge.py](packages/bkchem/bkchem/oasa_bridge.py),

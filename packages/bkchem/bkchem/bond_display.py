@@ -154,7 +154,7 @@ class BondDisplayMixin:
     if self.selector:
       self.unselect()
       self.select()
-    if self.order == 2 and not self.center:
+    if self.order == 2 and not self.center and self.second:
       line = list(self.atom1.get_xy())
       line += self.atom2.get_xy()
       x, y = self.paper.coords(self.second[0])[0:2]

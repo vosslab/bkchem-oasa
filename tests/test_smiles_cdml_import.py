@@ -4,7 +4,6 @@
 import builtins
 import math
 import re
-import sys
 
 # Third Party
 import pytest

@@ -19,6 +19,7 @@ from .spec import HaworthSpec
 from . import renderer_geometry as _geom
 from . import renderer_text as _text
 from . import renderer_layout as _layout
+from . import fragment_layout as _fragment
 from .renderer_config import (
 	RING_SLOT_SEQUENCE,
 	RING_RENDER_CONFIG,
@@ -660,14 +661,10 @@ def render(
 					and _text.is_two_carbon_tail_label(label)
 					and slot in ("ML", "MR")
 			):
-				# Down-direction two-carbon tails need the same minimum standoff
-				# as up-direction tails get from oxygen clearance, so both
-				# branch arms have adequate length for labels.
-				if direction == "down":
-					oxygen_top = oy - (font_size * 0.65)
-					target_y = oxygen_top - (font_size * FURANOSE_TOP_UP_CLEARANCE_FACTOR)
-					min_length = max(0.0, vertex[1] - target_y)
-					effective_length = max(effective_length, min_length)
+				# Two-carbon tails branch into Y-shape at the branch point.
+				# The branch arms extend at angles (not straight down), so the
+				# large down-direction clearance boost is unnecessary and causes
+				# the arms to overshoot back toward the ring.
 				# Defer branched tail placement until simple labels are finalized so
 				# chain2 collision search can see full label occupancy.
 				two_carbon_tail_jobs.append(
@@ -691,22 +688,47 @@ def render(
 				continue
 			chain_label_list = _text.chain_labels(label)
 			if chain_label_list:
-				_add_chain_ops(
-					ops=ops,
-					carbon=carbon,
-					direction=direction,
-					vertex=vertex,
-					dx=dx,
-					dy=dy,
-					segment_length=effective_length,
-					labels=chain_label_list,
-					connector_width=connector_width,
-					font_size=font_size,
-					font_name=font_name,
-					anchor=anchor,
-					line_color=line_color,
-					label_color=label_color,
+				# Try fragment layout for CHAIN labels (proper molecular geometry)
+				chain_fragment = _fragment.layout_fragment(
+					label=label,
+					bond_length=effective_length,
+					attachment_point=vertex,
+					direction=(dx, dy),
+					up_or_down=direction,
+					ring_center=ring_center,
 				)
+				if chain_fragment is not None:
+					_add_fragment_ops(
+						ops=ops,
+						fragment=chain_fragment,
+						carbon=carbon,
+						direction=direction,
+						vertex=vertex,
+						connector_width=connector_width,
+						font_size=font_size,
+						font_name=font_name,
+						anchor=anchor,
+						line_color=line_color,
+						label_color=label_color,
+					)
+				else:
+					# Fallback to legacy chain ops for unrecognized labels
+					_add_chain_ops(
+						ops=ops,
+						carbon=carbon,
+						direction=direction,
+						vertex=vertex,
+						dx=dx,
+						dy=dy,
+						segment_length=effective_length,
+						labels=chain_label_list,
+						connector_width=connector_width,
+						font_size=font_size,
+						font_name=font_name,
+						anchor=anchor,
+						line_color=line_color,
+						label_color=label_color,
+					)
 				continue
 			simple_jobs.append(
 				{
@@ -752,23 +774,48 @@ def render(
 			label_color=job["label_color"],
 		)
 	for job in two_carbon_tail_jobs:
-		_add_furanose_two_carbon_tail_ops(
-			ops=ops,
-			carbon=job["carbon"],
-			slot=job["slot"],
-			direction=job["direction"],
-			vertex=job["vertex"],
+		# Use fragment layout for branched two-carbon tails
+		tail_fragment = _fragment.layout_fragment(
+			label="CH(OH)CH2OH",
+			bond_length=job["segment_length"],
+			attachment_point=job["vertex"],
+			direction=(job["dx"], job["dy"]),
+			up_or_down=job["direction"],
 			ring_center=job["ring_center"],
-			dx=job["dx"],
-			dy=job["dy"],
-			segment_length=job["segment_length"],
-			connector_width=job["connector_width"],
-			font_size=job["font_size"],
-			font_name=job["font_name"],
-			anchor=job["anchor"],
-			line_color=job["line_color"],
-			label_color=job["label_color"],
 		)
+		if tail_fragment is not None:
+			_add_fragment_ops(
+				ops=ops,
+				fragment=tail_fragment,
+				carbon=job["carbon"],
+				direction=job["direction"],
+				vertex=job["vertex"],
+				connector_width=job["connector_width"],
+				font_size=job["font_size"],
+				font_name=job["font_name"],
+				anchor=job["anchor"],
+				line_color=job["line_color"],
+				label_color=job["label_color"],
+			)
+		else:
+			# Fallback to legacy two-carbon tail rendering
+			_add_furanose_two_carbon_tail_ops(
+				ops=ops,
+				carbon=job["carbon"],
+				slot=job["slot"],
+				direction=job["direction"],
+				vertex=job["vertex"],
+				ring_center=job["ring_center"],
+				dx=job["dx"],
+				dy=job["dy"],
+				segment_length=job["segment_length"],
+				connector_width=job["connector_width"],
+				font_size=job["font_size"],
+				font_name=job["font_name"],
+				anchor=job["anchor"],
+				line_color=job["line_color"],
+				label_color=job["label_color"],
+			)
 
 	if show_carbon_numbers:
 		center_x = sum(point[0] for point in coords) / len(coords)
@@ -1213,6 +1260,274 @@ def _align_text_origin_to_endpoint_target_centroid(
 
 
 #============================================
+def _fragment_chain_numbers(fragment: list) -> dict[int, int]:
+	"""Compute chain segment numbers for each fragment group.
+
+	Non-OH groups (junctions and terminal carbons) get sequential numbers
+	starting at 1.  OH groups inherit their parent's chain number.
+	This produces op_ids like chain1, chain1_oh, chain2, chain2_oh, chain3.
+	"""
+	chain_num = {}
+	count = 0
+	for index, atom in enumerate(fragment):
+		if atom.label != "OH":
+			count += 1
+			chain_num[index] = count
+		else:
+			chain_num[index] = chain_num[atom.parent_index]
+	return chain_num
+
+
+#============================================
+def _fragment_op_id(
+		carbon: int,
+		direction: str,
+		atom_index: int,
+		atom_label: str,
+		suffix: str,
+		chain_numbers: dict[int, int] | None = None) -> str:
+	"""Generate op_id for fragment render ops.
+
+	Uses chain_numbers mapping when provided to assign sequential chain
+	segment numbers.  Non-OH groups get chain<N>, OH groups get chain<N>_oh.
+	"""
+	# Compute chain number for this atom
+	if chain_numbers is not None:
+		num = chain_numbers[atom_index]
+	else:
+		# Legacy fallback for two-group fragments
+		num = 1 if atom_index == 0 else 2
+	# OH groups use parent's chain number with _oh suffix
+	if atom_label == "OH":
+		return f"C{carbon}_{direction}_chain{num}_oh_{suffix}"
+	return f"C{carbon}_{direction}_chain{num}_{suffix}"
+
+
+#============================================
+def _add_fragment_ops(
+		ops: list,
+		fragment: list,
+		carbon: int,
+		direction: str,
+		vertex: tuple[float, float],
+		connector_width: float,
+		font_size: float,
+		font_name: str,
+		anchor: str,
+		line_color: str,
+		label_color: str) -> None:
+	"""Add render ops for a coords_generator2-based fragment layout.
+
+	Draws connectors and text labels for each FragmentAtom in the fragment.
+	The first connector goes from the ring vertex to the root group (index 0).
+	Subsequent connectors go from each group's parent to the group position.
+	"""
+	# Pre-compute chain segment numbers for sequential op_id naming
+	chain_numbers = _fragment_chain_numbers(fragment)
+	for index, atom in enumerate(fragment):
+		# Determine connector start point
+		if atom.parent_index == -1:
+			# Root group: connector from ring vertex to branch point
+			bond_start = vertex
+		else:
+			parent = fragment[atom.parent_index]
+			bond_start = (parent.x, parent.y)
+		bond_end = (atom.x, atom.y)
+
+		# Build op_id using chain segment numbers
+		connector_id = _fragment_op_id(carbon, direction, index, atom.label, "connector", chain_numbers)
+		label_id = _fragment_op_id(carbon, direction, index, atom.label, "label", chain_numbers)
+
+		# Determine resolver width for hashed bonds
+		resolver_width = connector_width
+		if atom.bond_style == "hashed":
+			resolver_width = max(0.18, connector_width * 0.22)
+
+		# Determine per-branch anchor from horizontal direction of the branch.
+		# Branches going left use "end" (text reads right-to-left), branches
+		# going right use "start" (text reads left-to-right).
+		branch_dx = bond_end[0] - bond_start[0]
+		if abs(branch_dx) < 1e-9:
+			branch_anchor = anchor
+		elif branch_dx < 0:
+			branch_anchor = "end"
+		else:
+			branch_anchor = "start"
+
+		# For labeled groups, resolve text position and connector endpoint
+		if atom.label:
+			is_chain_like = _text.is_chain_like_label(atom.label)
+			if atom.label == "OH":
+				# OH uses format_label_text and oxygen-center positioning
+				ho_anchor = branch_anchor
+				ho_text = _text.format_label_text("OH", anchor=ho_anchor)
+				ho_x, ho_y = _text_origin_for_hydroxyl_oxygen_center(
+					text=ho_text,
+					anchor=ho_anchor,
+					font_size=font_size,
+					oxygen_center=bond_end,
+				)
+				ho_attach_mode = _render_geometry.default_label_attach_policy(
+					text=ho_text,
+					chain_attach_site="core_center",
+				).attach_atom
+				ho_x, ho_y = _align_text_origin_to_endpoint_target_centroid(
+					text_x=ho_x,
+					text_y=ho_y,
+					text=ho_text,
+					anchor=ho_anchor,
+					font_size=font_size,
+					target_centroid=bond_end,
+					line_width=resolver_width,
+					attach_atom=ho_attach_mode,
+					attach_element="O",
+					attach_site="core_center",
+					chain_attach_site="core_center",
+					font_name=font_name,
+				)
+				# Compute label target for forbidden regions
+				ho_label_target = _render_geometry.label_target_from_text_origin(
+					text_x=ho_x,
+					text_y=ho_y,
+					text=ho_text,
+					anchor=ho_anchor,
+					font_size=font_size,
+					font_name=font_name,
+				)
+				# Resolve connector endpoint
+				ho_connector_end, ho_contract = _render_geometry.resolve_label_connector_endpoint_from_text_origin(
+					bond_start=bond_start,
+					text_x=ho_x,
+					text_y=ho_y,
+					text=ho_text,
+					anchor=ho_anchor,
+					font_size=font_size,
+					line_width=resolver_width,
+					constraints=_render_geometry.make_attach_constraints(
+						font_size=font_size,
+						target_gap=_render_geometry.ATTACH_GAP_TARGET,
+						direction_policy="line",
+					),
+					epsilon=RETREAT_SOLVER_EPSILON,
+					attach_atom=ho_attach_mode,
+					attach_element="O",
+					chain_attach_site="core_center",
+					font_name=font_name,
+				)
+				_append_branch_connector_ops(
+					ops=ops,
+					start=bond_start,
+					end=ho_connector_end,
+					connector_width=connector_width,
+					font_size=font_size,
+					color=line_color,
+					op_id=connector_id,
+					style=atom.bond_style,
+					forbidden_regions=[ho_label_target],
+					allowed_regions=[ho_contract.allowed_target],
+				)
+				ops.append(
+					render_ops.TextOp(
+						x=ho_x,
+						y=ho_y,
+						text=ho_text,
+						font_size=font_size,
+						font_name=font_name,
+						anchor=ho_anchor,
+						weight="normal",
+						color=label_color,
+						z=5,
+						op_id=label_id,
+					)
+				)
+			else:
+				# Chain-like label (CH2OH, CHOH, etc.)
+				ch2_anchor = branch_anchor
+				# Text direction for baseline_shift: use "up" when branch
+				# goes upward (negative dy), "down" otherwise
+				branch_dy = bond_end[1] - bond_start[1]
+				ch2_text_direction = "up" if branch_dy < 0 else direction
+				if is_chain_like:
+					ch2_text = _text.format_chain_label_text(atom.label, anchor=ch2_anchor)
+				else:
+					ch2_text = _text.format_label_text(atom.label, anchor=ch2_anchor)
+				ch2_x = bond_end[0] + _text.anchor_x_offset(ch2_text, ch2_anchor, font_size)
+				ch2_y = bond_end[1] + _text.baseline_shift(ch2_text_direction, font_size, ch2_text)
+				# Compute label target for forbidden regions
+				ch2_label_target = _render_geometry.label_target_from_text_origin(
+					text_x=ch2_x,
+					text_y=ch2_y,
+					text=ch2_text,
+					anchor=ch2_anchor,
+					font_size=font_size,
+					font_name=font_name,
+				)
+				# Compensate for round-cap extending connector_width/2 into the gap
+				ch2_gap = _render_geometry.ATTACH_GAP_TARGET + (connector_width * 0.5)
+				ch2_connector_end, ch2_contract = _render_geometry.resolve_label_connector_endpoint_from_text_origin(
+					bond_start=bond_start,
+					text_x=ch2_x,
+					text_y=ch2_y,
+					text=ch2_text,
+					anchor=ch2_anchor,
+					font_size=font_size,
+					line_width=resolver_width,
+					constraints=_render_geometry.make_attach_constraints(
+						font_size=font_size,
+						target_gap=ch2_gap,
+						direction_policy="auto",
+					),
+					epsilon=RETREAT_SOLVER_EPSILON,
+					attach_atom="first",
+					attach_element="C",
+					attach_site="core_center",
+					chain_attach_site="core_center",
+					target_kind="attach_box",
+					font_name=font_name,
+				)
+				ch2_attach_target = ch2_contract.allowed_target
+				_append_branch_connector_ops(
+					ops=ops,
+					start=bond_start,
+					end=ch2_connector_end,
+					connector_width=connector_width,
+					font_size=font_size,
+					color=line_color,
+					op_id=connector_id,
+					style=atom.bond_style,
+					forbidden_regions=[ch2_label_target],
+					allowed_regions=[ch2_attach_target],
+				)
+				ops.append(
+					render_ops.TextOp(
+						x=ch2_x,
+						y=ch2_y,
+						text=ch2_text,
+						font_size=font_size,
+						font_name=font_name,
+						anchor=ch2_anchor,
+						weight="normal",
+						color=label_color,
+						z=5,
+						op_id=label_id,
+					)
+				)
+		else:
+			# Junction vertex (no label): just draw the connector
+			ops.append(
+				render_ops.LineOp(
+					p1=bond_start,
+					p2=bond_end,
+					width=connector_width,
+					cap="round",
+					color=line_color,
+					z=4,
+					op_id=connector_id,
+				)
+			)
+
+
+#============================================
 def _add_chain_ops(
 		ops: list,
 		carbon: int,
@@ -1284,7 +1599,10 @@ def _add_chain_ops(
 				op_id=f"C{carbon}_{direction}_chain{index}_label",
 			)
 		)
-		start = connector_end
+		# Advance start to the nominal text center (not the connector endpoint).
+		# Using connector_end compresses spacing because the connector stops
+		# at the near edge of the text box, losing ~half the text height.
+		start = nominal_end
 
 
 #============================================

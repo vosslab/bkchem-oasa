@@ -2036,15 +2036,16 @@ def test_render_allose_furanose_alpha_tail_branches_right_with_ch2oh_text():
 
 
 #============================================
-def test_render_gulose_furanose_alpha_tail_branches_left_with_hoh2c_text():
+def test_render_gulose_furanose_alpha_tail_branches_with_symmetric_down():
+	"""Down direction uses symmetric coords_generator2 branches (OH right, CH2OH left)."""
 	_, ops = _render("ARRLDM", "furanose", "alpha", show_hydrogens=False)
 	_assert_furanose_tail_branch_geometry(
 		ops,
 		direction="down",
-		expect_ho_side="left",
+		expect_ho_side="right",
 		expect_ch2_side="left",
 	)
-	assert _text_by_id(ops, "C4_down_chain1_oh_label").text == "HO"
+	assert _text_by_id(ops, "C4_down_chain1_oh_label").text == "OH"
 	assert _text_by_id(ops, "C4_down_chain2_label").text == "HOH<sub>2</sub>C"
 	_assert_hashed_connector_quality(
 		ops,
@@ -2063,10 +2064,11 @@ def test_render_mannose_furanose_alpha_two_carbon_up_branch_angles():
 
 #============================================
 def test_render_gulose_furanose_alpha_two_carbon_down_branch_angles():
+	"""Down direction: coords_generator2 symmetric angles (OH at 30, CH2OH at ~153)."""
 	_, ops = _render("ARRLDM", "furanose", "alpha", show_hydrogens=False)
-	_assert_line_angle(_line_by_id(ops, "C4_down_chain1_oh_connector"), 210.0)
+	_assert_line_angle(_line_by_id(ops, "C4_down_chain1_oh_connector"), 30.0)
 	# Standard chain_ops positioning (no custom centroid alignment) shifts angle slightly
-	_assert_line_angle(_line_by_id(ops, "C4_down_chain2_connector"), 123.631746, tolerance_degrees=0.001)
+	_assert_line_angle(_line_by_id(ops, "C4_down_chain2_connector"), 153.342756, tolerance_degrees=0.001)
 
 
 #============================================
@@ -2092,7 +2094,8 @@ def test_render_furanose_two_carbon_down_class_uses_c4_down_tail(code, anomeric)
 	}
 	assert "C4_down_chain2_connector" in line_ids
 	assert "C4_up_chain2_connector" not in line_ids
-	assert _text_by_id(ops, "C4_down_chain1_oh_label").text == "HO"
+	# coords_generator2 symmetric down: OH goes right (text="OH"), CH2OH goes left
+	assert _text_by_id(ops, "C4_down_chain1_oh_label").text == "OH"
 	assert _text_by_id(ops, "C4_down_chain2_label").text == "HOH<sub>2</sub>C"
 	assert any(line_id.startswith("C4_down_chain1_oh_connector_hatch") for line_id in line_ids)
 
@@ -2128,22 +2131,25 @@ def test_render_furanose_two_carbon_up_class_uses_c4_up_tail(code, anomeric):
 #============================================
 @pytest.mark.parametrize("code", ["ARLLDM", "ALRLDM", "ALLLDM"])
 def test_render_furanose_two_carbon_tail_left_parity_class_uses_hashed_ho(code):
-	"""Phase B.1 parity fixture: left-tail class keeps hashed HO + lower CH2 lane."""
+	"""Down-tail class: hashed OH branch + symmetric coords_generator2 geometry."""
 	_, ops = _render(code, "furanose", "alpha", show_hydrogens=False)
 	trunk = _line_by_id(ops, "C4_down_chain1_connector")
 	ho_branch = _line_by_id(ops, "C4_down_chain1_oh_connector")
 	ch2_branch = _line_by_id(ops, "C4_down_chain2_connector")
 	ho_label = _text_by_id(ops, "C4_down_chain1_oh_label")
 	ch2_label = _text_by_id(ops, "C4_down_chain2_label")
-	assert ho_label.text == "HO"
+	# coords_generator2 symmetric down: OH goes right, CH2OH goes left
+	assert ho_label.text == "OH"
 	assert ch2_label.text == "HOH<sub>2</sub>C"
 	assert ho_branch.p1 == pytest.approx(trunk.p2)
 	assert ch2_branch.p1 == pytest.approx(trunk.p2)
-	assert ho_branch.p2[0] < ho_branch.p1[0]
+	# OH branch goes right (positive dx), CH2OH goes left (negative dx)
+	assert ho_branch.p2[0] > ho_branch.p1[0]
 	assert ch2_branch.p2[0] < ch2_branch.p1[0]
 	_assert_line_on_lattice(ho_branch)
 	_assert_line_on_lattice(ch2_branch)
-	assert ch2_label.y > ho_label.y
+	# Symmetric branches: labels should be horizontally separated
+	assert ho_label.x != pytest.approx(ch2_label.x, abs=1.0)
 	_assert_hashed_connector_quality(
 		ops,
 		connector_id="C4_down_chain1_oh_connector",
@@ -2168,7 +2174,8 @@ def test_render_furanose_two_carbon_tail_uses_branched_labels(code, direction):
 		assert _text_by_id(ops, f"C4_{direction}_chain1_oh_label").text in ("OH", "HO")
 		assert _text_by_id(ops, f"C4_{direction}_chain2_label").text == "CH<sub>2</sub>OH"
 	else:
-		assert _text_by_id(ops, f"C4_{direction}_chain1_oh_label").text == "HO"
+		# coords_generator2 symmetric down: OH goes right (text="OH")
+		assert _text_by_id(ops, f"C4_{direction}_chain1_oh_label").text == "OH"
 		assert _text_by_id(ops, f"C4_{direction}_chain2_label").text == "HOH<sub>2</sub>C"
 	chain_texts = [op.text for op in _texts(ops) if "chain" in (op.op_id or "")]
 	assert "HOHC" not in chain_texts
@@ -2182,18 +2189,23 @@ def test_render_exocyclic_0_no_chain():
 
 
 #============================================
-def test_render_exocyclic_3_collinear():
+def test_render_exocyclic_3_zigzag():
+	"""CHAIN3 uses coords_generator2 zigzag molecular geometry, not collinear."""
 	_, ops = _render("ARLRRDM", "furanose", "alpha")
 	line1 = _line_by_id(ops, "C4_up_chain1_connector")
 	line2 = _line_by_id(ops, "C4_up_chain2_connector")
 	line3 = _line_by_id(ops, "C4_up_chain3_connector")
+	# Junction-to-junction connectors should form a zigzag pattern
+	# (alternating directions), not collinear
 	d1 = haworth_renderer._normalize_vector(line1.p2[0] - line1.p1[0], line1.p2[1] - line1.p1[1])
 	d2 = haworth_renderer._normalize_vector(line2.p2[0] - line2.p1[0], line2.p2[1] - line2.p1[1])
-	d3 = haworth_renderer._normalize_vector(line3.p2[0] - line3.p1[0], line3.p2[1] - line3.p1[1])
-	assert d1[0] == pytest.approx(d2[0], rel=1e-3)
-	assert d1[1] == pytest.approx(d2[1], rel=1e-3)
-	assert d1[0] == pytest.approx(d3[0], rel=1e-3)
-	assert d1[1] == pytest.approx(d3[1], rel=1e-3)
+	# chain1 and chain2 should point in different directions (zigzag)
+	dot_product = d1[0] * d2[0] + d1[1] * d2[1]
+	assert dot_product < 0.9, "Chain segments should zigzag, not be collinear"
+	# All segments should have 120-degree bond angles (lattice-aligned)
+	_assert_line_on_lattice(line1)
+	_assert_line_on_lattice(line2)
+	_assert_line_on_lattice(line3)
 
 
 #============================================
