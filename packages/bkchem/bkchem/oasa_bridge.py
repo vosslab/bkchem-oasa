@@ -28,11 +28,11 @@ except ImportError:
 from oasa import transform3d
 from oasa import cdml_writer
 
-import bond
-import atom
-import molecule
+from bkchem import bond
+from bkchem import atom
+from bkchem import molecule
 
-from singleton_store import Screen
+from bkchem.singleton_store import Screen
 
 
 

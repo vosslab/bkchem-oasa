@@ -23,10 +23,7 @@ import importlib
 import sys
 import traceback
 
-try:
-  from .. import config
-except ImportError:
-  import config
+from bkchem import config
 
 
 __all__ = []

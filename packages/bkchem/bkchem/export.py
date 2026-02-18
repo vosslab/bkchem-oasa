@@ -21,8 +21,8 @@
 
 """
 
-import dom_extensions
-import oasa_bridge
+from bkchem import dom_extensions
+from bkchem import oasa_bridge
 
 
 

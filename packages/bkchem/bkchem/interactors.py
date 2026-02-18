@@ -27,19 +27,20 @@ import xml
 import tkinter.messagebox as tkMessageBox
 
 import Pmw
-import dialogs
-import widgets
-import validator
-import os_support
-import bkchem_exceptions as excs
-import safe_xml
+
+from bkchem import dialogs
+from bkchem import widgets
+from bkchem import validator
+from bkchem import os_support
+from bkchem import bkchem_exceptions as excs
+from bkchem import safe_xml
 
 _ = builtins.__dict__.get( '_', lambda m: m)
 ngettext = builtins.__dict__.get( 'ngettext', lambda s, p, n: s if n == 1 else p)
 
-from atom import atom
-from molecule import molecule
-from singleton_store import Store
+from bkchem.atom import atom
+from bkchem.molecule import molecule
+from bkchem.singleton_store import Store
 
 
 

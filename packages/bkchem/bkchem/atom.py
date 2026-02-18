@@ -29,13 +29,13 @@ import oasa
 
 from warnings import warn
 
-import data
-import marks
-import dom_extensions
+from bkchem import data
+from bkchem import marks
+from bkchem import dom_extensions
 
 from oasa import periodic_table as PT
-from singleton_store import Screen
-from special_parents import drawable_chem_vertex
+from bkchem.singleton_store import Screen
+from bkchem.special_parents import drawable_chem_vertex
 
 
 ### NOTE: now that all classes are children of meta_enabled, so the read_standard_values method

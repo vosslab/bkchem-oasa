@@ -30,8 +30,8 @@ import sys
 import xml.sax
 import tkinter.font
 
-import tuning
-import safe_xml
+from bkchem import tuning
+from bkchem import safe_xml
 
 
 

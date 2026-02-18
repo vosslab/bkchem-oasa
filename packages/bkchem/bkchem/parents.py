@@ -23,11 +23,11 @@ Used to provide mostly the desired meta_behaviour.
 """
 
 
-import ftext
-import dom_extensions
-import safe_xml
+from bkchem import ftext
+from bkchem import dom_extensions
+from bkchem import safe_xml
 
-from singleton_store import Store
+from bkchem.singleton_store import Store
 
 
 class simple_parent(object):

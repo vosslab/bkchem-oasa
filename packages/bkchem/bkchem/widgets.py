@@ -35,12 +35,12 @@ import tkinter.filedialog
 from oasa import geometry
 
 import Pmw
-import data
-import misc
-import config
 
-from keysymdef import keysyms
-from singleton_store import Store
+from bkchem import data
+from bkchem import misc
+from bkchem import config
+from bkchem.keysymdef import keysyms
+from bkchem.singleton_store import Store
 
 _ = getattr( builtins, "_", None)
 if not _:

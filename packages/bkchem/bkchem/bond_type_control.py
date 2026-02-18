@@ -5,8 +5,8 @@ from warnings import warn
 
 from oasa import geometry
 
-import misc
-from singleton_store import Screen
+from bkchem import misc
+from bkchem.singleton_store import Screen
 
 
 class BondTypeControlMixin:

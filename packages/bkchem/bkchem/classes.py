@@ -31,14 +31,14 @@ import tkinter.font
 from math import pi
 from warnings import warn
 
-import dom_extensions
-import misc
+from bkchem import dom_extensions
+from bkchem import misc
 
-from ftext import ftext
-from parents import meta_enabled, text_like
-from parents import area_colored, point_drawable, interactive, top_level
-from parents import child, with_font
-from singleton_store import Screen
+from bkchem.ftext import ftext
+from bkchem.parents import meta_enabled, text_like
+from bkchem.parents import area_colored, point_drawable, interactive, top_level
+from bkchem.parents import child, with_font
+from bkchem.singleton_store import Screen
 
 ### NOTE: now that all classes are children of meta_enabled, so the read_standard_values method
 ### is called during their __init__ (in fact meta_enabled.__init__), therefore these values are

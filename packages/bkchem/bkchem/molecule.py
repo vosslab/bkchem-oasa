@@ -30,19 +30,19 @@ from oasa import geometry
 from oasa import periodic_table as PT
 from math import atan2, sin, cos, pi, sqrt
 
-import misc
-import dom_extensions
-import bkchem_exceptions
-import safe_xml
+from bkchem import misc
+from bkchem import dom_extensions
+from bkchem import bkchem_exceptions
+from bkchem import safe_xml
 
-from bond import bond
-from atom import atom
-from group import group
-from fragment import fragment
-from textatom import textatom
-from queryatom import queryatom
-from singleton_store import Store, Screen
-from parents import container, top_level, id_enabled, with_paper
+from bkchem.bond import bond
+from bkchem.atom import atom
+from bkchem.group import group
+from bkchem.fragment import fragment
+from bkchem.textatom import textatom
+from bkchem.queryatom import queryatom
+from bkchem.singleton_store import Store, Screen
+from bkchem.parents import container, top_level, id_enabled, with_paper
 
 
 
@@ -751,7 +751,7 @@ class molecule( container, top_level, id_enabled, oasa.molecule, with_paper):
     """checks the consistency of a linear_form - returns either True (consistent) or
     False (inconsistent).
     Consistent fragments are automatically redrawn"""
-    import interactors
+    from bkchem import interactors
     if f.type == "linear_form":
       if f.edges - self.edges or f.vertices - set( self.vertices):
         # something from the fragment was deleted

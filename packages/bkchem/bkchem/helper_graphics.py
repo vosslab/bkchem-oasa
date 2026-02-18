@@ -21,7 +21,7 @@
 
 """
 
-import misc
+from bkchem import misc
 
 
 

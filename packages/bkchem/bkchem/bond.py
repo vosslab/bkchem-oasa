@@ -24,17 +24,17 @@
 import importlib
 import oasa
 
-import misc
+from bkchem import misc
 
-from singleton_store import Screen
-from parents import meta_enabled, line_colored, drawable, with_line, interactive, child_with_paper
+from bkchem.singleton_store import Screen
+from bkchem.parents import meta_enabled, line_colored, drawable, with_line, interactive, child_with_paper
 
 try:
-  from .bond_cdml import BondCDMLMixin
-  from .bond_display import BondDisplayMixin
-  from .bond_drawing import BondDrawingMixin
-  from .bond_render_ops import BondRenderOpsMixin
-  from .bond_type_control import BondTypeControlMixin
+  from bkchem.bond_cdml import BondCDMLMixin
+  from bkchem.bond_display import BondDisplayMixin
+  from bkchem.bond_drawing import BondDrawingMixin
+  from bkchem.bond_render_ops import BondRenderOpsMixin
+  from bkchem.bond_type_control import BondTypeControlMixin
 except ImportError:
   # Support legacy top-level import mode (sys.path points at bkchem module dir).
   BondCDMLMixin = importlib.import_module("bond_cdml").BondCDMLMixin

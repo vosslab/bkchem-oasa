@@ -21,14 +21,14 @@
 
 """
 
-import misc
-import classes
-import dom_extensions
-import helper_graphics as hg
+from bkchem import misc
+from bkchem import classes
+from bkchem import dom_extensions
+from bkchem import helper_graphics as hg
 from warnings import warn
 
-from singleton_store import Screen
-from parents import meta_enabled, drawable, interactive, area_colored, container, with_line, top_level, line_colored
+from bkchem.singleton_store import Screen
+from bkchem.parents import meta_enabled, drawable, interactive, area_colored, container, with_line, top_level, line_colored
 
 
 

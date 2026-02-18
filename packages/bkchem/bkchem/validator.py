@@ -26,11 +26,11 @@
 """
 
 import builtins
-import molecule
+from bkchem import molecule
 
-from atom import atom
-from group import group
-from textatom import textatom
+from bkchem.atom import atom
+from bkchem.group import group
+from bkchem.textatom import textatom
 
 
 

@@ -21,8 +21,8 @@
 
 """
 
-import data
-import dom_extensions as dom_ext
+from bkchem import data
+from bkchem import dom_extensions as dom_ext
 
 
 

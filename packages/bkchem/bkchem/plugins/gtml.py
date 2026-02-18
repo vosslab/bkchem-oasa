@@ -23,14 +23,14 @@
 
 from oasa.transform import transform
 
-import dom_extensions as dom_ext
-import safe_xml
+from bkchem import dom_extensions as dom_ext
+from bkchem import safe_xml
 
-from atom import atom
-from bond import bond
-from molecule import molecule
-from classes import plus
-from arrow import arrow
+from bkchem.atom import atom
+from bkchem.bond import bond
+from bkchem.molecule import molecule
+from bkchem.classes import plus
+from bkchem.arrow import arrow
 
 
 try:

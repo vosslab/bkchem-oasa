@@ -26,14 +26,14 @@
 ## support for loading from outside of bkchem dir
 import sys
 
-import os_support
+from bkchem import os_support
 
 sys.path.insert(1, os_support.get_module_path())
 
 ### now starting for real
-import pref_manager
+from bkchem import pref_manager
 
-from singleton_store import Store
+from bkchem.singleton_store import Store
 
 # at first preference manager
 Store.pm = pref_manager.pref_manager(
@@ -96,13 +96,13 @@ else:
 
 
 
-import config
+from bkchem import config
 
 if not config.debug:
   # checking of important modules availability
   # import modules
-  import import_checker
-  import messages
+  from bkchem import import_checker
+  from bkchem import messages
 
   # Keep launcher-side preflight checks for direct end-user invocation.
   if not import_checker.python_version_ok:
@@ -120,16 +120,16 @@ if not config.debug:
     sys.exit(1)
 
 
-from main import BKChem
-from splash import Splash
-from singleton_store import Store
+from bkchem.main import BKChem
+from bkchem.splash import Splash
+from bkchem.singleton_store import Store
 
 myapp = BKChem()
 myapp.withdraw()
 
 if __name__ == '__main__':
 
-  import messages
+  from bkchem import messages
   enc = sys.getfilesystemencoding()
   if not enc:
     enc = sys.getdefaultencoding()

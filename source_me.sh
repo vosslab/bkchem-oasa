@@ -17,10 +17,10 @@ export PYTHONDONTWRITEBYTECODE=1
 source $HOME/.bashrc
 
 # Determine repo root
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(git rev-parse --show-toplevel)"
 
 # Add packages to PYTHONPATH
-export PYTHONPATH="${REPO_ROOT}/packages/oasa:${REPO_ROOT}/packages/bkchem:${PYTHONPATH}"
+export PYTHONPATH="${REPO_ROOT}/packages/oasa:${REPO_ROOT}/packages/bkchem:${PYTHONPATH:-}"
 
 echo "Environment configured:"
 echo "  REPO_ROOT=${REPO_ROOT}"

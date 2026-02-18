@@ -1,6 +1,62 @@
 # Changelog
 
 ## 2026-02-18
+- Convert bare local imports to package-relative imports in 16 bkchem
+  utility/support files:
+  [pixmaps.py](packages/bkchem/bkchem/pixmaps.py) (1 import),
+  [marks.py](packages/bkchem/bkchem/marks.py) (4 imports),
+  [classes.py](packages/bkchem/bkchem/classes.py) (7 imports),
+  [graphics.py](packages/bkchem/bkchem/graphics.py) (7 imports),
+  [helper_graphics.py](packages/bkchem/bkchem/helper_graphics.py) (1 import),
+  [arrow.py](packages/bkchem/bkchem/arrow.py) (7 imports),
+  [undo.py](packages/bkchem/bkchem/undo.py) (1 import),
+  [debug.py](packages/bkchem/bkchem/debug.py) (1 import),
+  [logger.py](packages/bkchem/bkchem/logger.py) (1 import),
+  [validator.py](packages/bkchem/bkchem/validator.py) (4 imports),
+  [external_data.py](packages/bkchem/bkchem/external_data.py) (10 imports),
+  [plugin_support.py](packages/bkchem/bkchem/plugin_support.py) (4 imports),
+  [template_catalog.py](packages/bkchem/bkchem/template_catalog.py) (1 import),
+  [format_loader.py](packages/bkchem/bkchem/format_loader.py) (2 imports),
+  [checks.py](packages/bkchem/bkchem/checks.py) (1 import),
+  [plugins/__init__.py](packages/bkchem/bkchem/plugins/__init__.py) (1 import),
+  [plugins/gtml.py](packages/bkchem/bkchem/plugins/gtml.py) (7 imports).
+- Convert bare local imports to package-relative imports in four bkchem
+  application files:
+  [main.py](packages/bkchem/bkchem/main.py) (24 imports),
+  [paper.py](packages/bkchem/bkchem/paper.py) (28 imports),
+  [bkchem_app.py](packages/bkchem/bkchem/bkchem_app.py) (8 imports),
+  [splash.py](packages/bkchem/bkchem/splash.py) (2 imports).
+  [cli.py](packages/bkchem/bkchem/cli.py) had no bare local imports (uses
+  `runpy.run_module` which is not a bare import).
+- Convert bare local imports to package-relative imports in six UI/interaction
+  bkchem files:
+  [dialogs.py](packages/bkchem/bkchem/dialogs.py) (6 imports),
+  [widgets.py](packages/bkchem/bkchem/widgets.py) (5 imports),
+  [interactors.py](packages/bkchem/bkchem/interactors.py) (9 imports),
+  [edit_pool.py](packages/bkchem/bkchem/edit_pool.py) (5 imports),
+  [modes.py](packages/bkchem/bkchem/modes.py) (18 imports),
+  [context_menu.py](packages/bkchem/bkchem/context_menu.py) (7 imports).
+- Convert bare local imports to package-relative imports in six bkchem files:
+  [molecule.py](packages/bkchem/bkchem/molecule.py) (13 imports),
+  [reaction.py](packages/bkchem/bkchem/reaction.py) (2 imports),
+  [oasa_bridge.py](packages/bkchem/bkchem/oasa_bridge.py) (4 imports),
+  [export.py](packages/bkchem/bkchem/export.py) (2 imports),
+  [CDML_versions.py](packages/bkchem/bkchem/CDML_versions.py) (2 imports).
+  [peptide_utils.py](packages/bkchem/bkchem/peptide_utils.py) had no local imports.
+- Convert bare local imports to package-relative imports in four bkchem
+  vertex files:
+  [packages/bkchem/bkchem/atom.py](packages/bkchem/bkchem/atom.py),
+  [packages/bkchem/bkchem/group.py](packages/bkchem/bkchem/group.py),
+  [packages/bkchem/bkchem/textatom.py](packages/bkchem/bkchem/textatom.py),
+  [packages/bkchem/bkchem/queryatom.py](packages/bkchem/bkchem/queryatom.py).
+  Changed `import data/marks/dom_extensions/groups_table` to
+  `from . import ...` and `from singleton_store/special_parents import ...`
+  to `from .singleton_store/special_parents import ...`.
+  [packages/bkchem/bkchem/groups_table.py](packages/bkchem/bkchem/groups_table.py)
+  has no imports and required no changes.
+- Convert bare local import to package-relative import in
+  [packages/bkchem/bkchem/dom_extensions.py](packages/bkchem/bkchem/dom_extensions.py):
+  `import safe_xml` changed to `from . import safe_xml`.
 - Replace local `get_repo_root()` / `_get_repo_root()` definitions in 14
   `tools/*.py` files with `import git_file_utils` from
   [tests/git_file_utils.py](tests/git_file_utils.py). Removes duplicated

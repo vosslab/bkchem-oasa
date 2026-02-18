@@ -25,13 +25,13 @@ from oasa import geometry
 from math import sin, cos, pi
 from warnings import warn
 
-import misc
-import marks
+from bkchem import misc
+from bkchem import marks
 
-from ftext import ftext
-from tuning import Tuning
-from singleton_store import Store, Screen
-from parents import meta_enabled, area_colored, point_drawable, text_like, child_with_paper
+from bkchem.ftext import ftext
+from bkchem.tuning import Tuning
+from bkchem.singleton_store import Store, Screen
+from bkchem.parents import meta_enabled, area_colored, point_drawable, text_like, child_with_paper
 
 
 

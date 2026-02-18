@@ -10,7 +10,7 @@ from oasa import render_geometry
 from oasa import render_ops
 from oasa import wedge_geometry
 
-import misc
+from bkchem import misc
 
 
 class BondRenderOpsMixin:

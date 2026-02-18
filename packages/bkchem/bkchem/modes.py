@@ -36,25 +36,25 @@ from oasa import geometry
 from oasa.transform import transform
 from oasa.transform3d import transform3d
 
-import data
-import misc
-import marks
-import dialogs
-import parents
-import messages
-import interactors
-import dom_extensions
-import special_parents
-import helper_graphics as hg
-import template_catalog
+from bkchem import data
+from bkchem import misc
+from bkchem import marks
+from bkchem import dialogs
+from bkchem import parents
+from bkchem import messages
+from bkchem import interactors
+from bkchem import dom_extensions
+from bkchem import special_parents
+from bkchem import helper_graphics as hg
+from bkchem import template_catalog
 
-from bond import bond
-from atom import atom
-from arrow import arrow
-from group import group
-from textatom import textatom
-from context_menu import context_menu
-from singleton_store import Store, Screen
+from bkchem.bond import bond
+from bkchem.atom import atom
+from bkchem.arrow import arrow
+from bkchem.group import group
+from bkchem.textatom import textatom
+from bkchem.context_menu import context_menu
+from bkchem.singleton_store import Store, Screen
 
 
 

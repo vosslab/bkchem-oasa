@@ -26,8 +26,8 @@
 import builtins
 import tkinter
 
-import messages
-import os_support
+from bkchem import messages
+from bkchem import os_support
 
 
 _ = builtins.__dict__.get( '_', lambda m: m)

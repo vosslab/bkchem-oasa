@@ -25,14 +25,14 @@ import tkinter
 
 from oasa import periodic_table as PT
 
-import misc
-import marks
-import parents
-import interactors
+from bkchem import misc
+from bkchem import marks
+from bkchem import parents
+from bkchem import interactors
 
-from atom import atom
-from group import group
-from singleton_store import Store
+from bkchem.atom import atom
+from bkchem.group import group
+from bkchem.singleton_store import Store
 
 _ = builtins.__dict__.get( '_', lambda m: m)
 

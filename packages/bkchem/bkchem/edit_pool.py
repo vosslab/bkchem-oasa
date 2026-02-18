@@ -29,12 +29,12 @@ from tkinter import Frame, Button, Entry
 
 from xml.sax import saxutils
 
-import misc
-import config
+from bkchem import misc
+from bkchem import config
 
-from keysymdef import keysyms
-from singleton_store import Store
-from groups_table import groups_table
+from bkchem.keysymdef import keysyms
+from bkchem.singleton_store import Store
+from bkchem.groups_table import groups_table
 
 
 _ = builtins.__dict__.get( '_', lambda m: m)

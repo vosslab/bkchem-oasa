@@ -28,12 +28,12 @@ import oasa
 
 from oasa import periodic_table as PT
 
-import data
-import marks
-import dom_extensions
+from bkchem import data
+from bkchem import marks
+from bkchem import dom_extensions
 
-from singleton_store import Screen
-from special_parents import drawable_chem_vertex
+from bkchem.singleton_store import Screen
+from bkchem.special_parents import drawable_chem_vertex
 
 
 

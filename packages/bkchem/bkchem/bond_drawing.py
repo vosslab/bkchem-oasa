@@ -3,7 +3,7 @@
 from oasa import geometry
 from oasa import render_geometry
 
-import misc
+from bkchem import misc
 
 
 class BondDrawingMixin:

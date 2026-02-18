@@ -28,14 +28,14 @@ import builtins
 from oasa import geometry
 from warnings import warn
 
-import misc
-import dom_extensions
+from bkchem import misc
+from bkchem import dom_extensions
 
-from classes import point
-from reaction import reaction
-from singleton_store import Screen
-from parents import meta_enabled, container, with_line, line_colored
-from parents import interactive, drawable, top_level
+from bkchem.classes import point
+from bkchem.reaction import reaction
+from bkchem.singleton_store import Screen
+from bkchem.parents import meta_enabled, container, with_line, line_colored
+from bkchem.parents import interactive, drawable, top_level
 
 
 _ = builtins.__dict__.get( '_', lambda m: m)

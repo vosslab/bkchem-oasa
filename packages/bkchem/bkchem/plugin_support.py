@@ -20,11 +20,11 @@
 import os
 import sys
 
-import os_support
-import dom_extensions as dom_ext
-import safe_xml
+from bkchem import os_support
+from bkchem import dom_extensions as dom_ext
+from bkchem import safe_xml
 
-from singleton_store import Store
+from bkchem.singleton_store import Store
 
 
 

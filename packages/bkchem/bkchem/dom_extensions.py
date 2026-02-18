@@ -25,7 +25,7 @@ import re
 import sys
 import xml.dom.minidom as dom
 
-import safe_xml
+from bkchem import safe_xml
 
 
 

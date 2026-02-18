@@ -25,8 +25,8 @@ import sys
 import types
 import xml.dom.minidom as dom
 
-import dom_extensions
-import safe_xml
+from bkchem import dom_extensions
+from bkchem import safe_xml
 
 
 

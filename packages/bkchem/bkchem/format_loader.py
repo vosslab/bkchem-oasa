@@ -12,9 +12,9 @@ import os
 import yaml
 
 # local repo modules
-import oasa_bridge
+from bkchem import oasa_bridge
 
-from singleton_store import Store
+from bkchem.singleton_store import Store
 
 
 _ALLOWED_TOP_LEVEL_KEYS = {"formats"}

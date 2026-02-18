@@ -44,33 +44,33 @@ except ImportError:
 	from tkinter import Canvas, ALL
 
 import Pmw
-import misc
+from bkchem import misc
 import copy
-import data
-import undo
-import arrow
-import checks
-import config
-import classes
-import dialogs
-import parents
-import graphics
-import messages
-import os_support
-import oasa_bridge
-import CDML_versions
-import dom_extensions
-import safe_xml
+from bkchem import data
+from bkchem import undo
+from bkchem import arrow
+from bkchem import checks
+from bkchem import config
+from bkchem import classes
+from bkchem import dialogs
+from bkchem import parents
+from bkchem import graphics
+from bkchem import messages
+from bkchem import os_support
+from bkchem import oasa_bridge
+from bkchem import CDML_versions
+from bkchem import dom_extensions
+from bkchem import safe_xml
 
-from atom import atom
-from group import group
-from textatom import textatom
-from molecule import molecule
-from reaction import reaction
-from id_manager import id_manager
-from singleton_store import Store
-from helper_graphics import selection_rect
-from external_data import external_data_manager
+from bkchem.atom import atom
+from bkchem.group import group
+from bkchem.textatom import textatom
+from bkchem.molecule import molecule
+from bkchem.reaction import reaction
+from bkchem.id_manager import id_manager
+from bkchem.singleton_store import Store
+from bkchem.helper_graphics import selection_rect
+from bkchem.external_data import external_data_manager
 
 _ = getattr( builtins, "_", None)
 if not _:
@@ -1500,7 +1500,7 @@ class chem_paper(Canvas, object):
 
 
 	def check_chemistry_of_selected( self):
-		import validator
+		from bkchem import validator
 		val = validator.validator()
 		s_mols = [m for m in self.selected_to_unique_top_levels()[0] if m.object_type == 'molecule']
 		if not s_mols:

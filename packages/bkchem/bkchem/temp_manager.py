@@ -28,12 +28,12 @@ import xml.sax
 from warnings import warn
 from oasa.transform import transform
 
-import config
-import os_support
-import safe_xml
+from bkchem import config
+from bkchem import os_support
+from bkchem import safe_xml
 
-from molecule import molecule
-from singleton_store import Store, Screen
+from bkchem.molecule import molecule
+from bkchem.singleton_store import Store, Screen
 
 
 

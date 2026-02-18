@@ -19,7 +19,7 @@
 
 """The Store class which is a manager for application wide singletons resides here"""
 
-import misc
+from bkchem import misc
 from warnings import warn
 
 

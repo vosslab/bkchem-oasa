@@ -23,7 +23,7 @@
 
 import tkinter
 
-import os_support
+from bkchem import os_support
 
 __all__ = ['images']
 

@@ -24,7 +24,7 @@ import dataclasses
 import os
 
 # local repo modules
-import os_support
+from bkchem import os_support
 
 
 TEMPLATE_EXTENSIONS = (".cdml", ".cdgz")

@@ -28,13 +28,13 @@ import tkinter.font
 import tkinter.messagebox
 
 import Pmw
-import data
-import misc
-import classes
-import widgets
-import os_support
 
-from singleton_store import Store, Screen
+from bkchem import data
+from bkchem import misc
+from bkchem import classes
+from bkchem import widgets
+from bkchem import os_support
+from bkchem.singleton_store import Store, Screen
 
 _ = builtins.__dict__.get( '_', lambda m: m)
 

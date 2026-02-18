@@ -21,7 +21,7 @@
 
 import inspect
 
-import config
+from bkchem import config
 
 
 

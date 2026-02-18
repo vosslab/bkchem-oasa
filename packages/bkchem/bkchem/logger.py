@@ -22,7 +22,7 @@
 import builtins
 import tkinter.messagebox as tkMessageBox
 
-from singleton_store import Store
+from bkchem.singleton_store import Store
 
 _ = builtins.__dict__.get( '_', lambda m: m)
 

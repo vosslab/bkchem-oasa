@@ -27,17 +27,17 @@ import ast
 import types
 import os.path
 
-import os_support
-import dom_extensions as dom_ext
-import safe_xml
+from bkchem import os_support
+from bkchem import dom_extensions as dom_ext
+from bkchem import safe_xml
 
-from atom import atom
-from bond import bond
-from group import group
-from molecule import molecule
-from textatom import textatom
-from queryatom import queryatom
-from singleton_store import Store
+from bkchem.atom import atom
+from bkchem.bond import bond
+from bkchem.group import group
+from bkchem.molecule import molecule
+from bkchem.textatom import textatom
+from bkchem.queryatom import queryatom
+from bkchem.singleton_store import Store
 
 
 

@@ -30,11 +30,11 @@ import tkinter.font
 from oasa import geometry
 from oasa import transform
 
-from parents import simple_parent
-from singleton_store import Screen
+from bkchem.parents import simple_parent
+from bkchem.singleton_store import Screen
 
-import data
-import dom_extensions
+from bkchem import data
+from bkchem import dom_extensions
 
 
 

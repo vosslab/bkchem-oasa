@@ -36,31 +36,31 @@ from tkinter.filedialog import asksaveasfilename, askopenfilename
 import tkinter.messagebox
 
 import Pmw
-import data
-import misc
-import modes
-import config
-import export
-import logger
-import dialogs
-import pixmaps
-import plugins
-import format_loader
-import messages
-import molecule
-import os_support
-import interactors
-import oasa_bridge
-import peptide_utils
-import safe_xml
-import template_catalog
+from bkchem import data
+from bkchem import misc
+from bkchem import modes
+from bkchem import config
+from bkchem import export
+from bkchem import logger
+from bkchem import dialogs
+from bkchem import pixmaps
+from bkchem import plugins
+from bkchem import format_loader
+from bkchem import messages
+from bkchem import molecule
+from bkchem import os_support
+from bkchem import interactors
+from bkchem import oasa_bridge
+from bkchem import peptide_utils
+from bkchem import safe_xml
+from bkchem import template_catalog
 
-from paper import chem_paper
-from edit_pool import editPool
-from id_manager import id_manager
-from temp_manager import template_manager
-from plugin_support import plugin_manager
-from singleton_store import Store, Screen
+from bkchem.paper import chem_paper
+from bkchem.edit_pool import editPool
+from bkchem.id_manager import id_manager
+from bkchem.temp_manager import template_manager
+from bkchem.plugin_support import plugin_manager
+from bkchem.singleton_store import Store, Screen
 
 _ = builtins.__dict__.get( '_', lambda m: m)
 

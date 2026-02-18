@@ -2,9 +2,9 @@
 
 import oasa
 
-import dom_extensions
+from bkchem import dom_extensions
 
-from singleton_store import Store, Screen
+from bkchem.singleton_store import Store, Screen
 
 
 class BondCDMLMixin:
