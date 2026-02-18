@@ -1,6 +1,13 @@
 # Changelog
 
 ## 2026-02-18
+- Fix import references in 25 OASA test files under
+  [packages/oasa/tests/](packages/oasa/tests/) after move from repo root
+  `tests/` directory: remove `conftest.add_oasa_to_sys_path()` calls (now
+  handled automatically by the new conftest.py), remove `sys.modules["oasa"]`
+  cleanup lines, replace `conftest.tests_path(` with
+  `conftest.repo_tests_path(`, and remove now-unused `import conftest`,
+  `import sys` lines where appropriate.
 - Add Align menu action registrations in
   [packages/bkchem/bkchem/actions/align_actions.py](packages/bkchem/bkchem/actions/align_actions.py):
   registers 6 Align menu actions (top, bottom, left, right, center_h,
