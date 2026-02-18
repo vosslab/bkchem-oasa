@@ -1,5 +1,114 @@
 # Changelog
 
+## 2026-02-18
+- Add Align menu action registrations in
+  [packages/bkchem/bkchem/actions/align_actions.py](packages/bkchem/bkchem/actions/align_actions.py):
+  registers 6 Align menu actions (top, bottom, left, right, center_h,
+  center_v) with enabled_when='two_or_more_selected'.
+- Add Insert menu action registrations in
+  [packages/bkchem/bkchem/actions/insert_actions.py](packages/bkchem/bkchem/actions/insert_actions.py):
+  registers 1 Insert menu action (biomolecule_template).
+- Add Options menu action registrations in
+  [packages/bkchem/bkchem/actions/options_actions.py](packages/bkchem/bkchem/actions/options_actions.py):
+  registers 5 Options menu actions (standard, language, logging,
+  inchi_path, preferences) with try/except for interactors and Store.
+- Add Help menu action registrations in
+  [packages/bkchem/bkchem/actions/help_actions.py](packages/bkchem/bkchem/actions/help_actions.py):
+  registers 1 Help menu action (about).
+- Add Plugins menu action registrations in
+  [packages/bkchem/bkchem/actions/plugins_actions.py](packages/bkchem/bkchem/actions/plugins_actions.py):
+  no-op register function for the currently empty Plugins menu.
+- Add tests for remaining menu actions in
+  [packages/bkchem/tests/test_remaining_actions.py](packages/bkchem/tests/test_remaining_actions.py):
+  9 tests covering action counts, IDs, enabled_when, and label keys for
+  align, insert, options, help, and plugins menus.
+- Add menu builder in
+  [packages/bkchem/bkchem/menu_builder.py](packages/bkchem/bkchem/menu_builder.py):
+  MenuBuilder class that reads YAML menu structure, resolves actions from
+  ActionRegistry, and calls PlatformMenuAdapter to construct menus. Supports
+  dynamic state updates via enabled_when predicates and plugin slot injection
+  for exporter/importer cascades.
+- Add menu builder tests in
+  [packages/bkchem/tests/test_menu_builder.py](packages/bkchem/tests/test_menu_builder.py):
+  11 tests covering menu creation, command placement, separators, cascades,
+  missing action handling, state updates (callable and string predicates),
+  plugin slot discovery, and plugin slot injection.
+- Add Chemistry menu action registrations in
+  [packages/bkchem/bkchem/actions/chemistry_actions.py](packages/bkchem/bkchem/actions/chemistry_actions.py):
+  registers 14 Chemistry menu actions (info, check, expand-groups,
+  oxidation-number, read-smiles, read-inchi, read-peptide, gen-smiles,
+  gen-inchi, set-name, set-id, create-fragment, view-fragments,
+  convert-to-linear) with the ActionRegistry.
+- Add View menu action registrations in
+  [packages/bkchem/bkchem/actions/view_actions.py](packages/bkchem/bkchem/actions/view_actions.py):
+  registers 5 View menu actions (zoom-in, zoom-out, zoom-reset,
+  zoom-to-fit, zoom-to-content) with the ActionRegistry.
+- Add tests for chemistry and view actions in
+  [packages/bkchem/tests/test_chemistry_view_actions.py](packages/bkchem/tests/test_chemistry_view_actions.py):
+  6 tests covering action counts, IDs, and enabled_when type correctness.
+- Fix pyproject.toml multiline inline table that blocked pytest 9.0.2 TOML
+  parsing for all tests under packages/bkchem/.
+- Add platform menu adapter in
+  [packages/bkchem/bkchem/platform_menu.py](packages/bkchem/bkchem/platform_menu.py):
+  wraps Pmw.MainMenuBar (macOS) and Pmw.MenuBar (Linux/Windows) behind a uniform
+  PlatformMenuAdapter class with methods for add_menu, add_command, add_separator,
+  add_cascade, add_command_to_cascade, get_menu_component, and set_item_state.
+- Add platform menu adapter tests in
+  [packages/bkchem/tests/test_platform_menu.py](packages/bkchem/tests/test_platform_menu.py):
+  10 tests covering macOS vs Linux menubar selection, menu/command/separator/cascade
+  addition, side-argument suppression on macOS, and enable/disable state changes.
+- Add YAML menu structure file
+  [packages/bkchem/bkchem_data/menus.yaml](packages/bkchem/bkchem_data/menus.yaml):
+  defines the complete menu hierarchy (10 menus, 55 actions, 19 separators,
+  3 cascades) with order, side placement, and cascade definitions. Action details
+  remain in the ActionRegistry.
+- Add menu YAML tests in
+  [packages/bkchem/tests/test_menu_yaml.py](packages/bkchem/tests/test_menu_yaml.py):
+  13 tests covering YAML parsing, menu count/order, side assignments, item type
+  validation, action ID format, duplicate detection, cascade resolution, and
+  per-menu item counts.
+- Add Edit menu action registrations in
+  [packages/bkchem/bkchem/actions/edit_actions.py](packages/bkchem/bkchem/actions/edit_actions.py):
+  registers 7 Edit menu actions (undo, redo, cut, copy, paste, selected-to-SVG,
+  select-all) with the ActionRegistry.
+- Add Object menu action registrations in
+  [packages/bkchem/bkchem/actions/object_actions.py](packages/bkchem/bkchem/actions/object_actions.py):
+  registers 7 Object menu actions (scale, bring-to-front, send-back,
+  swap-on-stack, vertical-mirror, horizontal-mirror, configure) with the
+  ActionRegistry.
+- Add tests for edit and object actions in
+  [packages/bkchem/tests/test_edit_object_actions.py](packages/bkchem/tests/test_edit_object_actions.py):
+  6 tests covering action counts, IDs, and enabled_when type correctness.
+- Add File menu action registrations in
+  [packages/bkchem/bkchem/actions/file_actions.py](packages/bkchem/bkchem/actions/file_actions.py):
+  registers 9 File menu actions (new, save, save-as, save-as-template, load,
+  load-same-tab, properties, close-tab, exit) with the ActionRegistry. Includes
+  tests in
+  [packages/bkchem/tests/test_file_actions.py](packages/bkchem/tests/test_file_actions.py).
+- Add ActionRegistry core package in
+  [packages/bkchem/bkchem/actions/__init__.py](packages/bkchem/bkchem/actions/__init__.py):
+  provides `MenuAction` dataclass and `ActionRegistry` class as the shared contract
+  for the modular menu refactor. Includes `register_all_actions()` with graceful
+  import guards for per-menu modules not yet written.
+- Add Phase 0 menu template extract
+  [docs/active_plans/MENU_TEMPLATE_EXTRACT.md](docs/active_plans/MENU_TEMPLATE_EXTRACT.md):
+  catalogs all 87 `menu_template` tuples (10 menus, 55 commands, 19 separators,
+  3 cascades) with proposed action IDs, handler expressions, state variables,
+  and summary counts. Source-of-truth reference for all 8 parallel coders.
+- Add menu refactor execution plan
+  [docs/active_plans/MENU_REFACTOR_EXECUTION_PLAN.md](docs/active_plans/MENU_REFACTOR_EXECUTION_PLAN.md):
+  breaks the YAML + action registry menu refactor into 4 parallel-safe streams
+  with file ownership boundaries, dependency graph, and measurable done checks.
+  Scopes out format-handler migration, renderer unification, and Tool framework
+  as separate projects.
+- Add "Read Peptide Sequence" menu item under Chemistry in
+  [packages/bkchem/bkchem/main.py](packages/bkchem/bkchem/main.py):
+  prompts for a single-letter amino acid sequence (e.g. ANKLE), converts it
+  to IsoSMILES via new
+  [packages/bkchem/bkchem/peptide_utils.py](packages/bkchem/bkchem/peptide_utils.py),
+  and renders the polypeptide structure through the existing SMILES-to-CDML
+  pipeline.
+
 ## 2026-02-17
 - Route all complex substituents through `coords_generator2` in
   [packages/oasa/oasa/haworth/fragment_layout.py](packages/oasa/oasa/haworth/fragment_layout.py):

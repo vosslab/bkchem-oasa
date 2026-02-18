@@ -22,14 +22,10 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Add packages to PYTHONPATH
 export PYTHONPATH="${REPO_ROOT}/packages/oasa:${REPO_ROOT}/packages/bkchem:${PYTHONPATH}"
 
-# Use Python 3.12 (per AGENTS.md)
-export PYTHON="/opt/homebrew/opt/python@3.12/bin/python3.12"
-
 echo "Environment configured:"
 echo "  REPO_ROOT=${REPO_ROOT}"
 echo "  PYTHONPATH=${PYTHONPATH}"
-echo "  PYTHON=${PYTHON}"
 echo ""
 echo "You can now run:"
-echo "  \$PYTHON -c 'from oasa import haworth; print(haworth)'"
-echo "  \$PYTHON packages/oasa/oasa/selftest_sheet.py --format png"
+echo "  python3 -c 'from oasa import haworth; print(haworth)'"
+echo "  python3 packages/oasa/oasa/selftest_sheet.py --format png"

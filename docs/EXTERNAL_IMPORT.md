@@ -23,10 +23,10 @@ Key pieces of the script:
 import sys
 import threading
 
-from bkchem import bkchem
+from bkchem import bkchem_app
 
 # Application instance
-app = bkchem.myapp
+app = bkchem_app.myapp
 app.in_batch_mode = 1
 
 # Run the Tk mainloop in a background thread
@@ -52,7 +52,7 @@ app.destroy()
 If BKChem is installed with `pip3 install .`, use:
 
 ```python
-from bkchem import bkchem
+from bkchem import bkchem_app
 ```
 
 If you are running from a source checkout, make sure `packages/bkchem` is on the

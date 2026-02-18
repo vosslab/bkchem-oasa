@@ -1,0 +1,152 @@
+# Menu structure for BKChem
+# Action details (label, help, handler, enabled_when) are in the ActionRegistry.
+# This file defines hierarchy, order, separators, and cascades.
+
+menus:
+  - name: file
+    label_key: "File"
+    help_key: "Open, save, export, and import files"
+    side: "left"
+    items:
+      - action: file.new
+      - action: file.save
+      - action: file.save_as
+      - action: file.save_as_template
+      - action: file.load
+      - action: file.load_same_tab
+      - cascade: recent_files
+      - separator: true
+      - cascade: export
+      - cascade: import
+      - separator: true
+      - action: file.properties
+      - separator: true
+      - action: file.close_tab
+      - separator: true
+      - action: file.exit
+
+  - name: edit
+    label_key: "Edit"
+    help_key: "Undo, Copy, Paste etc."
+    side: "left"
+    items:
+      - action: edit.undo
+      - action: edit.redo
+      - separator: true
+      - action: edit.cut
+      - action: edit.copy
+      - action: edit.paste
+      - separator: true
+      - action: edit.selected_to_svg
+      - separator: true
+      - action: edit.select_all
+
+  - name: insert
+    label_key: "Insert"
+    help_key: "Insert templates and reusable structures"
+    side: "left"
+    items:
+      - action: insert.biomolecule_template
+
+  - name: align
+    label_key: "Align"
+    help_key: "Aligning of selected objects"
+    side: "left"
+    items:
+      - action: align.top
+      - action: align.bottom
+      - action: align.left
+      - action: align.right
+      - separator: true
+      - action: align.center_h
+      - action: align.center_v
+
+  - name: object
+    label_key: "Object"
+    help_key: "Set properties of selected objects"
+    side: "left"
+    items:
+      - action: object.scale
+      - separator: true
+      - action: object.bring_to_front
+      - action: object.send_back
+      - action: object.swap_on_stack
+      - separator: true
+      - action: object.vertical_mirror
+      - action: object.horizontal_mirror
+      - separator: true
+      - action: object.configure
+
+  - name: view
+    label_key: "View"
+    help_key: "Zoom and display controls"
+    side: "left"
+    items:
+      - action: view.zoom_in
+      - action: view.zoom_out
+      - separator: true
+      - action: view.zoom_reset
+      - action: view.zoom_to_fit
+      - action: view.zoom_to_content
+
+  - name: chemistry
+    label_key: "Chemistry"
+    help_key: "Information about molecules, group expansion and other chemistry related stuff"
+    side: "left"
+    items:
+      - action: chemistry.info
+      - action: chemistry.check
+      - action: chemistry.expand_groups
+      - separator: true
+      - action: chemistry.oxidation_number
+      - separator: true
+      - action: chemistry.read_smiles
+      - action: chemistry.read_inchi
+      - action: chemistry.read_peptide
+      - separator: true
+      - action: chemistry.gen_smiles
+      - action: chemistry.gen_inchi
+      - separator: true
+      - action: chemistry.set_name
+      - action: chemistry.set_id
+      - separator: true
+      - action: chemistry.create_fragment
+      - action: chemistry.view_fragments
+      - separator: true
+      - action: chemistry.convert_to_linear
+
+  - name: options
+    label_key: "Options"
+    help_key: "Settings that affect how BKChem works"
+    side: "left"
+    items:
+      - action: options.standard
+      - action: options.language
+      - action: options.logging
+      - action: options.inchi_path
+      - separator: true
+      - action: options.preferences
+
+  - name: help
+    label_key: "Help"
+    help_key: "Help and information about the program"
+    side: "right"
+    items:
+      - action: help.about
+
+  - name: plugins
+    label_key: "Plugins"
+    help_key: "Small additional scripts"
+    side: "right"
+    items: []
+
+cascades:
+  recent_files:
+    label_key: "Recent files"
+    help_key: "The most recently used files"
+  export:
+    label_key: "Export"
+    help_key: "Export the current file"
+  import:
+    label_key: "Import"
+    help_key: "Import a non-native file format"

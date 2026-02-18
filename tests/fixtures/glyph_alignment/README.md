@@ -18,7 +18,7 @@ Each SVG has a sidecar JSON file with optional checks:
 Runner command:
 
 ```bash
-source source_me.sh && $PYTHON tools/run_glyph_alignment_fixture_runner.py
+source source_me.sh && python3 tools/run_glyph_alignment_fixture_runner.py
 ```
 
 Output directory (default):
@@ -28,5 +28,5 @@ Output directory (default):
 Hard-fail mode:
 
 ```bash
-source source_me.sh && $PYTHON tools/run_glyph_alignment_fixture_runner.py --fail-on-expectation
+source source_me.sh && python3 tools/run_glyph_alignment_fixture_runner.py --fail-on-expectation
 ```

@@ -51,6 +51,7 @@ import molecule
 import os_support
 import interactors
 import oasa_bridge
+import peptide_utils
 import safe_xml
 import template_catalog
 
@@ -257,6 +258,7 @@ class BKChem( Tk):
       ( _("Chemistry"), 'separator'),
       ( _("Chemistry"), 'command', _('Read SMILES'), None, _("Read a SMILES string and convert it to structure"), self.read_smiles, None),
       ( _("Chemistry"), 'command', _('Read InChI'), None, _("Read an InChI string and convert it to structure"), self.read_inchi, None),
+      ( _("Chemistry"), 'command', _('Read Peptide Sequence'), None, _("Read a peptide amino acid sequence and convert it to structure"), self.read_peptide_sequence, None),
       ( _("Chemistry"), 'separator'),
       ( _("Chemistry"), 'command', _('Generate SMILES'), None, _("Generate SMILES for the selected structure"), self.gen_smiles, 'selected_mols'),
       ( _("Chemistry"), 'command', _('Generate InChI'), None, _("Generate an InChI for the selected structure by calling the InChI program"), self.gen_inchi,
@@ -1292,6 +1294,36 @@ class BKChem( Tk):
       if len( imported) == 1:
         return imported[0]
       return imported
+
+
+  def read_peptide_sequence( self):
+    if not oasa_bridge.oasa_available:
+      return
+    # supported amino acid letters for the dialog prompt
+    supported = sorted(peptide_utils.AMINO_ACID_SMILES.keys())
+    supported_str = ', '.join(supported)
+    lt = _("Enter a single-letter amino acid sequence (e.g. ANKLE):\n"
+           "Supported: %s\n"
+           "(Proline P is not supported)") % supported_str
+    dial = Pmw.PromptDialog( self,
+                             title=_('Peptide Sequence'),
+                             label_text=lt,
+                             entryfield_labelpos = 'n',
+                             buttons=(_('OK'),_('Cancel')))
+    res = dial.activate()
+    if res != _('OK'):
+      return
+    text = dial.get()
+    if not text or not text.strip():
+      return
+    # convert peptide sequence to SMILES, then render via existing pipeline
+    try:
+      smiles = peptide_utils.sequence_to_smiles(text.strip())
+    except ValueError as err:
+      tkinter.messagebox.showerror(
+        _("Peptide Sequence Error"), str(err))
+      return
+    return self.read_smiles(smiles=smiles)
 
 
   def read_inchi( self, inchi=None):

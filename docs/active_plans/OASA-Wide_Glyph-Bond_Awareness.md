@@ -14,7 +14,7 @@ Haworth-only fixes.
 
 Measured with:
 
-`source source_me.sh && $PYTHON tools/measure_glyph_bond_alignment.py --no-diagnostic-svg --no-diagnostic-png`
+`source source_me.sh && python3 tools/measure_glyph_bond_alignment.py --no-diagnostic-svg --no-diagnostic-png`
 
 Current results from `output_smoke/glyph_bond_alignment_report.txt`:
 
@@ -186,10 +186,10 @@ Current results from `output_smoke/glyph_bond_alignment_report.txt`:
 ### Verification commands
 
 ```bash
-source source_me.sh && $PYTHON -m pytest tests/test_render_geometry.py -q
-source source_me.sh && $PYTHON -m pytest tests/test_measure_glyph_bond_alignment.py -q
-source source_me.sh && $PYTHON -m pytest tests/test_gap_perp_gate.py -q
-source source_me.sh && $PYTHON tools/gap_perp_gate.py
+source source_me.sh && python3 -m pytest tests/test_render_geometry.py -q
+source source_me.sh && python3 -m pytest tests/test_measure_glyph_bond_alignment.py -q
+source source_me.sh && python3 -m pytest tests/test_gap_perp_gate.py -q
+source source_me.sh && python3 tools/gap_perp_gate.py
 ```
 
 ## Risks and mitigation
