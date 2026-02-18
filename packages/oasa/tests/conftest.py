@@ -2,16 +2,33 @@
 
 # Standard Library
 import os
+import subprocess
 import sys
 
-# directory containing this conftest.py
-_TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-# packages/oasa
-_OASA_PKG = os.path.dirname(_TESTS_DIR)
-# packages/
-_PACKAGES_DIR = os.path.dirname(_OASA_PKG)
-# repo root
-_REPO_ROOT = os.path.dirname(_PACKAGES_DIR)
+
+#============================================
+def _get_repo_root() -> str:
+	"""Find repo root via git."""
+	return subprocess.check_output(
+		["git", "rev-parse", "--show-toplevel"],
+		text=True,
+	).strip()
+
+
+_REPO_ROOT = _get_repo_root()
+
+
+#============================================
+def _ensure_paths():
+	"""Add oasa package and repo tests/ to sys.path."""
+	# oasa package root (packages/oasa)
+	oasa_pkg = os.path.join(_REPO_ROOT, "packages", "oasa")
+	if oasa_pkg not in sys.path:
+		sys.path.insert(0, oasa_pkg)
+	# repo tests/ so git_file_utils is importable
+	tests_dir = os.path.join(_REPO_ROOT, "tests")
+	if tests_dir not in sys.path:
+		sys.path.insert(0, tests_dir)
 
 
 #============================================
@@ -23,18 +40,6 @@ def pytest_addoption(parser):
 		default=False,
 		help="Save rendered outputs to the current working directory",
 	)
-
-
-#============================================
-def _ensure_paths():
-	"""Add oasa package to sys.path if not already present.
-
-	Uses the known relative layout: this file lives at
-	packages/oasa/tests/conftest.py, so the oasa package root
-	is one level up.
-	"""
-	if _OASA_PKG not in sys.path:
-		sys.path.insert(0, _OASA_PKG)
 
 
 #============================================

@@ -1,6 +1,25 @@
 # Changelog
 
 ## 2026-02-18
+- Replace local `get_repo_root()` / `_get_repo_root()` definitions in 14
+  `tools/*.py` files with `import git_file_utils` from
+  [tests/git_file_utils.py](tests/git_file_utils.py). Removes duplicated
+  subprocess calls and centralizes repo root detection. Affected files:
+  [tools/neurotiker_furanose_geometry.py](tools/neurotiker_furanose_geometry.py),
+  [tools/measure_glyph_bond_alignment.py](tools/measure_glyph_bond_alignment.py),
+  [tools/haworth_visual_check_pdf.py](tools/haworth_visual_check_pdf.py),
+  [tools/measure_cairo_pdf_parity.py](tools/measure_cairo_pdf_parity.py),
+  [tools/rdkit_sugar_comparison.py](tools/rdkit_sugar_comparison.py),
+  [tools/archive_matrix_summary.py](tools/archive_matrix_summary.py),
+  [tools/check_translation.py](tools/check_translation.py),
+  [tools/render_reference_outputs.py](tools/render_reference_outputs.py),
+  [tools/coords_comparison.py](tools/coords_comparison.py),
+  [tools/selftest_sheet.py](tools/selftest_sheet.py),
+  [tools/sugar_codes_summary.py](tools/sugar_codes_summary.py),
+  [tools/alignment_summary.py](tools/alignment_summary.py),
+  [tools/gap_perp_gate.py](tools/gap_perp_gate.py),
+  [tools/render_beta_sheets.py](tools/render_beta_sheets.py).
+  Also removed now-unused `import subprocess` from files that no longer need it.
 - Fix import references in 25 OASA test files under
   [packages/oasa/tests/](packages/oasa/tests/) after move from repo root
   `tests/` directory: remove `conftest.add_oasa_to_sys_path()` calls (now

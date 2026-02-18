@@ -8,9 +8,9 @@ import pathlib
 import pytest
 
 # Local repo modules
-from get_repo_root import get_repo_root
+import git_file_utils
 
-REPO_ROOT = pathlib.Path(get_repo_root())
+REPO_ROOT = pathlib.Path(git_file_utils.get_repo_root())
 
 
 #============================================
