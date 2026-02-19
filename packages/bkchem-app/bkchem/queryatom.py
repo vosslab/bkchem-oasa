@@ -105,8 +105,9 @@ class queryatom(drawable_chem_vertex):
   @charge.setter
   def charge(self, charge):
     self.__charge = charge
-    # sync shadow composition layer
-    self._chem_query_atom.charge = charge
+    # sync shadow composition layer (guard against early init before _chem_query_atom exists)
+    if hasattr(self, '_chem_query_atom'):
+      self._chem_query_atom.charge = charge
     self.dirty = 1
 
 

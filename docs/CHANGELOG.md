@@ -13,6 +13,13 @@
   add `_canvas_to_widget()` helper to convert canvas coordinates to widget
   coordinates for `event_generate`. The ribbon widget additions shifted the
   canvas viewport offset, causing `canvasx(0)` to be non-zero.
+- Fix IndexError when switching to template mode with no templates: skip
+  creating empty submode groups in `_build_flat_submodes()` in
+  [packages/bkchem-app/bkchem/modes.py](packages/bkchem-app/bkchem/modes.py).
+- Fix AttributeError in
+  [packages/bkchem-app/bkchem/queryatom.py](packages/bkchem-app/bkchem/queryatom.py):
+  `charge` setter tried to sync `_chem_query_atom` before it was initialized
+  during `__init__`. Add `hasattr` guard.
 
 ## 2026-02-18
 - Extract toolbar mode/submode config from Python to YAML: create

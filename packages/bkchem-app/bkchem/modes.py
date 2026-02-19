@@ -149,6 +149,8 @@ class mode( object):
     cfg = get_modes_config()['modes'].get(yaml_key, {})
     # load name from YAML, fall back to 'mode'
     self.name = _(cfg['name']) if 'name' in cfg else 'mode'
+    # short button label: label -> name -> key (all i18n-wrapped)
+    self.label = _(cfg.get('label', cfg.get('name', yaml_key)))
     # load static submodes from YAML (dynamic modes override in their __init__)
     if not cfg.get('dynamic') and cfg.get('submodes'):
       parsed = _load_submodes_from_yaml(cfg)
@@ -1323,9 +1325,10 @@ class template_mode( edit_mode):
   def _build_flat_submodes( self):
     """Build a simple flat list of template names as submodes."""
     names = self.template_manager.get_template_names()
-    self.submodes = [names]
-    self.submodes_names = [names]
-    self.submode = [0]
+    if names:
+      self.submodes = [names]
+      self.submodes_names = [names]
+      self.submode = [0]
 
 
   def _build_categorized_submodes( self):

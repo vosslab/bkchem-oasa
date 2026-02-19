@@ -1,6 +1,7 @@
 # modes.yaml - toolbar mode/submode configuration
 # YAML keys define mode classes. Python provides behavioral methods where needed.
 # key = primary identifier; name and icon default to key if omitted.
+# label = short text shown below mode button icon; defaults to name if omitted.
 # All display strings passed through _() for i18n/gettext at load time.
 
 toolbar_order:
@@ -79,6 +80,7 @@ modes:
 
   biotemplate:
     name: biomolecule templates
+    label: bio
     parent: edit_mode
     icon: biotemplate
     dynamic: true
@@ -92,7 +94,8 @@ modes:
         columns: 4
 
   usertemplate:
-    name: users templates
+    name: user templates
+    label: user
     parent: edit_mode
     icon: usertemplate
     dynamic: true
@@ -172,7 +175,7 @@ modes:
     submodes: []
 
   bracket:
-    name: Brackets
+    name: brackets
     parent: edit_mode
     icon: bracket
     submodes:
@@ -200,6 +203,7 @@ modes:
 
   bondalign:
     name: transformation mode
+    label: transform
     parent: edit_mode
     icon: bondalign
     submodes:
@@ -214,6 +218,7 @@ modes:
 
   vector:
     name: vector graphics
+    label: vector
     parent: edit_mode
     icon: vector
     submodes:
@@ -228,7 +233,8 @@ modes:
         default: 0
 
   misc:
-    name: Miscellaneous
+    name: miscellaneous
+    label: misc
     parent: edit_mode
     icon: misc
     submodes:
