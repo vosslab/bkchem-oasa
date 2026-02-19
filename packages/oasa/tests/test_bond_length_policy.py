@@ -29,16 +29,16 @@ def _distance(p1, p2):
 
 #============================================
 def _build_two_atom_molecule(order=1, edge_type='n'):
-	mol = oasa.molecule()
-	a1 = oasa.atom(symbol='C')
-	a2 = oasa.atom(symbol='C')
+	mol = oasa.Molecule()
+	a1 = oasa.Atom(symbol='C')
+	a2 = oasa.Atom(symbol='C')
 	a1.x = 0.0
 	a1.y = 0.0
 	a2.x = 10.0
 	a2.y = 0.0
 	mol.add_vertex(a1)
 	mol.add_vertex(a2)
-	bond = oasa.bond(order=order, type=edge_type)
+	bond = oasa.Bond(order=order, type=edge_type)
 	bond.vertices = (a1, a2)
 	mol.add_edge(a1, a2, bond)
 	return mol, bond

@@ -12,16 +12,16 @@ import oasa
 
 #============================================
 def _make_simple_mol():
-	mol = oasa.molecule()
-	a1 = oasa.atom(symbol="C")
+	mol = oasa.Molecule()
+	a1 = oasa.Atom(symbol="C")
 	a1.x = 0.0
 	a1.y = 0.0
-	a2 = oasa.atom(symbol="O")
+	a2 = oasa.Atom(symbol="O")
 	a2.x = 1.0
 	a2.y = 0.0
 	mol.add_vertex(a1)
 	mol.add_vertex(a2)
-	bond = oasa.bond(order=1, type="n")
+	bond = oasa.Bond(order=1, type="n")
 	bond.vertices = (a1, a2)
 	mol.add_edge(a1, a2, bond)
 	return mol

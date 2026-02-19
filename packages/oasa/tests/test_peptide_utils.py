@@ -10,9 +10,8 @@ import random
 import pytest
 
 # local repo modules
-import oasa
 from oasa import peptide_utils
-from oasa import smiles as smiles_module
+from oasa import smiles_lib as smiles_module
 
 
 #============================================
@@ -35,7 +34,7 @@ def test_sequence_to_smiles_ankle():
 	smiles_text = peptide_utils.sequence_to_smiles('ANKLE')
 	assert smiles_text, "SMILES string should not be empty"
 	# parse through OASA SMILES reader
-	sm = smiles_module.smiles()
+	sm = smiles_module.Smiles()
 	sm.read_smiles(smiles_text)
 	mol = sm.structure
 	# ANKLE has 5 residues, molecule should have atoms
@@ -49,7 +48,7 @@ def test_sequence_to_smiles_random_9():
 	smiles_text = peptide_utils.sequence_to_smiles(sequence)
 	assert smiles_text, f"SMILES for '{sequence}' should not be empty"
 	# verify OASA can parse the generated SMILES
-	sm = smiles_module.smiles()
+	sm = smiles_module.Smiles()
 	sm.read_smiles(smiles_text)
 	mol = sm.structure
 	# 9 residues should produce a substantial molecule
@@ -63,7 +62,7 @@ def test_sequence_to_smiles_single_residue():
 	"""Each supported amino acid should work as a single residue."""
 	for aa in sorted(peptide_utils.AMINO_ACID_SMILES.keys()):
 		smiles_text = peptide_utils.sequence_to_smiles(aa)
-		sm = smiles_module.smiles()
+		sm = smiles_module.Smiles()
 		sm.read_smiles(smiles_text)
 		mol = sm.structure
 		assert len(mol.vertices) > 0, f"residue '{aa}' produced no atoms"

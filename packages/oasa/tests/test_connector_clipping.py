@@ -24,11 +24,11 @@ def _make_two_atom_mol(
 		bond_order=1,
 		bond_type="n",
 ):
-	mol = oasa.molecule()
-	left = oasa.atom(symbol=left_symbol)
+	mol = oasa.Molecule()
+	left = oasa.Atom(symbol=left_symbol)
 	left.x = 0.0
 	left.y = 0.0
-	right = oasa.atom(symbol=right_symbol)
+	right = oasa.Atom(symbol=right_symbol)
 	right.x = 40.0
 	right.y = 0.0
 	right.charge = int(right_charge)
@@ -40,7 +40,7 @@ def _make_two_atom_mol(
 		right.properties_["attach_element"] = right_attach_element
 	mol.add_vertex(left)
 	mol.add_vertex(right)
-	bond = oasa.bond(order=bond_order, type=bond_type)
+	bond = oasa.Bond(order=bond_order, type=bond_type)
 	bond.vertices = (left, right)
 	mol.add_edge(left, right, bond)
 	return mol, left, right

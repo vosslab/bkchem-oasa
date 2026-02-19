@@ -21,7 +21,7 @@
 
 import inspect
 
-from bkchem import config
+from bkchem import bkchem_config
 
 
 
@@ -36,7 +36,7 @@ def log( *args, **kw):
     levels = kw['levels']
   else:
     levels = []
-  if config.debug:
+  if bkchem_config.debug:
     frames = inspect.getouterframes( inspect.currentframe(), 1)
     try:
       for i in levels:

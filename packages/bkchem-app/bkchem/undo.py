@@ -30,7 +30,7 @@ exported in __all__.
 import copy
 import inspect
 
-from bkchem import misc
+from bkchem import bkchem_utils
 
 
 
@@ -236,8 +236,8 @@ class state_record(object):
     """sets the system to the recorded state (update is done only where necessary,
     not changed values are not touched)."""
     # we need to know about deleted bonds before we try to redraw them (when updating atom)
-    deleted = misc.difference( self.objects, previous.objects)
-    added = misc.difference( previous.objects, self.objects)
+    deleted = bkchem_utils.difference( self.objects, previous.objects)
+    added = bkchem_utils.difference( previous.objects, self.objects)
     to_redraw = set()
     ## CHANGED OBJECTS
     i = 0

@@ -27,12 +27,12 @@ Suitable for analysis of chemical problems.
 import copy
 import warnings
 
-from .edge import edge
-from .vertex import vertex
+from oasa.graph.edge_lib import Edge
+from oasa.graph.vertex_lib import Vertex
 
 
 
-class graph(object):
+class Graph(object):
   """Provide a minimalistic graph implementation.
 
   Suitable for analysis of chemical problems,
@@ -85,11 +85,11 @@ class graph(object):
 
 
   def create_vertex( self):
-    return vertex()
+    return Vertex()
 
 
   def create_edge( self):
-    return edge()
+    return Edge()
 
 
   def create_graph( self):
@@ -682,7 +682,7 @@ class graph(object):
     pgraph = self._get_p_graph()
     rings = set()
     for pv in copy.copy( pgraph.vertices):
-      rings |= graph._p_graph_remove( pv, pgraph)
+      rings |= Graph._p_graph_remove( pv, pgraph)
     final_rings = set()
     for ring in rings:
       final_ring = frozenset( [v.properties_['original'] for v in ring])
@@ -1433,3 +1433,4 @@ class MyThread(Thread):
 ## print('cycles %d, lengths %s' % (len( c), str( map( len, c))))
 ## c = g.get_all_cycles()
 ## print('cycles %d, lengths %s' % (len( c), str( map( len, c))))
+

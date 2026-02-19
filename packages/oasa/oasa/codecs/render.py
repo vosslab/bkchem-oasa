@@ -5,7 +5,7 @@
 """Registry adapters for OASA render outputs."""
 
 # local repo modules
-from .. import render_out
+from oasa import render_out
 
 
 #============================================

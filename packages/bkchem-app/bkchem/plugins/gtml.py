@@ -21,16 +21,16 @@
 
 """
 
-from oasa.transform import transform
+from oasa.transform_lib import Transform
 
 from bkchem import dom_extensions as dom_ext
 from bkchem import safe_xml
 
-from bkchem.atom import atom
-from bkchem.bond import bond
-from bkchem.molecule import molecule
+from bkchem.atom_lib import BkAtom
+from bkchem.bond_lib import BkBond
+from bkchem.molecule_lib import BkMolecule
 from bkchem.classes import plus
-from bkchem.arrow import arrow
+from bkchem.arrow_lib import BkArrow
 
 
 try:
@@ -144,14 +144,14 @@ class gtml_importer(object):
 
     # things that have to be done after the whole molecule is read and placed
     for m in self.molecules:
-      if isinstance( m, molecule):
+      if isinstance( m, BkMolecule):
         [a.generate_marks_from_cheminfo() for a in m.atoms]
 
     return self.molecules
 
 
   def _read_molecule( self, el):
-    m = molecule( self.paper)
+    m = BkMolecule( self.paper)
     for v in xpath.Evaluate( "vertex", el):
       a2 = self._read_atom( v, m)
       m.insert_atom( a2)
@@ -166,7 +166,7 @@ class gtml_importer(object):
 
 
   def _read_atom( self, at, mol):
-    a = atom( self.paper, molecule=mol)
+    a = BkAtom( self.paper, BkMolecule=mol)
     a.set_name( dom_ext.getAllTextFromElement( dom_ext.getFirstChildNamed( at, "symbol")))
     coords = dom_ext.getFirstChildNamed( at, "coordinates")
     a.x = float( dom_ext.getAllTextFromElement( dom_ext.getFirstChildNamed( coords, "x")))
@@ -187,7 +187,7 @@ class gtml_importer(object):
 
 
   def _read_bond( self, bo):
-    b = bond( self.paper)
+    b = BkBond( self.paper)
     b.order = gtml_to_bkchem_bond_order_remap.index( dom_ext.getAllTextFromElement( xpath.Evaluate("bond", bo)[0]))
     ids = [i.nodeValue for i in xpath.Evaluate( "end/@idref", bo)]
     b.atoms = [self._atom_id_remap[ i] for i in ids]
@@ -217,7 +217,7 @@ class gtml_importer(object):
               p.move( dx / 2, 0)
               last_anchor_x += self._xshift + dx
           if part == reactants:
-            arr = arrow( self.paper)
+            arr = BkArrow( self.paper)
             # first point
             arr.create_new_point( last_anchor_x, last_anchor_y)
             last_anchor_x += self.paper.any_to_px( self.paper.standard.arrow_length)
@@ -246,7 +246,7 @@ class gtml_importer(object):
       scale = 1
 
     # at first we scale to the standard bond length
-    tr = transform()
+    tr = Transform()
     tr.set_move( -minx, -miny)
     tr.set_scaling( scale)
     m.transform( tr)

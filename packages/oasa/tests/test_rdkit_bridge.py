@@ -16,24 +16,24 @@ import rdkit.Chem
 
 # local repo modules
 import oasa.rdkit_bridge as rdkit_bridge
-import oasa.smiles as smiles_mod
-from oasa.molecule import molecule
-from oasa.atom import atom
-from oasa.bond import bond
+import oasa.smiles_lib as smiles_mod
+from oasa.molecule_lib import Molecule
+from oasa.atom_lib import Atom
+from oasa.bond_lib import Bond
 
 
 #============================================
 def _make_ethanol_oasa():
 	"""Build a simple ethanol molecule (CCO) in OASA."""
-	omol = molecule()
-	c1 = atom(symbol='C')
-	c2 = atom(symbol='C')
-	o1 = atom(symbol='O')
+	omol = Molecule()
+	c1 = Atom(symbol='C')
+	c2 = Atom(symbol='C')
+	o1 = Atom(symbol='O')
 	omol.add_vertex(c1)
 	omol.add_vertex(c2)
 	omol.add_vertex(o1)
-	b1 = bond(order=1)
-	b2 = bond(order=1)
+	b1 = Bond(order=1)
+	b2 = Bond(order=1)
 	omol.add_edge(c1, c2, b1)
 	omol.add_edge(c2, o1, b2)
 	return omol

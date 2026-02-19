@@ -21,7 +21,7 @@
 
 """
 
-from bkchem import misc
+from bkchem import bkchem_utils
 
 
 
@@ -222,7 +222,7 @@ class selection_square(selection_rect):
 
     """
     fix = [0,0]
-    self.coords = misc.normalize_coords( self.coords)
+    self.coords = bkchem_utils.normalize_coords( self.coords)
     if self._active_item in (self._lt, self._lb):
       fix[0] = self.coords[2]
     else:

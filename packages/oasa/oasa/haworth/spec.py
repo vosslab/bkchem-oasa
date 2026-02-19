@@ -9,7 +9,7 @@ import dataclasses
 import re
 
 # local repo modules
-from ..sugar_code import ParsedSugarCode
+from oasa.sugar_code import ParsedSugarCode
 
 
 #============================================

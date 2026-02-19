@@ -26,21 +26,21 @@ Suitable for analysis of chemical problems.
 
 import warnings
 
-from .graph import graph as base_graph
-from .diedge import diedge
-from .vertex import vertex
+from oasa.graph.graph_lib import Graph as base_graph
+from oasa.graph.diedge_lib import Diedge
+from oasa.graph.vertex_lib import Vertex
 
 
 
-class digraph(base_graph):
+class Digraph(base_graph):
   """Provide a minimalistic graph implementation.
 
   Suitable for analysis of chemical problems,
   even if some care was taken to make the graph work with nonsimple graphs,
   there are cases where it won't!
   """
-  vertex_class = vertex
-  edge_class = diedge
+  vertex_class = Vertex
+  edge_class = Diedge
 
 
   def __str__( self):
@@ -145,3 +145,4 @@ class digraph(base_graph):
       ret += '"%s" [label="%s"];\n' % (v,v.value)
     ret += "}"
     return ret
+

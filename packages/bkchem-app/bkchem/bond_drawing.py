@@ -3,7 +3,7 @@
 from oasa import geometry
 from oasa import render_geometry
 
-from bkchem import misc
+from bkchem import bkchem_utils
 
 
 class BondDrawingMixin:
@@ -12,8 +12,8 @@ class BondDrawingMixin:
   def _where_to_draw_from_and_to(self):
     x1, y1 = self.atom1.get_xy_on_paper()
     x2, y2 = self.atom2.get_xy_on_paper()
-    bbox1 = list(misc.normalize_coords(self.atom1.bbox(substract_font_descent=True)))
-    bbox2 = list(misc.normalize_coords(self.atom2.bbox(substract_font_descent=True)))
+    bbox1 = list(bkchem_utils.normalize_coords(self.atom1.bbox(substract_font_descent=True)))
+    bbox2 = list(bkchem_utils.normalize_coords(self.atom2.bbox(substract_font_descent=True)))
     if geometry.do_rectangles_intersect(bbox1, bbox2):
       return None
     # Resolve clipping against shared target primitives instead of ad-hoc rect math.

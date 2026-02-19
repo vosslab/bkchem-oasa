@@ -21,15 +21,15 @@
 import xml.dom.minidom as dom
 
 # local repo modules
-from . import bond_semantics
-from . import cdml_bond_io
-from . import dom_extensions as dom_ext
-from . import smiles
-from .atom import atom
-from .bond import bond
-from .known_groups import cdml_to_smiles
-from .molecule import molecule
-from .periodic_table import periodic_table as PT
+from oasa import bond_semantics
+from oasa import cdml_bond_io
+from oasa import dom_extensions as dom_ext
+from oasa import smiles_lib as smiles
+from oasa.atom_lib import Atom as atom
+from oasa.bond_lib import Bond as bond
+from oasa.known_groups import cdml_to_smiles
+from oasa.molecule_lib import Molecule as molecule
+from oasa.periodic_table import periodic_table as PT
 
 
 # CPK element colors for non-carbon heteroatom coloring in CDML output

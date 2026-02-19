@@ -9,7 +9,7 @@ Same interface as coords_generator: calculate_coords(mol, bond_length, force).
 
 from math import pi, sqrt, sin, cos, atan2
 
-from . import geometry
+from oasa import geometry
 
 
 #============================================
@@ -154,7 +154,7 @@ class CoordsGenerator2:
 		# build stereochemistry lookup
 		self.stereo = {}
 		for st in mol.stereochemistry:
-			if st.__class__.__name__ == "cis_trans_stereochemistry":
+			if st.__class__.__name__ == "CisTransStereochemistry":
 				for a in (st.references[0], st.references[-1]):
 					self.stereo[a] = self.stereo.get(a, []) + [st]
 

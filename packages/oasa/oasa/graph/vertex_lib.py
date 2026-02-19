@@ -24,7 +24,7 @@
 import copy
 
 
-class vertex(object):
+class Vertex(object):
   """Simple vertex class.
 
   Normaly would not be needed but it can speed up many analytical tasks
@@ -132,3 +132,4 @@ class vertex(object):
     """
     return [e for e in list(self._neighbors.keys())
                 if not e.disconnected]
+

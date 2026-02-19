@@ -5,7 +5,7 @@ import pytest
 
 import oasa.sugar_code_smiles as sugar_code_smiles
 import oasa.sugar_code_names as sugar_code_names
-import oasa.smiles as oasa_smiles
+import oasa.smiles_lib as oasa_smiles
 
 
 # ============================================

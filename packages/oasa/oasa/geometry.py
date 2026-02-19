@@ -27,7 +27,7 @@
 
 from math import sqrt, atan2, pi, cos, sin
 
-from .misc import signum, normalize_coords
+from oasa.oasa_utils import signum, normalize_coords
 
 
 
@@ -495,7 +495,7 @@ def plane_normal_from_3_points( point1, point2, point3):
   for point in (point1,point2,point3):
     if None in point:
       return None  # some coords are missing
-  from . import transform
+  from oasa import transform_lib as transform
   x1,y1,z1 = point1
   x2,y2,z2 = point2
   x3,y3,z3 = point3
@@ -542,7 +542,7 @@ def create_transformation_to_coincide_point_with_z_axis( mov, point):
   with positive 'z'.
   NOTE: this is probably far from efficient, but it works
   """
-  from .transform3d import transform3d
+  from oasa.transform3d_lib import Transform3d as transform3d
   t = transform3d()
   a,b,c = mov
   t.set_move( -a, -b, -c)
@@ -594,6 +594,6 @@ def create_transformation_to_rotate_around_particular_axis( line_start, line_end
   m33 = (w2 + (u2 + v2) * cosT)/l2;
   m34 = (c*(u2 + v2) - w*(a*u + b*v)
       + (w*(a*u + b*v) - c*(u2 + v2))*cosT + (a*v - b*u)*l*sinT)/l2;
-  from .transform3d import transform3d
+  from oasa.transform3d_lib import Transform3d as transform3d
   t = transform3d( [[m11,m12,m13,m14],[m21,m22,m23,m24],[m31,m32,m33,m34],[0,0,0,1]])
   return t

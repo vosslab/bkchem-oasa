@@ -5,7 +5,7 @@
 """CML 2.0 wrappers built on top of the shared CML helpers."""
 
 # local repo modules
-from . import cml
+from oasa.codecs import cml
 
 
 _VERSION = "2"

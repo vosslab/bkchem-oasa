@@ -5,11 +5,11 @@ public constants, functions, and private helpers from the new subpackage so
 that existing call sites (tests, tools) keep working without edits.
 """
 
-from .haworth import renderer_config as _cfg
-from .haworth import renderer_geometry as _geom
-from .haworth import renderer_text as _text
-from .haworth import renderer_layout as _layout
-from .haworth import renderer as _renderer
+from oasa.haworth import renderer_config as _cfg
+from oasa.haworth import renderer_geometry as _geom
+from oasa.haworth import renderer_text as _text
+from oasa.haworth import renderer_layout as _layout
+from oasa.haworth import renderer as _renderer
 
 # -- public API ---------------------------------------------------------------
 render = _renderer.render

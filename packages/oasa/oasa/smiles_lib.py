@@ -21,16 +21,16 @@
 
 import re
 
-from . import reaction
-from . import oasa_exceptions
-from . import stereochemistry
-from . import periodic_table as PT
-from .config import Config
-from .plugin import plugin
+from oasa import reaction_lib as reaction
+from oasa import oasa_exceptions
+from oasa import stereochemistry_lib as stereochemistry
+from oasa import periodic_table as PT
+from oasa.oasa_config import Config
+from oasa.plugin_lib import Plugin as plugin
 
 
 
-class smiles( plugin):
+class Smiles( plugin):
 
   name = "smiles"
   read = 1
@@ -667,7 +667,7 @@ def match_atom_lists( l1, l2):
 ##################################################
 ## MODULE INTERFACE - newstyle
 
-from .converter_base import converter_base
+from oasa.converter_base import converter_base
 
 class smiles_converter( converter_base):
 
@@ -692,7 +692,7 @@ class smiles_converter( converter_base):
 
   def mols_to_text( self, structures):
     converter_base.mols_to_text( self, structures)
-    sm = smiles()
+    sm = Smiles()
     ret = []
     for mol in structures:
       if self.configuration["W_AROMATIC_BOND_AUTODETECT"]:
@@ -733,7 +733,7 @@ class smiles_converter( converter_base):
 
   def _read_string( self, text):
     converter_base.read_text( self, text)
-    sm = smiles()
+    sm = Smiles()
     sm.read_smiles( text, explicit_hydrogens_to_real_atoms=self.configuration['R_EXPLICIT_HYDROGENS_TO_REAL_ATOMS'])
     mol = sm.structure
     if mol is None:
@@ -773,7 +773,7 @@ converter = smiles_converter
 ##################################################
 ## MODULE INTERFACE - oldstyle
 
-from . import coords_generator
+from oasa import coords_generator
 
 reads_text = True
 writes_text = True
@@ -781,12 +781,12 @@ reads_files = True
 writes_files = True
 
 def mol_to_text( structure):
-  sm = smiles()
+  sm = Smiles()
   structure.mark_aromatic_bonds()
   return sm.get_smiles( structure)
 
 def text_to_mol( text, calc_coords=1, localize_aromatic_bonds=True):
-  sm = smiles()
+  sm = Smiles()
   sm.read_smiles( text)
   mol = sm.structure
   if localize_aromatic_bonds:
@@ -868,3 +868,4 @@ if __name__ == '__main__':
 ## THIS IS A PROBLEM : C=1ccC=2C=1C=CC=CC=2  (should be azulene)
 
 # E/Z stereo is ignored in rings
+

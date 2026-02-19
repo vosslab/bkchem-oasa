@@ -7,7 +7,7 @@
 # Standard Library
 import math
 
-from .renderer_config import (
+from oasa.haworth.renderer_config import (
 	RING_SLOT_SEQUENCE,
 	VALID_DIRECTIONS,
 	VALID_ANCHORS,
@@ -21,9 +21,9 @@ from .renderer_config import (
 	INTERNAL_PAIR_LANE_Y_TOLERANCE_FACTOR,
 	INTERNAL_PAIR_MIN_H_GAP_FACTOR,
 )
-from . import renderer_geometry as _geom
-from . import renderer_text as _text
-from .. import render_geometry as _render_geometry
+from oasa.haworth import renderer_geometry as _geom
+from oasa.haworth import renderer_text as _text
+from oasa import render_geometry as _render_geometry
 
 
 #============================================

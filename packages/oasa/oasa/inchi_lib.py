@@ -23,20 +23,20 @@ import re
 import os
 import string
 
-from . import misc
-from . import molfile
-from . import dom_extensions
-from . import safe_xml
-from . import coords_generator
-from . import periodic_table as pt
-from .plugin import plugin
-from .molecule import molecule
-from .stereochemistry import cis_trans_stereochemistry
-from .oasa_exceptions import oasa_not_implemented_error, oasa_inchi_error, oasa_unsupported_inchi_version_error
+from oasa import oasa_utils as misc
+from oasa import molfile_lib as molfile
+from oasa import dom_extensions
+from oasa import safe_xml
+from oasa import coords_generator
+from oasa import periodic_table as pt
+from oasa.plugin_lib import Plugin as plugin
+from oasa.molecule_lib import Molecule as molecule
+from oasa.stereochemistry_lib import CisTransStereochemistry as cis_trans_stereochemistry
+from oasa.oasa_exceptions import oasa_not_implemented_error, oasa_inchi_error, oasa_unsupported_inchi_version_error
 
 
 
-class inchi( plugin):
+class Inchi( plugin):
 
   name = "inchi"
   read = 1
@@ -783,7 +783,7 @@ def generate_inchi_and_inchikey( m, program=None, fixed_hs=True, ignore_key_erro
   """ignore the case when InChIKey cannot be generated for some reason
   (no mhash library and old InChI program)"""
   if not program:
-    from . import config
+    from oasa import oasa_config as config
     program = config.Config.inchi_binary_path
   mf = molfile.mol_to_text( m)
   if os.name == 'nt':
@@ -813,7 +813,7 @@ def generate_inchi_and_inchikey( m, program=None, fixed_hs=True, ignore_key_erro
   if not key:
     # probably old version of the InChI software
     try:
-      from . import inchi_key
+      from oasa import inchi_key
     except ImportError:
       if ignore_key_error:
         key = None
@@ -844,7 +844,7 @@ writes_files = 1
 
 def text_to_mol( text, include_hydrogens=True, mark_aromatic_bonds=False, calc_coords=1):
   try:
-    inc = inchi()
+    inc = Inchi()
     inc.read_inchi( text)
     mol = inc.structure
     #mol.add_missing_bond_orders()
@@ -887,7 +887,7 @@ def mol_to_file( mol, f):
 if __name__ == '__main__':
   import time
 
-  from . import smiles
+  from oasa import smiles_lib as smiles
 
   def main( text, cycles):
     t1 = time.time()
@@ -928,3 +928,4 @@ if __name__ == '__main__':
 
 
 ##################################################
+

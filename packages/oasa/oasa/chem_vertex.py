@@ -17,12 +17,14 @@
 
 #--------------------------------------------------------------------------
 
-from .graph.vertex import vertex
-from . import periodic_table as PT
+from oasa.graph.vertex_lib import Vertex as vertex
+from oasa import periodic_table as PT
 
 
 
-class chem_vertex(vertex):
+
+
+class ChemVertex(vertex):
   """Parent class of atoms, groups etc.
 
   It defines common properties for vertices used in chemical context.
@@ -192,3 +194,4 @@ class chem_vertex(vertex):
 
   def get_hydrogen_count( self):
     return 0
+

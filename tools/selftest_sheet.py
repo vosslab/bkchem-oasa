@@ -947,9 +947,9 @@ def _mol_from_smiles(smiles_str, calc_coords=True):
 	# Handle imports for both module and script usage
 	if __name__ == "__main__":
 		import oasa
-		smiles_module = oasa.smiles
+		smiles_module = oasa.smiles_lib
 	else:
-		import oasa.smiles as smiles_module
+		import oasa.smiles_lib as smiles_module
 
 	# Parse SMILES
 	# calc_coords=1 generates initial 2D layout (required for haworth.build_haworth)

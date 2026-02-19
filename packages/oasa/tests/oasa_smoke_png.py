@@ -69,7 +69,7 @@ def ensure_parent_dir(path):
 #============================================
 def build_molecule(smiles_text):
 	"""Convert SMILES to an OASA molecule with coordinates."""
-	mol = oasa.smiles.text_to_mol(smiles_text, calc_coords=False)
+	mol = oasa.smiles_lib.text_to_mol(smiles_text, calc_coords=False)
 	if not mol:
 		raise ValueError("SMILES could not be parsed into a molecule.")
 	oasa.coords_generator.calculate_coords(mol, force=1)

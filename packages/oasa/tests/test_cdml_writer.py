@@ -9,18 +9,18 @@ from oasa import cdml_writer
 
 #============================================
 def test_cdml_writer_basic():
-	mol = oasa.molecule()
-	a1 = oasa.atom(symbol="O")
+	mol = oasa.Molecule()
+	a1 = oasa.Atom(symbol="O")
 	a1.x = 0.0
 	a1.y = 0.0
 	a1._cdml_unknown_attrs = {"custom": "1"}
 	a1._cdml_present = {"custom"}
-	a2 = oasa.atom(symbol="C")
+	a2 = oasa.Atom(symbol="C")
 	a2.x = 12.0
 	a2.y = 0.0
 	mol.add_vertex(a1)
 	mol.add_vertex(a2)
-	b = oasa.bond(order=1, type="n")
+	b = oasa.Bond(order=1, type="n")
 	b.vertices = (a1, a2)
 	b.line_color = "#123456"
 	b.properties_["line_color"] = "#123456"

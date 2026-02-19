@@ -21,8 +21,8 @@
 import unittest
 
 from oasa import linear_formula
-from oasa import smiles
-from oasa.molecule import equals
+from oasa import smiles_lib as smiles
+from oasa.molecule_lib import equals
 
 
 
@@ -206,18 +206,18 @@ class TestSMILESReactionSupport(unittest.TestCase):
 
 ## Reaction test
 
-from oasa import reaction
+from oasa import reaction_lib as reaction
 
 class TestReactionComponent(unittest.TestCase):
 
   def test1(self):
     mol = smiles.text_to_mol( "CCCO")
-    rc = reaction.reaction_component( mol, 2)
+    rc = reaction.ReactionComponent( mol, 2)
     self.assertEqual( rc.stoichiometry, 2)
-    self.assertRaises( Exception, reaction.reaction_component, mol, "x")
-    self.assertRaises( Exception, reaction.reaction_component.stoichiometry.__set__, rc, "x")
-    self.assertRaises( Exception, reaction.reaction_component, 2, 2)
-    self.assertRaises( Exception, reaction.reaction_component.molecule.__set__, rc, "x")
+    self.assertRaises( Exception, reaction.ReactionComponent, mol, "x")
+    self.assertRaises( Exception, reaction.ReactionComponent.stoichiometry.__set__, rc, "x")
+    self.assertRaises( Exception, reaction.ReactionComponent, 2, 2)
+    self.assertRaises( Exception, reaction.ReactionComponent.molecule.__set__, rc, "x")
 
 
 ## Explicit hydrogens, occupied_valency and free_valency testing

@@ -10,11 +10,11 @@ import os
 import xml.dom.minidom as dom
 
 # local repo modules
-from . import dom_extensions
-from . import molecule_utils
-from . import render_geometry
-from . import render_ops
-from . import svg_out
+from oasa import dom_extensions
+from oasa import molecule_utils
+from oasa import render_geometry
+from oasa import render_ops
+from oasa import svg_out
 
 
 _RENDER_STYLE_KEYS = (

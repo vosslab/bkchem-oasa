@@ -17,40 +17,27 @@
 
 #--------------------------------------------------------------------------
 
-import copy
 
 
-
-class edge(object):
-
-  attrs_to_copy: tuple[str, ...] = ("disconnected",)
+class Diedge(object):
 
   def __init__(self, vs=[]):
-    self._vertices = []
+    self.vertices = []
     self.set_vertices(vs)
     self.properties_ = {}
-    self.disconnected = False
 
 
   def __str__(self):
-    return "edge between %s %s" % tuple(map(str, self.vertices))
-
-
-  def copy(self):
-    other = self.__class__()
-    for attr in self.attrs_to_copy:
-      setattr(other, attr, copy.copy(getattr(self, attr)))
-    return other
+    return "Directed edge between %s %s" % tuple(map(str, self.vertices))
 
 
   def set_vertices(self, vs=[]):
-    # Ring perception algorithm relies on allowing both vertices to be the same
     if vs and len(vs) == 2:
-      self._vertices = list(vs)
+      self.vertices = vs
 
 
   def get_vertices(self):
-    return self._vertices
+    return self.vertices
 
 
   @property
@@ -70,12 +57,3 @@ class edge(object):
     out2 = [e for e in v2.neighbor_edges if e != self]
     return out1, out2
 
-
-  @property
-  def disconnected(self):
-    return self._disconnected
-
-
-  @disconnected.setter
-  def disconnected(self, d):
-    self._disconnected = d

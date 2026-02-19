@@ -28,19 +28,19 @@ def output_path(output_dir, filename):
 
 #============================================
 def build_ring(size, oxygen_index=None):
-	mol = oasa.molecule()
+	mol = oasa.Molecule()
 	atoms = []
 	for idx in range(size):
 		symbol = 'C'
 		if oxygen_index is not None and idx == oxygen_index:
 			symbol = 'O'
-		a = oasa.atom(symbol=symbol)
+		a = oasa.Atom(symbol=symbol)
 		a.x = idx * 20
 		a.y = 0
 		mol.add_vertex(a)
 		atoms.append(a)
 	for idx in range(size):
-		bond = oasa.bond(order=1, type='n')
+		bond = oasa.Bond(order=1, type='n')
 		v1 = atoms[idx]
 		v2 = atoms[(idx + 1) % size]
 		bond.vertices = (v1, v2)
@@ -242,11 +242,11 @@ def _find_haworth_reference_atoms(ring_atoms):
 
 #============================================
 def _add_substituent(mol, ring_atom, symbol):
-	sub = oasa.atom(symbol=symbol)
+	sub = oasa.Atom(symbol=symbol)
 	sub.x = ring_atom.x
 	sub.y = ring_atom.y
 	mol.add_vertex(sub)
-	bond = oasa.bond(order=1, type="n")
+	bond = oasa.Bond(order=1, type="n")
 	bond.vertices = (ring_atom, sub)
 	mol.add_edge(ring_atom, sub, bond)
 	return sub, bond

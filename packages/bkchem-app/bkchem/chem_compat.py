@@ -46,39 +46,39 @@ def register_bkchem_classes() -> None:
 
 	Registration mapping:
 		ChemistryVertex:
-			oasa.graph.vertex, oasa.chem_vertex, oasa.atom, oasa.query_atom
-			bkchem.atom.atom, bkchem.queryatom.queryatom
+			oasa.graph.Vertex, oasa.ChemVertex, oasa.Atom, oasa.QueryAtom
+			bkchem.atom_lib.BkAtom, bkchem.queryatom_lib.BkQueryatom
 		ChemistryEdge:
-			oasa.graph.edge, oasa.bond
-			bkchem.bond.bond
+			oasa.graph.Edge, oasa.Bond
+			bkchem.bond_lib.BkBond
 		ChemistryGraph:
-			oasa.graph.graph, oasa.molecule
-			bkchem.molecule.molecule
+			oasa.graph.Graph, oasa.Molecule
+			bkchem.molecule_lib.BkMolecule
 	"""
 	# late imports to avoid circular dependencies at module level
-	import bkchem.atom
-	import bkchem.bond
-	import bkchem.molecule
-	import bkchem.queryatom
+	import bkchem.atom_lib
+	import bkchem.bond_lib
+	import bkchem.molecule_lib
+	import bkchem.queryatom_lib
 
 	# -- register OASA classes with the ABCs --
 	# vertex hierarchy
-	ChemistryVertex.register(oasa.graph.vertex)
-	ChemistryVertex.register(oasa.chem_vertex)
-	ChemistryVertex.register(oasa.atom)
-	ChemistryVertex.register(oasa.query_atom)
+	ChemistryVertex.register(oasa.graph.Vertex)
+	ChemistryVertex.register(oasa.ChemVertex)
+	ChemistryVertex.register(oasa.Atom)
+	ChemistryVertex.register(oasa.QueryAtom)
 	# edge hierarchy
-	ChemistryEdge.register(oasa.graph.edge)
-	ChemistryEdge.register(oasa.bond)
+	ChemistryEdge.register(oasa.graph.Edge)
+	ChemistryEdge.register(oasa.Bond)
 	# graph hierarchy
-	ChemistryGraph.register(oasa.graph.graph)
-	ChemistryGraph.register(oasa.molecule)
+	ChemistryGraph.register(oasa.graph.Graph)
+	ChemistryGraph.register(oasa.Molecule)
 
 	# -- register BKChem classes with the ABCs --
-	ChemistryVertex.register(bkchem.atom.atom)
-	ChemistryVertex.register(bkchem.queryatom.queryatom)
-	ChemistryEdge.register(bkchem.bond.bond)
-	ChemistryGraph.register(bkchem.molecule.molecule)
+	ChemistryVertex.register(bkchem.atom_lib.BkAtom)
+	ChemistryVertex.register(bkchem.queryatom_lib.BkQueryatom)
+	ChemistryEdge.register(bkchem.bond_lib.BkBond)
+	ChemistryGraph.register(bkchem.molecule_lib.BkMolecule)
 
 
 #============================================

@@ -17,43 +17,18 @@
 
 #--------------------------------------------------------------------------
 
+from oasa.molecule_lib import Molecule as molecule_class
 
 
-class diedge(object):
 
-  def __init__(self, vs=[]):
-    self.vertices = []
-    self.set_vertices(vs)
-    self.properties_ = {}
+class Config (object):
+  """Singleton class for library wide configuration.
 
+  """
+  inchi_binary_path = "/usr/bin/inchi-1"
 
-  def __str__(self):
-    return "Directed edge between %s %s" % tuple(map(str, self.vertices))
+  molecule_class = molecule_class
 
-
-  def set_vertices(self, vs=[]):
-    if vs and len(vs) == 2:
-      self.vertices = vs
-
-
-  def get_vertices(self):
-    return self.vertices
-
-
-  @property
-  def neighbor_edges(self):
-    v1, v2 = self.vertices
-    out1 = [e for e in v1.neighbor_edges if e != self]
-    out2 = [e for e in v2.neighbor_edges if e != self]
-    return out1 + out2
-
-
-  def get_neighbor_edges2(self):
-    """Return 2 lists of neighbor edges (one for one side, one for the other).
-
-    """
-    v1, v2 = self.vertices
-    out1 = [e for e in v1.neighbor_edges if e != self]
-    out2 = [e for e in v2.neighbor_edges if e != self]
-    return out1, out2
-
+  @classmethod
+  def create_molecule(self):
+    return self.molecule_class()

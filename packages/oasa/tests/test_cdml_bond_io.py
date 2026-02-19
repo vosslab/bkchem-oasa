@@ -26,7 +26,7 @@ def _make_cdml_text():
 def test_read_cdml_bond_attributes_preserves_unknown():
 	doc = safe_xml.parse_dom_from_string(_make_cdml_text())
 	bond_el = dom_ext.simpleXPathSearch(doc, "//bond")[0]
-	bond = oasa.bond(order=1, type="n")
+	bond = oasa.Bond(order=1, type="n")
 	cdml_bond_io.read_cdml_bond_attributes(
 		bond_el,
 		bond,

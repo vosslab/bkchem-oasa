@@ -129,8 +129,8 @@ def mol_to_svg(atoms_xy: list, bonds: list, width: int = 200,
 def generate_old_coords(smiles_text: str) -> tuple:
 	"""Generate coords using the old coords_generator."""
 	import oasa.coords_generator as cg_old
-	import oasa.smiles
-	mol = oasa.smiles.text_to_mol(smiles_text, calc_coords=False)
+	import oasa.smiles_lib
+	mol = oasa.smiles_lib.text_to_mol(smiles_text, calc_coords=False)
 	cg_old.calculate_coords(mol, bond_length=1.0, force=1)
 	atoms_xy = []
 	for a in mol.vertices:
@@ -151,8 +151,8 @@ def generate_old_coords(smiles_text: str) -> tuple:
 def generate_new_coords(smiles_text: str) -> tuple:
 	"""Generate coords using the new coords_generator2."""
 	import oasa.coords_generator2 as cg_new
-	import oasa.smiles
-	mol = oasa.smiles.text_to_mol(smiles_text, calc_coords=False)
+	import oasa.smiles_lib
+	mol = oasa.smiles_lib.text_to_mol(smiles_text, calc_coords=False)
 	cg_new.calculate_coords(mol, bond_length=1.0, force=1)
 	atoms_xy = []
 	for a in mol.vertices:

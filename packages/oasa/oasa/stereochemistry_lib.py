@@ -17,11 +17,11 @@
 
 #--------------------------------------------------------------------------
 
-from . import oasa_exceptions
+from oasa import oasa_exceptions
 
 
 
-class stereochemistry(object):
+class Stereochemistry(object):
 
   def __init__( self, center=None, references=None, value=None):
     self.center = center
@@ -63,7 +63,7 @@ class stereochemistry(object):
 
 
 
-class cis_trans_stereochemistry(stereochemistry):
+class CisTransStereochemistry(Stereochemistry):
 
   UNDEFINED = 0
   OPPOSITE_SIDE = 1
@@ -72,27 +72,27 @@ class cis_trans_stereochemistry(stereochemistry):
   # Override value
   @property
   def value(self):
-    return stereochemistry.value.__get__(self)
+    return Stereochemistry.value.__get__(self)
 
 
   @value.setter
   def value(self, value):
     if value not in (self.SAME_SIDE, self.OPPOSITE_SIDE, self.UNDEFINED):
       raise oasa_exceptions.oasa_stereochemistry_error( "invalid stereochemistry identifier '%s'" % value)
-    stereochemistry.value.__set__(self, value)
+    Stereochemistry.value.__set__(self, value)
 
 
   # Override references
   @property
   def references(self):
-    return stereochemistry.references.__get__(self)
+    return Stereochemistry.references.__get__(self)
 
 
   @references.setter
   def references(self, references):
     if len( references) != 4:
       raise oasa_exceptions.oasa_stereochemistry_error( "wrong number of references in stereochemistry specification '%s'" % len( references))
-    stereochemistry.references.__set__(self, references)
+    Stereochemistry.references.__set__(self, references)
 
 
   def get_other_end( self, ref):
@@ -103,7 +103,7 @@ class cis_trans_stereochemistry(stereochemistry):
 
 
 
-class tetrahedral_stereochemistry(stereochemistry):
+class TetrahedralStereochemistry(Stereochemistry):
 
   UNDEFINED = 0
   # as in CIP - put the last atom behind the reference and observer the first 3
@@ -114,37 +114,41 @@ class tetrahedral_stereochemistry(stereochemistry):
   # Override value
   @property
   def value(self):
-    return stereochemistry.value.__get__(self)
+    return Stereochemistry.value.__get__(self)
 
 
   @value.setter
   def value(self, value):
     if value not in (self.CLOCKWISE, self.ANTICLOCKWISE, self.UNDEFINED):
       raise oasa_exceptions.oasa_stereochemistry_error( "invalid stereochemistry identifier '%s'" % value)
-    stereochemistry.value.__set__(self, value)
+    Stereochemistry.value.__set__(self, value)
 
 
   # Override references
   @property
   def references(self):
-    return stereochemistry.references.__get__(self)
+    return Stereochemistry.references.__get__(self)
 
 
   @references.setter
   def references(self, references):
     if len( references) != 4:
       raise oasa_exceptions.oasa_stereochemistry_error( "wrong number of references in stereochemistry specification '%s'" % len( references))
-    stereochemistry.references.__set__(self, references)
+    Stereochemistry.references.__set__(self, references)
 
 
 
-class explicit_hydrogen(object):
+class ExplicitHydrogen(object):
   """Placeholder for explicit hydrogen in stereochemistry references.
 
   """
   def __eq__(self, other):
-    if isinstance(other, explicit_hydrogen):
+    if isinstance(other, ExplicitHydrogen):
       return True
     else:
       return False
+
+
+tetrahedral_stereochemistry = TetrahedralStereochemistry
+explicit_hydrogen = ExplicitHydrogen
 

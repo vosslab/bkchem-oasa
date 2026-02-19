@@ -24,7 +24,7 @@
 import re
 import xml.dom.minidom as dom
 
-from . import safe_xml
+from oasa import safe_xml
 
 
 

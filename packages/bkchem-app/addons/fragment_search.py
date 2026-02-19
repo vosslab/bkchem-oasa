@@ -3,10 +3,10 @@ import os
 import time
 import tkinter.filedialog
 
-import logger
-import dialogs
+from bkchem import logger
+from bkchem import dialogs
 
-from singleton_store import Store
+from bkchem.singleton_store import Store
 
 _ = getattr( builtins, "_", None)
 if not _:

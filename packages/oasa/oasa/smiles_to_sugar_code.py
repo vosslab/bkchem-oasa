@@ -11,10 +11,10 @@ Two-tier approach:
 import dataclasses
 
 # local repo modules
-from . import sugar_code
-from . import sugar_code_smiles
-from . import sugar_code_names
-from . import smiles as smiles_module
+from oasa import sugar_code
+from oasa import sugar_code_smiles
+from oasa import sugar_code_names
+from oasa import smiles_lib as smiles_module
 
 
 #============================================

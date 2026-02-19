@@ -8,12 +8,12 @@
 import xml.dom.minidom
 
 # local repo modules
-from .. import dom_extensions
-from .. import safe_xml
-from ..atom import atom
-from ..bond import bond
-from ..molecule import molecule
-from ..periodic_table import periodic_table
+from oasa import dom_extensions
+from oasa import safe_xml
+from oasa.atom_lib import Atom as atom
+from oasa.bond_lib import Bond as bond
+from oasa.molecule_lib import Molecule as molecule
+from oasa.periodic_table import periodic_table
 
 
 _DISPLAY_TO_BOND_TYPE = {

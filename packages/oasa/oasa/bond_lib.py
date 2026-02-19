@@ -29,11 +29,11 @@ import sys
 sys.path.append( '../')
 import math
 
-from .graph.edge import edge
+from oasa.graph.edge_lib import Edge as edge
 
 
 
-class bond(edge, object):
+class Bond(edge, object):
   """Based on edge, however the vertices are not a Set anymore.
 
   We need to preserve the order (for instance for wedge bonds).
@@ -136,3 +136,4 @@ class bond(edge, object):
 ### TODO
 
 # support for the bond.aromatic
+

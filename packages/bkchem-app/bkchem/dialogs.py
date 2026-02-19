@@ -30,7 +30,7 @@ import tkinter.messagebox
 import Pmw
 
 from bkchem import data
-from bkchem import misc
+from bkchem import bkchem_utils
 from bkchem import classes
 from bkchem import widgets
 from bkchem import os_support
@@ -170,12 +170,12 @@ class config_dialog(object):
         if o.arrow not in arrows:
           arrows.append( o.arrow)
     items += arrows
-    types = misc.filter_unique( [o.object_type for o in items])
+    types = bkchem_utils.filter_unique( [o.object_type for o in items])
 
     if 'atom' in types:
       self.atom_page = self.pages.add(_('Atom'))
       # charge
-      charges = misc.filter_unique( [o.charge for o in items if hasattr( o, 'charge')])
+      charges = bkchem_utils.filter_unique( [o.charge for o in items if hasattr( o, 'charge')])
       if len( charges) == 1:
         charge = charges[0]
       else:
@@ -190,7 +190,7 @@ class config_dialog(object):
                                       datatype = 'integer')
       self.atom_charge.pack( anchor='nw', padx=10, pady=5)
       # show?
-      shows = misc.filter_unique( [o.show for o in items if hasattr( o, 'show')])
+      shows = bkchem_utils.filter_unique( [o.show for o in items if hasattr( o, 'show')])
       if len( shows) == 1:
         show = int( shows[0])
       else:
@@ -202,7 +202,7 @@ class config_dialog(object):
                                        initialitem = show)
       self.atom_show.pack( anchor = 'nw')
       # positioning
-      poss = misc.filter_unique( [o.pos for o in items if o.object_type == 'atom'])
+      poss = bkchem_utils.filter_unique( [o.pos for o in items if o.object_type == 'atom'])
       if not poss:
         pos = None
       elif len( poss) == 1 and poss[0]:
@@ -220,7 +220,7 @@ class config_dialog(object):
 
         self.atom_pos.pack( anchor = 'nw')
       # show hydrogens
-      shows = misc.filter_unique( [o.show_hydrogens for o in items if o.object_type == 'atom'])
+      shows = bkchem_utils.filter_unique( [o.show_hydrogens for o in items if o.object_type == 'atom'])
       if len( shows) == 1:
         show = shows[0]
       else:
@@ -241,29 +241,29 @@ class config_dialog(object):
     if 'bond' in types:
       self.bond_page = self.pages.add(_('Bond'))
       # bond_widths (former distances)
-      dists = misc.filter_unique( list(map( abs, [o.bond_width for o in items if o.object_type == 'bond'])))
+      dists = bkchem_utils.filter_unique( list(map( abs, [o.bond_width for o in items if o.object_type == 'bond'])))
       if len( dists) == 1:
         dist = dists[0]
       else:
         dist = ''
-      if not misc.split_number_and_unit( dist)[1]:
+      if not bkchem_utils.split_number_and_unit( dist)[1]:
         dist = str( dist) + 'px'
       self.bond_dist = widgets.WidthChooser( self.bond_page, dist, label=_('Bond width'))
       self.bond_dist.pack( anchor='ne', padx=10, pady=5)
 
       # wedge_widths
-      dists = misc.filter_unique( list(map( abs, [o.wedge_width for o in items if o.object_type == 'bond'])))
+      dists = bkchem_utils.filter_unique( list(map( abs, [o.wedge_width for o in items if o.object_type == 'bond'])))
       if len( dists) == 1:
         dist = dists[0]
       else:
         dist = ''
-      if not misc.split_number_and_unit( dist)[1]:
+      if not bkchem_utils.split_number_and_unit( dist)[1]:
         dist = str( dist) + 'px'
       self.wedge_width = widgets.WidthChooser( self.bond_page, dist, label=_('Wedge/Hatch width'))
       self.wedge_width.pack( anchor='ne', padx=10, pady=5)
 
       # double bond length ratio
-      ratios = misc.filter_unique( [o.double_length_ratio for o in items if o.object_type == 'bond'])
+      ratios = bkchem_utils.filter_unique( [o.double_length_ratio for o in items if o.object_type == 'bond'])
       if len( ratios) == 1:
         ratio = ratios[0]
       else:
@@ -281,7 +281,7 @@ class config_dialog(object):
       arrow_items = [o for o in items if o.object_type == 'arrow']
 
       # arrow start pins
-      arrow_starts = misc.filter_unique( [o.get_pins()[0] for o in arrow_items])
+      arrow_starts = bkchem_utils.filter_unique( [o.get_pins()[0] for o in arrow_items])
       self.arrow_start = tkinter.IntVar()
       if len( arrow_starts) == 1:
         self.arrow_start.set( arrow_starts[0])
@@ -294,7 +294,7 @@ class config_dialog(object):
       self.arrow_start_entry.pack( anchor='w')
 
       # arrow end pins
-      arrow_ends = misc.filter_unique( [o.get_pins()[1] for o in arrow_items])
+      arrow_ends = bkchem_utils.filter_unique( [o.get_pins()[1] for o in arrow_items])
       self.arrow_end = tkinter.IntVar()
       if len( arrow_ends) == 1:
         self.arrow_end.set( arrow_ends[0])
@@ -307,7 +307,7 @@ class config_dialog(object):
       self.arrow_end_entry.pack( anchor='w')
 
       # spline?
-      splines = misc.filter_unique( [o.spline for o in arrow_items])
+      splines = bkchem_utils.filter_unique( [o.spline for o in arrow_items])
       self.spline = tkinter.IntVar()
       if len( splines) == 1:
         self.spline.set( splines[0])
@@ -329,7 +329,7 @@ class config_dialog(object):
     if font_items:
       self.font_page = self.pages.add(_('Font'))
 
-      sizes = misc.filter_unique( [o.font_size for o in font_items])
+      sizes = bkchem_utils.filter_unique( [o.font_size for o in font_items])
       if len( sizes) == 1:
         size = sizes[0]
       else:
@@ -337,7 +337,7 @@ class config_dialog(object):
       self.font_size = widgets.FontSizeChooser( self.font_page, size)
       self.font_size.pack( anchor = 'nw')
 
-      used_families = misc.filter_unique( [o.font_family for o in font_items])
+      used_families = bkchem_utils.filter_unique( [o.font_family for o in font_items])
       if len( used_families) == 1:
         self.used_family = used_families[0]
       else:
@@ -349,19 +349,19 @@ class config_dialog(object):
     self.common_page = self.pages.add(_('Common'))
     line_items = [x for x in items if hasattr( x, 'line_width')]
     if line_items:
-      widths = misc.filter_unique( [o.line_width for o in line_items])
+      widths = bkchem_utils.filter_unique( [o.line_width for o in line_items])
       if len( widths) == 1:
         width = widths[0]
       else:
         width = ''
-      if not misc.split_number_and_unit( width)[1]:
+      if not bkchem_utils.split_number_and_unit( width)[1]:
         width = str( width) + 'px'
       self.line_width = widgets.WidthChooser( self.common_page, width, label=_('Line width'))
       self.line_width.pack( anchor='nw', padx=10, pady=5)
 
     line_color_items = [x for x in items if hasattr( x, 'line_color')]
     if line_color_items:
-      lines = misc.filter_unique( [o.line_color for o in line_color_items])
+      lines = bkchem_utils.filter_unique( [o.line_color for o in line_color_items])
       if len( lines) == 1:
         line = lines[0]
       else:
@@ -371,7 +371,7 @@ class config_dialog(object):
 
     area_color_items = [x for x in items if hasattr( x, 'area_color')]
     if area_color_items:
-      areas = misc.filter_unique( [o.area_color for o in area_color_items])
+      areas = bkchem_utils.filter_unique( [o.area_color for o in area_color_items])
       if len( areas) == 1:
         area = areas[0]
       else:
@@ -424,7 +424,7 @@ class config_dialog(object):
           d = Screen.any_to_px( self.bond_dist.getvalue())
           if d:
             if d != abs( o.bond_width):
-              o.bond_width = d * misc.signum( o.bond_width)
+              o.bond_width = d * bkchem_utils.signum( o.bond_width)
               change = 1
           # wedge_width
           d = Screen.any_to_px( self.wedge_width.getvalue())

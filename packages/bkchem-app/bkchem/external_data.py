@@ -31,21 +31,21 @@ from bkchem import os_support
 from bkchem import dom_extensions as dom_ext
 from bkchem import safe_xml
 
-from bkchem.atom import atom
-from bkchem.bond import bond
-from bkchem.group import group
-from bkchem.molecule import molecule
-from bkchem.textatom import textatom
-from bkchem.queryatom import queryatom
+from bkchem.atom_lib import BkAtom
+from bkchem.bond_lib import BkBond
+from bkchem.group_lib import BkGroup
+from bkchem.molecule_lib import BkMolecule
+from bkchem.textatom_lib import BkTextatom
+from bkchem.queryatom_lib import BkQueryatom
 from bkchem.singleton_store import Store
 
 
 
 class external_data_manager( object):
 
-  types = {'atom': (atom,group,textatom,queryatom),
-           'bond': (bond,),
-           'molecule': (molecule,),
+  types = {'atom': (BkAtom,BkGroup,BkTextatom,BkQueryatom),
+           'bond': (BkBond,),
+           'molecule': (BkMolecule,),
            'IntType': (int,),
            #'toplevel': ('molecule', 'arrow', 'plus', 'text', 'rect', 'oval', 'polygon', 'circle', 'square', 'reaction','polyline')
            }

@@ -37,9 +37,9 @@ import tkinter.messagebox
 
 import Pmw
 from bkchem import data
-from bkchem import misc
+from bkchem import bkchem_utils
 from bkchem import modes
-from bkchem import config
+from bkchem import bkchem_config
 from bkchem import export
 from bkchem import logger
 from bkchem import dialogs
@@ -47,7 +47,7 @@ from bkchem import pixmaps
 from bkchem import plugins
 from bkchem import format_loader
 from bkchem import messages
-from bkchem import molecule
+from bkchem import molecule_lib
 from bkchem import os_support
 from bkchem import interactors
 from bkchem import oasa_bridge
@@ -77,10 +77,10 @@ class BKChem( Tk):
     #self.option_add( "*Background", "#eaeaea")
     self.option_add( "*Entry*Background", "white")
     self.option_add( "*Entry*Foreground", "#000000")
-    self.tk_setPalette( "background", config.background_color,
+    self.tk_setPalette( "background", bkchem_config.background_color,
                         "insertBackground","#ffffff")
 
-    oasa.config.Config.molecule_class = molecule.molecule
+    oasa.oasa_config.Config.molecule_class = molecule_lib.BkMolecule
 
 
   def initialize( self):
@@ -94,7 +94,7 @@ class BKChem( Tk):
     self.papers = []
     self.notebook = Pmw.NoteBook( self.main_frame,
                                   raisecommand=self.change_paper,
-                                  borderwidth=config.border_width)
+                                  borderwidth=bkchem_config.border_width)
     self.add_new_paper()
 
     # template and group managers
@@ -171,7 +171,7 @@ class BKChem( Tk):
       self.menu = Pmw.MainMenuBar( self, balloon=self.menu_balloon)
       self.configure( menu=self.menu)
     else:
-      menuf = Frame( self.main_frame, relief=RAISED, bd=config.border_width)
+      menuf = Frame( self.main_frame, relief=RAISED, bd=bkchem_config.border_width)
       menuf.grid( row=0, sticky="we")
 
       self.menu = Pmw.MenuBar( menuf, balloon=self.menu_balloon)
@@ -348,7 +348,7 @@ class BKChem( Tk):
 
       self.menu.addmenuitem( menu, 'command', label=name,
                                statusHelp=tooltip,
-                               command=misc.lazy_apply( self.run_plugin, (name,)))
+                               command=bkchem_utils.lazy_apply( self.run_plugin, (name,)))
       added_to.add( menu)
 
 
@@ -420,11 +420,11 @@ class BKChem( Tk):
       if entry.get("can_import"):
         self.menu.addmenuitem( _("Import"), 'command', label=local_name,
                                statusHelp=_("Imports %s format.") % local_name,
-                               command=misc.lazy_apply( self.format_import, (codec_name,)))
+                               command=bkchem_utils.lazy_apply( self.format_import, (codec_name,)))
       if entry.get("can_export"):
         self.menu.addmenuitem( _("Export"), 'command', label=local_name,
                                statusHelp=_("Exports %s format.") % local_name,
-                               command=misc.lazy_apply( self.format_export, (codec_name,)))
+                               command=bkchem_utils.lazy_apply( self.format_export, (codec_name,)))
 
     # legacy plugin path (GTML import-only)
     names = sorted(self.plugins.keys())
@@ -435,12 +435,12 @@ class BKChem( Tk):
         doc_string = hasattr( plugin.importer, "doc_string") and getattr( plugin.importer, "doc_string") or plugin.importer.__doc__
         self.menu.addmenuitem( _("Import"), 'command', label=local_name,
                                statusHelp=doc_string,
-                               command=misc.lazy_apply( self.plugin_import, (plugin.name,)))
+                               command=bkchem_utils.lazy_apply( self.plugin_import, (plugin.name,)))
       if ('exporter' in plugin.__dict__) and plugin.exporter:
         doc_string = hasattr( plugin.exporter, "doc_string") and getattr( plugin.exporter, "doc_string") or plugin.exporter.__doc__
         self.menu.addmenuitem( _("Export"), 'command', label=local_name,
                                statusHelp=doc_string,
-                               command=misc.lazy_apply( self.plugin_export, (plugin.name,)))
+                               command=bkchem_utils.lazy_apply( self.plugin_export, (plugin.name,)))
 
 
   def init_singletons( self):
@@ -483,7 +483,7 @@ class BKChem( Tk):
       if path:
         self._recent_files.append( path)
         self.menu.addmenuitem( _("Recent files"), 'command', label=path,
-                               command=misc.lazy_apply( self.load_CDML, (path,)))
+                               command=bkchem_utils.lazy_apply( self.load_CDML, (path,)))
     if not self.in_batch_mode:
       # we do not load (or save) handling info when in batch mode
       for key in Store.logger.handling:
@@ -535,10 +535,10 @@ class BKChem( Tk):
       if m in pixmaps.images:
         recent = self.radiobuttons.add( m, image=pixmaps.images[m], text=self.modes[m].label,
                                         compound='top', activebackground='grey',
-                                        relief='flat', borderwidth=config.border_width)
+                                        relief='flat', borderwidth=bkchem_config.border_width)
         self.balloon.bind( recent, self.modes[ m].name)
       else:
-        self.radiobuttons.add( m, text=self.modes[ m].label, borderwidth=config.border_width)
+        self.radiobuttons.add( m, text=self.modes[ m].label, borderwidth=bkchem_config.border_width)
     # sub-mode support
     self.subFrame = Frame( self.main_frame)
     self.subFrame.grid( row=2, sticky='we')
@@ -549,9 +549,9 @@ class BKChem( Tk):
   def init_status_bar( self):
     status_frame = Frame( self.main_frame)
     status_frame.grid( row=5, sticky="we")
-    status = Label( status_frame, relief=SUNKEN, bd=config.border_width, textvariable=self.stat, anchor='w', height=2, justify='l')
+    status = Label( status_frame, relief=SUNKEN, bd=bkchem_config.border_width, textvariable=self.stat, anchor='w', height=2, justify='l')
     status.pack( side="left", expand=1, fill="both")
-    position = Label( status_frame, relief=SUNKEN, bd=config.border_width, textvariable=self.cursor_position, anchor='w', height=2, justify='l')
+    position = Label( status_frame, relief=SUNKEN, bd=bkchem_config.border_width, textvariable=self.cursor_position, anchor='w', height=2, justify='l')
     position.pack( side="right")
 
 
@@ -560,7 +560,7 @@ class BKChem( Tk):
                                title = _('About BKChem'),
                                defaultbutton = 0,
                                buttons=(_("OK"),),
-                               message_text = "BKChem " + _("version") + " " + config.current_BKChem_version + "\n\n" + messages.about_text)
+                               message_text = "BKChem " + _("version") + " " + bkchem_config.current_BKChem_version + "\n\n" + messages.about_text)
     dialog.iconname('BKChem')
     dialog.activate()
 
@@ -568,7 +568,7 @@ class BKChem( Tk):
   def change_mode( self, tag):
     old_mode = self.mode
     self.mode = self.modes[ tag]
-    if not misc.myisstr(old_mode):
+    if not bkchem_utils.myisstr(old_mode):
       old_mode.cleanup()
       self.mode.copy_settings( old_mode)
 
@@ -644,10 +644,10 @@ class BKChem( Tk):
           display_name = m.submodes_names[i][sub_idx]
           tip_text = tooltip_map.get(sub, display_name)
           if img:
-            recent = self.subbuttons[i].add( sub, image=img, activebackground='grey', borderwidth=config.border_width)
+            recent = self.subbuttons[i].add( sub, image=img, activebackground='grey', borderwidth=bkchem_config.border_width)
             self.balloon.bind(recent, tip_text)
           else:
-            self.subbuttons[i].add( sub, text=display_name, borderwidth=config.border_width)
+            self.subbuttons[i].add( sub, text=display_name, borderwidth=bkchem_config.border_width)
         # select the default submode
         j = m.submodes[i][ m.submode[i]]
         self.subbuttons[i].invoke( j)
@@ -739,7 +739,7 @@ class BKChem( Tk):
       btn = Button(
         grid_frame, text=display_name,
         width=4, padx=1, pady=1,
-        relief='raised', borderwidth=config.border_width,
+        relief='raised', borderwidth=bkchem_config.border_width,
         font=('sans-serif', 9),
         command=lambda n=sub, b_idx=idx: on_grid_click(n, grid_frame._grid_buttons[b_idx]),
       )
@@ -788,7 +788,7 @@ class BKChem( Tk):
       for sub in m.submodes[group_index]:
         sub_idx = m.submodes[group_index].index(sub)
         display_name = m.submodes_names[group_index][sub_idx]
-        new_widget.add(sub, text=display_name, borderwidth=config.border_width)
+        new_widget.add(sub, text=display_name, borderwidth=bkchem_config.border_width)
       if m.submodes[group_index]:
         new_widget.invoke(m.submodes[group_index][0])
     new_widget.pack(side=LEFT, padx=(0, 2))
@@ -812,14 +812,14 @@ class BKChem( Tk):
       # de-highlighting of current tab
       if old_paper in self.papers:
         i = self.papers.index(old_paper)
-        self.notebook.tab(i).configure(background=config.background_color, fg="black")
+        self.notebook.tab(i).configure(background=bkchem_config.background_color, fg="black")
       i = self.notebook.index( name)
       # highlighting of current tab
       self.notebook.tab( i).configure( background="#777777", fg="white")
       # the rest
       self.paper = self.papers[i]
       if (hasattr(self, 'mode') and
-          not misc.myisstr(self.mode) and
+          not bkchem_utils.myisstr(self.mode) and
           old_paper in self.papers and
           self.paper != old_paper):
         # this is not true on startup and tab closing
@@ -843,8 +843,8 @@ class BKChem( Tk):
                         file_name=name_dic)
     self.__tab_name_2_paper[ _tab_name] = paper
     # the scrolling
-    scroll_y = Scrollbar( page, orient = VERTICAL, command = paper.yview, bd=config.border_width)
-    scroll_x = Scrollbar( page, orient = HORIZONTAL, command = paper.xview, bd=config.border_width)
+    scroll_y = Scrollbar( page, orient = VERTICAL, command = paper.yview, bd=bkchem_config.border_width)
+    scroll_x = Scrollbar( page, orient = HORIZONTAL, command = paper.xview, bd=bkchem_config.border_width)
     paper.grid( row=0, column=0, sticky="news")
     page.grid_rowconfigure( 0, weight=1, minsize = 0)
     page.grid_columnconfigure( 0, weight=1, minsize = 0)
@@ -1112,7 +1112,7 @@ class BKChem( Tk):
             return None
       self.paper.clean_paper()
       self.paper.read_package( doc, draw=draw)
-      if not misc.myisstr(self.mode):
+      if not bkchem_utils.myisstr(self.mode):
         self.mode.startup()
       Store.log( _("loaded file: ")+self.paper.full_path)
       self._record_recent_file( os.path.abspath( self.paper.full_path))
@@ -1375,7 +1375,7 @@ class BKChem( Tk):
     else:
       a = filename
     if a:
-      if not config.debug:
+      if not bkchem_config.debug:
         try:
           exporter.write_to_file( a)
         except Exception as error:
@@ -1530,7 +1530,7 @@ Enter InChI:""")
       text = inchi
 
     if text:
-      if config.devel:
+      if bkchem_config.devel:
         # in development mode we do not want to catch the exceptions
         mol = oasa_bridge.read_inchi( text, self.paper)
       else:

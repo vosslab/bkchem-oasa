@@ -10,9 +10,9 @@ import pytest
 
 # local repo modules
 import oasa
-import oasa.bond
-import oasa.graph.edge
-import bkchem.bond
+import oasa.bond_lib
+import oasa.graph.edge_lib
+import bkchem.bond_lib
 import bkchem.classes
 from bkchem import singleton_store
 
@@ -117,7 +117,7 @@ def _make_bond(
 	bond_type: str = "n",
 	order: int = 1,
 	atoms: tuple = (),
-) -> bkchem.bond.bond:
+) -> bkchem.bond_lib.BkBond:
 	"""Create a BKChem bond with given type and order.
 
 	Args:
@@ -127,9 +127,9 @@ def _make_bond(
 		atoms: Optional tuple of two atom objects.
 
 	Returns:
-		A configured bkchem.bond.bond instance.
+		A configured bkchem.bond_lib.BkBond instance.
 	"""
-	b = bkchem.bond.bond(standard=standard, type=bond_type, order=order)
+	b = bkchem.bond_lib.BkBond(standard=standard, type=bond_type, order=order)
 	if atoms:
 		b.atom1 = atoms[0]
 		b.atom2 = atoms[1]
@@ -285,8 +285,8 @@ def test_order_delegates_to_oasa(standard):
 	a1 = _DummyAtom("a1")
 	a2 = _DummyAtom("a2")
 	b = _make_bond(standard, order=2, atoms=(a1, a2))
-	# the value should match what oasa.bond.order would return
-	oasa_order = oasa.bond.order.__get__(b)
+	# the value should match what oasa.bond_lib.Bond.order would return
+	oasa_order = oasa.bond_lib.Bond.order.__get__(b)
 	assert b.order == oasa_order
 
 
@@ -494,7 +494,7 @@ def test_composition_bond_has_chem_bond(standard):
 	"""Composition bond should have _chem_bond attribute."""
 	b = _make_bond(standard)
 	assert hasattr(b, "_chem_bond")
-	assert isinstance(b._chem_bond, oasa.bond)
+	assert isinstance(b._chem_bond, oasa.bond_lib.Bond)
 
 
 #============================================

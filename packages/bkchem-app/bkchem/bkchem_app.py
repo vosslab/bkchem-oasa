@@ -96,9 +96,9 @@ else:
 
 
 
-from bkchem import config
+from bkchem import bkchem_config
 
-if not config.debug:
+if not bkchem_config.debug:
   # checking of important modules availability
   # import modules
   from bkchem import import_checker
@@ -141,7 +141,7 @@ if __name__ == '__main__':
                       (sys.version_info[0] < 3 and isinstance(i, str))))
 
   if "-v" in opts or "--version" in opts:
-    print("BKChem", config.current_BKChem_version)
+    print("BKChem", bkchem_config.current_BKChem_version)
     sys.exit()
   if "-h" in opts or "--help" in opts:
     print(messages.usage_text)

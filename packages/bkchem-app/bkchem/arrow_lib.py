@@ -28,11 +28,11 @@ import builtins
 from oasa import geometry
 from warnings import warn
 
-from bkchem import misc
+from bkchem import bkchem_utils
 from bkchem import dom_extensions
 
 from bkchem.classes import point
-from bkchem.reaction import reaction
+from bkchem.reaction_lib import BkReaction
 from bkchem.singleton_store import Screen
 from bkchem.parents import meta_enabled, container, with_line, line_colored
 from bkchem.parents import interactive, drawable, top_level
@@ -44,7 +44,7 @@ _ = builtins.__dict__.get( '_', lambda m: m)
 
 ##-------------------- ARROW CLASS ------------------------------
 
-class arrow( meta_enabled, drawable, with_line, line_colored, container, interactive, top_level):
+class BkArrow( meta_enabled, drawable, with_line, line_colored, container, interactive, top_level):
   # note that all children of simple_parent have default meta infos set
   # therefore it is not necessary to provide them for all new classes if they
   # don't differ (are not non-empty)
@@ -85,7 +85,7 @@ class arrow( meta_enabled, drawable, with_line, line_colored, container, interac
       for p in points:
         pnt = point( self.paper, xy=p, arrow=self)
         self.points.append( pnt)
-    self.reaction = reaction()
+    self.reaction = BkReaction()
     self.reaction.arrows.append( self)
     if package:
       self.read_package( package)
@@ -103,16 +103,16 @@ class arrow( meta_enabled, drawable, with_line, line_colored, container, interac
 
 
   @property
-  def reaction(self):
+  def BkReaction(self):
     """Reaction associated with this arrow.
 
     """
     return self.__reaction
 
 
-  @reaction.setter
-  def reaction(self, reaction):
-    self.__reaction = reaction
+  @BkReaction.setter
+  def BkReaction(self, BkReaction):
+    self.__reaction = BkReaction
 
 
   # // PROPERTIES
@@ -459,10 +459,10 @@ def single_sided_arrow_head (x1,y1,x2,y2,a,b,c,lw):
   lw is the line_width of the line the arrow will be attached to'''
 
   xa,ya = geometry.elongate_line (x1,y1,x2,y2,-a)
-  xa,ya = geometry.point_at_distance_from_line (x1,y1,xa,ya,-misc.signum(c)*(lw-1.0)/2.0)
+  xa,ya = geometry.point_at_distance_from_line (x1,y1,xa,ya,-bkchem_utils.signum(c)*(lw-1.0)/2.0)
   xp,yp = geometry.elongate_line (x1,y1,x2,y2,-b)
   xb,yb = geometry.point_at_distance_from_line (x1,y1,xp,yp,c)
-  xc,yc = geometry.point_at_distance_from_line (x1,y1,x2,y2,-misc.signum(c)*(lw-1.0)/2.0)
+  xc,yc = geometry.point_at_distance_from_line (x1,y1,x2,y2,-bkchem_utils.signum(c)*(lw-1.0)/2.0)
   return xa,ya, xc,yc, xb,yb
 
 
@@ -480,3 +480,4 @@ def double_sided_arrow_head (x1,y1,x2,y2,a,b,c):
   xd,yd = geometry.point_at_distance_from_line (x1,y1,xp,yp,-c)
   xc,yc = geometry.elongate_line (x1,y1,x2,y2,-a)
   return xa,ya, xb,yb, xc,yc, xd,yd
+

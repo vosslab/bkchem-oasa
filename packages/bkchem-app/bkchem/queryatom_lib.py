@@ -43,7 +43,7 @@ from bkchem.special_parents import drawable_chem_vertex
 
 
 ### Class ATOM --------------------------------------------------
-class queryatom(drawable_chem_vertex):
+class BkQueryatom(drawable_chem_vertex):
   # note that all children of simple_parent have default meta infos set
   # therefore it is not necessary to provide them for all new classes if they
   # don't differ
@@ -59,9 +59,9 @@ class queryatom(drawable_chem_vertex):
     drawable_chem_vertex.__init__( self, standard=standard, xy=xy, molecule=molecule)
     # composition: delegate chemistry to oasa.query_atom instance
     if xy:
-      self._chem_query_atom = oasa.query_atom(coords=(xy[0], xy[1], 0))
+      self._chem_query_atom = oasa.QueryAtom(coords=(xy[0], xy[1], 0))
     else:
-      self._chem_query_atom = oasa.query_atom()
+      self._chem_query_atom = oasa.QueryAtom()
 
     if package:
       self.read_package( package)
@@ -301,3 +301,4 @@ class queryatom(drawable_chem_vertex):
 
   def __str__( self):
     return self.id
+

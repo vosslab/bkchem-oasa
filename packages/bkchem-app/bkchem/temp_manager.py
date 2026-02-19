@@ -27,16 +27,18 @@ import xml.sax
 import xml.etree.ElementTree as ElementTree
 
 from warnings import warn
-from oasa.transform import transform
+from oasa.transform_lib import Transform
 
 import oasa
-import oasa.smiles
+import oasa.oasa_config
+import oasa.smiles_lib
+from oasa.molecule_lib import Molecule as oasa_molecule_class
 
-from bkchem import config
+from bkchem import bkchem_config
 from bkchem import os_support
 from bkchem import safe_xml
 
-from bkchem.molecule import molecule
+from bkchem.molecule_lib import BkMolecule
 from bkchem.singleton_store import Store, Screen
 
 
@@ -45,7 +47,7 @@ def _choose_anchor_atom(mol):
 	"""Pick a deterministic anchor atom for template placement.
 
 	Args:
-		mol: OASA molecule with computed coordinates.
+		mol: OASA BkMolecule with computed coordinates.
 
 	Returns:
 		The atom with the largest x (then smallest y, then symbol).
@@ -89,16 +91,16 @@ def _build_cdml_string(name, mol, anchor, neighbor, template_atom):
 	"""Build a CDML XML string for a biomolecule template.
 
 	Args:
-		name: Display name for the molecule.
-		mol: OASA molecule with computed coordinates.
-		anchor: The anchor atom in the molecule.
+		name: Display name for the BkMolecule.
+		mol: OASA BkMolecule with computed coordinates.
+		anchor: The anchor atom in the BkMolecule.
 		neighbor: The anchor's neighbor for the template bond.
 		template_atom: The extra template attachment atom.
 
 	Returns:
 		str: CDML XML string.
 	"""
-	cdml_version = config.current_CDML_version
+	cdml_version = bkchem_config.current_CDML_version
 	root = ElementTree.Element(
 		"cdml",
 		{
@@ -222,13 +224,13 @@ class template_manager(object):
 			return
 		# when loading old versions of CDML try to convert them, but do nothing when they cannot be converted
 		from bkchem import CDML_versions
-		CDML_versions.transform_dom_to_version( doc, config.current_CDML_version)
+		CDML_versions.transform_dom_to_version( doc, bkchem_config.current_CDML_version)
 		Store.app.paper.onread_id_sandbox_activate()
 		for tmp in doc.getElementsByTagName('molecule'):
 			if name_override:
 				tmp.setAttribute( 'name', name_override)
 			self.templates.append( tmp)
-			m = molecule( Store.app.paper, package=tmp)
+			m = BkMolecule( Store.app.paper, package=tmp)
 			if name_override:
 				m.name = name_override
 			self._prepared_templates.append( m)
@@ -239,11 +241,11 @@ class template_manager(object):
 	def register_smiles_template(self, smiles: str, name_override: str = '') -> None:
 		"""Register a SMILES string for lazy template generation.
 
-		No molecule is created at registration time. The template
+		No BkMolecule is created at registration time. The template
 		is generated on first access via _ensure_template_ready().
 
 		Args:
-			smiles: SMILES string for the molecule.
+			smiles: SMILES string for the BkMolecule.
 			name_override: Display name for the template.
 		"""
 		index = len(self.templates)
@@ -275,8 +277,16 @@ class template_manager(object):
 		smiles = self._smiles_registry[n]
 		name = self._template_names[n]
 
+		# temporarily restore oasa.molecule as the molecule class so
+		# text_to_mol creates pure OASA molecules (BKChem overrides
+		# Config.molecule_class with its own molecule which lacks
+		# chemistry-only methods like remove_unimportant_hydrogens)
+		saved_class = oasa.oasa_config.Config.molecule_class
+		oasa.oasa_config.Config.molecule_class = oasa_molecule_class
 		# parse SMILES and generate 2D coordinates
-		mol = oasa.smiles.text_to_mol(smiles, calc_coords=1)
+		mol = oasa.smiles_lib.text_to_mol(smiles, calc_coords=1)
+		# restore the BKChem molecule class
+		oasa.oasa_config.Config.molecule_class = saved_class
 		if not mol:
 			warn(f"Failed to parse SMILES for template '{name}': {smiles}")
 			return
@@ -289,7 +299,7 @@ class template_manager(object):
 		neighbor = _choose_anchor_neighbor(anchor)
 
 		# build template anchor atom one bond length to the right
-		template_atom = oasa.atom(symbol="C")
+		template_atom = oasa.Atom(symbol="C")
 		template_atom.x = anchor.x + 1.0
 		template_atom.y = anchor.y
 		template_atom.z = 0.0
@@ -301,7 +311,7 @@ class template_manager(object):
 
 		# convert CDML version if needed
 		from bkchem import CDML_versions
-		CDML_versions.transform_dom_to_version(cdml_el, config.current_CDML_version)
+		CDML_versions.transform_dom_to_version(cdml_el, bkchem_config.current_CDML_version)
 
 		# load the molecule from the DOM
 		Store.app.paper.onread_id_sandbox_activate()
@@ -310,7 +320,7 @@ class template_manager(object):
 			tmp = mol_nodes[0]
 			tmp.setAttribute('name', name)
 			self.templates[n] = tmp
-			m = molecule(Store.app.paper, package=tmp)
+			m = BkMolecule(Store.app.paper, package=tmp)
 			m.name = name
 			self._prepared_templates[n] = m
 		Store.app.paper.onread_id_sandbox_finish(apply_to=[])
@@ -335,11 +345,11 @@ class template_manager(object):
 		self._ensure_template_ready(n)
 		pap = paper or Store.app.paper
 		pap.onread_id_sandbox_activate() # must be here to mangle the ids
-		current = molecule( pap, package=self.templates[n])
+		current = BkMolecule( pap, package=self.templates[n])
 		pap.onread_id_sandbox_finish( apply_to= [current]) # id mangling
 		current.name = ''
 		self._scale_ratio = 1
-		trans = transform()
+		trans = Transform()
 		# type empty - just draws the template - no conection
 		if type == 'empty':
 			xt1, yt1 = current.t_atom.get_xy()

@@ -37,8 +37,8 @@ from oasa import geometry
 import Pmw
 
 from bkchem import data
-from bkchem import misc
-from bkchem import config
+from bkchem import bkchem_utils
+from bkchem import bkchem_config
 from bkchem.keysymdef import keysyms
 from bkchem.singleton_store import Store
 
@@ -290,7 +290,7 @@ class ValueWithUnitParent(tkinter.Frame):
 		"""
 		tkinter.Frame.__init__( self, parent)
 		self.units = units
-		v, self._recent_unit = misc.split_number_and_unit( value)
+		v, self._recent_unit = bkchem_utils.split_number_and_unit( value)
 		# the counter widget
 		if not v:
 			v = ''
@@ -429,13 +429,13 @@ class HTMLLikeInput(tkinter.Frame, object):
 			self.numbersToSubButton = tkinter.Button( self,
 																								image=pix,
 																								command=self._numbersToSubButtonPressed,
-																								bd=config.border_width)
+																								bd=bkchem_config.border_width)
 			Store.app.balloon.bind( self.numbersToSubButton, _('Subscript numbers'))
 		else:
 			self.numbersToSubButton = tkinter.Button( self,
 																								text=_('Sub numbers'),
 																								command=self._numbersToSubButtonPressed,
-																								bd=config.border_width)
+																								bd=bkchem_config.border_width)
 		self.numbersToSubButton.pack( side='left')
 
 		# superscript charges
@@ -444,13 +444,13 @@ class HTMLLikeInput(tkinter.Frame, object):
 			self.chargesToSupButton = tkinter.Button( self,
 																								image=pix,
 																								command=self._chargesToSupButtonPressed,
-																								bd=config.border_width)
+																								bd=bkchem_config.border_width)
 			Store.app.balloon.bind( self.chargesToSupButton, _('Superscript charges'))
 		else:
 			self.chargesToSupButton = tkinter.Button( self,
 																								text=_('Sup charges'),
 																								command=self._chargesToSupButtonPressed,
-																								bd=config.border_width)
+																								bd=bkchem_config.border_width)
 		self.chargesToSupButton.pack( side='left')
 
 		# text decoration
@@ -459,14 +459,14 @@ class HTMLLikeInput(tkinter.Frame, object):
 			if pix:
 				self.__dict__[ i] = tkinter.Button( self,
 																		image=pix,
-																		command=misc.lazy_apply( self._tag_it, (self.font_decorations_to_html[i],)),
-																		bd=config.border_width)
+																		command=bkchem_utils.lazy_apply( self._tag_it, (self.font_decorations_to_html[i],)),
+																		bd=bkchem_config.border_width)
 				Store.app.balloon.bind( self.__dict__[i], i)
 			else:
 				self.__dict__[ i] = tkinter.Button( self,
 																		text=i,
-																		command=misc.lazy_apply( self._tag_it, (self.font_decorations_to_html[i],)),
-																		bd=config.border_width)
+																		command=bkchem_utils.lazy_apply( self._tag_it, (self.font_decorations_to_html[i],)),
+																		bd=bkchem_config.border_width)
 			self.__dict__[i].pack( side='left')
 
 

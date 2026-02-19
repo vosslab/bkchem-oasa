@@ -19,12 +19,12 @@
 
 
 
-from . import misc
+from oasa import oasa_utils as misc
 import warnings
 
 from math import pi, sqrt, sin, cos
 
-from . import geometry
+from oasa import geometry
 
 
 
@@ -44,7 +44,7 @@ class coords_generator(object):
     # stereochemistry info
     self.stereo = {}
     for st in self.mol.stereochemistry:
-      if st.__class__.__name__ == "cis_trans_stereochemistry":
+      if st.__class__.__name__ == "CisTransStereochemistry":
         for a in (st.references[0],st.references[-1]):
           self.stereo[a] = self.stereo.get( a, []) + [st]
     # at first we have a look if there is already something with coords
@@ -522,7 +522,7 @@ def calculate_coords( mol, bond_length=0, force=0):
 
 if __name__ == '__main__':
 
-  from . import smiles
+  from oasa import smiles_lib as smiles
 
   #sm = "CP(c1ccccc1)(c2ccccc2)c3ccccc3"
   #sm = 'C1CC2C1CCCC3C2CC(CCC4)C4C3'

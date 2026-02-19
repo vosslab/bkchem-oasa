@@ -35,11 +35,11 @@ _ = builtins.__dict__.get( '_', lambda m: m)
 
 from warnings import warn
 from oasa import geometry
-from oasa.transform import transform
-from oasa.transform3d import transform3d
+from oasa.transform_lib import Transform
+from oasa.transform3d_lib import Transform3d
 
 from bkchem import data
-from bkchem import misc
+from bkchem import bkchem_utils
 from bkchem import marks
 from bkchem import dialogs
 from bkchem import parents
@@ -51,11 +51,11 @@ from bkchem import special_parents
 import oasa.hex_grid
 import bkchem.chem_compat
 from bkchem import helper_graphics as hg
-from bkchem.bond import bond
-from bkchem.atom import atom
-from bkchem.arrow import arrow
-from bkchem.group import group
-from bkchem.textatom import textatom
+from bkchem.bond_lib import BkBond
+from bkchem.atom_lib import BkAtom
+from bkchem.arrow_lib import BkArrow
+from bkchem.group_lib import BkGroup
+from bkchem.textatom_lib import BkTextatom
 from bkchem.context_menu import context_menu
 from bkchem.singleton_store import Store, Screen
 
@@ -94,7 +94,7 @@ def _load_edit_pool_from_yaml() -> list:
   """Parse edit_pool_buttons from the YAML config.
 
   Returns:
-    list of group dicts, each with keys:
+    list of BkGroup dicts, each with keys:
       group_label (str), options (list of dicts with
       key, icon, name, tooltip, command)
   """
@@ -341,7 +341,7 @@ class mode( object):
     if sequence.find( "##") >= 0:
       prefix, end = sequence.split('##')
       for c in end:
-        self.register_key_sequence( prefix+c, misc.lazy_apply( function, (prefix+c,)), use_warning=use_warning)
+        self.register_key_sequence( prefix+c, bkchem_utils.lazy_apply( function, (prefix+c,)), use_warning=use_warning)
     # check of already registered values
     if use_warning and sequence in self._key_sequences:
       warn( "binding of sequence %s to function %s overrides its binding to function %s" %
@@ -367,7 +367,7 @@ class mode( object):
         b = sequence_base+' '
       else:
         b = sequence_base
-      self.register_key_sequence( b+str(i), misc.lazy_apply( function, (i,), attrs=attrs))
+      self.register_key_sequence( b+str(i), bkchem_utils.lazy_apply( function, (i,), attrs=attrs))
 
 
   def unregister_all_sequences( self):
@@ -624,7 +624,7 @@ class edit_mode(basic_mode):
                                              if (bkchem.chem_compat.is_chemistry_vertex(o) and
                                                  o not in Store.app.paper.selected)]
                      for j in i]
-        atoms = misc.filter_unique( [o for o in Store.app.paper.selected if bkchem.chem_compat.is_chemistry_vertex( o)] + atoms)
+        atoms = bkchem_utils.filter_unique( [o for o in Store.app.paper.selected if bkchem.chem_compat.is_chemistry_vertex( o)] + atoms)
         [o.decide_pos() for o in atoms]
         [o.redraw() for o in atoms]
         [self.reposition_bonds_around_atom( o) for o in atoms]
@@ -679,7 +679,7 @@ class edit_mode(basic_mode):
 
   def double_click( self, event):
     if self.focused:
-      if bkchem.chem_compat.is_chemistry_vertex(self.focused) or isinstance(self.focused, bond):
+      if bkchem.chem_compat.is_chemistry_vertex(self.focused) or isinstance(self.focused, BkBond):
         Store.app.paper.select( tuple( self.focused.molecule)) # molecule is iterator
 
 
@@ -781,16 +781,16 @@ class edit_mode(basic_mode):
   def reposition_bonds_around_atom( self, a):
     bs = a.neighbor_edges
     [b.redraw( recalc_side = 1) for b in bs] # if b.order == 2]
-    if isinstance( a, textatom) or isinstance( a, atom):
+    if isinstance( a, BkTextatom) or isinstance( a, BkAtom):
       a.reposition_marks()
 
 
   def reposition_bonds_around_bond( self, b):
-    bs = misc.filter_unique( b.atom1.neighbor_edges + b.atom2.neighbor_edges)
+    bs = bkchem_utils.filter_unique( b.atom1.neighbor_edges + b.atom2.neighbor_edges)
     [b.redraw( recalc_side = 1) for b in bs if b.order == 2]
     # all atoms to update
-    atms = misc.filter_unique(j for i in [[b.atom1, b.atom2] for b in bs] for j in i)
-    [a.reposition_marks() for a in atms if isinstance( a, atom)]
+    atms = bkchem_utils.filter_unique(j for i in [[b.atom1, b.atom2] for b in bs] for j in i)
+    [a.reposition_marks() for a in atms if isinstance( a, BkAtom)]
 
 
   def _end_of_empty_drag( self, x1, y1, x2, y2):
@@ -905,8 +905,8 @@ class draw_mode( edit_mode):
 
   def mouse_down( self, event, modifiers = []):
     """Starts a new bond, if no atom is focused (the mouse is being
-       pressed on bank space) creates a new atom.
-       The bond is completed upon release (mouse_up())."""
+       pressed on bank space) creates a new BkAtom.
+       The BkBond is completed upon release (mouse_up())."""
     edit_mode.mouse_down( self, event, modifiers = modifiers)
     Store.app.paper.unselect_all()
     if not self.focused:
@@ -943,7 +943,7 @@ class draw_mode( edit_mode):
           if vrx.free_valency < 0:
             Store.log( _("maximum valency exceeded!"), message_type="warning")
           # adding more than one bond to group
-          if isinstance( vrx, group):
+          if isinstance( vrx, BkGroup):
             # we need to change the class of the vertex
             a = vrx
             m = a.molecule
@@ -971,7 +971,7 @@ class draw_mode( edit_mode):
       y = Store.app.paper.canvas_to_real(event.y)
       a = mol.create_new_atom( x, y)
       Store.app.paper.add_bindings()
-      b = bond( standard = Store.app.paper.standard,
+      b = BkBond( standard = Store.app.paper.standard,
                 type=self.__mode_to_bond_type(),
                 order=self.__mode_to_bond_order(),
                 simple_double=self.submode[4])
@@ -979,7 +979,7 @@ class draw_mode( edit_mode):
       self.focused = a
     else:
       if bkchem.chem_compat.is_chemistry_vertex( self.focused):
-        b = bond( standard = Store.app.paper.standard,
+        b = BkBond( standard = Store.app.paper.standard,
                   type=self.__mode_to_bond_type(),
                   order=self.__mode_to_bond_order(),
                   simple_double=self.submode[4])
@@ -992,7 +992,7 @@ class draw_mode( edit_mode):
         if self.focused.free_valency < 0:
           Store.log( _("maximum valency exceeded!"), message_type="warning")
         # adding more than one bond to group
-        if isinstance( self.focused, group):
+        if isinstance( self.focused, BkGroup):
           # we need to change the class of the vertex
           a = self.focused
           m = a.molecule
@@ -1007,7 +1007,7 @@ class draw_mode( edit_mode):
         # repositioning of double bonds
         self.reposition_bonds_around_bond( b)
         Store.app.paper.select( [a])
-      elif isinstance( self.focused, bond):
+      elif isinstance( self.focused, BkBond):
         if self._shift:
           self.focused.toggle_type( only_shift = 1, to_type=self.__mode_to_bond_type(),
                                     to_order=self.__mode_to_bond_order(),
@@ -1035,7 +1035,7 @@ class draw_mode( edit_mode):
       self._dragging = 1
       if self.focused and bkchem.chem_compat.is_chemistry_vertex( self.focused):
         self._start_atom = self.focused
-        b = bond( standard = Store.app.paper.standard,
+        b = BkBond( standard = Store.app.paper.standard,
                   type=self.__mode_to_bond_type(),
                   order=self.__mode_to_bond_order(),
                   simple_double=self.submode[4])
@@ -1350,18 +1350,18 @@ class template_mode( edit_mode):
           x1, y1 = self.focused.get_xy()
           x2, y2 = self.focused.molecule.find_place( self.focused, Screen.any_to_px( Store.app.paper.standard.bond_length))
           t = self._get_transformed_template( self.submode[0], (x1,y1,x2,y2), type='atom2', paper=Store.app.paper)
-      elif isinstance( self.focused, bond):
+      elif isinstance( self.focused, BkBond):
         x1, y1 = self.focused.atom1.get_xy()
         x2, y2 = self.focused.atom2.get_xy()
         #find right side of bond to append template to
         atms = self.focused.atom1.neighbors + self.focused.atom2.neighbors
-        atms = misc.difference( atms, [self.focused.atom1, self.focused.atom2])
+        atms = bkchem_utils.difference( atms, [self.focused.atom1, self.focused.atom2])
         coords = [a.get_xy() for a in atms]
         if sum(geometry.on_which_side_is_point((x1,y1,x2,y2), xy) for xy in coords) > 0:
           x1, y1, x2, y2 = x2, y2, x1, y1
         t = self._get_transformed_template( self.submode[0], (x1,y1,x2,y2), type='bond', paper=Store.app.paper)
         if not t:
-          return # the template was not meant to be added to a bond
+          return # the template was not meant to be added to a BkBond
       else:
         return
     Store.app.paper.stack.append( t)
@@ -1372,7 +1372,7 @@ class template_mode( edit_mode):
     Store.app.paper.handle_overlap()
     # checking of valency
     if self.focused:
-      if isinstance( self.focused, bond) and (self.focused.atom1.free_valency < 0 or self.focused.atom2.free_valency < 0):
+      if isinstance( self.focused, BkBond) and (self.focused.atom1.free_valency < 0 or self.focused.atom2.free_valency < 0):
         Store.log( _("maximum valency exceeded!"), message_type="warning")
       elif bkchem.chem_compat.is_chemistry_vertex( self.focused) and self.focused.free_valency < 0:
         Store.log( _("maximum valency exceeded!"), message_type="warning")
@@ -1385,7 +1385,7 @@ class template_mode( edit_mode):
     if self.focused and bkchem.chem_compat.is_chemistry_vertex( self.focused):
       self.focused.molecule.mark_template_atom( self.focused)
       Store.log( _("focused atom marked as 'template atom'"))
-    elif self.focused and isinstance( self.focused, bond):
+    elif self.focused and isinstance( self.focused, BkBond):
       self.focused.molecule.mark_template_bond( self.focused)
       Store.log( _("focused bond marked as 'template bond'"))
 
@@ -1609,14 +1609,14 @@ class rotate_mode( edit_mode):
     if self.get_submode(0) == "3D" and self.get_submode(1) == "fixsomething":
       if len( Store.app.paper.selected) == 1:
         sel = Store.app.paper.selected[0]
-        if isinstance( sel, bond):
+        if isinstance( sel, BkBond):
           self._fixed = sel
         else:
           Store.log( _("The selected item must be a bond."), message_type="warning")
       else:
         Store.log( _("Exactly one item should be selected to fixed rotation to work, normal rotation will be used."), message_type="hint")
     Store.app.paper.unselect_all()
-    if self.focused and (bkchem.chem_compat.is_chemistry_vertex( self.focused) or isinstance(self.focused, bond)):
+    if self.focused and (bkchem.chem_compat.is_chemistry_vertex( self.focused) or isinstance(self.focused, BkBond)):
       self._rotated_mol = self.focused.molecule
       if self._fixed:
         # 3D rotation around a bond
@@ -1624,8 +1624,8 @@ class rotate_mode( edit_mode):
       x1, y1, x2, y2 = Store.app.paper.list_bbox( [o.item for o in self._rotated_mol.atoms])
       self._centerx = x1+(x2-x1)/2.0
       self._centery = y1+(y2-y1)/2.0
-    elif self.focused and self.get_submode(0) == '2D' and (isinstance( self.focused, arrow) or (hasattr( self.focused, 'arrow') and isinstance( self.focused.arrow, arrow))):
-      if isinstance( self.focused, arrow):
+    elif self.focused and self.get_submode(0) == '2D' and (isinstance( self.focused, BkArrow) or (hasattr( self.focused, 'arrow') and isinstance( self.focused.arrow, BkArrow))):
+      if isinstance( self.focused, BkArrow):
         self._rotated_mol = self.focused
       else:
         self._rotated_mol = self.focused.arrow
@@ -1670,19 +1670,19 @@ class rotate_mode( edit_mode):
       if self.submode[0] == 0:
         # 2D rotation
         angle = round( sig * (abs( dx1) +abs( dy1)) / 50.0, 2)
-        tr = transform()
+        tr = Transform()
         tr.set_move( -self._centerx, -self._centery)
         tr.set_rotation( angle)
         tr.set_move( self._centerx, self._centery)
         self._rotated_mol.transform( tr)
       else:
         # 3D rotation
-        if self.get_submode(1) == "fixsomething" and self._fixed and isinstance( self._fixed, bond):
+        if self.get_submode(1) == "fixsomething" and self._fixed and isinstance( self._fixed, BkBond):
           # we have a fixed part
           if self._fixed.molecule != self._rotated_mol:
             Store.log( _("You can only rotate the molecule for which you fixed a bond."), message_type="error")
             return
-          sig = abs(dx1) > abs(dy1) and misc.signum(dx1) or misc.signum(dy1)
+          sig = abs(dx1) > abs(dy1) and bkchem_utils.signum(dx1) or bkchem_utils.signum(dy1)
           angle = round( sig * math.sqrt(dx1**2 +dy1**2) / 50.0, 3)
           t = geometry.create_transformation_to_rotate_around_particular_axis( self._fixed.atom2.get_xyz(), self._fixed.atom1.get_xyz(), angle)
           for a in self._rotated_atoms:
@@ -1696,7 +1696,7 @@ class rotate_mode( edit_mode):
           # normal rotation
           angle1 = round( dx1 / 50.0, 2)
           angle2 = round( dy1 / 50.0, 2)
-          tr = transform3d()
+          tr = Transform3d()
           tr.set_move( -self._centerx, -self._centery, 0)
           tr.set_rotation( -angle2, angle1, 0)
           tr.set_move( self._centerx, self._centery, 0)
@@ -1726,13 +1726,13 @@ class rotate_mode( edit_mode):
     else:
       if bkchem.chem_compat.is_chemistry_vertex( self.focused):
         to_use = self.focused in cc[0] and cc[0] or cc[1]
-      elif isinstance( self.focused, bond):
+      elif isinstance( self.focused, BkBond):
         if self.focused in mol.vertex_subgraph_to_edge_subgraph( cc[0]):
           to_use = cc[0]
         else:
           to_use = cc[1]
       else:
-        assert bkchem.chem_compat.is_chemistry_vertex( self.focused) or isinstance( self.focused, bond)
+        assert bkchem.chem_compat.is_chemistry_vertex( self.focused) or isinstance( self.focused, BkBond)
       return to_use
 
 
@@ -1750,7 +1750,7 @@ class bondalign_mode( edit_mode):
   def mouse_down( self, event, modifiers = []):
     if not self.focused:
       return
-    if not (bkchem.chem_compat.is_chemistry_vertex(self.focused) or isinstance(self.focused, bond)):
+    if not (bkchem.chem_compat.is_chemistry_vertex(self.focused) or isinstance(self.focused, BkBond)):
       return
     if self._needs_two_atoms[ self.submode[0]] == -1 and bkchem.chem_compat.is_chemistry_vertex( self.focused):
       return
@@ -1758,7 +1758,7 @@ class bondalign_mode( edit_mode):
     self._block_leave_event = 0
     if not self.first_atom_selected:
       Store.app.paper.unselect_all()
-    if isinstance(self.focused, bond):
+    if isinstance(self.focused, BkBond):
       if self.first_atom_selected:
         # waiting for second atom selection, clicking bond does nothing
         Store.log( _("select the second atom, please."), message_type="hint")
@@ -1768,7 +1768,7 @@ class bondalign_mode( edit_mode):
       x2, y2 = self.focused.atom2.get_xy()
       coords = (x1,y1,x2,y2)
     elif bkchem.chem_compat.is_chemistry_vertex( self.focused):
-      if not self.first_atom_selected: # first atom picked
+      if not self.first_atom_selected: # first BkAtom picked
         if self._needs_two_atoms[ self.submode[0]] > 0:
           self.first_atom_selected = self.focused
           self.first_atom_selected.select()
@@ -1778,7 +1778,7 @@ class bondalign_mode( edit_mode):
         else:
           self._rotated_mol = self.focused.molecule
           coords = self.focused.get_xy()
-      else: # second atom picked
+      else: # second BkAtom picked
         if self.focused.molecule != self.first_atom_selected.molecule:
           Store.log( _("atoms must be in the same molecule!"), message_type="hint")
           return
@@ -1798,6 +1798,10 @@ class bondalign_mode( edit_mode):
       [o.transform( tr) for o in apply_to]
     else:
       self._rotated_mol.transform( tr)
+    # Force full canvas refresh after transform-based edits so paper state is
+    # visually consistent immediately (bboxes/selection helpers/labels).
+    Store.app.paper.redraw_all()
+    Store.app.paper.update_idletasks()
     self._rotated_mol = None
     Store.app.paper.start_new_undo_record()
     Store.app.paper.add_bindings()
@@ -1822,7 +1826,7 @@ class bondalign_mode( edit_mode):
       angle = -angle0
     else: # pi/2 < angle < pi
       angle = math.pi - angle0
-    tr = transform()
+    tr = Transform()
     tr.set_move( -centerx, -centery)
     tr.set_rotation( angle)
     tr.set_move(centerx, centery)
@@ -1842,7 +1846,7 @@ class bondalign_mode( edit_mode):
       angle = math.pi
     else:
       angle = math.pi/2 - angle0
-    tr = transform()
+    tr = Transform()
     tr.set_move( -centerx, -centery)
     tr.set_rotation( angle)
     tr.set_move(centerx, centery)
@@ -1856,7 +1860,7 @@ class bondalign_mode( edit_mode):
       y = ( y1 +y2) /2.0
     else:
       x, y = coords
-    tr = transform()
+    tr = Transform()
     tr.set_move( -x, -y)
     tr.set_scaling_xy( -1, -1)
     tr.set_move( x, y)
@@ -1870,7 +1874,7 @@ class bondalign_mode( edit_mode):
     angle0 = geometry.clockwise_angle_from_east( x2 - x1, y2 - y1)
     if angle0 >= math.pi :
       angle0 = angle0 - math.pi
-    tr = transform()
+    tr = Transform()
     tr.set_move( -centerx, -centery)
     tr.set_rotation( -angle0)
     tr.set_scaling_xy( 1, -1)
@@ -1884,7 +1888,7 @@ class bondalign_mode( edit_mode):
 
 
   def _apply_to_freerotation( self):
-    assert isinstance( self.focused, bond)
+    assert isinstance( self.focused, BkBond)
     b = self.focused
     mol = b.molecule
     mol.delete_bond( b)
@@ -2049,26 +2053,26 @@ class mark_mode( edit_mode):
           return
         if m:
           m.register()
-        if (self.focused.show_hydrogens and self.focused.show) and not isinstance( self.focused, textatom):
+        if (self.focused.show_hydrogens and self.focused.show) and not isinstance( self.focused, BkTextatom):
           self.focused.redraw()
         Store.app.paper.start_new_undo_record()
 
     elif self.get_submode( 1) == 'remove':
       # we are removing a mark
       if self.focused:
-        if isinstance( self.focused, atom) or isinstance( self.focused, textatom):
+        if isinstance( self.focused, BkAtom) or isinstance( self.focused, BkTextatom):
           # we do it by name
           m = self.focused.remove_mark( mark_name)
           if not m:
             Store.log( _("There are no marks of type %s on the focused atom") % mark_name, message_type="warning")
           else:
-            if (self.focused.show_hydrogens and self.focused.show) and not isinstance( self.focused, textatom):
+            if (self.focused.show_hydrogens and self.focused.show) and not isinstance( self.focused, BkTextatom):
               self.focused.redraw()
             Store.app.paper.start_new_undo_record()
         elif isinstance( self.focused, marks.mark):
           # we do it by reference
           m = self.focused.atom.remove_mark( self.focused)
-          if (self.focused.atom.show_hydrogens and self.focused.atom.show) and not isinstance( self.focused, textatom):
+          if (self.focused.atom.show_hydrogens and self.focused.atom.show) and not isinstance( self.focused, BkTextatom):
             self.focused.atom.redraw()
           self.focused = None
           Store.app.paper.start_new_undo_record()
@@ -2337,7 +2341,7 @@ class misc_mode( edit_mode):
     x1, y1, x2, y2 = coords
     # main item
     x, y, x0, y0 = geometry.find_parallel( x1, y1, x2, y2, self.wavy_width/2.0)
-    d = math.sqrt( (x1-x2)**2 + (y1-y2)**2) # length of the bond
+    d = math.sqrt( (x1-x2)**2 + (y1-y2)**2) # length of the BkBond
     step_size = self.wavy_width
     dx = (x2 - x1)/d
     dy = (y2 - y1)/d

@@ -20,10 +20,10 @@
 
 
 
-from . import cdml_writer
-from . import dom_extensions as dom_ext
-from . import safe_xml
-from .coords_generator import calculate_coords
+from oasa import cdml_writer
+from oasa import dom_extensions as dom_ext
+from oasa import safe_xml
+from oasa.coords_generator import calculate_coords
 
 
 

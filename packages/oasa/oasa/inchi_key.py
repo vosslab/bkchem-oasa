@@ -23,7 +23,7 @@ import re
 import hashlib
 import operator
 
-from . import misc
+from oasa import oasa_utils as misc
 
 
 

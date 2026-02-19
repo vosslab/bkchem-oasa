@@ -11,7 +11,7 @@ from oasa import render_ops
 
 #============================================
 def _make_vertex(symbol="O", label=None, anchor=None, x=0.0, y=0.0):
-	vertex = oasa.atom(symbol=symbol)
+	vertex = oasa.Atom(symbol=symbol)
 	vertex.x = float(x)
 	vertex.y = float(y)
 	if label is not None:

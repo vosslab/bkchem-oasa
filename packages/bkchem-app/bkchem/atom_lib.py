@@ -43,7 +43,7 @@ from bkchem.special_parents import drawable_chem_vertex
 ### not set in __init__ itself
 
 
-class atom(drawable_chem_vertex):
+class BkAtom(drawable_chem_vertex):
   # note that all children of simple_parent have default meta infos set
   # therefore it is not necessary to provide them for all new classes if they
   # don't differ
@@ -59,9 +59,9 @@ class atom(drawable_chem_vertex):
 
     # composition layer: companion OASA atom for chemistry delegation
     if xy:
-      self._chem_atom = oasa.atom(coords=(xy[0], xy[1], 0))
+      self._chem_atom = oasa.Atom(coords=(xy[0], xy[1], 0))
     else:
-      self._chem_atom = oasa.atom()
+      self._chem_atom = oasa.Atom()
 
     # chemistry attrs
     self.show = 0
@@ -323,7 +323,7 @@ class atom(drawable_chem_vertex):
     """
     en = self.charge
     for e, n in self.get_neighbor_edge_pairs():
-      if isinstance(n, atom) and n.symbol != self.symbol:
+      if isinstance(n, BkAtom) and n.symbol != self.symbol:
         en += e.order * (n.electronegativity > self.electronegativity and 1 or -1)
     hen = PT.periodic_table['H']['en']
     en += self.free_valency * (hen > self.electronegativity and 1 or -1)
@@ -334,7 +334,7 @@ class atom(drawable_chem_vertex):
     """Check if this atom matches another for substructure search.
 
     """
-    if not isinstance(other, atom):
+    if not isinstance(other, BkAtom):
       return False
     if self.symbol == other.symbol and self.valency == other.valency and self.multiplicity == other.multiplicity:
       if other.charge and self.charge != other.charge:
@@ -766,3 +766,4 @@ class atom(drawable_chem_vertex):
   def after_undo( self):
     """this is run after undo"""
     self._clean_cache()
+

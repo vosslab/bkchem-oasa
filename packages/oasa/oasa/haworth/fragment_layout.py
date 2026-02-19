@@ -19,8 +19,8 @@ import math
 import dataclasses
 
 # local repo modules
-from .. import smiles as smiles_module
-from .. import coords_generator2
+from oasa import smiles_lib as smiles_module
+from oasa import coords_generator2
 
 
 #============================================

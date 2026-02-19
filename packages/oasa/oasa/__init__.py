@@ -47,59 +47,74 @@ def _read_repo_version( key, fallback):
 __version__ = _read_repo_version( "oasa", "26.02")
 
 
-# local repo modules
-from .atom import atom
-from .bond import bond
-from .molecule import molecule
-from . import smiles
-from . import coords_generator
-from . import coords_optimizer
-from . import molfile
-from . import inchi
-from . import cdml
-from . import cdml_bond_io
-from . import cdml_writer
-from . import codec_registry
-from . import bond_semantics
-from . import safe_xml
-from . import graph
-from . import linear_formula
-from . import periodic_table
-from . import config
-from .query_atom import query_atom
-from .chem_vertex import chem_vertex
-from . import oasa_exceptions
-from . import atom_colors
-from . import dom_extensions
-from . import svg_out
-from . import render_geometry
-from . import render_ops
-from . import render_out
-from . import wedge_geometry
-from . import haworth
-from . import sugar_code
-from . import sugar_code_smiles
-from . import haworth_spec
-from . import haworth_renderer
-from . import sugar_code_names
-from . import smiles_to_sugar_code
-from . import stereochemistry
-from . import geometry
-from . import hex_grid
-from . import molecule_utils
-from . import transform3d
-from . import transform
-from . import known_groups
+# CamelCase class imports from renamed modules
+from oasa.atom_lib import Atom
+from oasa.bond_lib import Bond
+from oasa.molecule_lib import Molecule
+from oasa.query_atom import QueryAtom
+from oasa.chem_vertex import ChemVertex
+
+# module imports (renamed modules)
+from oasa import smiles_lib
+from oasa import molfile_lib
+from oasa import inchi_lib
+from oasa import stereochemistry_lib
+from oasa import transform_lib
+from oasa import transform3d_lib
+from oasa import reaction_lib
+from oasa import plugin_lib
+
+# non-renamed module imports
+from oasa import oasa_utils
+from oasa import coords_generator
+from oasa import coords_optimizer
+from oasa import cdml
+from oasa import cdml_bond_io
+from oasa import cdml_writer
+from oasa import codec_registry
+from oasa import bond_semantics
+from oasa import safe_xml
+from oasa import graph
+from oasa import linear_formula
+from oasa import periodic_table
+from oasa import oasa_config
+from oasa import oasa_exceptions
+from oasa import atom_colors
+from oasa import dom_extensions
+from oasa import svg_out
+from oasa import render_geometry
+from oasa import render_ops
+from oasa import render_out
+from oasa import wedge_geometry
+from oasa import haworth
+from oasa import sugar_code
+from oasa import sugar_code_smiles
+from oasa import haworth_spec
+from oasa import haworth_renderer
+from oasa import sugar_code_names
+from oasa import smiles_to_sugar_code
+from oasa import geometry
+from oasa import hex_grid
+from oasa import molecule_utils
+from oasa import known_groups
 
 _EXPORTED_MODULES = [
-	atom,
-	bond,
-	molecule,
-	smiles,
+	Atom,
+	Bond,
+	Molecule,
+	QueryAtom,
+	ChemVertex,
+	smiles_lib,
+	molfile_lib,
+	inchi_lib,
+	stereochemistry_lib,
+	transform_lib,
+	transform3d_lib,
+	reaction_lib,
+	plugin_lib,
+	oasa_utils,
 	coords_generator,
 	coords_optimizer,
-	molfile,
-	inchi,
 	cdml,
 	cdml_bond_io,
 	cdml_writer,
@@ -109,9 +124,7 @@ _EXPORTED_MODULES = [
 	graph,
 	linear_formula,
 	periodic_table,
-	config,
-	query_atom,
-	chem_vertex,
+	oasa_config,
 	oasa_exceptions,
 	atom_colors,
 	dom_extensions,
@@ -127,46 +140,33 @@ _EXPORTED_MODULES = [
 	haworth_renderer,
 	sugar_code_names,
 	smiles_to_sugar_code,
-	stereochemistry,
 	geometry,
 	hex_grid,
 	molecule_utils,
-	transform3d,
-	transform,
 	known_groups,
 ]
 
-allNames = ['atom', 'bond', 'chem_vertex', 'coords_generator', 'config',
-	'coords_optimizer', 'geometry', 'graph', 'inchi', 'known_groups',
-	'linear_formula', 'molecule', 'molfile',
-	'oasa_exceptions', 'periodic_table', 'query_atom', 'smiles',
-	'stereochemistry', 'svg_out', 'transform',
-	'transform3d']
-allNames.extend([
-	"atom_colors",
-	"bond_semantics",
-	"cdml_bond_io",
-	"codec_registry",
-	"dom_extensions",
-	"safe_xml",
-	"render_geometry",
-	"render_ops",
-	"render_out",
-	"wedge_geometry",
-	"sugar_code",
-	"sugar_code_smiles",
-	"haworth_spec",
-	"haworth_renderer",
-	"sugar_code_names",
-	"smiles_to_sugar_code",
-	"molecule_utils",
-])
-allNames.append("cdml_writer")
-allNames.append("hex_grid")
-allNames.append("__version__")
+allNames = [
+	'Atom', 'Bond', 'ChemVertex', 'Molecule', 'QueryAtom',
+	'smiles_lib', 'molfile_lib', 'inchi_lib', 'stereochemistry_lib',
+	'transform_lib', 'transform3d_lib', 'reaction_lib', 'plugin_lib',
+	'oasa_utils', 'oasa_config', 'oasa_exceptions',
+	'coords_generator', 'coords_optimizer',
+	'cdml', 'cdml_bond_io', 'cdml_writer',
+	'codec_registry', 'bond_semantics', 'safe_xml',
+	'graph', 'linear_formula', 'periodic_table',
+	'atom_colors', 'dom_extensions', 'svg_out',
+	'render_geometry', 'render_ops', 'render_out',
+	'wedge_geometry', 'geometry',
+	'haworth', 'sugar_code', 'sugar_code_smiles',
+	'haworth_spec', 'haworth_renderer',
+	'sugar_code_names', 'smiles_to_sugar_code',
+	'hex_grid', 'molecule_utils', 'known_groups',
+	'__version__',
+]
 
 try:
-	from . import cairo_out
+	from oasa import cairo_out
 except ImportError:
 	CAIRO_AVAILABLE = False
 else:
@@ -176,7 +176,7 @@ else:
 
 # inchi_key
 try:
-	from . import inchi_key
+	from oasa import inchi_key
 except Exception:
 	INCHI_KEY_AVAILABLE = False
 else:
@@ -186,7 +186,7 @@ else:
 
 # pybel
 try:
-	from . import pybel_bridge
+	from oasa import pybel_bridge
 except Exception:
 	PYBEL_AVAILABLE = False
 else:

@@ -1,6 +1,92 @@
 # Changelog
 
 ## 2026-02-19
+- Phase 6: Remove all backward-compat aliases from OASA and BKChem. Removed
+  class aliases (`atom = Atom`, `bond = Bond`, etc.) from 19 OASA `_lib` files,
+  5 graph subpackage files, and `oasa/__init__.py`. Removed `sys.modules`
+  aliases for old module names (`oasa.smiles`, `oasa.config`, `oasa.transform`,
+  etc.) and `oasa.graph` submodule names. Updated `allNames` and
+  `_EXPORTED_MODULES` in `oasa/__init__.py` to use new names only. Cleaned
+  `oasa/graph/__init__.py` of class and sys.modules aliases.
+- Phase 5 (continued): Updated remaining BKChem and OASA imports to use new
+  module/class names. Fixed `oasa.transform` -> `oasa.transform_lib.Transform`
+  in `paper.py`, `modes.py`, `gtml.py`, `temp_manager.py`. Fixed
+  `oasa.smiles.text_to_mol` -> `oasa.smiles_lib.text_to_mol`. Fixed
+  `oasa.config` -> `oasa.oasa_config` in `main.py` and `temp_manager.py`.
+  Updated `oasa.atom(` -> `oasa.Atom(`, `oasa.bond(` -> `oasa.Bond(`,
+  `oasa.molecule()` -> `oasa.Molecule()` across production code, tests, and
+  tools (~40 occurrences). Fixed self-references in OASA `_lib` files
+  (`smiles()` -> `Smiles()`, `molfile()` -> `Molfile()`, etc.). Updated OASA
+  `codecs/cml.py` and `codecs/cdxml.py` imports. Fixed `bond_render_ops.py`
+  runtime crash (`oasa.transform3d.transform3d()` -> `oasa.transform3d_lib.Transform3d()`).
+  Fixed `oasa/haworth/fragment_layout.py` import.
+- Removed `test_remaining_actions.py` which injected a mock `singleton_store`
+  into `sys.modules` without `Screen`, poisoning subsequent test imports.
+- Fixed `atom_lib.py` pyflakes errors: `isinstance(n, atom)` ->
+  `isinstance(n, BkAtom)` in `oxidation_number` and `matches` methods.
+- Fix remaining old module/class name references in BKChem test files:
+  `test_platform_menu.py` (`bkchem.config` -> `bkchem.bkchem_config` in mock
+  module creation), `test_molecule_composition_parity.py` (docstrings updated
+  to use `bkchem.atom_lib.BkAtom`, `bkchem.bond_lib.BkBond`,
+  `bkchem.molecule_lib.BkMolecule`). Other test files were already updated.
+- Phase 4: BKChem module renames. Renamed 12 files via `git mv`:
+  `atom.py` -> `atom_lib.py`, `bond.py` -> `bond_lib.py`,
+  `molecule.py` -> `molecule_lib.py`, `reaction.py` -> `reaction_lib.py`,
+  `arrow.py` -> `arrow_lib.py`, `fragment.py` -> `fragment_lib.py`,
+  `group.py` -> `group_lib.py`, `ftext.py` -> `ftext_lib.py`,
+  `textatom.py` -> `textatom_lib.py`, `queryatom.py` -> `queryatom_lib.py`,
+  `config.py` -> `bkchem_config.py`, `misc.py` -> `bkchem_utils.py`.
+  Renamed 10 classes to BkX CamelCase (e.g., `atom` -> `BkAtom`,
+  `bond` -> `BkBond`, `molecule` -> `BkMolecule`). Added backward-compat
+  aliases. Updated 93 import statements, 82 `misc.` -> `bkchem_utils.` usages,
+  42 `config.` -> `bkchem_config.` usages across ~40 BKChem source files.
+  Added lazy `__getattr__` in `bkchem/__init__.py` for backward-compat module
+  aliases. Updated `chem_compat.py` ABC registrations and `main.py` molecule
+  class assignment. 727 OASA tests pass, 326 BKChem non-GUI tests pass.
+- BKChem GUI quick fix: force a full paper refresh after bond/molecule
+  transformation actions in
+  [packages/bkchem-app/bkchem/modes.py](packages/bkchem-app/bkchem/modes.py)
+  (`bondalign_mode.mouse_down`). After applying the transform, call
+  `paper.redraw_all()` and `paper.update_idletasks()` before undo/binding
+  housekeeping so transformed structures render immediately.
+- Convert all remaining relative imports (`from .` / `from ..`) to absolute imports
+  across 35 OASA files. Converted `from . import X` to `from oasa import X`,
+  `from .module import X` to `from oasa.module import X`, and `from .. import X`
+  to `from oasa import X` for subpackage files. Added `sys.modules` backward-compat
+  aliases for `oasa.graph.graph`, `oasa.graph.vertex`, `oasa.graph.edge`, and
+  `oasa.graph.digraph` in `oasa/graph/__init__.py`. All 727 OASA tests pass;
+  `tests/test_import_dot.py` now passes (was 35 failures).
+- Update all OASA test files in `packages/oasa/tests/` to use new CamelCase class
+  names: `oasa.atom()` -> `oasa.Atom()`, `oasa.bond()` -> `oasa.Bond()`,
+  `oasa.molecule()` -> `oasa.Molecule()`, `smiles_module.smiles()` ->
+  `smiles_module.Smiles()`, `reaction.reaction_component` ->
+  `reaction.ReactionComponent`. Updated direct imports: `from oasa.molecule import
+  molecule` -> `from oasa.molecule_lib import Molecule`, `from oasa.atom import atom`
+  -> `from oasa.atom_lib import Atom`, `from oasa.bond import bond` -> `from
+  oasa.bond_lib import Bond`, `from oasa.molecule import equals` -> `from
+  oasa.molecule_lib import equals`. Files changed: `test_connector_clipping.py`,
+  `test_bond_length_policy.py`, `test_bond_vertex_ordering.py`, `test_cdml_bond_io.py`,
+  `test_cdml_writer.py`, `test_codec_registry.py`, `test_haworth_layout.py`,
+  `test_haworth_cairo_layout.py`, `test_renderer_pipeline_parity.py`,
+  `test_oasa_bond_styles.py`, `test_label_bbox.py`, `test_rdkit_bridge.py`,
+  `oasa_unittests.py`, `test_peptide_utils.py`.
+- Update all OASA imports referencing renamed `config.py` (now `oasa_config.py`) and
+  `misc.py` (now `oasa_utils.py`) to use absolute imports. Updated 8 files for
+  `misc` -> `oasa_utils`: `render_geometry.py`, `cairo_out.py`, `inchi_key.py`,
+  `inchi_lib.py`, `geometry.py`, `coords_generator.py`, `linear_formula.py`,
+  `molecule_lib.py`. Updated 5 files for `config` -> `oasa_config`:
+  `linear_formula.py`, `inchi_lib.py`, `smiles_lib.py`, `molecule_lib.py`,
+  `__init__.py`. Added `sys.modules` backward-compat aliases for `oasa.config`
+  and `oasa.misc` in `__init__.py`.
+- Fix remaining relative imports in OASA package that referenced renamed modules.
+  Converted `from .atom import atom` style to `from oasa.atom_lib import Atom as atom`
+  and `from . import smiles` style to `from oasa import smiles_lib as smiles` across
+  13 files: `cdml_writer.py`, `pybel_bridge.py`, `rdkit_bridge.py`, `config.py`,
+  `geometry.py`, `smiles_to_sugar_code.py`, `codec_registry.py`, `cairo_out.py`,
+  `inchi_lib.py`, `linear_formula.py`, `coords_optimizer.py`, `coords_generator.py`,
+  `svg_out.py`, and `molecule_lib.py`. Updated `__class__.__name__` checks for
+  `cis_trans_stereochemistry` to `CisTransStereochemistry` in `coords_generator.py`
+  and `coords_generator2.py`.
 - Biomolecule templates now generated on demand from SMILES instead of
   pre-built CDML files. Single source of truth is
   [packages/oasa/oasa_data/biomolecule_smiles.yaml](packages/oasa/oasa_data/biomolecule_smiles.yaml)

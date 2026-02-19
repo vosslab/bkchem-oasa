@@ -70,8 +70,8 @@ def _create_adapter(platform: str = 'linux'):
 	)
 	mock_tkinter.RAISED = 'raised'
 
-	# build mock bkchem.config module
-	mock_config = types.ModuleType('bkchem.config')
+	# build mock bkchem.bkchem_config module
+	mock_config = types.ModuleType('bkchem.bkchem_config')
 	mock_config.border_width = 2
 
 	mock_parent = types.SimpleNamespace(configure=lambda **kw: None)
@@ -83,7 +83,7 @@ def _create_adapter(platform: str = 'linux'):
 	patched_modules = {
 		'Pmw': mock_pmw,
 		'tkinter': mock_tkinter,
-		'bkchem.config': mock_config,
+		'bkchem.bkchem_config': mock_config,
 	}
 
 	# remove cached platform_menu so it re-imports cleanly each time

@@ -28,7 +28,7 @@ import warnings
 import tkinter.font
 
 from oasa import geometry
-from oasa import transform
+from oasa import transform_lib as transform
 
 from bkchem.parents import simple_parent
 from bkchem.singleton_store import Screen

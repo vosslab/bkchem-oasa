@@ -30,23 +30,23 @@ from oasa import geometry
 from oasa import periodic_table as PT
 from math import atan2, sin, cos, pi, sqrt
 
-from bkchem import misc
+from bkchem import bkchem_utils
 from bkchem import dom_extensions
 from bkchem import bkchem_exceptions
 from bkchem import safe_xml
 
-from bkchem.bond import bond
-from bkchem.atom import atom
-from bkchem.group import group
-from bkchem.fragment import fragment
-from bkchem.textatom import textatom
-from bkchem.queryatom import queryatom
+from bkchem.bond_lib import BkBond
+from bkchem.atom_lib import BkAtom
+from bkchem.group_lib import BkGroup
+from bkchem.fragment_lib import BkFragment
+from bkchem.textatom_lib import BkTextatom
+from bkchem.queryatom_lib import BkQueryatom
 from bkchem.singleton_store import Store, Screen
 from bkchem.parents import container, top_level, id_enabled, with_paper
 
 
 
-class molecule( container, top_level, id_enabled, with_paper):
+class BkMolecule( container, top_level, id_enabled, with_paper):
   # note that all children of simple_parent have default meta infos set
   # therefore it is not necessary to provide them for all new classes if they
   # don't differ
@@ -63,7 +63,7 @@ class molecule( container, top_level, id_enabled, with_paper):
 
   def __init__( self, paper=None, package = None):
     # composition layer: oasa.molecule for graph algorithms
-    self._chem_mol = oasa.molecule()
+    self._chem_mol = oasa.Molecule()
     # local collections that proxy to _chem_mol (same objects)
     self.vertices = self._chem_mol.vertices
     self.edges = self._chem_mol.edges
@@ -329,19 +329,19 @@ class molecule( container, top_level, id_enabled, with_paper):
   ## GRAPH FACTORY OVERRIDES
 
   def create_graph( self):
-    return molecule( paper=self.paper)
+    return BkMolecule( paper=self.paper)
 
 
   def create_vertex( self, vertex_class=None):
     if not vertex_class:
-      vertex_class = atom
+      vertex_class = BkAtom
     std = self.paper and self.paper.standard or Store.app.paper.standard
     return vertex_class( standard=std)
 
 
   def create_edge( self):
     std = self.paper and self.paper.standard or Store.app.paper.standard
-    return bond( standard=std)
+    return BkBond( standard=std)
 
 
   def add_vertex( self, v=None):
@@ -370,7 +370,7 @@ class molecule( container, top_level, id_enabled, with_paper):
 
   def add_atom_to( self, a1, bond_to_use=None, pos=None):
     """adds new atom bound to atom id with bond, the position of new atom can be specified in pos or is
-    decided calling find_place(), if x, y is specified and matches already existing atom it will be
+    decided calling find_place(), if x, y is specified and matches already existing BkAtom it will be
     used instead of creating new one """
     if pos != None:
       x, y = pos
@@ -379,7 +379,7 @@ class molecule( container, top_level, id_enabled, with_paper):
         x, y = self.find_place( a1, Screen.any_to_px( self.paper.standard.bond_length), added_order=bond_to_use.order)
       else:
         x, y = self.find_place( a1, Screen.any_to_px( self.paper.standard.bond_length))
-    a2 = None # the new atom
+    a2 = None # the new BkAtom
     if pos:
       # try if the coordinates are the same as of another atom
       for at in self.atoms:
@@ -388,7 +388,7 @@ class molecule( container, top_level, id_enabled, with_paper):
           break
     if not a2:
       a2 = self.create_new_atom( x, y)
-    b = bond_to_use or bond( self.paper.standard, order=1, type='n')
+    b = bond_to_use or BkBond( self.paper.standard, order=1, type='n')
     self.add_edge( a1, a2, e=b)
     b.molecule = self
     b.draw()
@@ -473,8 +473,8 @@ class molecule( container, top_level, id_enabled, with_paper):
             for a in b.atoms:
               if a in self.atoms:
                 bonds_to_redraw.extend( a.neighbor_edges)
-        [o.redraw( recalc_side=1) for o in misc.filter_unique( bonds_to_redraw) if o.order == 2 and o.item]
-        [o.decide_pos() for o in self.atoms if isinstance( o, atom)]
+        [o.redraw( recalc_side=1) for o in bkchem_utils.filter_unique( bonds_to_redraw) if o.order == 2 and o.item]
+        [o.decide_pos() for o in self.atoms if isinstance( o, BkAtom)]
         [o.redraw() for o in self.atoms]
     else:
       offspring = self.check_integrity()
@@ -541,13 +541,13 @@ class molecule( container, top_level, id_enabled, with_paper):
     self.name = package.getAttribute( 'name')
     if package.getAttribute( 'id'):
       self.id = package.getAttribute( 'id')
-    for name, cls in list({'atom': atom, 'group': group, 'text': textatom, 'query': queryatom}.items()):
+    for name, cls in list({'atom': BkAtom, 'group': BkGroup, 'text': BkTextatom, 'query': BkQueryatom}.items()):
       for a in dom_extensions.simpleXPathSearch( package, name):
         self.insert_atom( cls( standard=std, package=a, molecule=self))
 
     self._id_map = [a.id for a in self.atoms]
     for b in dom_extensions.simpleXPathSearch( package, 'bond'):
-      bnd = bond( standard=std, package=b, molecule=self)
+      bnd = BkBond( standard=std, package=b, molecule=self)
       self.add_edge( bnd.atom1, bnd.atom2, bnd)
     # template related attributes
     temp = package.getElementsByTagName('template')
@@ -566,7 +566,7 @@ class molecule( container, top_level, id_enabled, with_paper):
 
     # fragments
     for fel in dom_extensions.simpleXPathSearch( package, "fragment"):
-      f = fragment()
+      f = BkFragment()
       try:
         f.read_package( fel)
       except bkchem_exceptions.bkchem_fragment_error:
@@ -579,7 +579,7 @@ class molecule( container, top_level, id_enabled, with_paper):
       self.user_data = [u.cloneNode( True) for u in ud]
 
     # final check of atoms valecies
-    [a.raise_valency_to_senseful_value() for a in self.vertices if isinstance( a, atom)]
+    [a.raise_valency_to_senseful_value() for a in self.vertices if isinstance( a, BkAtom)]
 
 
   def get_package( self, doc, items=None):
@@ -593,9 +593,9 @@ class molecule( container, top_level, id_enabled, with_paper):
       atoms = []
       bonds = []
       for item in items:
-        if isinstance( item, atom):
+        if isinstance( item, BkAtom):
           atoms.append( item)
-        elif isinstance( item, bond):
+        elif isinstance( item, BkBond):
           bonds.append( item)
       for bond_obj in bonds:
         for vertex in bond_obj.vertices:
@@ -711,7 +711,7 @@ class molecule( container, top_level, id_enabled, with_paper):
               v.add_neighbor( a, e)
               bonds_to_check.add( e)
             to_delete.append( b)
-    deleted = misc.filter_unique( to_delete)
+    deleted = bkchem_utils.filter_unique( to_delete)
     [self.delete_atom( o) for o in deleted]
     # after all is done, find and delete orphan bonds and update the others
     to_redraw = []
@@ -753,7 +753,7 @@ class molecule( container, top_level, id_enabled, with_paper):
     if None in items:
       # the molecule was not drawn yet, we have to calculate it, huh
       bboxes = [a.bbox() for a in self.atoms]
-      return misc.smallest_common_bbox( bboxes)
+      return bkchem_utils.smallest_common_bbox( bboxes)
     else:
       return self.paper.list_bbox( items)
 
@@ -794,7 +794,7 @@ class molecule( container, top_level, id_enabled, with_paper):
     else:
       map = atoms # only selected atoms
     for a in map:
-      if isinstance( a, group):
+      if isinstance( a, BkGroup):
         to_draw = a.expand() or []
         [o.draw() for o in to_draw]
         a.delete()
@@ -843,7 +843,7 @@ class molecule( container, top_level, id_enabled, with_paper):
     angles = [geometry.clockwise_angle_from_east( at.x-a.x, at.y-a.y) for at in atms]
     angles.append( 2*pi + min( angles))
     angles = sorted(angles, reverse=True)
-    diffs = misc.list_difference( angles)
+    diffs = bkchem_utils.list_difference( angles)
     i = diffs.index( max( diffs))
     angle = (angles[i] +angles[i+1]) / 2
     return x +range*cos( angle), y +range*sin( angle)
@@ -893,16 +893,16 @@ class molecule( container, top_level, id_enabled, with_paper):
 
   def create_vertex_according_to_text( self, old, text, interpret=1):
     if not interpret:
-      v = self.create_vertex( vertex_class=textatom)
+      v = self.create_vertex( vertex_class=BkTextatom)
       v.set_name( text)
       return v
     val = old and old.occupied_valency or 0
     # if it seems like a known group, try it first
-    if val==1 and group.is_known_group( text):
-      v = self.create_vertex( vertex_class=group)
+    if val==1 and BkGroup.is_known_group( text):
+      v = self.create_vertex( vertex_class=BkGroup)
       if v.set_name( text, occupied_valency=val):
         return v
-    for cls in (atom, queryatom, group, textatom):
+    for cls in (BkAtom, BkQueryatom, BkGroup, BkTextatom):
       v = self.create_vertex( vertex_class=cls)
       if v.set_name( text, occupied_valency=val):
         return v
@@ -911,7 +911,7 @@ class molecule( container, top_level, id_enabled, with_paper):
   # fragment support
   def create_fragment( self, name, edges, vertices, type="explicit", strict=False):
     if (strict and self.defines_connected_subgraph_e( edges)) or not strict:
-      nf = fragment( Store.id_manager.generate_id( "frag"), name=name, type=type)
+      nf = BkFragment( Store.id_manager.generate_id( "frag"), name=name, type=type)
       nf.edges = set( edges)
       nf.vertices = set( vertices)
       self.fragments.add( nf)
@@ -991,7 +991,7 @@ class molecule( container, top_level, id_enabled, with_paper):
   def mark_template_bond( self, b):
     if b in self.edges:
       atms = b.atom1.neighbors + b.atom2.neighbors
-      atms = misc.difference( atms, [b.atom1, b.atom2])
+      atms = bkchem_utils.difference( atms, [b.atom1, b.atom2])
       coords = [a.get_xy() for a in atms]
       line = b.atom1.get_xy() + b.atom2.get_xy()
       if sum(geometry.on_which_side_is_point(line, xy) for xy in coords) > 0:
@@ -1009,3 +1009,4 @@ class molecule( container, top_level, id_enabled, with_paper):
       self.t_atom = v
     else:
       raise ValueError("Submitted atom does not belong to this molecule.")
+

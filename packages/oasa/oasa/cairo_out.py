@@ -21,13 +21,13 @@ import copy
 import math
 import cairo
 
-from . import atom_colors
-from . import geometry
-from . import misc
-from . import render_geometry
-from . import render_ops
-from . import safe_xml
-from . import transform3d
+from oasa import atom_colors
+from oasa import geometry
+from oasa import oasa_utils as misc
+from oasa import render_geometry
+from oasa import render_ops
+from oasa import safe_xml
+from oasa import transform3d_lib as transform3d
 
 
 
@@ -245,8 +245,8 @@ class cairo_out(object):
 
   def _draw_edge( self, e):
     # at first detect the need to make 3D adjustments
-    self._transform = transform3d.transform3d()
-    self._invtransform = transform3d.transform3d()
+    self._transform = transform3d.Transform3d()
+    self._invtransform = transform3d.Transform3d()
     transform = None
     if e.order > 1:
       atom1,atom2 = e.vertices
@@ -650,7 +650,7 @@ def mols_to_cairo( mols, filename, format, **kw):
 
 if __name__ == "__main__":
 
-  from . import smiles
+  from oasa import smiles_lib as smiles
 
   mol = smiles.text_to_mol( "FCCSCl", calc_coords=30)
   #mol.vertices[0].properties_['show_hydrogens'] = False

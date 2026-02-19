@@ -9,11 +9,11 @@ import io
 import xml.dom.minidom as dom
 
 # local repo modules
-from .. import cdml
-from .. import cdml_writer
-from .. import render_out
-from .. import safe_xml
-from .. import svg_out
+from oasa import cdml
+from oasa import cdml_writer
+from oasa import render_out
+from oasa import safe_xml
+from oasa import svg_out
 
 
 _CDML_NAMESPACE = cdml_writer.CDML_NAMESPACE

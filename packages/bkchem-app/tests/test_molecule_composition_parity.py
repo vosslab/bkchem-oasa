@@ -10,11 +10,11 @@ import pytest
 # local repo modules
 import oasa
 
-# oasa.__init__ re-exports classes at top level, so oasa.molecule is the class
+# oasa.__init__ re-exports CamelCase classes at top level
 # (not the module). Use top-level names to avoid the naming collision.
-OasaMolecule = oasa.molecule
-OasaAtom = oasa.atom
-OasaBond = oasa.bond
+OasaMolecule = oasa.Molecule
+OasaAtom = oasa.Atom
+OasaBond = oasa.Bond
 
 
 #============================================
@@ -468,7 +468,7 @@ class TestCompositionParity:
 	def test_composition_molecule_atoms_alias(self):
 		"""Composition molecule.atoms should delegate to _chem_mol."""
 		# placeholder: import composition molecule when available
-		from bkchem.molecule import molecule as bk_molecule
+		from bkchem.molecule_lib import BkMolecule as bk_molecule
 		mol = bk_molecule()
 		# check that atoms delegates to internal _chem_mol
 		assert hasattr(mol, '_chem_mol')
@@ -476,31 +476,31 @@ class TestCompositionParity:
 
 	def test_composition_molecule_add_vertex(self):
 		"""Composition molecule.add_vertex should update _chem_mol."""
-		from bkchem.molecule import molecule as bk_molecule
+		from bkchem.molecule_lib import BkMolecule as bk_molecule
 		mol = bk_molecule()
 		a = mol.create_vertex()
 		mol.add_vertex(a)
 		assert a in mol._chem_mol.atoms
 
 	def test_composition_molecule_create_vertex_type(self):
-		"""Composition create_vertex should return bkchem.atom."""
-		from bkchem.molecule import molecule as bk_molecule
-		from bkchem.atom import atom as bk_atom
+		"""Composition create_vertex should return bkchem.atom_lib.BkAtom."""
+		from bkchem.molecule_lib import BkMolecule as bk_molecule
+		from bkchem.atom_lib import BkAtom as bk_atom
 		mol = bk_molecule()
 		v = mol.create_vertex()
 		assert isinstance(v, bk_atom)
 
 	def test_composition_molecule_create_edge_type(self):
-		"""Composition create_edge should return bkchem.bond."""
-		from bkchem.molecule import molecule as bk_molecule
-		from bkchem.bond import bond as bk_bond
+		"""Composition create_edge should return bkchem.bond_lib.BkBond."""
+		from bkchem.molecule_lib import BkMolecule as bk_molecule
+		from bkchem.bond_lib import BkBond as bk_bond
 		mol = bk_molecule()
 		e = mol.create_edge()
 		assert isinstance(e, bk_bond)
 
 	def test_composition_molecule_create_graph_type(self):
-		"""Composition create_graph should return bkchem.molecule with _chem_mol."""
-		from bkchem.molecule import molecule as bk_molecule
+		"""Composition create_graph should return bkchem.molecule_lib.BkMolecule with _chem_mol."""
+		from bkchem.molecule_lib import BkMolecule as bk_molecule
 		mol = bk_molecule()
 		g = mol.create_graph()
 		assert isinstance(g, bk_molecule)
@@ -509,17 +509,17 @@ class TestCompositionParity:
 
 	def test_composition_deep_copy_delegates(self):
 		"""Composition deep_copy should return an independent graph."""
-		from bkchem.molecule import molecule as bk_molecule
+		from bkchem.molecule_lib import BkMolecule as bk_molecule
 		mol = bk_molecule()
 		mol_copy = mol.deep_copy()
-		# deep_copy currently returns oasa.molecule (not bkchem.molecule)
+		# deep_copy currently returns oasa.molecule (not bkchem.molecule_lib.BkMolecule)
 		# verify it is at least a separate graph object
 		assert mol_copy is not mol
 		assert mol_copy is not mol._chem_mol
 
 	def test_composition_is_connected_delegates(self):
 		"""Composition is_connected should delegate to _chem_mol."""
-		from bkchem.molecule import molecule as bk_molecule
+		from bkchem.molecule_lib import BkMolecule as bk_molecule
 		mol = bk_molecule()
 		# single atom should be connected
 		a = mol.create_vertex()

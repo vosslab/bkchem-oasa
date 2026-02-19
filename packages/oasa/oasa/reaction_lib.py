@@ -17,11 +17,11 @@
 
 #--------------------------------------------------------------------------
 
-from .molecule import molecule
+from oasa.molecule_lib import Molecule as molecule
 
 
 
-class reaction(object):
+class Reaction(object):
   """Reaction representation.
 
   """
@@ -46,7 +46,7 @@ class reaction(object):
 
 
 
-class reaction_component(object):
+class ReactionComponent(object):
   """Represents one component of a reaction.
 
   """
@@ -79,4 +79,7 @@ class reaction_component(object):
 
   def __str__( self):
     return "%s * (%s)" % (self.stoichiometry, self.molecule)
+
+
+reaction_component = ReactionComponent
 

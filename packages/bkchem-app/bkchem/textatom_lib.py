@@ -41,7 +41,7 @@ from bkchem.special_parents import drawable_chem_vertex
 
 
 ### Class TEXTATOM --------------------------------------------------
-class textatom( drawable_chem_vertex):
+class BkTextatom( drawable_chem_vertex):
   # note that all children of simple_parent have default meta infos set
   # therefore it is not necessary to provide them for all new classes if they
   # don't differ
@@ -196,3 +196,4 @@ class textatom( drawable_chem_vertex):
 
   def __str__( self):
     return self.id
+

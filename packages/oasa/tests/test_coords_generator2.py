@@ -4,13 +4,13 @@
 import math
 
 import oasa.coords_generator2 as cg2
-import oasa.smiles
+import oasa.smiles_lib
 
 
 #============================================
 def _mol_from_smiles(smiles_text: str):
 	"""Parse SMILES and return an OASA molecule with no coords."""
-	mol = oasa.smiles.text_to_mol(smiles_text, calc_coords=False)
+	mol = oasa.smiles_lib.text_to_mol(smiles_text, calc_coords=False)
 	return mol
 
 

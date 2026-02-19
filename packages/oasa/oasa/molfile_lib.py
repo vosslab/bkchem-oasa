@@ -19,12 +19,12 @@
 
 
 
-from .plugin import plugin
-from .molecule import molecule
+from oasa.plugin_lib import Plugin as plugin
+from oasa.molecule_lib import Molecule as molecule
 
 
 
-class molfile( plugin):
+class Molfile( plugin):
 
   name = "molfile"
   read = 1
@@ -252,17 +252,17 @@ writes_text = 1
 writes_files = 1
 
 def mol_to_text( mol):
-  m = molfile()
+  m = Molfile()
   m.structure = mol
   return m.get_text()
 
 def mol_to_file( mol, f):
-  m = molfile()
+  m = Molfile()
   m.structure = mol
   m.write_file( f)
 
 def file_to_mol( f):
-  m = molfile()
+  m = Molfile()
   m.read_file( f)
   return m.structure
 
@@ -271,7 +271,7 @@ def text_to_mol( text):
 
 # NEW MODULE INTERFACE
 
-from .converter_base import converter_base
+from oasa.converter_base import converter_base
 
 class molfile_converter( converter_base):
 
@@ -300,7 +300,7 @@ class molfile_converter( converter_base):
   def read_file( self, f):
     converter_base.read_file( self, f)
     chunk = []
-    m = molfile()
+    m = Molfile()
     for line in f:
       if line.strip() != "$$$$":
         chunk.append( line)
@@ -314,7 +314,7 @@ class molfile_converter( converter_base):
 
   def mols_to_file( self, structures, f):
     converter_base.mols_to_file( self, structures, f)
-    m = molfile()
+    m = Molfile()
     first = f.tell() == 0
     for mol in structures:
       if not first:
@@ -357,3 +357,4 @@ if __name__ == "__main__":
   print(time.time() - t)
   print("total %d rings" % len( lens))
   print(mol)
+

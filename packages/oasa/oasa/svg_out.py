@@ -21,11 +21,11 @@ import copy
 import xml.dom.minidom as dom
 import defusedxml.minidom as safe_minidom
 
-from . import atom_colors
-from . import dom_extensions
-from . import render_geometry
-from . import render_ops
-from . import transform
+from oasa import atom_colors
+from oasa import dom_extensions
+from oasa import render_geometry
+from oasa import render_ops
+from oasa import transform_lib as transform
 
 
 
@@ -81,7 +81,7 @@ class svg_out(object):
     top.setAttribute( "width", str( w))
     top.setAttribute( "height", str( h))
 
-    self.transformer = transform.transform()
+    self.transformer = transform.Transform()
     self.transformer.set_move( -x1+self.margin, -y1+self.margin)
 
     self.molecule = mol
@@ -138,7 +138,7 @@ class svg_out(object):
 
 
   def prepare_dumb_transformer( self):
-    tr = transform.transform()
+    tr = transform.Transform()
     tr.set_scaling( self.paper_to_canvas_coord( 1))
     return tr
 
@@ -260,6 +260,6 @@ if __name__ == "__main__":
   #mol = inchi.text_to_mol( "1/C7H6O2/c8-7(9)6-4-2-1-3-5-6/h1-5H,(H,8,9)", include_hydrogens=False, calc_coords=30)
   #from . import smiles
   #mol = smiles.text_to_mol( "CC[CH]", calc_coords=40)
-  from . import molfile
+  from oasa import molfile_lib as molfile
   mol = molfile.file_to_mol(open("/home/beda/bkchem/bkchem/untitled0.mol", "r"))
   mol_to_svg( mol, "output.svg")

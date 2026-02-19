@@ -45,7 +45,7 @@ from bkchem.special_parents import drawable_chem_vertex
 
 
 ### Class GROUP --------------------------------------------------
-class group( drawable_chem_vertex):
+class BkGroup( drawable_chem_vertex):
   # note that all children of simple_parent have default meta infos set
   # therefore it is not necessary to provide them for all new classes if they
   # don't differ
@@ -382,3 +382,4 @@ class group( drawable_chem_vertex):
       dy = y - replacement.y
       [a.move( dx, dy) for a in self.group_graph.vertices]
     return self.group_graph.vertices
+

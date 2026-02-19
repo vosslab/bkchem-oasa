@@ -3,7 +3,7 @@
 """BKChem rounded wedge and Haworth q rendering tests."""
 
 # local repo modules
-import bkchem.bond
+import bkchem.bond_lib
 import bkchem.classes
 from bkchem import singleton_store
 
@@ -54,7 +54,7 @@ class _DummyAtom(object):
 def test_bkchem_rounded_wedge_polygon():
 	standard = bkchem.classes.standard()
 	singleton_store.Screen.dpi = 72
-	bond = bkchem.bond.bond(standard=standard, type="w", order=1)
+	bond = bkchem.bond_lib.BkBond(standard=standard, type="w", order=1)
 	paper = _DummyPaper()
 	bond.parent = _DummyParent(paper)
 	bond.wedge_width = 6.0
@@ -69,7 +69,7 @@ def test_bkchem_rounded_wedge_polygon():
 def test_bkchem_haworth_q_draws_round_line():
 	standard = bkchem.classes.standard()
 	singleton_store.Screen.dpi = 72
-	bond = bkchem.bond.bond(standard=standard, type="q", order=1)
+	bond = bkchem.bond_lib.BkBond(standard=standard, type="q", order=1)
 	paper = _DummyPaper()
 	bond.parent = _DummyParent(paper)
 	bond.atom1 = _DummyAtom(0.0, 0.0)

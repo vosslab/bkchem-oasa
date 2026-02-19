@@ -17,7 +17,7 @@ if OASA_DIR not in sys.path:
 # local repo modules
 from oasa import haworth
 from oasa import render_out
-from oasa import smiles
+from oasa import smiles_lib as smiles
 
 
 #============================================

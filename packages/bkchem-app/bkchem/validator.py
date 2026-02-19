@@ -26,11 +26,10 @@
 """
 
 import builtins
-from bkchem import molecule
-
-from bkchem.atom import atom
-from bkchem.group import group
-from bkchem.textatom import textatom
+from bkchem.molecule_lib import BkMolecule
+from bkchem.atom_lib import BkAtom
+from bkchem.group_lib import BkGroup
+from bkchem.textatom_lib import BkTextatom
 
 
 
@@ -49,15 +48,15 @@ class validator(object):
   def validate_object( self, o):
     if isinstance(o, list):
       self.validate_list( o)
-    elif isinstance(o, (atom, group, textatom)):
+    elif isinstance(o, (BkAtom, BkGroup, BkTextatom)):
       self.validate_atom( o)
-    elif isinstance( o, molecule.molecule):
+    elif isinstance( o, BkMolecule):
       self.validate_molecule( o)
 
   def validate_atom( self, a):
-    if isinstance( a, textatom):
+    if isinstance( a, BkTextatom):
       self.report.text_atoms.append( a)
-    elif isinstance( a, group):
+    elif isinstance( a, BkGroup):
       self.report.group_atoms.append( a)
     else:
       fval = a.free_valency

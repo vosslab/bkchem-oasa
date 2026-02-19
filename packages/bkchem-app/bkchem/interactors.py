@@ -38,8 +38,8 @@ from bkchem import safe_xml
 _ = builtins.__dict__.get( '_', lambda m: m)
 ngettext = builtins.__dict__.get( 'ngettext', lambda s, p, n: s if n == 1 else p)
 
-from bkchem.atom import atom
-from bkchem.molecule import molecule
+from bkchem.atom_lib import BkAtom
+from bkchem.molecule_lib import BkMolecule
 from bkchem.singleton_store import Store
 
 
@@ -47,7 +47,7 @@ from bkchem.singleton_store import Store
 def ask_name_for_selected( paper):
   """opens dialog for input of molecule name and sets it"""
   top_levels, unique = paper.selected_to_unique_top_levels()
-  ms = [o for o in top_levels if isinstance( o, molecule)]
+  ms = [o for o in top_levels if isinstance( o, BkMolecule)]
 
   if not ms:
     tkMessageBox.showerror( _("No molecule selected."),
@@ -77,7 +77,7 @@ def ask_name_for_selected( paper):
 def ask_id_for_selected( paper):
   """opens dialog for input of molecule ID and sets it"""
   top_levels, unique = paper.selected_to_unique_top_levels()
-  ms = [o for o in top_levels if isinstance( o, molecule)]
+  ms = [o for o in top_levels if isinstance( o, BkMolecule)]
 
   if not ms:
     tkMessageBox.showerror( _("No molecule selected."),
@@ -166,7 +166,7 @@ def ask_inchi_program_path():
 
 def ask_display_form_for_selected( paper):
   top_levels, unique = paper.selected_to_unique_top_levels()
-  ms = [o for o in top_levels if isinstance( o, molecule)]
+  ms = [o for o in top_levels if isinstance( o, BkMolecule)]
 
   if not ms:
     tkMessageBox.showerror( _("No molecule selected."),
@@ -468,7 +468,7 @@ def compute_oxidation_number( paper):
     logged = True
 
   for a in paper.selected_atoms:
-    if isinstance( a, atom):
+    if isinstance( a, BkAtom):
       oxes = a.get_marks_by_type( "oxidation_number")
       if not oxes:
         a.set_mark( "oxidation_number", draw=a.drawn)

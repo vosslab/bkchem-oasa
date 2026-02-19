@@ -32,8 +32,8 @@ from tkinter import Frame, Button, Entry
 
 from xml.sax import saxutils
 
-from bkchem import misc
-from bkchem import config
+from bkchem import bkchem_utils
+from bkchem import bkchem_config
 
 from bkchem.keysymdef import keysyms
 from bkchem.singleton_store import Store
@@ -68,7 +68,7 @@ class editPool( Frame):
 			width=50,
 			state='disabled',
 			font="Helvetica 12",
-			disabledbackground=config.background_color,
+			disabledbackground=bkchem_config.background_color,
 			disabledforeground="#555555",
 		)
 		self.editPool.pack( side='left')
@@ -103,7 +103,7 @@ class editPool( Frame):
 		entry = self.COMMAND_MAP[command_key]
 		if isinstance(entry, tuple):
 			method_name, arg = entry
-			return misc.lazy_apply(getattr(self, method_name), (arg,))
+			return bkchem_utils.lazy_apply(getattr(self, method_name), (arg,))
 		return getattr(self, entry)
 
 
@@ -133,7 +133,7 @@ class editPool( Frame):
 					text=opt['name'],
 					command=cmd,
 					state='disabled',
-					bd=config.border_width,
+					bd=bkchem_config.border_width,
 				)
 				Store.app.balloon.bind(btn, opt['tooltip'])
 				btn.pack(side='left')
@@ -293,19 +293,20 @@ class editPool( Frame):
 
 class special_character_menu( tkinter.Menu):
 
-	chars = {_("minus"): "&#8722;",
-			 _("arrow-left"): "&#x2190;",
-			 _("arrow-right"): "&#x2192;",
-			 _("nu"): "&#x3bd;",
-			 _("new line"): "\\n",
-			 }
+	chars = {
+		_("minus"): "&#8722;",
+		_("arrow-left"): "&#x2190;",
+		_("arrow-right"): "&#x2192;",
+		_("nu"): "&#x3bd;",
+		_("new line"): "\\n",
+	}
 
 	def __init__( self, callback, **kw):
 		self.callback = callback
 		tkinter.Menu.__init__( self, Store.app, tearoff=0, **kw)
 		keys = sorted(self.chars.keys())
 		for k in keys:
-			self.add_command( label=k, command=misc.lazy_apply( self.itemselected, (k,)))
+			self.add_command( label=k, command=bkchem_utils.lazy_apply( self.itemselected, (k,)))
 		self.char = None
 
 

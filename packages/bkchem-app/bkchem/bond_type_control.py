@@ -5,7 +5,7 @@ from warnings import warn
 
 from oasa import geometry
 
-from bkchem import misc
+from bkchem import bkchem_utils
 from bkchem.singleton_store import Screen
 
 
@@ -119,7 +119,7 @@ class BondTypeControlMixin:
         n.transform(transform)
     line = self.atom1.get_xy() + self.atom2.get_xy()
     atms = self.atom1.neighbors + self.atom2.neighbors
-    atms = misc.difference(atms, [self.atom1, self.atom2])
+    atms = bkchem_utils.difference(atms, [self.atom1, self.atom2])
     coords = [a.get_xy() for a in atms]
     circles = 0
     for ring in self.molecule.get_smallest_independent_cycles_dangerous_and_cached():

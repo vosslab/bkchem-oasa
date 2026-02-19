@@ -17,18 +17,32 @@
 
 #--------------------------------------------------------------------------
 
-from .molecule import molecule as molecule_class
 
 
-
-class Config (object):
-  """Singleton class for library wide configuration.
+class Plugin(object):
+  """Basic plugin interface.
 
   """
-  inchi_binary_path = "/usr/bin/inchi-1"
+  name = "plugin"
+  read = 0
+  write = 0
 
-  molecule_class = molecule_class
+  def __init__(self):
+    pass
 
-  @classmethod
-  def create_molecule(self):
-    return self.molecule_class()
+
+  def set_structure(self, structure):
+    pass
+
+
+  def get_structure(self, structure):
+    pass
+
+
+  def read_file(self, file):
+    pass
+
+
+  def write_file(self, file):
+    pass
+

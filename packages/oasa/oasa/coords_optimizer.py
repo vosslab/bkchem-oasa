@@ -22,7 +22,7 @@
 from math import pi, sqrt, sin, cos
 
 #from . import graph
-from . import geometry
+from oasa import geometry
 
 
 
@@ -218,7 +218,7 @@ class coords_optimizer(object):
 
 if __name__ == "__main__":
 
-  from . import smiles
+  from oasa import smiles_lib as smiles
   import time
 
   mol = smiles.text_to_mol( 'CC(C)C(C)CCCC')
@@ -235,6 +235,6 @@ if __name__ == "__main__":
 
   print([(v.x,v.y) for v in mol.vertices])
 
-  from . import coords_generator
+  from oasa import coords_generator
 
   coords_generator.show_mol( mol)

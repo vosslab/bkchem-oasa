@@ -2,7 +2,7 @@ import builtins
 import math
 import operator
 
-from singleton_store import Store
+from bkchem.singleton_store import Store
 
 _ = getattr( builtins, "_", None)
 if not _:

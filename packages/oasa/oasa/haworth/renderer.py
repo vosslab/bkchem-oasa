@@ -9,18 +9,18 @@ import math
 import re
 
 # local repo modules
-from . import _ring_template
-from .. import geometry
-from .. import sugar_code as _sugar_code
-from .. import render_ops
-from .. import render_geometry as _render_geometry
-from . import spec as _spec
-from .spec import HaworthSpec
-from . import renderer_geometry as _geom
-from . import renderer_text as _text
-from . import renderer_layout as _layout
-from . import fragment_layout as _fragment
-from .renderer_config import (
+from oasa.haworth import _ring_template
+from oasa import geometry
+from oasa import sugar_code as _sugar_code
+from oasa import render_ops
+from oasa import render_geometry as _render_geometry
+from oasa.haworth import spec as _spec
+from oasa.haworth.spec import HaworthSpec
+from oasa.haworth import renderer_geometry as _geom
+from oasa.haworth import renderer_text as _text
+from oasa.haworth import renderer_layout as _layout
+from oasa.haworth import fragment_layout as _fragment
+from oasa.haworth.renderer_config import (
 	RING_SLOT_SEQUENCE,
 	RING_RENDER_CONFIG,
 	CARBON_NUMBER_VERTEX_WEIGHT,

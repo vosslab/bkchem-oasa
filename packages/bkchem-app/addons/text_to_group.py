@@ -1,8 +1,8 @@
 import builtins
 
-from group import group
-from textatom import textatom
-from singleton_store import Store
+from bkchem.group_lib import BkGroup as group
+from bkchem.textatom_lib import BkTextatom as textatom
+from bkchem.singleton_store import Store
 
 _ = builtins.__dict__.get( '_', lambda m: m)
 

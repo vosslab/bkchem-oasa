@@ -20,14 +20,14 @@
 import itertools
 
 from operator import itemgetter
-from . import periodic_table as PT
-from .chem_vertex import chem_vertex
-from .common import is_uniquely_sorted
-from .oasa_exceptions import oasa_invalid_atom_symbol, oasa_invalid_value
+from oasa import periodic_table as PT
+from oasa.chem_vertex import ChemVertex as chem_vertex
+from oasa.common import is_uniquely_sorted
+from oasa.oasa_exceptions import oasa_invalid_atom_symbol, oasa_invalid_value
 
 
 
-class atom(chem_vertex):
+class Atom(chem_vertex):
   ## ("value","charge","x","y","z","multiplicity","valency","charge","free_sites")
   attrs_to_copy = chem_vertex.attrs_to_copy + ("symbol", "isotope","explicit_hydrogens")
 
@@ -40,7 +40,7 @@ class atom(chem_vertex):
 
 
   def matches( self, other):
-    if not isinstance( other, atom):
+    if not isinstance( other, Atom):
       return False
     if self.symbol == other.symbol and self.valency == other.valency and self.multiplicity == other.multiplicity:
       # check charge only if other has it set to something non-zero
@@ -191,7 +191,7 @@ class atom(chem_vertex):
     """
     en = self.charge
     for e, n in self.get_neighbor_edge_pairs():
-      if isinstance( n, atom) and n.symbol != self.symbol:
+      if isinstance( n, Atom) and n.symbol != self.symbol:
         en += e.order * (n.electronegativity > self.electronegativity and 1 or -1)
     hen = PT.periodic_table['H']['en']
     en += self.free_valency * (hen > self.electronegativity and 1 or -1)
@@ -371,3 +371,4 @@ def cip_sorting_function(a, b):
 # TODO
 
 # chirality for those possesing a free electron pair
+

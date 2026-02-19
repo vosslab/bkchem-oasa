@@ -26,7 +26,7 @@ from bkchem.singleton_store import Store
 from bkchem.bkchem_exceptions import bkchem_fragment_error
 
 
-class fragment( simple_parent):
+class BkFragment( simple_parent):
 
   meta__undo_properties = ('name', 'id')
   meta__undo_copy = ('edges', 'vertices', 'properties')
@@ -135,3 +135,4 @@ class fragment( simple_parent):
       t = p.getAttribute( "type")
       typ = types.__dict__[ t]
       self.properties[k] = typ( v)
+

@@ -189,16 +189,16 @@ def _ensure_defaults_registered():
 	global _DEFAULTS_REGISTERED
 	if _DEFAULTS_REGISTERED:
 		return
-	from . import cdml
-	from . import cdml_writer
-	from . import inchi
-	from . import molfile
-	from . import smiles
-	from .codecs import cdxml
-	from .codecs import cdsvg
-	from .codecs import cml
-	from .codecs import cml2
-	from .codecs import render
+	from oasa import cdml
+	from oasa import cdml_writer
+	from oasa import inchi_lib as inchi
+	from oasa import molfile_lib as molfile
+	from oasa import smiles_lib as smiles
+	from oasa.codecs import cdxml
+	from oasa.codecs import cdsvg
+	from oasa.codecs import cml
+	from oasa.codecs import cml2
+	from oasa.codecs import render
 
 	register_module_codec(
 		"smiles",

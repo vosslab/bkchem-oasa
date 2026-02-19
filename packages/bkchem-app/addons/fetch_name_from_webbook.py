@@ -17,11 +17,11 @@ except ImportError:
 	from urllib.request import urlopen
 
 import Pmw
-import dialogs
-import oasa_bridge
+from bkchem import dialogs
+from bkchem import oasa_bridge
 
-from main import interactors
-from singleton_store import Store
+from bkchem.main import interactors
+from bkchem.singleton_store import Store
 
 _ = getattr( builtins, "_", None)
 if not _:

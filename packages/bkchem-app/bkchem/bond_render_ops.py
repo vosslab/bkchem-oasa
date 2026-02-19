@@ -10,7 +10,7 @@ from oasa import render_geometry
 from oasa import render_ops
 from oasa import wedge_geometry
 
-from bkchem import misc
+from bkchem import bkchem_utils
 
 
 class BondRenderOpsMixin:
@@ -33,7 +33,7 @@ class BondRenderOpsMixin:
         self.center = center
 
     transform = None
-    self._transform = oasa.transform3d.transform3d()
+    self._transform = oasa.transform3d_lib.Transform3d()
     if self.order != 1 or draw_type != "n":
       for neighbor in self.atom1.neighbors + self.atom2.neighbors:
         if neighbor.z != 0:
@@ -47,8 +47,8 @@ class BondRenderOpsMixin:
     try:
       x1, y1 = self.atom1.get_xy_on_paper()
       x2, y2 = self.atom2.get_xy_on_paper()
-      bbox1 = list(misc.normalize_coords(self.atom1.bbox(substract_font_descent=True)))
-      bbox2 = list(misc.normalize_coords(self.atom2.bbox(substract_font_descent=True)))
+      bbox1 = list(bkchem_utils.normalize_coords(self.atom1.bbox(substract_font_descent=True)))
+      bbox2 = list(bkchem_utils.normalize_coords(self.atom2.bbox(substract_font_descent=True)))
       if geometry.do_rectangles_intersect(bbox1, bbox2):
         return None
       ops = self._build_bond_ops((x1, y1), (x2, y2))
@@ -66,7 +66,7 @@ class BondRenderOpsMixin:
     for atom in (self.atom1, self.atom2):
       if atom.show:
         shown_vertices.add(atom)
-        bbox = misc.normalize_coords(atom.bbox(substract_font_descent=True))
+        bbox = bkchem_utils.normalize_coords(atom.bbox(substract_font_descent=True))
         label_targets[atom] = render_geometry.make_box_target(tuple(bbox))
     bond_width_value = self.bond_width
     if bond_width_value is None and self.paper and self.paper.standard:

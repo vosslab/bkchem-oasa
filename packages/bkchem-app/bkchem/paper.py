@@ -37,20 +37,20 @@ import tkinter.messagebox
 from warnings import warn
 from oasa import geometry
 from oasa import periodic_table as PT
-from oasa.transform import transform
+from oasa.transform_lib import Transform
 try:
 	from tkinter import Canvas, ALL
 except ImportError:
 	from tkinter import Canvas, ALL
 
 import Pmw
-from bkchem import misc
+from bkchem import bkchem_utils
 import copy
 from bkchem import data
 from bkchem import undo
-from bkchem import arrow
+from bkchem.arrow_lib import BkArrow
 from bkchem import checks
-from bkchem import config
+from bkchem import bkchem_config
 from bkchem import classes
 from bkchem import dialogs
 from bkchem import parents
@@ -64,11 +64,11 @@ from bkchem import safe_xml
 import bkchem.chem_compat
 import bkchem.grid_overlay
 
-from bkchem.atom import atom
-from bkchem.group import group
-from bkchem.textatom import textatom
-from bkchem.molecule import molecule
-from bkchem.reaction import reaction
+from bkchem.atom_lib import BkAtom
+from bkchem.group_lib import BkGroup
+from bkchem.textatom_lib import BkTextatom
+from bkchem.molecule_lib import BkMolecule
+from bkchem.reaction_lib import BkReaction
 from bkchem.id_manager import id_manager
 from bkchem.singleton_store import Store
 from bkchem.helper_graphics import selection_rect
@@ -188,12 +188,12 @@ class chem_paper(Canvas, object):
 
 	@property
 	def molecules(self):
-		return [o for o in self.stack if isinstance( o, molecule)]
+		return [o for o in self.stack if isinstance( o, BkMolecule)]
 
 
 	@property
 	def arrows(self):
-		return [o for o in self.stack if isinstance( o, arrow.arrow)]
+		return [o for o in self.stack if isinstance( o, BkArrow)]
 
 
 	@property
@@ -218,7 +218,7 @@ class chem_paper(Canvas, object):
 
 	@property
 	def selected_mols(self):
-		return [o for o in self.selected_to_unique_top_levels()[0] if isinstance( o, molecule)]
+		return [o for o in self.selected_to_unique_top_levels()[0] if isinstance( o, BkMolecule)]
 
 
 	@property
@@ -241,7 +241,7 @@ class chem_paper(Canvas, object):
 
 	@property
 	def groups_selected(self):
-		return [o for o in self.selected if isinstance( o, group)]
+		return [o for o in self.selected if isinstance( o, BkGroup)]
 
 
 	@property
@@ -574,21 +574,21 @@ class chem_paper(Canvas, object):
 			if o.object_type == 'bond':
 				a.extend( o.atoms)
 		if a:
-			return misc.difference( misc.filter_unique( a), self.selected)
+			return bkchem_utils.difference( bkchem_utils.filter_unique( a), self.selected)
 		else:
 			return []
 
 
 	def arrows_to_update( self):
 		a = [o.arrow for o in [p for p in self.selected if p.object_type == 'point']]
-		return misc.filter_unique( a)
+		return bkchem_utils.filter_unique( a)
 
 
 	def read_package( self, CDML, draw=True):
 		self.onread_id_sandbox_activate() # to sandbox the ids
 
 		original_version = CDML.getAttribute( 'version')
-		success = CDML_versions.transform_dom_to_version( CDML, config.current_CDML_version)
+		success = CDML_versions.transform_dom_to_version( CDML, bkchem_config.current_CDML_version)
 		if not success:
 			if not tkinter.messagebox.askokcancel(_('Proceed'),
 																			_('''This CDML document does not seem to have supported version.
@@ -711,16 +711,16 @@ class chem_paper(Canvas, object):
 			os = apply_to
 		for o in os:
 			o.generate_id()
-			if isinstance( o, molecule):
+			if isinstance( o, BkMolecule):
 				[ch.generate_id() for ch in o.children]
 
 
 	def get_package( self):
 		doc = dom.Document()
-		root = dom_extensions.elementUnder( doc, 'cdml', attributes = (('version', config.current_CDML_version),
+		root = dom_extensions.elementUnder( doc, 'cdml', attributes = (('version', bkchem_config.current_CDML_version),
 																																		( 'xmlns', data.cdml_namespace)))
 		info = dom_extensions.elementUnder( root, 'info')
-		dom_extensions.textOnlyElementUnder( info, 'author_program', 'BKChem', attributes = (('version',config.current_BKChem_version),))
+		dom_extensions.textOnlyElementUnder( info, 'author_program', 'BKChem', attributes = (('version',bkchem_config.current_BKChem_version),))
 		metadata = dom_extensions.elementUnder( root, 'metadata')
 		dom_extensions.elementUnder( metadata, 'doc', attributes=(('href', data.cdml_doc_url),))
 		paper = dom_extensions.elementUnder( root, 'paper',
@@ -773,13 +773,13 @@ class chem_paper(Canvas, object):
 						for i in ch.ftext.items:
 							i.paper = None
 
-			if isinstance( a, molecule):
+			if isinstance( a, BkMolecule):
 				for ch in a.children:
 					ch.molecule = None
 					if hasattr( ch, "group_graph"):
 						ch.group_graph = None
 
-					if isinstance( ch, atom) or isinstance( ch, textatom):
+					if isinstance( ch, BkAtom) or isinstance( ch, BkTextatom):
 						for m in ch.marks:
 							m.atom = None
 
@@ -836,7 +836,7 @@ class chem_paper(Canvas, object):
 
 		deleted = []
 		if overlap:
-			mols = misc.filter_unique( [[b.molecule for b in a] for a in overlap])
+			mols = bkchem_utils.filter_unique( [[b.molecule for b in a] for a in overlap])
 			a_eatenby_b1 = []
 			a_eatenby_b2 = []
 			for (mol, mol2) in mols:
@@ -851,9 +851,9 @@ class chem_paper(Canvas, object):
 					self.stack.remove( mol2)
 				else:
 					deleted.extend( mol.handle_overlap())
-			deleted.extend(j for i in [mol.handle_overlap() for mol in misc.difference(a_eatenby_b2, a_eatenby_b1)]
+			deleted.extend(j for i in [mol.handle_overlap() for mol in bkchem_utils.difference(a_eatenby_b2, a_eatenby_b1)]
 														for j in i)
-			self.selected = misc.difference( self.selected, deleted)
+			self.selected = bkchem_utils.difference( self.selected, deleted)
 			self.add_bindings()
 			Store.log( _('concatenated overlaping atoms'))
 
@@ -932,7 +932,7 @@ class chem_paper(Canvas, object):
 
 
 	def new_molecule( self):
-		mol = molecule( self)
+		mol = BkMolecule( self)
 		self.stack.append( mol)
 		return mol
 
@@ -942,7 +942,7 @@ class chem_paper(Canvas, object):
 
 
 	def new_arrow( self, points=[], spline=0, type="normal"):
-		arr = arrow.arrow( self, type=type, points=points, spline=spline)
+		arr = BkArrow( self, type=type, points=points, spline=spline)
 		self.stack.append( arr)
 		arr.draw()
 		return arr
@@ -1018,7 +1018,7 @@ class chem_paper(Canvas, object):
 			clipboard = dom_extensions.elementUnder( clipboard_doc, 'clipboard')
 			for o in cp:
 				if strict and bkchem.chem_compat.is_chemistry_graph(o):
-					clipboard.appendChild( o.get_package( clipboard_doc, items=misc.intersection( o.children, self.selected)))
+					clipboard.appendChild( o.get_package( clipboard_doc, items=bkchem_utils.intersection( o.children, self.selected)))
 				else:
 					clipboard.appendChild( o.get_package( clipboard_doc))
 			Store.app.put_to_clipboard( clipboard, xy)
@@ -1069,9 +1069,9 @@ class chem_paper(Canvas, object):
 
 	def add_object_from_package( self, package):
 		if package.nodeName == 'molecule':
-			o = molecule( self, package=package)
+			o = BkMolecule( self, package=package)
 		elif package.nodeName == 'arrow':
-			o = arrow.arrow( self, package=package)
+			o = BkArrow( self, package=package)
 		elif package.nodeName == 'plus':
 			o = classes.plus( self, package=package)
 		elif package.nodeName == 'text':
@@ -1089,7 +1089,7 @@ class chem_paper(Canvas, object):
 		elif package.nodeName == 'polyline':
 			o = graphics.polyline( self, package=package)
 		elif package.nodeName == 'reaction':
-			react = reaction()
+			react = BkReaction()
 			react.read_package( package)
 			if react.arrows:
 				react.arrows[0].reaction = react
@@ -1273,7 +1273,7 @@ class chem_paper(Canvas, object):
 	def scale_selected( self, ratio_x, ratio_y, scale_font=1, fix_centers=0, scale_bond_width=False):
 		top_levels, unique = self.selected_to_unique_top_levels()
 		ratio = math.sqrt( ratio_x*ratio_y) # ratio for operations where x and y can't be distinguished (font size etc.)
-		tr = transform()
+		tr = Transform()
 		tr.set_scaling_xy( ratio_x, ratio_y)
 		for o in top_levels:
 			if fix_centers:
@@ -1592,13 +1592,13 @@ class chem_paper(Canvas, object):
 		x1, y1, x2, y2 = view
 		self._view = tuple( view)
 
-		self._real2screen = transform()
+		self._real2screen = Transform()
 		self._real2screen.set_move( -x1, -y1)
 		ratiox, ratioy = 640/(x2-x1), 480/(y2-y1)
 		self._real2screen.set_scaling_xy( ratiox, ratioy)
 		self._ratio = math.sqrt( ratioy*ratiox)
 
-		self._screen2real = transform()
+		self._screen2real = Transform()
 		ratiox, ratioy = (x2-x1)/640, (y2-y1)/480
 		self._screen2real.set_scaling_xy( ratiox, ratioy)
 		self._screen2real.set_move( x1, y1)
@@ -1616,7 +1616,7 @@ class chem_paper(Canvas, object):
 
 	def canvas_to_real(self, lenghts):
 		"""Transforms distances or coordinates from those in the canvas (as stored for items)
-				to real ones (as stored in eg: atom.x)."""
+				to real ones (as stored in eg: BkAtom.x)."""
 		try:
 			result = []
 			for lenght in lenghts:
@@ -1659,10 +1659,10 @@ class chem_paper(Canvas, object):
 		"""expands groups, if selected==1 only for selected, otherwise for all"""
 		if selected:
 			mols = [o for o in self.selected_to_unique_top_levels()[0] if o.object_type == 'molecule']
-			atoms = [o for o in self.selected if isinstance( o, group)]
+			atoms = [o for o in self.selected if isinstance( o, BkGroup)]
 			self.unselect_all()
 			for mol in mols:
-				this_atoms = misc.intersection( atoms, mol.atoms)
+				this_atoms = bkchem_utils.intersection( atoms, mol.atoms)
 				mol.expand_groups( atoms = this_atoms)
 		else:
 			self.unselect_all()
@@ -1850,10 +1850,10 @@ class chem_paper(Canvas, object):
 		name = os_support.get_config_filename( 'standard.cdml', level="personal", mode="w")
 		if name:
 			doc = dom.Document()
-			root = dom_extensions.elementUnder( doc, 'cdml', attributes = (('version', config.current_CDML_version),
+			root = dom_extensions.elementUnder( doc, 'cdml', attributes = (('version', bkchem_config.current_CDML_version),
 																																			( 'xmlns', data.cdml_namespace)))
 			info = dom_extensions.elementUnder( root, 'info')
-			dom_extensions.textOnlyElementUnder( info, 'author_program', 'BKChem', attributes = (('version',config.current_BKChem_version),))
+			dom_extensions.textOnlyElementUnder( info, 'author_program', 'BKChem', attributes = (('version',bkchem_config.current_BKChem_version),))
 			metadata = dom_extensions.elementUnder( root, 'metadata')
 			dom_extensions.elementUnder( metadata, 'doc', attributes=(('href', data.cdml_doc_url),))
 			root.appendChild( st.get_package( doc))
@@ -1891,7 +1891,7 @@ class chem_paper(Canvas, object):
 			x0 = (max( xs) + min( xs)) / 2.0
 			for o in to_align:
 				if o.object_type == 'molecule':
-					tr = transform()
+					tr = Transform()
 					tr.set_move( -x0, 0)
 					tr.set_scaling_xy( -1, 1)
 					tr.set_move( x0, 0)
@@ -1904,7 +1904,7 @@ class chem_paper(Canvas, object):
 			y0 = (max( ys) + min( ys)) / 2.0
 			for o in to_align:
 				if o.object_type == 'molecule':
-					tr = transform()
+					tr = Transform()
 					tr.set_move( 0, -y0)
 					tr.set_scaling_xy( 1, -1)
 					tr.set_move( 0, y0)
@@ -1957,7 +1957,7 @@ class chem_paper(Canvas, object):
 
 	def clean_selected( self):
 		"""cleans the geomerty of all selected molecules, the position of atoms that are selected will not be changed.
-		The selection must define a continuos subgraph of the molecule(s) otherwise the coords generation would not be possible,
+		The selection must define a continuos subgraph of the BkMolecule(s) otherwise the coords generation would not be possible,
 		at least two atoms (one bond) must be selected for the program to give some meaningfull result"""
 		# normalization of selection
 		for item in self.selected:
@@ -1968,7 +1968,7 @@ class chem_paper(Canvas, object):
 
 		mols, u = self.selected_to_unique_top_levels()
 		for mol in mols:
-			if isinstance( mol, molecule):
+			if isinstance( mol, BkMolecule):
 				notselected = set( mol.atoms) - set( self.selected)
 				selected = set( mol.atoms) & set( self.selected)
 				# we must check if the selection defines one connected subgraph of the molecule
@@ -2006,7 +2006,7 @@ class chem_paper(Canvas, object):
 						angle0 = geometry.clockwise_angle_from_east( x2 - x1, y2 - y1)
 						if angle0 >= math.pi :
 							angle0 = angle0 - math.pi
-						tr = transform()
+						tr = Transform()
 						tr.set_move( -centerx, -centery)
 						tr.set_rotation( -angle0)
 						tr.set_scaling_xy( 1, -1)

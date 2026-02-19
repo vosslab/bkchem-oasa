@@ -26,10 +26,10 @@ import math
 import re
 
 # local repo modules
-from . import geometry
-from . import misc
-from . import render_ops
-from . import wedge_geometry
+from oasa import geometry
+from oasa import oasa_utils as misc
+from oasa import render_ops
+from oasa import wedge_geometry
 
 try:
 	import cairo as _cairo

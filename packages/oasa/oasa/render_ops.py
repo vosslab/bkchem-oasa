@@ -25,8 +25,8 @@ import json
 import math
 
 # local repo modules
-from . import dom_extensions
-from . import safe_xml
+from oasa import dom_extensions
+from oasa import safe_xml
 
 
 #============================================

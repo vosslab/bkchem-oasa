@@ -17,14 +17,14 @@
 
 #--------------------------------------------------------------------------
 
-from .graph import graph
-from .vertex import vertex
-from .edge import edge
-from .digraph import digraph
+from oasa.graph.graph_lib import Graph
+from oasa.graph.vertex_lib import Vertex
+from oasa.graph.edge_lib import Edge
+from oasa.graph.digraph_lib import Digraph
 
 __all__ = [
-  "graph",
-  "vertex",
-  "edge",
-  "digraph",
+  "Graph",
+  "Vertex",
+  "Edge",
+  "Digraph",
 ]

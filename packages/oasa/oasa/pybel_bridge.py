@@ -24,10 +24,10 @@ It provides functionality for translation of OASA molecules into Pybel molecules
 
 import pybel, openbabel
 
-from .atom import atom
-from .bond import bond
-from .molecule import molecule
-from .periodic_table import periodic_table as PT
+from oasa.atom_lib import Atom as atom
+from oasa.bond_lib import Bond as bond
+from oasa.molecule_lib import Molecule as molecule
+from oasa.periodic_table import periodic_table as PT
 
 
 
@@ -203,7 +203,7 @@ if __name__ == "__main__":
   pmol = pybel.readstring("smi", "CC(=O)O")
   omol = PybelConverter.pybel_to_oasa_molecule( pmol)
   print(omol)
-  from . import smiles
+  from oasa import smiles_lib as smiles
   c = smiles.converter()
   print(c.mols_to_text([omol]))
 
@@ -211,7 +211,7 @@ if __name__ == "__main__":
   #print(get_supported_output_formats())
 
   if False:
-    from . import molfile
+    from oasa import molfile_lib as molfile
     with open("tbu-benzen.mol", 'r') as f:
       mol = molfile.file_to_mol(f)
 

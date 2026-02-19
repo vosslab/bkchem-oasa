@@ -24,10 +24,10 @@ from oasa import geometry
 from math import sin, cos, pi
 from warnings import warn
 
-from bkchem import misc
+from bkchem import bkchem_utils
 from bkchem import marks
 
-from bkchem.ftext import ftext
+from bkchem.ftext_lib import BkFtext
 from bkchem.tuning import Tuning
 from bkchem.singleton_store import Store, Screen
 from bkchem.graph_vertex_mixin import GraphVertexMixin
@@ -128,7 +128,7 @@ class vertex_common(object):
     """mark is either mark instance of type, in case of instance, the instance is removed,
     in case of type a random mark of this type (if present is removed).
     Returns the removed mark or None"""
-    if misc.myisstr(mark):
+    if bkchem_utils.myisstr(mark):
       ms = [m for m in self.marks if m.__class__.__name__ == mark]
       if ms:
         m = ms[0]
@@ -245,12 +245,12 @@ class vertex_common(object):
     angles = [geometry.clockwise_angle_from_east( x1-x, y1-y) for x1,y1 in coords]
     angles.append( 2*pi + min( angles))
     angles = sorted(angles, reverse=True)
-    diffs = misc.list_difference( angles)
+    diffs = bkchem_utils.list_difference( angles)
     i = diffs.index( max( diffs))
     angle = (angles[i] +angles[i+1]) / 2
 
     # we calculate the distance here again as it is anisotropic (depends on direction)
-    bbox = list( misc.normalize_coords( self.bbox()))
+    bbox = list( bkchem_utils.normalize_coords( self.bbox()))
     x0, y0 = geometry.point_on_circle( x, y, 500, direction=(cos(angle), sin( angle)), resolution=resolution)
     x1, y1 = geometry.intersection_of_line_and_rect( (x,y,x0,y0), bbox, round_edges=0)
     dist = geometry.point_distance( x, y, x1, y1) + round( mark_class.standard_size / 2)
@@ -614,7 +614,7 @@ class drawable_chem_vertex(GraphVertexMixin,
     if not self.pos:
       self.decide_pos()
     # we use self.text to force undo when it is changed (e.g. when atom is added to OH so it changes to O)
-    self.ftext = ftext( self.paper, (x, y), self.xml_ftext, font=self.on_screen_font(), pos=self.pos, fill=self.line_color)
+    self.ftext = BkFtext( self.paper, (x, y), self.xml_ftext, font=self.on_screen_font(), pos=self.pos, fill=self.line_color)
     self.ftext.draw()
     # should we want a complete bbox? (yes only for atoms in linear form)
     if len( [x for x in self.molecule.get_fragments_with_vertex( self) if x.type=="linear_form" and x.properties.get('bond_length',0)>20]):

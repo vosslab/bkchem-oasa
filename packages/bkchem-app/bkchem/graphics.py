@@ -21,7 +21,7 @@
 
 """
 
-from bkchem import misc
+from bkchem import bkchem_utils
 from bkchem import classes
 from bkchem import dom_extensions
 from bkchem import helper_graphics as hg
@@ -95,7 +95,7 @@ class vector_graphics_item( meta_enabled, drawable, interactive, with_line, top_
 
 
   def resize( self, coords, fix=()):
-    self.coords = misc.normalize_coords( coords)
+    self.coords = bkchem_utils.normalize_coords( coords)
     self.paper.coords( self.item, self.coords)
 
 
@@ -219,7 +219,7 @@ class square( rect):
 
   def resize( self, coords, fix=()):
     if not fix:
-      x1, y1, x2, y2 = misc.normalize_coords( coords)
+      x1, y1, x2, y2 = bkchem_utils.normalize_coords( coords)
       dx = x2 - x1
       dy = y2 - y1
       d = (abs( dx) + abs( dy))/2
@@ -229,7 +229,7 @@ class square( rect):
       dx = (fix[0] - x1) or (fix[0] - x2)
       dy = (fix[1] - y2) or (fix[1] - y1)
       d = (abs( dx) + abs( dy))/2
-      self.coords = misc.normalize_coords( (fix[0], fix[1], x1-(d*misc.signum( dx) or d), y1-( d*misc.signum( dy) or d)))
+      self.coords = bkchem_utils.normalize_coords( (fix[0], fix[1], x1-(d*bkchem_utils.signum( dx) or d), y1-( d*bkchem_utils.signum( dy) or d)))
     self.paper.coords( self.item, self.coords)
 
 
@@ -322,7 +322,7 @@ class circle( oval):
 
   def resize( self, coords, fix=()):
     if not fix:
-      x1, y1, x2, y2 = misc.normalize_coords( coords)
+      x1, y1, x2, y2 = bkchem_utils.normalize_coords( coords)
       dx = x2 - x1
       dy = y2 - y1
       d = (abs( dx) + abs( dy))/2
@@ -332,7 +332,7 @@ class circle( oval):
       dx = (fix[0] - x1) or (fix[0] - x2)
       dy = (fix[1] - y2) or (fix[1] - y1)
       d = (abs( dx) + abs( dy))/2
-      self.coords = misc.normalize_coords( (fix[0], fix[1], x1-(d*misc.signum( dx) or d), y1-( d*misc.signum( dy) or d)))
+      self.coords = bkchem_utils.normalize_coords( (fix[0], fix[1], x1-(d*bkchem_utils.signum( dx) or d), y1-( d*bkchem_utils.signum( dy) or d)))
     self.paper.coords( self.item, self.coords)
 
 

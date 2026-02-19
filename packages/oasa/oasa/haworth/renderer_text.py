@@ -7,7 +7,7 @@
 # Standard Library
 import re
 
-from .renderer_config import (
+from oasa.haworth.renderer_config import (
 	HYDROXYL_GLYPH_WIDTH_FACTOR,
 	HYDROXYL_O_X_CENTER_FACTOR,
 	HYDROXYL_O_Y_CENTER_FROM_BASELINE,

@@ -27,7 +27,7 @@ plurals = ['reactants', 'products', 'arrows', 'conditions', 'pluses']
 
 
 
-class reaction( object):
+class BkReaction( object):
 
   def __init__( self):
     self.reactants = []
@@ -74,3 +74,4 @@ class reaction( object):
       for obj in self.__dict__[ name]:
         if obj not in available:
           self.__dict__[ name].remove( obj)
+

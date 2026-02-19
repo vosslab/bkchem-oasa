@@ -19,7 +19,7 @@ from oasa import render_out
 
 #============================================
 def _mol_from_smiles(smiles_text):
-	mol = oasa.smiles.text_to_mol(smiles_text)
+	mol = oasa.smiles_lib.text_to_mol(smiles_text)
 	assert mol is not None, f"Could not parse SMILES: {smiles_text}"
 	oasa.coords_generator.calculate_coords(mol, bond_length=1.0, force=1)
 	return mol
@@ -27,20 +27,20 @@ def _mol_from_smiles(smiles_text):
 
 #============================================
 def _single_bond(v1, v2, bond_type="n"):
-	bond = oasa.bond(order=1, type=bond_type)
+	bond = oasa.Bond(order=1, type=bond_type)
 	bond.vertices = (v1, v2)
 	return bond
 
 
 #============================================
 def _build_ring(size, oxygen_index=None):
-	mol = oasa.molecule()
+	mol = oasa.Molecule()
 	atoms = []
 	for idx in range(size):
 		symbol = "C"
 		if oxygen_index is not None and idx == oxygen_index:
 			symbol = "O"
-		atom = oasa.atom(symbol=symbol)
+		atom = oasa.Atom(symbol=symbol)
 		atom.x = float(idx) * 20.0
 		atom.y = 0.0
 		mol.add_vertex(atom)
@@ -64,12 +64,12 @@ def _build_aromatic_molecule():
 
 #============================================
 def _build_charged_molecule():
-	mol = oasa.molecule()
-	a1 = oasa.atom(symbol="N")
+	mol = oasa.Molecule()
+	a1 = oasa.Atom(symbol="N")
 	a1.x = 0.0
 	a1.y = 0.0
 	a1.charge = 1
-	a2 = oasa.atom(symbol="C")
+	a2 = oasa.Atom(symbol="C")
 	a2.x = 40.0
 	a2.y = 0.0
 	mol.add_vertex(a1)
@@ -80,17 +80,17 @@ def _build_charged_molecule():
 
 #============================================
 def _build_stereo_style_molecule():
-	mol = oasa.molecule()
-	a1 = oasa.atom(symbol="C")
+	mol = oasa.Molecule()
+	a1 = oasa.Atom(symbol="C")
 	a1.x = 0.0
 	a1.y = 0.0
-	a2 = oasa.atom(symbol="C")
+	a2 = oasa.Atom(symbol="C")
 	a2.x = 24.0
 	a2.y = 4.0
-	a3 = oasa.atom(symbol="C")
+	a3 = oasa.Atom(symbol="C")
 	a3.x = -16.0
 	a3.y = 20.0
-	a4 = oasa.atom(symbol="C")
+	a4 = oasa.Atom(symbol="C")
 	a4.x = -16.0
 	a4.y = -20.0
 	for atom in (a1, a2, a3, a4):
@@ -262,15 +262,15 @@ def test_molecule_to_ops_fixture_smiles_non_empty():
 
 #============================================
 def test_molecule_to_ops_includes_charge_and_stereo_geometry():
-	mol = oasa.molecule()
-	a1 = oasa.atom(symbol="N")
+	mol = oasa.Molecule()
+	a1 = oasa.Atom(symbol="N")
 	a1.x = 0.0
 	a1.y = 0.0
 	a1.charge = 1
-	a2 = oasa.atom(symbol="C")
+	a2 = oasa.Atom(symbol="C")
 	a2.x = 40.0
 	a2.y = 0.0
-	a3 = oasa.atom(symbol="C")
+	a3 = oasa.Atom(symbol="C")
 	a3.x = 12.0
 	a3.y = 40.0
 	mol.add_vertex(a1)

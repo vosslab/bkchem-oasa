@@ -22,18 +22,18 @@
 import copy
 import math
 
-from . import misc
-from .graph.graph import graph as base_graph
-from . import common
-from . import transform3d
-from . import periodic_table as PT
-from .atom import atom
-from .bond import bond
-from .query_atom import query_atom
+from oasa import oasa_utils as misc
+from oasa.graph.graph_lib import Graph as base_graph
+from oasa import common
+from oasa import transform3d_lib as transform3d
+from oasa import periodic_table as PT
+from oasa.atom_lib import Atom as atom
+from oasa.bond_lib import Bond as bond
+from oasa.query_atom import QueryAtom as query_atom
 
 
 
-class molecule(base_graph):
+class Molecule(base_graph):
 
   def __init__( self, vertices =[]):
     base_graph.__init__( self, vertices=vertices)
@@ -59,7 +59,7 @@ class molecule(base_graph):
 
 
   def create_graph( self):
-    from . import config
+    from oasa import oasa_config as config
     return config.Config.molecule_class()
 
 
@@ -818,7 +818,7 @@ class molecule(base_graph):
 
   # // --- end of the fragment matching routines ---
   def detect_stereochemistry_from_coords( self, omit_rings=True):
-    from .  import stereochemistry, geometry
+    from oasa import stereochemistry_lib as stereochemistry, geometry
     def add_neighbor_double_bonds( bond, path):
       for _e in bond.neighbor_edges:
         if _e.order == 2 and _e not in path:
@@ -925,7 +925,7 @@ class molecule(base_graph):
     scale = bond_length / self.get_mean_bond_length()
     movex = (maxx+minx)/2
     movey = (maxy+miny)/2
-    trans = transform3d.transform3d()
+    trans = transform3d.Transform3d()
     trans.set_move( -movex, -movey, 0)
     trans.set_scaling( scale)
     trans.set_move( movex, movey, 0)
@@ -949,8 +949,8 @@ class molecule(base_graph):
   def create_CIP_digraph( self, center):
     """creates a digraph according to rules described in CIP paper."""
     assert center in self.vertices
-    from .graph.digraph import digraph
-    dg = digraph()
+    from oasa.graph.digraph_lib import Digraph
+    dg = Digraph()
     dg.add_vertex( center.copy())
     return dg
 
@@ -1009,7 +1009,7 @@ def equals( mol1, mol2, level=0):
 if __name__ == '__main__':
 
   def main():
-    g = molecule()
+    g = Molecule()
     g._read_file()
 
     for b in g.edges:
@@ -1046,3 +1046,4 @@ if __name__ == '__main__':
 # test the equals function
 
 ##################################################
+

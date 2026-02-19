@@ -34,8 +34,8 @@ class PlatformMenuAdapter:
 			parent_window.configure(menu=self._menubar)
 		else:
 			# Linux/Windows uses an in-window MenuBar on a frame
-			from bkchem import config
-			menuf = Frame(main_frame, relief=RAISED, bd=config.border_width)
+			from bkchem import bkchem_config
+			menuf = Frame(main_frame, relief=RAISED, bd=bkchem_config.border_width)
 			menuf.grid(row=0, sticky="we")
 			self._menubar = Pmw.MenuBar(menuf, balloon=balloon)
 			self._menubar.pack(side="left", expand=1, fill="both")

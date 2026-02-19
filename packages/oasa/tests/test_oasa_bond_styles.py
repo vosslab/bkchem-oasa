@@ -50,7 +50,7 @@ def output_path(output_dir, filename):
 #============================================
 def build_molecule():
 	"""Build a simple molecule with varied bond styles."""
-	mol = oasa.smiles.text_to_mol(DEFAULT_SMILES, calc_coords=False)
+	mol = oasa.smiles_lib.text_to_mol(DEFAULT_SMILES, calc_coords=False)
 	if not mol:
 		raise ValueError("SMILES could not be parsed into a molecule.")
 	oasa.coords_generator.calculate_coords(mol, force=1)
@@ -69,7 +69,7 @@ def build_molecule():
 #============================================
 def build_printer_self_test():
 	"""Build a molecule with all bond styles and colors for smoke testing."""
-	mol = oasa.molecule()
+	mol = oasa.Molecule()
 	spacing_x = 110
 	spacing_y = 70
 	segment = 80
@@ -77,15 +77,15 @@ def build_printer_self_test():
 		for col, (_label, bond_type, wavy_style) in enumerate(BOND_STYLE_COLUMNS):
 			x = col * spacing_x
 			y = row * spacing_y
-			a1 = oasa.atom(symbol='C')
-			a2 = oasa.atom(symbol='C')
+			a1 = oasa.Atom(symbol='C')
+			a2 = oasa.Atom(symbol='C')
 			a1.x = x
 			a1.y = y
 			a2.x = x + segment
 			a2.y = y
 			mol.add_vertex(a1)
 			mol.add_vertex(a2)
-			bond = oasa.bond(order=1, type=bond_type)
+			bond = oasa.Bond(order=1, type=bond_type)
 			if wavy_style:
 				bond.wavy_style = wavy_style
 				bond.properties_['wavy_style'] = wavy_style

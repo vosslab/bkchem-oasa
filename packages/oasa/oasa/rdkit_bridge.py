@@ -13,10 +13,10 @@ import rdkit.Chem
 import rdkit.Chem.AllChem
 
 # local repo modules
-from .atom import atom
-from .bond import bond
-from .molecule import molecule
-from .periodic_table import periodic_table as PT
+from oasa.atom_lib import Atom as atom
+from oasa.bond_lib import Bond as bond
+from oasa.molecule_lib import Molecule as molecule
+from oasa.periodic_table import periodic_table as PT
 
 
 # map atomic number -> element symbol for reverse lookup

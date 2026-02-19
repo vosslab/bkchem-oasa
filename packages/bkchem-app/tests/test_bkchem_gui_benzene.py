@@ -78,7 +78,7 @@ def _hex_points(cx, cy, radius):
 #============================================
 def _build_benzene(app):
 	"""Create a benzene ring from 6 atoms with alternating double bonds."""
-	from bkchem.bond import bond
+	from bkchem.bond_lib import BkBond
 	from bkchem.singleton_store import Screen
 
 	paper = app.paper
@@ -90,7 +90,7 @@ def _build_benzene(app):
 	for index, atom in enumerate(atoms):
 		other = atoms[(index + 1) % len(atoms)]
 		order = 2 if index % 2 == 0 else 1
-		b = bond(standard=paper.standard, order=order, type="n")
+		b = BkBond(standard=paper.standard, order=order, type="n")
 		mol.add_edge(atom, other, e=b)
 		b.molecule = mol
 		b.draw()

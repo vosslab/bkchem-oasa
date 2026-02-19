@@ -23,7 +23,7 @@ Used to provide mostly the desired meta_behaviour.
 """
 
 
-from bkchem import ftext
+from bkchem.ftext_lib import BkFtext
 from bkchem import dom_extensions
 from bkchem import safe_xml
 
@@ -360,7 +360,7 @@ class text_like(with_font):
 
 		Taken from xml_ftext and the markup is stripped.
 		"""
-		doc = safe_xml.parse_dom_from_string( ftext.ftext.sanitize_text(self.xml_ftext))
+		doc = safe_xml.parse_dom_from_string( BkFtext.sanitize_text(self.xml_ftext))
 		return dom_extensions.getAllTextFromElement(doc)
 
 

@@ -53,19 +53,19 @@ def _ensure_dir(path):
 def _build_ring(size, oxygen_index=None):
 	import oasa
 
-	mol = oasa.molecule()
+	mol = oasa.Molecule()
 	atoms = []
 	for idx in range(size):
 		symbol = 'C'
 		if oxygen_index is not None and idx == oxygen_index:
 			symbol = 'O'
-		atom = oasa.atom(symbol=symbol)
+		atom = oasa.Atom(symbol=symbol)
 		atom.x = idx * 20
 		atom.y = 0
 		mol.add_vertex(atom)
 		atoms.append(atom)
 	for idx in range(size):
-		bond = oasa.bond(order=1, type='n')
+		bond = oasa.Bond(order=1, type='n')
 		v1 = atoms[idx]
 		v2 = atoms[(idx + 1) % size]
 		bond.vertices = (v1, v2)

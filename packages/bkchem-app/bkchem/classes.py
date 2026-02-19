@@ -32,9 +32,9 @@ from math import pi
 from warnings import warn
 
 from bkchem import dom_extensions
-from bkchem import misc
+from bkchem import bkchem_utils
 
-from bkchem.ftext import ftext
+from bkchem.ftext_lib import BkFtext
 from bkchem.parents import meta_enabled, text_like
 from bkchem.parents import area_colored, point_drawable, interactive, top_level
 from bkchem.parents import child, with_font
@@ -86,8 +86,8 @@ class standard(object):
 
 
   def _compare_standard_value( self, left, right):
-    left_num, left_unit = misc.split_number_and_unit( left)
-    right_num, right_unit = misc.split_number_and_unit( right)
+    left_num, left_unit = bkchem_utils.split_number_and_unit( left)
+    right_num, right_unit = bkchem_utils.split_number_and_unit( right)
     if left_unit is not None and right_unit is not None:
       if left_unit != right_unit:
         return 0
@@ -559,7 +559,7 @@ class text( meta_enabled, interactive, point_drawable, text_like, area_colored, 
     "draws text"
     self.update_font()
     x, y = self.get_xy_on_paper()
-    self.ftext = ftext( self.paper, (x, y), self.xml_ftext, font=self.on_screen_font(), fill=self.line_color, justify=self.justify)
+    self.ftext = BkFtext( self.paper, (x, y), self.xml_ftext, font=self.on_screen_font(), fill=self.line_color, justify=self.justify)
     self.ftext.draw()
     x1, y1, x2, y2 = self.ftext.bbox()
     self.item = self.paper.create_rectangle( x1, y1, x2, y2, fill='', outline='', tags=('text','no_export'))
@@ -717,8 +717,8 @@ class text( meta_enabled, interactive, point_drawable, text_like, area_colored, 
         font.setAttribute( 'color', self.line_color)
     x, y = Screen.px_to_text_with_unit( (self.x, self.y))
     dom_extensions.elementUnder( a, 'point', attributes=(('x', x),('y', y)))
-    ftext = dom_extensions.elementUnder( a, 'ftext')
-    ftext.appendChild( doc.createTextNode( self.xml_ftext))
+    BkFtext = dom_extensions.elementUnder( a, 'ftext')
+    BkFtext.appendChild( doc.createTextNode( self.xml_ftext))
     return a
 
 

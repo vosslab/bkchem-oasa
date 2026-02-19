@@ -7,7 +7,7 @@ import xml.dom.minidom
 import pytest
 
 # local repo modules
-import bkchem.bond
+import bkchem.bond_lib
 import bkchem.classes
 import bkchem.singleton_store
 
@@ -120,10 +120,10 @@ def _make_bond(paper, atoms, bond_type="n", order=1):
 		order: Bond order integer.
 
 	Returns:
-		bkchem.bond.bond instance ready for serialization.
+		bkchem.bond_lib.BkBond instance ready for serialization.
 	"""
 	standard = paper.standard
-	bnd = bkchem.bond.bond(standard=standard, type=bond_type, order=order)
+	bnd = bkchem.bond_lib.BkBond(standard=standard, type=bond_type, order=order)
 	bnd.parent = _DummyParent(paper)
 	bnd.atom1 = atoms[0]
 	bnd.atom2 = atoms[1]
@@ -138,12 +138,12 @@ def _roundtrip(bond):
 		bond: Source bkchem bond to serialize.
 
 	Returns:
-		bkchem.bond.bond loaded from the serialized DOM element.
+		bkchem.bond_lib.BkBond loaded from the serialized DOM element.
 	"""
 	doc = xml.dom.minidom.Document()
 	element = bond.get_package(doc)
 	# create a fresh bond and read the serialized element
-	loaded = bkchem.bond.bond(
+	loaded = bkchem.bond_lib.BkBond(
 		standard=bond.parent.paper.standard,
 		type="n",
 		order=1,
@@ -187,7 +187,7 @@ def test_unknown_cdml_attributes_preserved(paper, atoms):
 	# the unknown attribute should appear in the DOM
 	assert element.getAttribute("custom_data") == "hello"
 	# load into a new bond
-	loaded = bkchem.bond.bond(standard=paper.standard, type="n", order=1)
+	loaded = bkchem.bond_lib.BkBond(standard=paper.standard, type="n", order=1)
 	loaded.parent = _DummyParent(paper)
 	loaded.read_package(element)
 	assert loaded.properties_.get("custom_data") == "hello"

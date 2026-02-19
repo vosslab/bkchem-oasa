@@ -35,7 +35,7 @@ from bkchem import safe_xml
 
 
 
-class ftext(object):
+class BkFtext(object):
 
   def __init__( self, canvas, xy, text, font=None, pos="center-first", fill='#000', big_charges=True, justify='right'):
     self.big_charges = big_charges  # should +- in <sup> be drawn in bigger font (not scaled down)?
@@ -319,3 +319,4 @@ def _unescape_one_html_entity_reference( m):
       return chr(name2codepoint[hit])
   else:
     return "&"+hit+";"
+

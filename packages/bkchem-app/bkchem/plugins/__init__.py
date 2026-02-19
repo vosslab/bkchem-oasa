@@ -23,7 +23,7 @@ import importlib
 import sys
 import traceback
 
-from bkchem import config
+from bkchem import bkchem_config
 
 
 __all__ = []
@@ -39,7 +39,7 @@ for _name in _names:
     sys.stderr.write(
       "Could not load module %s: %s: %s\n" % (_name, exc.__class__.__name__, exc)
     )
-    if config.debug:
+    if bkchem_config.debug:
       traceback.print_exc()
 
 del _name

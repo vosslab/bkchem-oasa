@@ -25,7 +25,7 @@ from math import cos, sin
 
 
 
-class transform3d(object):
+class Transform3d(object):
   """Provide basic higher-level interface for coordinate transforms.
 
   """
@@ -113,7 +113,7 @@ class transform3d(object):
     self.set_scaling_xyz( scale, scale, scale)
 
   def get_inverse( self):
-    return transform3d( mat=self.mat.get_inverse())
+    return Transform3d( mat=self.mat.get_inverse())
 
 
 
@@ -207,3 +207,4 @@ class matrix(object):
   @staticmethod
   def _determinant_3( _m):
       return (((_m[0][0] * _m[1][1] * _m[2][2]) + (_m[0][1] * _m[1][2] * _m[2][0]) + (_m[0][2] * _m[1][0] * _m[2][1])) - ((_m[2][1] * _m[1][2] * _m[0][0]) + (_m[2][2] * _m[1][0] * _m[0][1]) + (_m[2][0] * _m[1][1] * _m[0][2])))
+

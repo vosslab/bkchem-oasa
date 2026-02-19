@@ -6,8 +6,8 @@ chirality annotations (@/@@) based on a fixed ring traversal order.
 """
 
 # local repo modules
-from . import sugar_code
-from .haworth import spec as haworth_spec
+from oasa import sugar_code
+from oasa.haworth import spec as haworth_spec
 
 
 # Fischer token -> (Haworth direction of functional group, SMILES fragment)

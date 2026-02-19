@@ -21,12 +21,12 @@
 
 import re
 
-from . import misc
-from . import smiles
-from . import coords_generator
-from .config import Config
-from .known_groups import name_to_smiles
-from .oasa_exceptions import oasa_invalid_atom_symbol
+from oasa import oasa_utils as misc
+from oasa import smiles_lib as smiles
+from oasa import coords_generator
+from oasa.oasa_config import Config
+from oasa.known_groups import name_to_smiles
+from oasa.oasa_exceptions import oasa_invalid_atom_symbol
 
 
 

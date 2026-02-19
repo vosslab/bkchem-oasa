@@ -24,7 +24,7 @@
 import importlib
 import oasa
 
-from bkchem import misc
+from bkchem import bkchem_utils
 
 from bkchem.singleton_store import Screen
 from bkchem.parents import meta_enabled, line_colored, drawable, with_line, interactive, child_with_paper
@@ -49,7 +49,7 @@ except ImportError:
 ### not set in __init__ itself
 
 
-class bond(
+class BkBond(
   BondRenderOpsMixin,
   BondTypeControlMixin,
   BondDrawingMixin,
@@ -86,7 +86,7 @@ class bond(
     # initiation
     self.molecule = molecule
     # composition layer: dedicated oasa.bond for chemistry data
-    self._chem_bond = oasa.bond(order=order, type=type)
+    self._chem_bond = oasa.Bond(order=order, type=type)
     # standalone vertex list (no longer inheriting from oasa.edge)
     self._bond_vertices = list(atoms) if atoms else [None, None]
     # backward compat alias during transition
@@ -388,7 +388,7 @@ class bond(
     # bond width
     if not old_standard or (standard.bond_width != old_standard.bond_width):
       if hasattr( self, 'bond_width'):
-        self.bond_width = misc.signum( self.bond_width) * Screen.any_to_px( standard.bond_width)
+        self.bond_width = bkchem_utils.signum( self.bond_width) * Screen.any_to_px( standard.bond_width)
       else:
         self.bond_width = Screen.any_to_px( standard.bond_width)
 

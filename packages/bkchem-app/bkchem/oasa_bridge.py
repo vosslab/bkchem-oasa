@@ -25,13 +25,13 @@ try:
 except ImportError:
   oasa_available = 0
 
-from oasa import transform3d
+from oasa import transform3d_lib as transform3d
 from oasa import cdml_writer
 from oasa.cdml_writer import CPK_COLORS
 
-from bkchem import bond
-from bkchem import atom
-from bkchem import molecule
+from bkchem.bond_lib import BkBond
+from bkchem.atom_lib import BkAtom
+from bkchem.molecule_lib import BkMolecule
 
 from bkchem.singleton_store import Screen
 
@@ -224,7 +224,7 @@ def read_inchi( text, paper):
 def mol_to_inchi( mol, program):
   m = bkchem_mol_to_oasa_mol( mol)
   # we do not use mol_to_text because generate_inchi_and_inchikey returns extra warning messages
-  _inchi, _key, _warnings = oasa.inchi.generate_inchi_and_inchikey( m, program=program, fixed_hs=False)
+  _inchi, _key, _warnings = oasa.inchi_lib.generate_inchi_and_inchikey( m, program=program, fixed_hs=False)
   return (_inchi, _key, _warnings)
 
 
@@ -268,7 +268,7 @@ def write_cdxml_from_paper( paper, file_obj):
 # Chemistry properties set via public API (at.x, at.charge, bo.type, etc.);
 # after Wave 2, these delegate to _chem_atom/_chem_bond internally.
 def oasa_mol_to_bkchem_mol( mol, paper):
-  m = molecule.molecule( paper)
+  m = BkMolecule( paper)
   if None in (j for i in ((a.x, a.y) for a in mol.atoms)
                   for j in i):
     calc_position = 0
@@ -336,7 +336,7 @@ def oasa_atom_to_bkchem_atom( a, paper, m):
   Returns:
     BKChem atom instance
   """
-  at = atom.atom( standard=paper.standard, molecule=m)
+  at = BkAtom( standard=paper.standard, molecule=m)
   # coordinates set through property setters (delegate to _chem_atom after Wave 2)
   at.x = a.x
   at.y = a.y
@@ -370,7 +370,7 @@ def oasa_bond_to_bkchem_bond( b, paper):
   Returns:
     BKChem bond instance
   """
-  bo = bond.bond( standard=paper.standard)
+  bo = BkBond( standard=paper.standard)
   # type and order set through property setters (delegate to _chem_bond after Wave 2)
   bo.type = b.type
   bo.order = b.order
@@ -382,7 +382,7 @@ def oasa_bond_to_bkchem_bond( b, paper):
 # Reading BKChem properties (a.symbol, a.charge, b.order, b.atoms, etc.);
 # after Wave 2, these read from _chem_atom/_chem_bond internally.
 def bkchem_mol_to_oasa_mol( mol):
-  m = oasa.molecule()
+  m = oasa.Molecule()
   for a in mol.atoms:
     m.add_vertex( bkchem_atom_to_oasa_atom( a))
   for b in mol.bonds:
@@ -410,7 +410,7 @@ def bkchem_atom_to_oasa_atom( a):
   """
   # a.symbol reads from _chem_atom after Wave 2
   s = a.symbol
-  ret = oasa.atom( symbol=s)
+  ret = oasa.Atom( symbol=s)
   # coordinates read through public API (delegate to _chem_atom after Wave 2)
   x, y, z = a.get_xyz()
   ret.x = x
@@ -438,7 +438,7 @@ def bkchem_bond_to_oasa_bond( b):
     OASA bond instance
   """
   # b.order and b.type read from _chem_bond after Wave 2
-  ret = oasa.bond( order=b.order, type=b.type)
+  ret = oasa.Bond( order=b.order, type=b.type)
   return ret
 
 

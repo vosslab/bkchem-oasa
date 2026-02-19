@@ -25,14 +25,14 @@ import tkinter
 
 from oasa import periodic_table as PT
 
-from bkchem import misc
+from bkchem import bkchem_utils
 from bkchem import marks
 from bkchem import parents
 from bkchem import interactors
 import bkchem.chem_compat
 
-from bkchem.atom import atom
-from bkchem.group import group
+from bkchem.atom_lib import BkAtom
+from bkchem.group_lib import BkGroup
 from bkchem.singleton_store import Store
 
 _ = builtins.__dict__.get( '_', lambda m: m)
@@ -50,7 +50,7 @@ class context_menu( tkinter.Menu):
     # at first prepare all the items
     items = {}
     for obj_type in list(configurable.keys()):
-      if misc.myisstr(obj_type):
+      if bkchem_utils.myisstr(obj_type):
         objs = [o for o in self.selected if o.object_type == obj_type]
       else:
         objs = [o for o in self.selected if isinstance( o, obj_type)]
@@ -58,7 +58,7 @@ class context_menu( tkinter.Menu):
       if not objs:
         continue
       for attr in configurable[ obj_type]:
-        if misc.myisstr(attr):
+        if bkchem_utils.myisstr(attr):
           # attr can be either a string (key of config_values)
           vals = config_values[ attr]
         if isinstance(attr, collections.Callable):
@@ -85,7 +85,7 @@ class context_menu( tkinter.Menu):
       casc = tkinter.Menu( self, tearoff=0)
       self.add_cascade( label=key, menu=casc)
       for (v1, attr, objs, v0) in items[ key]:
-        casc.add_command( label=v1, command=misc.lazy_apply( self.callback, (attr, objs, v0)))
+        casc.add_command( label=v1, command=bkchem_utils.lazy_apply( self.callback, (attr, objs, v0)))
 
     # commands
     if already_there and len( [o for o in self.selected if o.object_type != 'mark']):
@@ -113,13 +113,13 @@ class context_menu( tkinter.Menu):
 
 
   def set_value( self, o, name, value):
-    """little more enhanced version of misc.set_attr_or_property"""
+    """little more enhanced version of bkchem_utils.set_attr_or_property"""
     if name in setter_functions:
       f = setter_functions[ name]
       f( o, value)
       self.changes_made = 1
     else:
-      if misc.set_attr_or_property( o, name, value):
+      if bkchem_utils.set_attr_or_property( o, name, value):
         o.redraw()
         self.changes_made = 1
 
@@ -200,9 +200,9 @@ def show_number( objs):
 
 def atom_valency( objs):
   # atom valency
-  atoms = [o for o in objs if hasattr( o, 'valency') and isinstance( o, atom)]
+  atoms = [o for o in objs if hasattr( o, 'valency') and isinstance( o, BkAtom)]
   # the names must be the same
-  if misc.has_one_value_only( [a.symbol for a in atoms]):
+  if bkchem_utils.has_one_value_only( [a.symbol for a in atoms]):
     name = atoms[0].symbol
     return "valency", (_('Atom valency'), (0,)+PT.periodic_table[ name]['valency'])
   return "valency", None
@@ -283,7 +283,7 @@ configurable = {'atom':    ('show', 'font_size','show_hydrogens','pos','number',
                 'mark':    ('size', draw_mark_circle),
                 parents.area_colored: ('area_color',),
                 parents.line_colored: ('line_color',),
-                oasa.graph.vertex: ('symbol','group'),
+                oasa.graph.Vertex: ('symbol','group'),
                 marks.electronpair: ('line_width',),
                 }
 
@@ -360,7 +360,7 @@ def center( bonds):
 
 
 def expand_groups( groups):
-  all_gs = set( [g for g in groups if isinstance( g, group)])
+  all_gs = set( [g for g in groups if isinstance( g, BkGroup)])
   mols = set( [g.molecule for g in all_gs])
   for mol in mols:
     gs = set( mol.vertices) & set( all_gs)

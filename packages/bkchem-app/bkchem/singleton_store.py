@@ -19,7 +19,7 @@
 
 """The Store class which is a manager for application wide singletons resides here"""
 
-from bkchem import misc
+from bkchem import bkchem_utils
 from warnings import warn
 
 
@@ -84,7 +84,7 @@ class Screen(object):
   def any_to_px(self, xyz):
     if isinstance(xyz, (tuple, list)):
       return [self.any_to_px( i) for i in xyz]
-    a, au = misc.split_number_and_unit( xyz)
+    a, au = bkchem_utils.split_number_and_unit( xyz)
     if au:
       if au == 'cm':
         a = self.cm_to_px( a)
