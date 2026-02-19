@@ -1450,6 +1450,9 @@ class template_mode( edit_mode):
     # submodes_names[0] = category display, submodes_names[1] = short labels
     self.submodes_names = [self._category_labels, self._template_labels_list]
     self.submode = [0, 0]
+    # override group_layouts since YAML parser skips dynamic groups
+    self.group_layouts = ['row', 'grid']
+    self.group_labels = [_('Category'), _('Templates')]
     # build tooltip map: full name -> full name (for tooltip display)
     for key in self._category_keys:
       for mol_name in self._category_template_names.get(key, []):
