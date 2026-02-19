@@ -74,28 +74,41 @@ def _flush_events(app, delay=0.05):
 
 
 #============================================
+def _canvas_to_widget(paper, cx, cy):
+	"""Convert canvas coordinates to widget coordinates for event_generate."""
+	# event_generate x,y are widget-relative; canvasx/canvasy map widget->canvas
+	wx = int(cx - paper.canvasx(0))
+	wy = int(cy - paper.canvasy(0))
+	return wx, wy
+
+
+#============================================
 def _event_click(paper, x, y):
 	"""Simulate a left click at the provided canvas coordinates."""
-	paper.event_generate("<Button-1>", x=x, y=y)
-	paper.event_generate("<ButtonRelease-1>", x=x, y=y)
+	wx, wy = _canvas_to_widget(paper, x, y)
+	paper.event_generate("<Button-1>", x=wx, y=wy)
+	paper.event_generate("<ButtonRelease-1>", x=wx, y=wy)
 
 
 #============================================
 def _event_drag(paper, x1, y1, x2, y2):
 	"""Simulate a left-button drag between two canvas coordinates."""
 	button_state = 256
-	mid_x = int((x1 + x2) / 2)
-	mid_y = int((y1 + y2) / 2)
-	paper.event_generate("<Button-1>", x=x1, y=y1, state=button_state)
+	# convert all canvas coords to widget coords
+	wx1, wy1 = _canvas_to_widget(paper, x1, y1)
+	wx2, wy2 = _canvas_to_widget(paper, x2, y2)
+	mid_x = int((wx1 + wx2) / 2)
+	mid_y = int((wy1 + wy2) / 2)
+	paper.event_generate("<Button-1>", x=wx1, y=wy1, state=button_state)
 	paper.update_idletasks()
 	paper.update()
 	paper.event_generate("<B1-Motion>", x=mid_x, y=mid_y, state=button_state)
 	paper.update_idletasks()
 	paper.update()
-	paper.event_generate("<B1-Motion>", x=x2, y=y2, state=button_state)
+	paper.event_generate("<B1-Motion>", x=wx2, y=wy2, state=button_state)
 	paper.update_idletasks()
 	paper.update()
-	paper.event_generate("<ButtonRelease-1>", x=x2, y=y2, state=button_state)
+	paper.event_generate("<ButtonRelease-1>", x=wx2, y=wy2, state=button_state)
 	paper.update_idletasks()
 	paper.update()
 

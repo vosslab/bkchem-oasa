@@ -21,12 +21,15 @@
 
 """
 
+import os
 import builtins
 import math
 import time
 import string
 import tkinter
 import tkinter.messagebox
+
+import yaml
 
 _ = builtins.__dict__.get( '_', lambda m: m)
 
@@ -42,6 +45,7 @@ from bkchem import dialogs
 from bkchem import parents
 from bkchem import messages
 from bkchem import interactors
+from bkchem import os_support
 from bkchem import dom_extensions
 from bkchem import special_parents
 import bkchem.chem_compat
@@ -57,15 +61,114 @@ from bkchem.context_menu import context_menu
 from bkchem.singleton_store import Store, Screen
 
 
+# module-level YAML config cache, loaded lazily on first use
+_MODES_CONFIG = None
+
+
+#============================================
+def _load_modes_yaml() -> dict:
+  """Load modes.yaml from the bkchem_data directory."""
+  data_dir = os_support._get_bkchem_data_dir()
+  yaml_path = os.path.join(data_dir, 'modes.yaml')
+  with open(yaml_path, 'r') as fh:
+    return yaml.safe_load(fh)
+
+
+#============================================
+def get_modes_config() -> dict:
+  """Return the cached modes YAML config, loading on first call."""
+  global _MODES_CONFIG
+  if _MODES_CONFIG is None:
+    _MODES_CONFIG = _load_modes_yaml()
+  return _MODES_CONFIG
+
+
+#============================================
+def get_toolbar_order() -> list:
+  """Return the toolbar mode ordering from YAML."""
+  return list(get_modes_config()['toolbar_order'])
+
+
+#============================================
+def _load_submodes_from_yaml(cfg: dict) -> tuple:
+  """Parse submode groups from a mode's YAML config.
+
+  Args:
+    cfg: mode config dict from YAML
+
+  Returns:
+    tuple of (submodes, submodes_names, submode_defaults,
+              icon_map, group_labels, group_layouts, tooltip_map, size_map)
+  """
+  submodes = []
+  submodes_names = []
+  submode_defaults = []
+  icon_map = {}
+  group_labels = []
+  group_layouts = []
+  tooltip_map = {}
+  size_map = {}
+  for grp in cfg.get('submodes', []):
+    # skip dynamic groups that have no options (filled at runtime)
+    if 'options' not in grp:
+      continue
+    keys = [opt['key'] for opt in grp['options']]
+    # default cascade: name defaults to key, icon defaults to key
+    names = [_(opt.get('name', opt['key'])) for opt in grp['options']]
+    submodes.append(keys)
+    submodes_names.append(names)
+    submode_defaults.append(grp.get('default', 0))
+    # group label for ribbon-style display (i18n)
+    label = grp.get('group_label', '')
+    group_labels.append(_(label) if label else '')
+    group_layouts.append(grp.get('layout', 'row'))
+    for opt in grp['options']:
+      key = opt['key']
+      # icon: defaults to key; 'none' means no icon
+      icon_val = opt.get('icon', key)
+      if icon_val != 'none':
+        icon_map[key] = icon_val
+      # tooltip: store only if explicitly set
+      if 'tooltip' in opt:
+        tooltip_map[key] = _(opt['tooltip'])
+      # size hint
+      if 'size' in opt:
+        size_map[key] = opt['size']
+  return (submodes, submodes_names, submode_defaults,
+          icon_map, group_labels, group_layouts, tooltip_map, size_map)
+
+
 
 ## -------------------- PARENT MODES--------------------
 class mode( object):
   """abstract parent for all modes. No to be used for inheritation because the more specialized
   edit mode has all the methods for editing - just override what you need to change"""
   def __init__( self):
-    self.name = 'mode'
-    self.submodes = []
-    self.submode = []
+    # derive YAML key from class name: draw_mode -> 'draw'
+    yaml_key = type(self).__name__.replace('_mode', '')
+    cfg = get_modes_config()['modes'].get(yaml_key, {})
+    # load name from YAML, fall back to 'mode'
+    self.name = _(cfg['name']) if 'name' in cfg else 'mode'
+    # load static submodes from YAML (dynamic modes override in their __init__)
+    if not cfg.get('dynamic') and cfg.get('submodes'):
+      parsed = _load_submodes_from_yaml(cfg)
+      self.submodes = parsed[0]
+      self.submodes_names = parsed[1]
+      self.submode = list(parsed[2])
+      self.icon_map = parsed[3]
+      self.group_labels = parsed[4]
+      self.group_layouts = parsed[5]
+      self.tooltip_map = parsed[6]
+      self.size_map = parsed[7]
+    else:
+      self.submodes = []
+      self.submodes_names = []
+      self.submode = []
+      self.icon_map = {}
+      self.group_labels = []
+      self.group_layouts = []
+      self.tooltip_map = {}
+      self.size_map = {}
     self.pulldown_menu_submodes = []
     self._key_sequences = {}
     self._recent_key_seq = ''
@@ -294,7 +397,7 @@ class basic_mode( simple_mode):
 
   def __init__( self):
     simple_mode.__init__( self)
-    self.name = "simple"
+    # name loaded from YAML via base class (no override needed)
     # align
     self.register_key_sequence( 'C-a C-t', lambda : Store.app.paper.align_selected( 't'))
     self.register_key_sequence( 'C-a C-b', lambda : Store.app.paper.align_selected( 'b'))
@@ -375,7 +478,7 @@ class edit_mode(basic_mode):
   """
   def __init__( self):
     basic_mode.__init__( self)
-    self.name = _('edit')
+    # name loaded from YAML
     self._dragging = 0
     self._dragged_molecule = None
     self._block_leave_event = 0
@@ -746,20 +849,9 @@ class draw_mode( edit_mode):
 
   def __init__( self):
     edit_mode.__init__( self)
-    self.name = _('draw')
+    # submodes, name loaded from YAML
     self._moved_atom = None
     self._start_atom = None
-    self.submodes = [['30','18','6','1'],
-                     ['single','double','triple'],
-                     ['normal','wedge','hashed','adder','bbold','dash','dotted','wavy'],
-                     ['fixed','freestyle'],
-                     ['nosimpledouble','simpledouble']]
-    self.submodes_names = [[_('30'),_('18'),_('6'),_('1')],
-                           [_('single'),_('double'),_('triple')],
-                           [_('normal'),_('wedge'),_('hashed'),_('adder'),_('bold'),_('dash'),_('dotted'),_('wavy')],
-                           [_('fixed length'),_('freestyle')],
-                           [_('normal double bonds for wedge/hashed'),_('simple double bonds for wedge/hashed')]]
-    self.submode = [0, 0, 0, 0, 1]
 
 
   def mouse_down( self, event, modifiers = []):
@@ -976,14 +1068,10 @@ class arrow_mode( edit_mode):
 
   def __init__( self):
     edit_mode.__init__( self)
-    self.name = _('arrow')
+    # submodes, name loaded from YAML (arrow types previously from arrow.available_types)
     self._start_point = None
     self._moved_point = None
     self._arrow_to_update = None
-    self.submodes = [['30','18','6','1'],['fixed','freestyle'],['anormal','spline'],arrow.available_types]
-    self.submodes_names = [[_('30'),_('18'),_('6'),_('1')], [_('fixed length'),_('freestyle')],
-                           [_('normal'),_('spline')],arrow.available_type_names]
-    self.submode = [0, 0, 0, 0]
     self.__nothing_special = 0 # to easy determine whether new undo record should be started
 
 
@@ -1101,7 +1189,7 @@ class plus_mode( edit_mode):
 
   def __init__( self):
     edit_mode.__init__( self)
-    self.name = _('plus')
+    # name loaded from YAML
     self._start_point = None
     self._moved_point = None
 
@@ -1141,18 +1229,31 @@ class plus_mode( edit_mode):
 
 
 
+# template source lookup: YAML template_source -> Store attribute
+_TEMPLATE_MANAGERS = {
+  'system': lambda: Store.tm,
+  'biomolecule': lambda: Store.btm,
+  'user': lambda: Store.utm,
+}
+
+
 ## -------------------- TEMPLATE MODE --------------------
 class template_mode( edit_mode):
 
   def __init__( self):
     edit_mode.__init__( self)
-    self.name = _('template')
-    self.submodes = [Store.tm.get_template_names()]
-    self.submodes_names = [Store.tm.get_template_names()]
-    self.submode = [0]
+    # name loaded from YAML; determine template source from YAML config
+    yaml_key = type(self).__name__.replace('_mode', '')
+    cfg = get_modes_config()['modes'].get(yaml_key, {})
+    source_key = cfg.get('template_source', 'system')
+    self.template_manager = _TEMPLATE_MANAGERS[source_key]()
+    # build submodes from template manager
+    if cfg.get('use_categories'):
+      self._build_categorized_submodes()
+    else:
+      self._build_flat_submodes()
     self.register_key_sequence( 'C-t', self._mark_focused_as_template_atom_or_bond)
     self._user_selected_template = ''
-    self.template_manager = Store.tm
 
 
   def mouse_click( self, event):
@@ -1219,11 +1320,124 @@ class template_mode( edit_mode):
       Store.log( _("focused bond marked as 'template bond'"))
 
 
+  def _build_flat_submodes( self):
+    """Build a simple flat list of template names as submodes."""
+    names = self.template_manager.get_template_names()
+    self.submodes = [names]
+    self.submodes_names = [names]
+    self.submode = [0]
+
+
+  def _build_categorized_submodes( self):
+    """Build category + template submodes from the biomolecule catalog."""
+    entries = template_catalog.scan_template_dirs(
+      template_catalog.discover_biomolecule_template_dirs()
+    )
+    template_names = self.template_manager.get_template_names()
+    # map label -> index in template manager
+    label_to_index = {}
+    for i, label in enumerate(template_names):
+      label_to_index[label] = i
+    catalog = template_catalog.build_category_map(entries)
+    self._catalog = catalog
+    self._category_keys = sorted(catalog.keys())
+    self._category_labels = [k.replace('_', ' ').strip() for k in self._category_keys]
+    self._category_label_to_key = dict(zip(self._category_labels, self._category_keys))
+    # build per-category template labels and indices
+    self._category_templates = {}
+    self._category_template_indices = {}
+    for key in self._category_keys:
+      subcats = catalog[key]
+      entries_flat = []
+      for subcat in sorted(subcats.keys()):
+        entries_flat.extend(subcats[subcat])
+      labels = []
+      indices = []
+      for entry in entries_flat:
+        label = template_catalog.format_entry_label(entry)
+        if label not in label_to_index:
+          continue
+        labels.append(label)
+        indices.append(label_to_index[label])
+      self._category_templates[key] = labels
+      self._category_template_indices[key] = indices
+    # set initial template list from first category
+    self._template_labels = []
+    self._template_indices = []
+    if self._category_labels:
+      self._apply_category_selection(self._category_labels[0])
+    self.submodes = [self._category_labels, self._template_labels]
+    self.submodes_names = [self._category_labels, self._template_labels]
+    self.submode = [0, 0]
+    self.pulldown_menu_submodes = [0, 1]
+
+
+  def _apply_category_selection( self, label):
+    """Update template lists for the selected category label."""
+    key = self._category_label_to_key.get(label)
+    if not key and self._category_keys:
+      key = self._category_keys[0]
+    if key:
+      self._template_labels = self._category_templates.get(key, [])
+      self._template_indices = self._category_template_indices.get(key, [])
+    else:
+      self._template_labels = []
+      self._template_indices = []
+
+
+  def _update_template_menu( self):
+    """Refresh the template pulldown menu in the UI."""
+    if not hasattr(Store.app, "subbuttons"):
+      return
+    if len(Store.app.subbuttons) < 2:
+      return
+    menu = Store.app.subbuttons[1]
+    if hasattr(menu, "setitems"):
+      menu.setitems(self._template_labels)
+    if self._template_labels and hasattr(menu, "setvalue"):
+      menu.setvalue(self._template_labels[0])
+
+
+  def _get_selected_template_index( self):
+    """Get the template manager index for the currently selected template."""
+    if not hasattr(self, '_template_indices') or not self._template_indices:
+      return None
+    if len(self.submode) < 2:
+      return self._template_indices[0]
+    index = self.submode[1]
+    if index < 0 or index >= len(self._template_indices):
+      return None
+    return self._template_indices[index]
+
+
+  def on_submode_switch( self, submode_index, name=''):
+    """When category changes, refresh template list."""
+    if submode_index == 0 and hasattr(self, '_catalog'):
+      self._apply_category_selection(name)
+      self.submodes[1] = self._template_labels
+      self.submodes_names[1] = self._template_labels
+      if self._template_labels:
+        self.submode[1] = 0
+      self._update_template_menu()
+
+
   def _get_transformed_template( self, name, coords, type='empty', paper=None):
+    # for categorized modes, use the resolved template index
+    if hasattr(self, '_template_indices') and self._template_indices:
+      template_index = self._get_selected_template_index()
+      if template_index is not None:
+        return self.template_manager.get_transformed_template(template_index, coords, type=type, paper=paper)
     return self.template_manager.get_transformed_template( self.submode[0], coords, type=type, paper=paper)
 
 
-  def _get_templates_valency( self):
+  def _get_templates_valency( self, template_index=None):
+    # for categorized modes, use the resolved template index
+    if template_index is not None:
+      return self.template_manager.get_templates_valency(template_index)
+    if hasattr(self, '_template_indices') and self._template_indices:
+      idx = self._get_selected_template_index()
+      if idx is not None:
+        return self.template_manager.get_templates_valency(idx)
     return self.template_manager.get_templates_valency( self.submode[0])
 
 
@@ -1233,7 +1447,7 @@ class text_mode( edit_mode):
 
   def __init__( self):
     edit_mode.__init__( self)
-    self.name = _('text')
+    # name loaded from YAML
     self._start_point = None
     self._moved_point = None
 
@@ -1294,12 +1508,9 @@ class rotate_mode( edit_mode):
 
   def __init__( self):
     edit_mode.__init__( self)
-    self.name = _('rotate')
+    # submodes, name loaded from YAML
     self._rotated_mol = None
     self._rotated_atoms = []
-    self.submodes = [['2D','3D'],['normal3d','fixsomething']]
-    self.submodes_names = [[_('2D'),_('3D')],[_('normal 3D rotation'),_('fix selected bond in 3D')]]
-    self.submode = [0,0]
     self._fixed = None
 
 
@@ -1440,16 +1651,13 @@ class rotate_mode( edit_mode):
 
 
 
-class bond_align_mode( edit_mode):
+class bondalign_mode( edit_mode):
 
   def __init__( self):
     edit_mode.__init__( self)
-    self.name = _('transformation mode')
+    # submodes, name loaded from YAML
     self._rotated_mol = None
     self.first_atom_selected = None
-    self.submodes = [['tohoriz','tovert','invertthrough','mirrorthrough','freerotation']]
-    self.submodes_names = [[_('horizontal align'),_('vertical align'),_('invert through a point'),_('mirror through a line'),_("free rotation around bond")]]
-    self.submode = [0]
     self._needs_two_atoms = [1,1,0,1,-1]  #-1 is for those that accept only bonds
 
 
@@ -1625,16 +1833,16 @@ class bond_align_mode( edit_mode):
   def mouse_drag( self, event):
     pass
 
+# backwards-compatible alias
+bond_align_mode = bondalign_mode
+
 
 
 class vector_mode( edit_mode):
 
   def __init__( self):
     edit_mode.__init__( self)
-    self.name = _('vector graphics')
-    self.submodes = [['rectangle','square','oval', 'circle', 'polygon', 'polyline']]
-    self.submodes_names = [[_('rectangle'),_('square'),_('oval'),_('circle'),_('polygon'),_('polyline')]]
-    self.submode = [0]
+    # submodes, name loaded from YAML
     self._polygon_points = []
     self._polygon_line = None
     self._current_obj = None
@@ -1727,13 +1935,7 @@ class mark_mode( edit_mode):
 
   def __init__( self):
     edit_mode.__init__( self)
-    self.name = _('mark')
-    self.submodes = [['radical','biradical','electronpair','dottedelectronpair','plusincircle','minusincircle','pzorbital'],
-                     ['add','remove']]
-    self.submodes_names = [[_('radical'), _('biradical'), _('electron pair'), _('dotted electron pair'),
-                            _('plus'), _('minus'), _('pz orbital')],
-                           [_('add'), _('remove')]]
-    self.submode = [0, 0]
+    # submodes, name loaded from YAML
 
     self.register_key_sequence( 'Up', lambda : self._move_mark_for_selected( 0, -1), use_warning=0)
     self.register_key_sequence( 'Down', lambda : self._move_mark_for_selected( 0, 1), use_warning=0)
@@ -1858,7 +2060,7 @@ class atom_mode( edit_mode):
 
   def __init__( self):
     edit_mode.__init__( self)
-    self.name = _('atom')
+    # name loaded from YAML
     self._start_point = None
     self._moved_point = None
 
@@ -1926,182 +2128,25 @@ class atom_mode( edit_mode):
 
 
 
-## -------------------- BIOMOLECULE TEMPLATE MODE --------------------
-class biomolecule_template_mode( template_mode):
+## -------------------- BIOMOLECULE / USER TEMPLATE MODES --------------------
+# These are subclasses of template_mode with YAML keys 'biotemplate' and
+# 'usertemplate'. The template_mode base class reads template_source and
+# use_categories from YAML to parameterize behavior automatically.
 
-  def __init__( self):
-    template_mode.__init__( self)
-    self.name = _('biomolecule templates')
-    self.template_manager = Store.btm
-    self._category_keys = []
-    self._category_labels = []
-    self._category_label_to_key = {}
-    self._category_templates = {}
-    self._category_template_indices = {}
-    self._template_labels = []
-    self._template_indices = []
-    self._build_biomolecule_catalog()
-    self.submodes = [self._category_labels, self._template_labels]
-    self.submodes_names = [self._category_labels, self._template_labels]
-    self.submode = [0, 0]
-    self.pulldown_menu_submodes = [0, 1]
+class biotemplate_mode( template_mode):
+  """Biomolecule template mode. Config driven by YAML key 'biotemplate'."""
+  pass
+
+# backwards-compatible alias
+biomolecule_template_mode = biotemplate_mode
 
 
-  def _build_biomolecule_catalog( self):
-    entries = template_catalog.scan_template_dirs(
-      template_catalog.discover_biomolecule_template_dirs()
-    )
-    template_names = self.template_manager.get_template_names()
-    label_to_index = {}
-    for i, label in enumerate( template_names):
-      label_to_index[ label] = i
-    catalog = template_catalog.build_category_map( entries)
-    self._category_keys = sorted( catalog.keys())
-    self._category_labels = [self._format_label( key) for key in self._category_keys]
-    self._category_label_to_key = dict( zip( self._category_labels, self._category_keys))
-    for key in self._category_keys:
-      subcats = catalog[ key]
-      entries_flat = []
-      for subcat in sorted( subcats.keys()):
-        entries_flat.extend( subcats[ subcat])
-      labels = []
-      indices = []
-      for entry in entries_flat:
-        label = template_catalog.format_entry_label( entry)
-        if label not in label_to_index:
-          continue
-        labels.append( label)
-        indices.append( label_to_index[ label])
-      self._category_templates[ key] = labels
-      self._category_template_indices[ key] = indices
-    if self._category_labels:
-      self._apply_category_selection( self._category_labels[0])
+class usertemplate_mode( template_mode):
+  """User template mode. Config driven by YAML key 'usertemplate'."""
+  pass
 
-
-  def _format_label( self, text):
-    return text.replace( "_", " ").strip()
-
-
-  def _apply_category_selection( self, label):
-    key = self._category_label_to_key.get( label)
-    if not key and self._category_keys:
-      key = self._category_keys[0]
-    if key:
-      self._template_labels = self._category_templates.get( key, [])
-      self._template_indices = self._category_template_indices.get( key, [])
-    else:
-      self._template_labels = []
-      self._template_indices = []
-
-
-  def _update_template_menu( self):
-    if not hasattr( Store.app, "subbuttons"):
-      return
-    if len( Store.app.subbuttons) < 2:
-      return
-    menu = Store.app.subbuttons[1]
-    if hasattr( menu, "setitems"):
-      menu.setitems( self._template_labels)
-    if self._template_labels and hasattr( menu, "setvalue"):
-      menu.setvalue( self._template_labels[0])
-
-
-  def _get_selected_template_index( self):
-    if not self._template_indices:
-      return None
-    if len( self.submode) < 2:
-      return self._template_indices[0]
-    index = self.submode[1]
-    if index < 0 or index >= len( self._template_indices):
-      return None
-    return self._template_indices[ index]
-
-
-  def _get_transformed_template( self, template_index, coords, type='empty', paper=None):
-    return self.template_manager.get_transformed_template( template_index, coords, type=type, paper=paper)
-
-
-  def _get_templates_valency( self, template_index):
-    return self.template_manager.get_templates_valency( template_index)
-
-
-  def on_submode_switch( self, submode_index, name=''):
-    if submode_index == 0:
-      self._apply_category_selection( name)
-      self.submodes[1] = self._template_labels
-      self.submodes_names[1] = self._template_labels
-      if self._template_labels:
-        self.submode[1] = 0
-      self._update_template_menu()
-
-
-  def mouse_click( self, event):
-    template_index = self._get_selected_template_index()
-    if template_index is None:
-      Store.log( _("No biomolecule template is available"))
-      return
-    Store.app.paper.unselect_all()
-    if not self.focused:
-      xy = Store.app.paper.canvas_to_real((event.x, event.y))
-      t = self._get_transformed_template( template_index,
-                                          xy,
-                                          type='empty', paper=Store.app.paper)
-    else:
-      if bkchem.chem_compat.is_chemistry_vertex( self.focused):
-        if self.focused.z != 0:
-          Store.log( _("Sorry, it is not possible to append a template to an atom with non-zero Z coordinate, yet."),
-                        message_type="hint")
-          return
-        if self.focused.free_valency >= self._get_templates_valency( template_index):
-          x1, y1 = self.focused.neighbors[0].get_xy()
-          x2, y2 = self.focused.get_xy()
-          t = self._get_transformed_template( template_index, (x1,y1,x2,y2), type='atom1', paper=Store.app.paper)
-        else:
-          x1, y1 = self.focused.get_xy()
-          x2, y2 = self.focused.molecule.find_place( self.focused, Screen.any_to_px( Store.app.paper.standard.bond_length))
-          t = self._get_transformed_template( template_index, (x1,y1,x2,y2), type='atom2', paper=Store.app.paper)
-      elif isinstance( self.focused, bond):
-        x1, y1 = self.focused.atom1.get_xy()
-        x2, y2 = self.focused.atom2.get_xy()
-        #find right side of bond to append template to
-        atms = self.focused.atom1.neighbors + self.focused.atom2.neighbors
-        atms = misc.difference( atms, [self.focused.atom1, self.focused.atom2])
-        coords = [a.get_xy() for a in atms]
-        if sum(geometry.on_which_side_is_point((x1,y1,x2,y2), xy) for xy in coords) > 0:
-          x1, y1, x2, y2 = x2, y2, x1, y1
-        t = self._get_transformed_template( template_index, (x1,y1,x2,y2), type='bond', paper=Store.app.paper)
-        if not t:
-          return # the template was not meant to be added to a bond
-      else:
-        return
-    Store.app.paper.stack.append( t)
-    t.draw( automatic="both")
-    Store.app.paper.select( [o for o in t])
-    Store.app.paper.handle_overlap()
-    # checking of valency
-    if self.focused:
-      if isinstance( self.focused, bond) and (self.focused.atom1.free_valency < 0 or self.focused.atom2.free_valency < 0):
-        Store.log( _("maximum valency exceeded!"), message_type="warning")
-      elif bkchem.chem_compat.is_chemistry_vertex( self.focused) and self.focused.free_valency < 0:
-        Store.log( _("maximum valency exceeded!"), message_type="warning")
-
-    Store.app.paper.start_new_undo_record()
-    Store.app.paper.add_bindings()
-
-
-
-## -------------------- USER TEMPLATE MODE --------------------
-class user_template_mode( template_mode):
-
-  def __init__( self):
-    template_mode.__init__( self)
-    self.name = _('users templates')
-    self.submodes = [Store.utm.get_template_names()]
-    self.submodes_names = [Store.utm.get_template_names()]
-    self.submode = [0]
-    self.pulldown_menu_submodes = [0]
-    #self.register_key_sequence( 'C-t C-1', self._mark_focused_as_template_atom_or_bond)
-    self.template_manager = Store.utm
+# backwards-compatible alias
+user_template_mode = usertemplate_mode
 
 
 
@@ -2110,10 +2155,7 @@ class bracket_mode( edit_mode):
 
   def __init__( self):
     edit_mode.__init__( self)
-    self.name = _('Brackets')
-    self.submodes = [['rectangularbracket','roundbracket']]
-    self.submodes_names = [[_('Rectangular'),_("Round")]]
-    self.submode = [0]
+    # submodes, name loaded from YAML
 
 
   def _end_of_empty_drag( self, x1, y1, x2, y2):
@@ -2161,10 +2203,7 @@ class misc_mode( edit_mode):
 
   def __init__( self):
     edit_mode.__init__( self)
-    self.name = _('Miscelanous small modes')
-    self.submodes = [['numbering','wavy']]
-    self.submodes_names = [[_('Numbering'),_("Wavy line")]]
-    self.submode = [0]
+    # submodes, name loaded from YAML
 
     self._number = 1
     self._line = None
@@ -2250,6 +2289,42 @@ class misc_mode( edit_mode):
       self.focused = None
     else:
       warn( "leaving NONE", UserWarning, 2)
+
+
+
+# mode class lookup by YAML key
+_MODE_CLASS_MAP = {
+  'edit': edit_mode,
+  'draw': draw_mode,
+  'template': template_mode,
+  'biotemplate': biotemplate_mode,
+  'usertemplate': usertemplate_mode,
+  'atom': atom_mode,
+  'mark': mark_mode,
+  'arrow': arrow_mode,
+  'plus': plus_mode,
+  'text': text_mode,
+  'bracket': bracket_mode,
+  'rotate': rotate_mode,
+  'bondalign': bondalign_mode,
+  'vector': vector_mode,
+  'misc': misc_mode,
+}
+
+
+#============================================
+def build_all_modes() -> dict:
+  """Instantiate all mode classes from the YAML config.
+
+  Returns:
+    dict mapping mode key to mode instance
+  """
+  result = {}
+  for yaml_key in get_modes_config()['modes']:
+    mode_class = _MODE_CLASS_MAP.get(yaml_key)
+    if mode_class:
+      result[yaml_key] = mode_class()
+  return result
 
 
 

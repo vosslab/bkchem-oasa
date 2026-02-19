@@ -1,6 +1,39 @@
 # Changelog
 
+## 2026-02-19
+- Add ribbon-style group labels and vertical separators between submode
+  button groups in
+  [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py):
+  `change_mode()` reads `group_labels` from YAML config and renders compact
+  labels and thin separator lines between RadioSelect button rows. Adds
+  `_sub_extra_widgets` list for cleanup on mode switch. Tooltips now prefer
+  YAML `tooltip_map` values over plain display names.
+- Fix GUI event test canvas coordinate handling in
+  [packages/bkchem-app/tests/test_bkchem_gui_events.py](packages/bkchem-app/tests/test_bkchem_gui_events.py):
+  add `_canvas_to_widget()` helper to convert canvas coordinates to widget
+  coordinates for `event_generate`. The ribbon widget additions shifted the
+  canvas viewport offset, causing `canvasx(0)` to be non-zero.
+
 ## 2026-02-18
+- Extract toolbar mode/submode config from Python to YAML: create
+  [packages/bkchem-app/bkchem_data/modes.yaml](packages/bkchem-app/bkchem_data/modes.yaml)
+  defining all 15 modes with submodes, icon mappings, group labels, tooltips,
+  and toolbar ordering. Add YAML loader, `get_toolbar_order()`,
+  `build_all_modes()` to
+  [packages/bkchem-app/bkchem/modes.py](packages/bkchem-app/bkchem/modes.py).
+  Base `mode.__init__` auto-loads config from YAML using class name as key,
+  eliminating hardcoded submodes/names/defaults from 13 mode class `__init__`
+  methods. Unify `biomolecule_template_mode` and `user_template_mode` into
+  `template_mode` parameterized by `template_source` and `use_categories` YAML
+  fields. Add `icon_map` for YAML-driven icon name cascade (key -> icon
+  override). Replace manual mode dict and `modes_sort` list in
+  [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py)
+  with `build_all_modes()` and `get_toolbar_order()`. Remove dead
+  `name_recode_map` dict from
+  [packages/bkchem-app/bkchem/pixmaps.py](packages/bkchem-app/bkchem/pixmaps.py).
+  Rename `bond_align_mode` to `bondalign_mode`, `biomolecule_template_mode` to
+  `biotemplate_mode`, `user_template_mode` to `usertemplate_mode` (old names
+  kept as backwards-compatible aliases).
 - Move peptide chemistry to OASA: `git mv` `peptide_utils.py` from
   `packages/bkchem-app/bkchem/` to
   [packages/oasa/oasa/peptide_utils.py](packages/oasa/oasa/peptide_utils.py).

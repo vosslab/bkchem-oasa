@@ -490,24 +490,9 @@ class BKChem( Tk):
 
 
   def init_modes( self):
-    self.modes = { 'draw': modes.draw_mode(),
-                   'edit': modes.edit_mode(),
-                   'arrow': modes.arrow_mode(),
-                   'plus': modes.plus_mode(),
-                   'template': modes.template_mode(),
-                   'biotemplate': modes.biomolecule_template_mode(),
-                   'text': modes.text_mode(),
-                   'rotate': modes.rotate_mode(),
-                   'bondalign': modes.bond_align_mode(),
-                   'vector': modes.vector_mode(),
-                   'mark': modes.mark_mode(),
-                   'atom': modes.atom_mode(),
-                   'usertemplate': modes.user_template_mode(),
-                   'misc': modes.misc_mode(),
-                   'bracket': modes.bracket_mode(),
-                   }
-    self.modes_sort = ['edit', 'draw', 'template', 'biotemplate', 'usertemplate', 'atom', 'mark', 'arrow',
-                       'plus', 'text', 'bracket', 'rotate', 'bondalign', 'vector', 'misc']
+    # build all mode instances from YAML config
+    self.modes = modes.build_all_modes()
+    self.modes_sort = modes.get_toolbar_order()
 
     # import plugin modes
     for plug_name in self.plug_man.get_names( type="mode"):
@@ -583,14 +568,38 @@ class BKChem( Tk):
       old_mode.cleanup()
       self.mode.copy_settings( old_mode)
 
+    # tear down previous submode widgets (buttons, labels, separators)
     if self.subbuttons:
       for butts in self.subbuttons:
         if hasattr( butts, 'deleteall()'):
           butts.deleteall()
         butts.destroy()
     self.subbuttons = []
+    for widget in getattr(self, '_sub_extra_widgets', []):
+      widget.destroy()
+    self._sub_extra_widgets = []
+
     m = self.mode
+    # YAML-driven ribbon fields
+    mode_icon_map = getattr(m, 'icon_map', {})
+    group_labels = getattr(m, 'group_labels', [])
+    tooltip_map = getattr(m, 'tooltip_map', {})
+
     for i in range( len( m.submodes)):
+      # render group label before button row (ribbon-style separator)
+      label_text = group_labels[i] if i < len(group_labels) else ''
+      if label_text:
+        # vertical separator line between groups (skip before first group)
+        if i > 0:
+          sep = Frame(self.subFrame, width=1, bg='#b0b0b0')
+          sep.pack(side=LEFT, fill='y', padx=2, pady=1)
+          self._sub_extra_widgets.append(sep)
+        # compact group label
+        lbl = Label(self.subFrame, text=label_text, font=('sans-serif', 8),
+                    fg='#666666', anchor='w', padx=1, pady=0)
+        lbl.pack(side=LEFT, padx=(2, 0))
+        self._sub_extra_widgets.append(lbl)
+
       if i not in m.pulldown_menu_submodes:
         # these are normal button like menus
         self.subbuttons.append( Pmw.RadioSelect( self.subFrame,
@@ -603,24 +612,27 @@ class BKChem( Tk):
                                                  pady = 0,
                                                  hull_relief = 'ridge',
                                                  ))
-        if i % 2:
-          self.subbuttons[i].pack( side=LEFT, padx=10)
-        else:
-          self.subbuttons[i].pack( side=LEFT)
+        self.subbuttons[i].pack(side=LEFT, padx=(0, 2))
         for sub in m.submodes[i]:
-          img_name = m.__class__.__name__.replace("_mode","") + "-" + sub
+          # use icon_map for YAML default cascade (key->icon override)
+          icon_name = mode_icon_map.get(sub, sub)
+          img_name = m.__class__.__name__.replace("_mode","") + "-" + icon_name
           if img_name in pixmaps.images:
             img = pixmaps.images[img_name]
-          elif sub in pixmaps.images:
-            img = pixmaps.images[sub]
+          elif icon_name in pixmaps.images:
+            img = pixmaps.images[icon_name]
           else:
             img = None
+          # tooltip: prefer YAML tooltip_map, fall back to display name
+          sub_idx = m.submodes[i].index(sub)
+          display_name = m.submodes_names[i][sub_idx]
+          tip_text = tooltip_map.get(sub, display_name)
           if img:
             recent = self.subbuttons[i].add( sub, image=img, activebackground='grey', borderwidth=config.border_width)
-            self.balloon.bind( recent, m.submodes_names[i][m.submodes[i].index(sub)])
+            self.balloon.bind(recent, tip_text)
           else:
-            self.subbuttons[i].add( sub, text=m.submodes_names[i][m.submodes[i].index(sub)], borderwidth=config.border_width)
-        # black magic???
+            self.subbuttons[i].add( sub, text=display_name, borderwidth=config.border_width)
+        # select the default submode
         j = m.submodes[i][ m.submode[i]]
         self.subbuttons[i].invoke( j)
       else:
@@ -628,10 +640,7 @@ class BKChem( Tk):
         self.subbuttons.append( Pmw.OptionMenu( self.subFrame,
                                                 items = m.submodes_names[i],
                                                 command = self.change_submode))
-        if i % 2:
-          self.subbuttons[i].pack( side=LEFT, padx=10)
-        else:
-          self.subbuttons[i].pack( side=LEFT)
+        self.subbuttons[i].pack(side=LEFT, padx=(0, 2))
 
     # highlight the selected mode button with a thick colored border
     for btn_name in self.modes_sort:

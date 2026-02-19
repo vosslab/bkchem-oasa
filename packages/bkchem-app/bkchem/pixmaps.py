@@ -29,10 +29,6 @@ __all__ = ['images']
 
 
 
-# recode map eliminated: .lower() handles case, wavyline.gif renamed to wavy.gif
-name_recode_map = {}
-
-
 #============================================
 def _load_icon(name: str) -> tkinter.PhotoImage:
 	"""Load a pixmap icon by name, trying PNG first then GIF fallback.
@@ -69,9 +65,6 @@ class images_dict(dict):
 	def __getitem__(self, item: str) -> tkinter.PhotoImage:
 		# normalize to lowercase for filesystem lookup (handles 2D->2d, 3D->3d, etc.)
 		item = item.lower()
-		# recode the name if a mapping exists
-		if item in name_recode_map:
-			item = name_recode_map[item]
 		try:
 			return dict.__getitem__(self, item)
 		except KeyError:
@@ -83,9 +76,6 @@ class images_dict(dict):
 		# normalize to lowercase for filesystem lookup
 		if isinstance(item, str):
 			item = item.lower()
-		# recode the name if a mapping exists
-		if item in name_recode_map:
-			item = name_recode_map[item]
 		if dict.__contains__(self, item):
 			return True
 		try:
@@ -96,4 +86,3 @@ class images_dict(dict):
 			return False
 
 images = images_dict()
-

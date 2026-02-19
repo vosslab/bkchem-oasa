@@ -1,0 +1,239 @@
+# modes.yaml - toolbar mode/submode configuration
+# YAML keys define mode classes. Python provides behavioral methods where needed.
+# key = primary identifier; name and icon default to key if omitted.
+# All display strings passed through _() for i18n/gettext at load time.
+
+toolbar_order:
+  - edit
+  - draw
+  - template
+  - biotemplate
+  - usertemplate
+  - atom
+  - mark
+  - arrow
+  - plus
+  - text
+  - bracket
+  - rotate
+  - bondalign
+  - vector
+  - misc
+
+modes:
+  edit:
+    name: edit
+    parent: basic_mode
+    icon: edit
+    submodes: []
+
+  draw:
+    name: draw
+    parent: edit_mode
+    icon: draw
+    submodes:
+      - group_label: Angle Step
+        options:
+          - {key: '30', tooltip: 30 degree snap}
+          - {key: '18', tooltip: 18 degree snap}
+          - {key: '6', tooltip: 6 degree snap}
+          - {key: '1', tooltip: 1 degree snap}
+        default: 0
+      - group_label: Bond Order
+        options:
+          - {key: single, size: large}
+          - {key: double, size: large}
+          - {key: triple, size: large}
+        default: 0
+      - group_label: Bond Type
+        options:
+          - {key: normal, size: large}
+          - {key: wedge, size: large}
+          - {key: hashed, size: large}
+          - {key: adder}
+          - {key: bbold, name: bold}
+          - {key: dash}
+          - {key: dotted}
+          - {key: wavy}
+        default: 0
+      - group_label: Length
+        options:
+          - {key: fixed, name: fixed length, tooltip: snap to fixed bond length}
+          - {key: freestyle, tooltip: drag to any length}
+        default: 0
+      - group_label: Double Bond Style
+        options:
+          - {key: nosimpledouble, name: normal double bonds for wedge/hashed}
+          - {key: simpledouble, name: simple double bonds for wedge/hashed}
+        default: 1
+
+  template:
+    name: template
+    parent: edit_mode
+    icon: template
+    dynamic: true
+    template_source: system
+    submodes:
+      - group_label: Template
+        layout: row
+
+  biotemplate:
+    name: biomolecule templates
+    parent: edit_mode
+    icon: biotemplate
+    dynamic: true
+    template_source: biomolecule
+    use_categories: true
+    submodes:
+      - group_label: Category
+        layout: row
+      - group_label: Templates
+        layout: grid
+        columns: 4
+
+  usertemplate:
+    name: users templates
+    parent: edit_mode
+    icon: usertemplate
+    dynamic: true
+    template_source: user
+    submodes:
+      - group_label: Template
+        layout: row
+
+  atom:
+    name: atom
+    parent: edit_mode
+    icon: atom
+    submodes: []
+
+  mark:
+    name: mark
+    parent: edit_mode
+    icon: mark
+    submodes:
+      - group_label: Mark Type
+        options:
+          - {key: radical, size: large}
+          - {key: biradical, size: large}
+          - {key: electronpair, name: electron pair, size: large}
+          - {key: dottedelectronpair, name: dotted electron pair}
+          - {key: plusincircle, name: plus, size: large}
+          - {key: minusincircle, name: minus, size: large}
+          - {key: pzorbital, name: pz orbital, size: large}
+        default: 0
+      - group_label: Action
+        options:
+          - {key: add, tooltip: add mark to atom}
+          - {key: remove, tooltip: remove mark from atom}
+        default: 0
+
+  arrow:
+    name: arrow
+    parent: edit_mode
+    icon: arrow
+    submodes:
+      - group_label: Angle Step
+        options:
+          - {key: '30', tooltip: 30 degree snap}
+          - {key: '18', tooltip: 18 degree snap}
+          - {key: '6', tooltip: 6 degree snap}
+          - {key: '1', tooltip: 1 degree snap}
+        default: 0
+      - group_label: Length
+        options:
+          - {key: fixed, name: fixed length}
+          - {key: freestyle}
+        default: 0
+      - group_label: Shape
+        options:
+          - {key: anormal, name: normal, size: large}
+          - {key: spline, size: large}
+        default: 0
+      - group_label: Arrow Type
+        options:
+          - {key: normal, size: large}
+          - {key: electron, name: electron transfer, size: large}
+          - {key: retro, name: retrosynthetic, size: large}
+          - {key: equilibrium, size: large}
+          - {key: equilibrium2, name: equilibrium simple, size: large}
+        default: 0
+
+  plus:
+    name: plus
+    parent: edit_mode
+    icon: rplus
+    submodes: []
+
+  text:
+    name: text
+    parent: edit_mode
+    icon: text
+    submodes: []
+
+  bracket:
+    name: Brackets
+    parent: edit_mode
+    icon: bracket
+    submodes:
+      - group_label: Bracket Style
+        options:
+          - {key: rectangularbracket, name: Rectangular, size: large}
+          - {key: roundbracket, name: Round, size: large}
+        default: 0
+
+  rotate:
+    name: rotate
+    parent: edit_mode
+    icon: rotate
+    submodes:
+      - group_label: Dimension
+        options:
+          - {key: '2D', icon: '2d', size: large}
+          - {key: '3D', icon: '3d', size: large}
+        default: 0
+      - group_label: 3D Style
+        options:
+          - {key: normal3d, name: normal 3D rotation}
+          - {key: fixsomething, name: fix selected bond in 3D}
+        default: 0
+
+  bondalign:
+    name: transformation mode
+    parent: edit_mode
+    icon: bondalign
+    submodes:
+      - group_label: Transform
+        options:
+          - {key: tohoriz, name: horizontal align, size: large, tooltip: align bond horizontally}
+          - {key: tovert, name: vertical align, size: large, tooltip: align bond vertically}
+          - {key: invertthrough, name: invert through a point, size: large}
+          - {key: mirrorthrough, name: mirror through a line, size: large}
+          - {key: freerotation, name: free rotation around bond, size: large}
+        default: 0
+
+  vector:
+    name: vector graphics
+    parent: edit_mode
+    icon: vector
+    submodes:
+      - group_label: Shape
+        options:
+          - {key: rectangle, size: large}
+          - {key: square, size: large}
+          - {key: oval, size: large}
+          - {key: circle, size: large}
+          - {key: polygon, size: large}
+          - {key: polyline, size: large}
+        default: 0
+
+  misc:
+    name: Miscellaneous
+    parent: edit_mode
+    icon: misc
+    submodes:
+      - group_label: Tool
+        options:
+          - {key: numbering, name: Numbering, size: large}
+          - {key: wavy, name: Wavy line, size: large}
+        default: 0
