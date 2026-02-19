@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """GraphVertexMixin - replicate oasa.graph.vertex interface as a BKChem mixin.
 
 This mixin provides the graph connectivity interface that BKChem vertex

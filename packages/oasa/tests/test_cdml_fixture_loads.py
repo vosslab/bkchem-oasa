@@ -1,9 +1,5 @@
 """Load inline CDML test data in OASA."""
 
-# Standard Library
-import tempfile
-import os
-
 # local repo modules
 import oasa
 

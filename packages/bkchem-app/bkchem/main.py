@@ -51,7 +51,6 @@ from bkchem import molecule
 from bkchem import os_support
 from bkchem import interactors
 from bkchem import oasa_bridge
-from bkchem import peptide_utils
 from bkchem import safe_xml
 from bkchem import template_catalog
 
@@ -633,6 +632,18 @@ class BKChem( Tk):
           self.subbuttons[i].pack( side=LEFT, padx=10)
         else:
           self.subbuttons[i].pack( side=LEFT)
+
+    # highlight the selected mode button with a thick colored border
+    for btn_name in self.modes_sort:
+      btn = self.radiobuttons.button(btn_name)
+      if btn_name == tag:
+        btn.configure(relief='sunken', borderwidth=3,
+          highlightbackground='#4a90d9',
+          highlightcolor='#4a90d9',
+          highlightthickness=2)
+      else:
+        btn.configure(relief='flat', borderwidth=1,
+          highlightthickness=0)
 
     self.paper.mode = self.mode
     #Store.log( _('mode changed to ')+self.modes[ tag].name)
@@ -1308,12 +1319,12 @@ class BKChem( Tk):
   def read_peptide_sequence( self):
     if not oasa_bridge.oasa_available:
       return
-    # supported amino acid letters for the dialog prompt
-    supported = sorted(peptide_utils.AMINO_ACID_SMILES.keys())
+    # get supported amino acid letters from OASA for the dialog prompt
+    from oasa.peptide_utils import AMINO_ACID_SMILES
+    supported = sorted(AMINO_ACID_SMILES.keys())
     supported_str = ', '.join(supported)
     lt = _("Enter a single-letter amino acid sequence (e.g. ANKLE):\n"
-           "Supported: %s\n"
-           "(Proline P is not supported)") % supported_str
+           "Supported: %s") % supported_str
     dial = Pmw.PromptDialog( self,
                              title=_('Peptide Sequence'),
                              label_text=lt,
@@ -1325,14 +1336,35 @@ class BKChem( Tk):
     text = dial.get()
     if not text or not text.strip():
       return
-    # convert peptide sequence to SMILES, then render via existing pipeline
+    # validate input letters before sending to OASA
+    sequence = text.strip().upper()
+    bad_letters = [aa for aa in sequence if aa not in AMINO_ACID_SMILES]
+    if bad_letters:
+      tkinter.messagebox.showerror(
+        _("Peptide Sequence Error"),
+        _("Unrecognized amino acid code(s): %s\n"
+          "Supported: %s") % (', '.join(sorted(set(bad_letters))), supported_str))
+      return
+    # delegate to OASA via bridge: peptide -> SMILES -> CDML
     try:
-      smiles = peptide_utils.sequence_to_smiles(text.strip())
+      elements = oasa_bridge.peptide_to_cdml_elements( sequence, self.paper)
     except ValueError as err:
       tkinter.messagebox.showerror(
         _("Peptide Sequence Error"), str(err))
       return
-    return self.read_smiles(smiles=smiles)
+    # import the CDML elements onto the canvas
+    self.paper.onread_id_sandbox_activate()
+    imported = []
+    for element in elements:
+      mol = self.paper.add_object_from_package( element)
+      imported.append( mol)
+      mol.draw()
+    self.paper.onread_id_sandbox_finish( apply_to=imported)
+    self.paper.add_bindings()
+    self.paper.start_new_undo_record()
+    if len( imported) == 1:
+      return imported[0]
+    return imported
 
 
   def read_inchi( self, inchi=None):

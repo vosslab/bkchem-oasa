@@ -5,7 +5,7 @@
 # local repo modules
 import bkchem.bond
 import bkchem.classes
-import singleton_store
+from bkchem import singleton_store
 
 
 class _DummyPaper(object):

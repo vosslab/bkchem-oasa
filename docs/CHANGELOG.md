@@ -1,6 +1,22 @@
 # Changelog
 
 ## 2026-02-18
+- Move peptide chemistry to OASA: `git mv` `peptide_utils.py` from
+  `packages/bkchem-app/bkchem/` to
+  [packages/oasa/oasa/peptide_utils.py](packages/oasa/oasa/peptide_utils.py).
+  Remove fragile R-group placeholder substitution, build SMILES directly with
+  side chains inline. Add `peptide_to_cdml_elements()` bridge function in
+  [packages/bkchem-app/bkchem/oasa_bridge.py](packages/bkchem-app/bkchem/oasa_bridge.py).
+  BKChem GUI no longer knows about peptide chemistry, only prompts for input
+  and renders the returned CDML.
+- Add `.lower()` normalization in icon lookup in
+  [packages/bkchem-app/bkchem/pixmaps.py](packages/bkchem-app/bkchem/pixmaps.py):
+  eliminates all `name_recode_map` entries. Rename `wavyline.gif` to `wavy.gif`
+  and update `misc_mode` submode key from `wavyline` to `wavy` in
+  [packages/bkchem-app/bkchem/modes.py](packages/bkchem-app/bkchem/modes.py).
+- Add thick colored border on the selected mode button in
+  [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py):
+  active mode shows sunken relief with blue highlight, unselected modes are flat.
 - Rename icon files to match tool names: `hatch.gif` -> `hashed.gif`,
   `fixed_length.gif` -> `fixed.gif`, `2D.gif` -> `2d.gif`, `3D.gif` -> `3d.gif`,
   plus corresponding SVG sources. Shrink `name_recode_map` in

@@ -2162,7 +2162,7 @@ class misc_mode( edit_mode):
   def __init__( self):
     edit_mode.__init__( self)
     self.name = _('Miscelanous small modes')
-    self.submodes = [['numbering','wavyline']]
+    self.submodes = [['numbering','wavy']]
     self.submodes_names = [[_('Numbering'),_("Wavy line")]]
     self.submode = [0]
 
@@ -2198,7 +2198,7 @@ class misc_mode( edit_mode):
   def mouse_up( self, event):
     if self.get_submode( 0) == "numbering":
       edit_mode.mouse_up( self, event)
-    elif self.get_submode( 0) == "wavyline":
+    elif self.get_submode( 0) == "wavy":
       coords = self._startx, self._starty, event.x, event.y
       if self._line:
         Store.app.paper.delete( self._line)

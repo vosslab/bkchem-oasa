@@ -6,7 +6,7 @@ import pytest
 
 # local repo modules
 import oasa
-import oasa_bridge
+from bkchem import oasa_bridge
 
 
 class DummyCodec:

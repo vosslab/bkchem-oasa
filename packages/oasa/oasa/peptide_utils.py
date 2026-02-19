@@ -6,7 +6,7 @@ BKChem GUI 'Read Peptide Sequence' menu item.
 """
 
 # Maps single-letter amino acid codes to their side chain SMILES fragments.
-# Each fragment replaces an R-group placeholder on the peptide backbone.
+# Each fragment is a branch off the backbone alpha-carbon.
 # Proline (P) is excluded because its cyclic side chain modifies the
 # backbone nitrogen and does not fit the generic template.
 AMINO_ACID_SMILES = {
@@ -32,35 +32,11 @@ AMINO_ACID_SMILES = {
 }
 
 #============================================
-def make_generic_polypeptide(length: int) -> str:
-	"""Build a generic polypeptide backbone SMILES with R-group placeholders.
-
-	Args:
-		length: number of amino acid residues in the chain.
-
-	Returns:
-		SMILES string with R1, R2, ... placeholders for side chains.
-	"""
-	# terminal groups for the peptide chain
-	amino_terminal_end = '[NH3+][C@@H]'
-	carboxyl_terminal_end = '(C(=O)[O-])'
-	peptide_bond = '(C(=O)N[C@@H]'
-	# build the backbone from N-terminus to C-terminus
-	peptide_chain = ''
-	peptide_chain += amino_terminal_end
-	for i in range(length):
-		peptide_chain += f'R{i+1}'
-		if i + 1 < length:
-			peptide_chain += peptide_bond
-	peptide_chain += carboxyl_terminal_end
-	# close the nested parentheses from peptide bonds
-	for i in range(length - 1):
-		peptide_chain += ')'
-	return peptide_chain
-
-#============================================
 def sequence_to_smiles(sequence: str) -> str:
 	"""Convert a peptide sequence to a polypeptide IsoSMILES string.
+
+	Builds the SMILES string directly with side chains inline,
+	no placeholder substitution needed.
 
 	Args:
 		sequence: string of single-letter amino acid codes (e.g. 'ANKLE').
@@ -82,9 +58,18 @@ def sequence_to_smiles(sequence: str) -> str:
 				f"Unknown amino acid code '{aa}'. "
 				f"Supported codes: {sorted(AMINO_ACID_SMILES.keys())}"
 			)
-	# build backbone with placeholders, then swap in side chains
-	polypeptide_smiles = make_generic_polypeptide(len(sequence))
+	# build SMILES directly: N-terminus, then each residue with side chain inline
+	length = len(sequence)
+	smiles = '[NH3+][C@@H]'
 	for i, aa in enumerate(sequence):
-		side_chain = AMINO_ACID_SMILES[aa]
-		polypeptide_smiles = polypeptide_smiles.replace(f'R{i+1}', side_chain)
-	return polypeptide_smiles
+		# attach side chain branch to alpha-carbon
+		smiles += AMINO_ACID_SMILES[aa]
+		# add peptide bond to next residue (except after last)
+		if i + 1 < length:
+			smiles += '(C(=O)N[C@@H]'
+	# C-terminal carboxylate on the last residue
+	smiles += '(C(=O)[O-])'
+	# close the nested peptide bond parentheses
+	for i in range(length - 1):
+		smiles += ')'
+	return smiles

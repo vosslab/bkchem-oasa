@@ -16,7 +16,7 @@ import oasa
 import bkchem.atom
 import bkchem.classes
 import bkchem.molecule
-import singleton_store
+from bkchem import singleton_store
 
 
 # ============================================

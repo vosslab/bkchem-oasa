@@ -140,6 +140,26 @@ def smiles_to_cdml_elements( smiles_text, paper):
   return elements
 
 
+def peptide_to_cdml_elements( sequence_text, paper):
+  """Convert a peptide sequence to a list of CDML molecule DOM elements.
+
+  Delegates all chemistry to OASA: peptide validation, SMILES generation,
+  SMILES parsing, 2D coordinate layout, and CDML serialization.
+
+  Args:
+    sequence_text: single-letter amino acid sequence (e.g. 'ANKLE')
+    paper: BKChem paper object (provides standard bond length)
+
+  Returns:
+    list of xml.dom.minidom.Element, each a <molecule> element
+  """
+  from oasa import peptide_utils
+  # OASA handles validation and conversion to SMILES
+  smiles_text = peptide_utils.sequence_to_smiles(sequence_text)
+  # reuse the existing SMILES-to-CDML pipeline
+  return smiles_to_cdml_elements( smiles_text, paper)
+
+
 def _oasa_mol_to_cdml_element( mol, paper):
   """Convert a single connected OASA molecule to a CDML DOM element.
 

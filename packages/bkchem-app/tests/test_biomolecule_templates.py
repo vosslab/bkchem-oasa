@@ -4,8 +4,8 @@
 #============================================
 def test_biomolecule_template_files_have_anchors():
 
-	import safe_xml
-	import template_catalog
+	from bkchem import safe_xml
+	from bkchem import template_catalog
 
 	entries = template_catalog.scan_template_dirs(
 		template_catalog.discover_biomolecule_template_dirs()

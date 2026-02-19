@@ -1,7 +1,7 @@
 """Tests for folder-based template catalog discovery."""
 
 # local repo modules
-import template_catalog
+from bkchem import template_catalog
 
 
 #============================================

@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """ABC registration for BKChem classes as virtual subclasses of OASA classes.
 
 After the composition refactor, BKChem classes no longer inherit from OASA

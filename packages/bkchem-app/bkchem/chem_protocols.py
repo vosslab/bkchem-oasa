@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """Protocol classes defining the chemistry interface contract.
 
 These Protocol classes define the exact interface that composition wrappers

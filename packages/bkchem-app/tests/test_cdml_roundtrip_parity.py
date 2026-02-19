@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Save-load-compare tests for CDML bond serialization round-trips."""
 
 # Standard Library

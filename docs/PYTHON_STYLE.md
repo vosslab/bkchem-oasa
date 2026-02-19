@@ -5,6 +5,8 @@ Language Model guide to Neil python3 programming
 ## Python version
 
 * I like using one of the latest versions of python, but not the latest, of python3, currently **3.12**.
+* In this repo, run python commands through the bootstrap pattern:
+* `source source_me.sh && python ...`
 
 ## FILENAMES
 * Prefer snake_case for Python filenames and module names.
@@ -80,8 +82,7 @@ volume_text = f"<span style='font-family: monospace;'>{vol1:.1f} mL</span>"
 - create a folder in most projects called tests for storing test scripts
 - a good repo-wide pyflakes gate is `tests/test_pyflakes_code_lint.py` (run with pytest)
 ```bash
-python3 -m pytest tests/test_pyflakes_code_lint.py
-/opt/homebrew/opt/python@3.12/bin/python3.12 -m pytest tests/test_pyflakes_code_lint.py
+source source_me.sh && python -m pytest tests/test_pyflakes_code_lint.py
 ```
 
 ## DO NOT USE HEREDOCS

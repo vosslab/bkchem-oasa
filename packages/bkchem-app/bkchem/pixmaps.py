@@ -29,12 +29,8 @@ __all__ = ['images']
 
 
 
-# images for which the tool name and icon filename differ
-name_recode_map = {
-	'wavy': 'wavyline',  # draw_mode uses 'wavy', misc_mode uses 'wavyline' directly
-	'2D': '2d',          # rotate_mode uses uppercase, repo style requires lowercase filenames
-	'3D': '3d',          # rotate_mode uses uppercase, repo style requires lowercase filenames
-}
+# recode map eliminated: .lower() handles case, wavyline.gif renamed to wavy.gif
+name_recode_map = {}
 
 
 #============================================
@@ -71,6 +67,8 @@ class images_dict(dict):
 	"""
 
 	def __getitem__(self, item: str) -> tkinter.PhotoImage:
+		# normalize to lowercase for filesystem lookup (handles 2D->2d, 3D->3d, etc.)
+		item = item.lower()
 		# recode the name if a mapping exists
 		if item in name_recode_map:
 			item = name_recode_map[item]
@@ -82,6 +80,9 @@ class images_dict(dict):
 			return icon
 
 	def __contains__(self, item: object) -> bool:
+		# normalize to lowercase for filesystem lookup
+		if isinstance(item, str):
+			item = item.lower()
 		# recode the name if a mapping exists
 		if item in name_recode_map:
 			item = name_recode_map[item]

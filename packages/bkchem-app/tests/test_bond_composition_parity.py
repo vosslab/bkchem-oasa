@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Parity tests comparing inheritance-based bond vs composition-based bond.
 
 These tests verify that a future composition-based BKChem bond behaves
@@ -15,7 +14,7 @@ import oasa.bond
 import oasa.graph.edge
 import bkchem.bond
 import bkchem.classes
-import singleton_store
+from bkchem import singleton_store
 
 
 # Bond types defined in the contract:
