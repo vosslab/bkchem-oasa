@@ -254,6 +254,8 @@ class BKChem( Tk):
       ( _('View'), 'command', _('Zoom to 100%'), '(C-0)', _("Reset zoom to 100%"), lambda: self.paper.zoom_reset(), None),
       ( _('View'), 'command', _('Zoom to Fit'), None, _("Fit drawing to window"), lambda: self.paper.zoom_to_fit(), None),
       ( _('View'), 'command', _('Zoom to Content'), None, _("Fit and center on drawn content"), lambda: self.paper.zoom_to_content(), None),
+      ( _('View'), 'separator'),
+      ( _('View'), 'command', _('Hex Grid'), '(C-g)', _("Toggle hexagonal grid overlay and snap-to-grid"), lambda: self.paper.toggle_hex_grid(), None),
 
       # chemistry menu
       ( _('Chemistry'), 'menu', _("Information about molecules, group expansion and other chemistry related stuff"), 'left'),

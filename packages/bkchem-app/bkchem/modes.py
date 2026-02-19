@@ -48,6 +48,7 @@ from bkchem import interactors
 from bkchem import os_support
 from bkchem import dom_extensions
 from bkchem import special_parents
+import oasa.hex_grid
 import bkchem.chem_compat
 from bkchem import helper_graphics as hg
 from bkchem import template_catalog
@@ -613,6 +614,14 @@ class edit_mode(basic_mode):
         Store.app.paper.delete( self._selection_rect)
       elif self._dragging == 1:
         ### move all selected
+        # snap selected atoms to hex grid on drop if enabled
+        if getattr(Store.app.paper, 'hex_grid_snap_enabled', False):
+          spacing_px = Screen.any_to_px(Store.app.paper.standard.bond_length)
+          for o in Store.app.paper.selected:
+            if bkchem.chem_compat.is_chemistry_vertex(o):
+              ax, ay = o.get_xy()
+              sx, sy = oasa.hex_grid.snap_to_hex_grid(ax, ay, spacing_px)
+              o.move_to(sx, sy, use_paper_coords=False)
         # repositioning of atoms and double bonds
         atoms = [j for i in [o.neighbors for o in Store.app.paper.selected
                                              if (bkchem.chem_compat.is_chemistry_vertex(o) and
@@ -907,6 +916,10 @@ class draw_mode( edit_mode):
       mol = Store.app.paper.new_molecule()
       x = Store.app.paper.canvas_to_real(event.x)
       y = Store.app.paper.canvas_to_real(event.y)
+      # snap new atom to hex grid if enabled
+      if getattr(Store.app.paper, 'hex_grid_snap_enabled', False):
+        spacing_px = Screen.any_to_px(Store.app.paper.standard.bond_length)
+        x, y = oasa.hex_grid.snap_to_hex_grid(x, y, spacing_px)
       a = mol.create_new_atom( x, y)
       a.focus()
       self.focused = a
@@ -1057,6 +1070,15 @@ class draw_mode( edit_mode):
       elif self.submode[3] == 1:
         # Free-hand lenght
         x, y = event.x, event.y
+        # snap free-hand endpoint to hex grid if enabled
+        if getattr(Store.app.paper, 'hex_grid_snap_enabled', False):
+          spacing_px = Screen.any_to_px(Store.app.paper.standard.bond_length)
+          # convert canvas coords to model coords, snap, convert back
+          rx = Store.app.paper.canvas_to_real(x)
+          ry = Store.app.paper.canvas_to_real(y)
+          rx, ry = oasa.hex_grid.snap_to_hex_grid(rx, ry, spacing_px)
+          x = Store.app.paper.real_to_canvas(rx)
+          y = Store.app.paper.real_to_canvas(ry)
         self._moved_atom.move_to( x, y, use_paper_coords=True)
       else:
         # Fixed lenght
@@ -1067,6 +1089,14 @@ class draw_mode( edit_mode):
                                         Store.app.paper.real_to_canvas(Screen.any_to_px( Store.app.paper.standard.bond_length)),
                                         direction = (dx, dy),
                                         resolution = int( self.submodes[0][ self.submode[ 0]]))
+        # snap fixed-length endpoint to hex grid if enabled
+        if getattr(Store.app.paper, 'hex_grid_snap_enabled', False):
+          spacing_px = Screen.any_to_px(Store.app.paper.standard.bond_length)
+          rx = Store.app.paper.canvas_to_real(x)
+          ry = Store.app.paper.canvas_to_real(y)
+          rx, ry = oasa.hex_grid.snap_to_hex_grid(rx, ry, spacing_px)
+          x = Store.app.paper.real_to_canvas(rx)
+          y = Store.app.paper.real_to_canvas(ry)
         self._moved_atom.move_to( x, y, use_paper_coords=True)
       # to be able to connect atoms with non-zero z coordinate
       if z != 0:

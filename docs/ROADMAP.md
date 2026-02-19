@@ -18,5 +18,11 @@
 - Finish glyph-bond alignment work in
   [docs/active_plans/OASA-Wide_Glyph-Bond_Awareness.md](docs/active_plans/OASA-Wide_Glyph-Bond_Awareness.md).
 
+## Future work
+- **Hexagonal grid alignment**: OASA geometry module for hex grid snap and
+  validation (`hex_grid.py`), plus BKChem visual dot overlay and interactive
+  snap-to-grid. See related work section in
+  [docs/TRANSFORMATION_OPERATIONS.md](docs/TRANSFORMATION_OPERATIONS.md).
+
 ## Known gaps
 - Add dates and milestones once a release schedule is agreed.

@@ -1,6 +1,19 @@
 # Changelog
 
 ## 2026-02-19
+- Add hexagonal grid snap feature. New OASA module
+  [packages/oasa/oasa/hex_grid.py](packages/oasa/oasa/hex_grid.py) provides
+  pure geometry functions for flat-top hex grid: snap, index, generate, and
+  molecule-level operations. New BKChem overlay
+  [packages/bkchem-app/bkchem/grid_overlay.py](packages/bkchem-app/bkchem/grid_overlay.py)
+  draws hex grid dots on the canvas. Toggle via View menu or Ctrl+G.
+  Grid-aware snap hooks in
+  [packages/bkchem-app/bkchem/modes.py](packages/bkchem-app/bkchem/modes.py).
+  Standalone CLI tool
+  [tools/snap_cdml_to_hex_grid.py](tools/snap_cdml_to_hex_grid.py) for batch-snapping
+  CDML atom coordinates to the hex grid.
+- Register `hex_grid` module in
+  [packages/oasa/oasa/__init__.py](packages/oasa/oasa/__init__.py).
 - Fix repo environment bootstrap in [source_me.sh](source_me.sh): only source
   `~/.bashrc` when `BASHRC_COMMON_LOADED` is not already set (avoids the
   top-level `return 0` guard short-circuiting setup), and compose `PYTHONPATH`

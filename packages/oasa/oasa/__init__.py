@@ -85,6 +85,7 @@ from . import sugar_code_names
 from . import smiles_to_sugar_code
 from . import stereochemistry
 from . import geometry
+from . import hex_grid
 from . import molecule_utils
 from . import transform3d
 from . import transform
@@ -128,6 +129,7 @@ _EXPORTED_MODULES = [
 	smiles_to_sugar_code,
 	stereochemistry,
 	geometry,
+	hex_grid,
 	molecule_utils,
 	transform3d,
 	transform,
@@ -160,6 +162,7 @@ allNames.extend([
 	"molecule_utils",
 ])
 allNames.append("cdml_writer")
+allNames.append("hex_grid")
 allNames.append("__version__")
 
 try:

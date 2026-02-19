@@ -62,6 +62,7 @@ from bkchem import CDML_versions
 from bkchem import dom_extensions
 from bkchem import safe_xml
 import bkchem.chem_compat
+import bkchem.grid_overlay
 
 from bkchem.atom import atom
 from bkchem.group import group
@@ -138,6 +139,8 @@ class chem_paper(Canvas, object):
 		self.changes_made = 0
 
 		self._do_not_focus = [] # this is to enable an ugly hack in a drag-and-focus hack
+		self._hex_grid_overlay = None
+		self.hex_grid_snap_enabled = False
 
 
 	def set_bindings( self):
@@ -176,6 +179,8 @@ class chem_paper(Canvas, object):
 			self.bind('<Control-equal>', lambda e: self.zoom_in())
 			self.bind('<Control-minus>', lambda e: self.zoom_out())
 			self.bind('<Control-Key-0>', lambda e: self.zoom_reset())
+			# hex grid toggle
+			self.bind('<Control-g>', lambda e: self.toggle_hex_grid())
 
 
 	@property
@@ -258,14 +263,46 @@ class chem_paper(Canvas, object):
 		"""Redraws all the content of the paper."""
 		for o in self.stack:
 			o.redraw()
+		# redraw hex grid if visible
+		if hasattr(self, '_hex_grid_overlay') and self._hex_grid_overlay:
+			if self._hex_grid_overlay.visible:
+				self._hex_grid_overlay.redraw()
 
 	def add_bindings( self, active_names=()):
 		self.lower( self.background)
+		# keep hex grid above background but below chemistry
+		if hasattr(self, '_hex_grid_overlay') and self._hex_grid_overlay:
+			self.tag_raise("hex_grid", self.background)
 		[o.lift() for o in self.stack]
 		self._do_not_focus = [] # self._do_not_focus is temporary and is cleaned automatically here
 		self.event_generate( "<<selection-changed>>")
 		# we generate this event here because this method is often called after some change as a last thing
 
+
+	#============================================
+	def toggle_hex_grid(self):
+		"""Toggle hex grid overlay visibility and snap."""
+		if self._hex_grid_overlay is None:
+			self._hex_grid_overlay = bkchem.grid_overlay.HexGridOverlay(
+				self, self.standard.bond_length)
+		self._hex_grid_overlay.toggle()
+		self.hex_grid_snap_enabled = self._hex_grid_overlay.visible
+
+	#============================================
+	def show_hex_grid(self):
+		"""Show hex grid overlay and enable snap."""
+		if self._hex_grid_overlay is None:
+			self._hex_grid_overlay = bkchem.grid_overlay.HexGridOverlay(
+				self, self.standard.bond_length)
+		self._hex_grid_overlay.show()
+		self.hex_grid_snap_enabled = True
+
+	#============================================
+	def hide_hex_grid(self):
+		"""Hide hex grid overlay and disable snap."""
+		if self._hex_grid_overlay is not None:
+			self._hex_grid_overlay.hide()
+		self.hex_grid_snap_enabled = False
 
 	def remove_bindings( self, ids=()):
 		if not ids:
@@ -1304,6 +1341,9 @@ class chem_paper(Canvas, object):
 		if self._scale != 1.0:
 			self.scale(self.background, 0, 0, self._scale, self._scale)
 		self.lower(self.background)
+		# redraw hex grid overlay at new zoom level
+		if self._hex_grid_overlay and self._hex_grid_overlay.visible:
+			self._hex_grid_overlay.redraw()
 		# Flush deferred Tk layout (text metrics, etc.) so that
 		# bbox(ALL) and the subsequent viewport centering are accurate.
 		self.update_idletasks()
