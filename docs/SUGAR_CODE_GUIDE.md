@@ -1,7 +1,7 @@
 # Sugar code guide
 
 This guide explains the sugar code strings used by OASA and listed in
-[packages/oasa/oasa_data/sugar_codes.yml](packages/oasa/oasa_data/sugar_codes.yml).
+[packages/oasa/oasa_data/sugar_codes.yaml](packages/oasa/oasa_data/sugar_codes.yaml).
 It is based on parser behavior in
 [packages/oasa/oasa/sugar_code.py](packages/oasa/oasa/sugar_code.py) and tests in
 [tests/test_sugar_code.py](tests/test_sugar_code.py).
@@ -86,7 +86,7 @@ Validation rules:
 - plain and side/carbon keys cannot be mixed at one index
 - chiral positions cannot use plain `n=...`; use side-qualified keys or `nC`
 
-## How to read `sugar_codes.yml`
+## How to read `sugar_codes.yaml`
 
 The YAML file is grouped by sugar families (for example `D-aldopentoses`,
 `D-aldohexoses`, `D-ketoheptoses`). Each entry maps:
@@ -128,6 +128,6 @@ digit pathway with carbon-state footnotes
 ## Related files
 
 - [packages/oasa/oasa/sugar_code.py](packages/oasa/oasa/sugar_code.py)
-- [packages/oasa/oasa_data/sugar_codes.yml](packages/oasa/oasa_data/sugar_codes.yml)
+- [packages/oasa/oasa_data/sugar_codes.yaml](packages/oasa/oasa_data/sugar_codes.yaml)
 - [tests/test_sugar_code.py](tests/test_sugar_code.py)
 - [tests/test_haworth_spec.py](tests/test_haworth_spec.py)

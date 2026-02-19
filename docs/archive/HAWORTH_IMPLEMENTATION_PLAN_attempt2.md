@@ -1017,13 +1017,13 @@ def smiles_to_sugar_code(smiles_string: str) -> SugarCodeResult
 
 ### Tier 1: Lookup table (high confidence)
 
-Build a canonical SMILES lookup table from `sugar_codes.yml` at module load time.
+Build a canonical SMILES lookup table from `sugar_codes.yaml` at module load time.
 For each entry in the YAML, generate all ring forms (pyranose alpha, pyranose beta,
 furanose alpha, furanose beta) using Phase 6's `sugar_code_to_smiles()`, canonicalize
 via OASA, and store the mapping.
 
 ```python
-# Built at module load from sugar_codes.yml
+# Built at module load from sugar_codes.yaml
 _CANONICAL_LOOKUP = {
     "OC[C@@H]1OC(O)...": SugarCodeResult("ARLRDM", "pyranose", "alpha", "D-glucose", "exact_match"),
     ...
@@ -1074,7 +1074,7 @@ raise SugarCodeError(
 - `test_galactose_from_smiles`: known galactose SMILES -> ARLLDM
 - `test_deoxyribose_from_smiles`: known deoxyribose SMILES -> AdRDM + furanose
 - `test_fructose_from_smiles`: known fructose SMILES -> MKLRDM + furanose
-- `test_round_trip_all_common`: all entries from sugar_codes.yml round-trip
+- `test_round_trip_all_common`: all entries from sugar_codes.yaml round-trip
 - `test_unsupported_smiles_error`: benzene, ethanol, disaccharides -> SugarCodeError
 - `test_error_message_has_examples`: error message contains example SMILES
 

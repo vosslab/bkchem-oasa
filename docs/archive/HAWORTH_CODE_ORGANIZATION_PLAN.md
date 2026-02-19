@@ -10,7 +10,7 @@ haworth_renderer.py) are scattered in the flat oasa/ directory alongside 30+ unr
 oasa/haworth/ subpackage improves organization and makes the split natural.
 
 Separately, sugar names are hardcoded in tests/fixtures/neurotiker_archive_mapping.py but
-packages/oasa/oasa_data/sugar_codes.yml is the intended single source of truth.
+packages/oasa/oasa_data/sugar_codes.yaml is the intended single source of truth.
 
 Part 1: Create oasa/haworth/ subpackage
 
@@ -128,8 +128,8 @@ Part 2: YAML sugar name integration
 New file: packages/oasa/oasa/sugar_code_names.py (~50 lines)
 
 , Follows the same data-loading pattern as packages/oasa/oasa/isotope_database.py: os.path.join(os.path.dirname(__file__),
-"..", "oasa_data", "sugar_codes.yml")
-, Loads packages/oasa/oasa_data/sugar_codes.yml once, caches in module-level dict
+"..", "oasa_data", "sugar_codes.yaml")
+, Loads packages/oasa/oasa_data/sugar_codes.yaml once, caches in module-level dict
 , Flattens family-grouped YAML into flat {code: name} dict
 , Provides: get_sugar_name(code: str) -> str | None and all_sugar_names() -> dict[str, str]
 , Applies str.title() to names so YAML lowercase ("D-glucose") becomes display case ("D-Glucose")

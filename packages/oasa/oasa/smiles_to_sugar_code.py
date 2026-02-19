@@ -2,7 +2,7 @@
 
 Two-tier approach:
   Tier 1 (exact match): Pre-built lookup table from all sugar codes in
-  sugar_codes.yml, indexed by SMILES string. High confidence.
+  sugar_codes.yaml, indexed by SMILES string. High confidence.
   Tier 2 (structural inference): Parse the SMILES into a molecule and
   analyze ring structure, substituents, and stereochemistry. Best effort.
 """
@@ -42,7 +42,7 @@ _LOOKUP_TABLE = None
 def _build_lookup_table() -> dict:
 	"""Build the SMILES -> SugarCodeResult lookup from all sugar codes.
 
-	Iterates over all entries in sugar_codes.yml and generates SMILES for
+	Iterates over all entries in sugar_codes.yaml and generates SMILES for
 	each valid (code, ring_type, anomeric) combination using Phase 6.
 	"""
 	table = {}

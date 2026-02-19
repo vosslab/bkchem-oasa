@@ -29,47 +29,70 @@ __all__ = ['images']
 
 
 
+# images for which the tool name and icon filename differ
+name_recode_map = {
+	'wavy': 'wavyline',  # draw_mode uses 'wavy', misc_mode uses 'wavyline' directly
+	'2D': '2d',          # rotate_mode uses uppercase, repo style requires lowercase filenames
+	'3D': '3d',          # rotate_mode uses uppercase, repo style requires lowercase filenames
+}
+
+
+#============================================
+def _load_icon(name: str) -> tkinter.PhotoImage:
+	"""Load a pixmap icon by name, trying PNG first then GIF fallback.
+
+	Args:
+		name: icon filename stem (without extension)
+
+	Returns:
+		tkinter.PhotoImage loaded from the found file
+
+	Raises:
+		KeyError: if no PNG or GIF file exists for the name
+	"""
+	# try PNG first, then GIF fallback
+	png_path = os_support.get_path(name + '.png', 'pixmap')
+	if png_path:
+		icon = tkinter.PhotoImage(file=png_path)
+		return icon
+	gif_path = os_support.get_path(name + '.gif', 'pixmap')
+	if gif_path:
+		icon = tkinter.PhotoImage(file=gif_path)
+		return icon
+	raise KeyError(name)
+
+
+#============================================
 class images_dict(dict):
-  """Paths to pictures.
+	"""Paths to pictures.
 
-  If asked about a pixmap it looks to the filesystem and
-  adds the path into itself if found.
-  """
-  def __getitem__(self, item):
-    # try if we need to recode the name
-    if item in name_recode_map:
-      item = name_recode_map[item]
-    try:
-      return dict.__getitem__(self, item)
-    except:
-      try:
-        i = tkinter.PhotoImage(file=os_support.get_path(item + '.gif', 'pixmap'))
-        self.__setitem__(item, i)
-        return i
-      except ValueError:
-        raise KeyError
+	If asked about a pixmap it looks to the filesystem and
+	adds the path into itself if found.
+	"""
 
+	def __getitem__(self, item: str) -> tkinter.PhotoImage:
+		# recode the name if a mapping exists
+		if item in name_recode_map:
+			item = name_recode_map[item]
+		try:
+			return dict.__getitem__(self, item)
+		except KeyError:
+			icon = _load_icon(item)
+			self.__setitem__(item, icon)
+			return icon
 
-  def __contains__( self, item):
-    # try if we need to recode the name
-    if item in name_recode_map:
-      item = name_recode_map[item]
-
-    if dict.__contains__(self, item):
-      return 1
-    else:
-      try:
-        self.__setitem__(item, tkinter.PhotoImage(file=os_support.get_path(item + '.gif', 'pixmap')))
-        return 1
-      except:
-        return 0
-
-
-# images for which the name and file name differs
-name_recode_map = {#'vector': 'oval',
-                   'fixed': 'fixed_length',
-                   'wavy': 'wavyline',
-                  }
+	def __contains__(self, item: object) -> bool:
+		# recode the name if a mapping exists
+		if item in name_recode_map:
+			item = name_recode_map[item]
+		if dict.__contains__(self, item):
+			return True
+		try:
+			icon = _load_icon(item)
+			self.__setitem__(item, icon)
+			return True
+		except KeyError:
+			return False
 
 images = images_dict()
 

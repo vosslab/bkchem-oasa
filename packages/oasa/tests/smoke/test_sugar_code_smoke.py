@@ -1,4 +1,4 @@
-"""Smoke tests for sugar-code parser against curated sugar_codes.yml."""
+"""Smoke tests for sugar-code parser against curated sugar_codes.yaml."""
 
 # Standard Library
 import os
@@ -12,7 +12,7 @@ import oasa.sugar_code as sugar_code
 
 # path to the canonical sugar codes YAML shipped with oasa
 _SUGAR_CODES_YML = os.path.join(
-	os.path.dirname(__file__), '..', '..', 'oasa_data', 'sugar_codes.yml',
+	os.path.dirname(__file__), '..', '..', 'oasa_data', 'sugar_codes.yaml',
 )
 
 # hand-picked strings that must raise ValueError
@@ -28,7 +28,7 @@ _INVALID_CODES = [
 
 #============================================
 def _load_valid_codes() -> list:
-	"""Extract every sugar code from sugar_codes.yml.
+	"""Extract every sugar code from sugar_codes.yaml.
 
 	Returns:
 		list of (code, common_name) tuples.
@@ -44,7 +44,7 @@ def _load_valid_codes() -> list:
 
 #============================================
 def test_all_yaml_codes_parse():
-	"""Every code in sugar_codes.yml should parse successfully."""
+	"""Every code in sugar_codes.yaml should parse successfully."""
 	codes = _load_valid_codes()
 	# sanity: the YAML should have a reasonable number of sugars
 	assert len(codes) >= 40, f"Expected 40+ codes, got {len(codes)}"

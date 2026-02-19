@@ -16,7 +16,7 @@ may exceed sugar-code length.
 Two-carbon "sugars" are out of scope; monosaccharides here start at 3 carbons.
 Codes with fewer than 3 total characters are invalid.
 
-**Source of truth**: [packages/oasa/oasa_data/sugar_codes.yml](packages/oasa/oasa_data/sugar_codes.yml).
+**Source of truth**: [packages/oasa/oasa_data/sugar_codes.yaml](packages/oasa/oasa_data/sugar_codes.yaml).
 
 ## Normative Language
 
@@ -95,10 +95,10 @@ For open-chain pathway encoding, the carbonyl marker position defines the family
 - If no `K` appears at C2/C3, the entry is treated as aldose-derived, and C1 may
   still be substituted in pathway mode (for example `pRLRDp`).
 
-### Representative examples (full mapping lives in sugar_codes.yml)
+### Representative examples (full mapping lives in sugar_codes.yaml)
 
 For complete code-to-name data, use
-[packages/oasa/oasa_data/sugar_codes.yml](packages/oasa/oasa_data/sugar_codes.yml).
+[packages/oasa/oasa_data/sugar_codes.yaml](packages/oasa/oasa_data/sugar_codes.yaml).
 This spec intentionally shows only minimal examples needed to explain format.
 
 ```
@@ -440,5 +440,5 @@ C4_up: "CH2OH"   C4_down: "H"      <- terminal CH2OH up
 ## References
 
 - Original sugar code system: `sugarlib.py` (biology-problems repo)
-- Vetted sugar codes: `sugar_codes.yml` (biology-problems repo)
+- Vetted sugar codes: `sugar_codes.yaml` (biology-problems repo)
 - Haworth projection layout: `packages/oasa/oasa/haworth.py`

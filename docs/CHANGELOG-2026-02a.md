@@ -1805,16 +1805,16 @@
 - Enforce sugar-name source-of-truth in
   [tests/fixtures/neurotiker_archive_mapping.py](tests/fixtures/neurotiker_archive_mapping.py)
   by requiring each mapped sugar code name to resolve from
-  [packages/oasa/oasa_data/sugar_codes.yml](packages/oasa/oasa_data/sugar_codes.yml)
+  [packages/oasa/oasa_data/sugar_codes.yaml](packages/oasa/oasa_data/sugar_codes.yaml)
   or explicit `_SPECIAL_NAMES` overrides, instead of silently falling back to
   the raw sugar code token.
 - Trim [docs/SUGAR_CODE_SPEC.md](docs/SUGAR_CODE_SPEC.md) to keep only
   representative sugar-code examples and link directly to
-  [packages/oasa/oasa_data/sugar_codes.yml](packages/oasa/oasa_data/sugar_codes.yml)
+  [packages/oasa/oasa_data/sugar_codes.yaml](packages/oasa/oasa_data/sugar_codes.yaml)
   as the full authoritative mapping.
 - Correct D-ketohexose name mapping by swapping `MKRRDM`/`MKLLDM` assignments
   (D-psicose vs D-tagatose) in
-  [packages/oasa/oasa_data/sugar_codes.yml](packages/oasa/oasa_data/sugar_codes.yml),
+  [packages/oasa/oasa_data/sugar_codes.yaml](packages/oasa/oasa_data/sugar_codes.yaml),
   [docs/SUGAR_CODE_SPEC.md](docs/SUGAR_CODE_SPEC.md), and
   [docs/HAWORTH_IMPLEMENTATION_PLAN_attempt2.md](docs/HAWORTH_IMPLEMENTATION_PLAN_attempt2.md),
   and align fixture pairings in
@@ -1879,7 +1879,7 @@
   code working without changes.
 - Add [packages/oasa/oasa/sugar_code_names.py](packages/oasa/oasa/sugar_code_names.py):
   load sugar display names from
-  [packages/oasa/oasa_data/sugar_codes.yml](packages/oasa/oasa_data/sugar_codes.yml)
+  [packages/oasa/oasa_data/sugar_codes.yaml](packages/oasa/oasa_data/sugar_codes.yaml)
   via `get_sugar_name()` and `all_sugar_names()`, making the YAML file the
   single source of truth for sugar names. Update
   [tests/fixtures/neurotiker_archive_mapping.py](tests/fixtures/neurotiker_archive_mapping.py)
@@ -1889,7 +1889,7 @@
 - Add [docs/SUGAR_CODE_GUIDE.md](docs/SUGAR_CODE_GUIDE.md) to document sugar
   code syntax, token meanings, prefix/config parsing, digit footnote rules,
   and how to read
-  [packages/oasa/oasa_data/sugar_codes.yml](packages/oasa/oasa_data/sugar_codes.yml).
+  [packages/oasa/oasa_data/sugar_codes.yaml](packages/oasa/oasa_data/sugar_codes.yaml).
 - Align generated preview oxygen-mask fill with summary frame background in
   [tools/archive_matrix_summary.py](tools/archive_matrix_summary.py) by
   rendering regenerated Haworth SVG previews with `bg_color="#fafafa"` so the

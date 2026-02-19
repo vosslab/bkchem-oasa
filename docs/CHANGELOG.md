@@ -1,6 +1,19 @@
 # Changelog
 
 ## 2026-02-18
+- Rename icon files to match tool names: `hatch.gif` -> `hashed.gif`,
+  `fixed_length.gif` -> `fixed.gif`, `2D.gif` -> `2d.gif`, `3D.gif` -> `3d.gif`,
+  plus corresponding SVG sources. Shrink `name_recode_map` in
+  [packages/bkchem-app/bkchem/pixmaps.py](packages/bkchem-app/bkchem/pixmaps.py)
+  from 5 entries to 3 (keep `wavy`->`wavyline`, `2D`->`2d`, `3D`->`3d`).
+- Toolbar icon system overhaul (Phase 1 + 2) in
+  [packages/bkchem-app/bkchem/pixmaps.py](packages/bkchem-app/bkchem/pixmaps.py):
+  expand `name_recode_map` with `hashed->hatch` (fixes missing hatch bond icon
+  in draw mode), `2D->2d`, and `3D->3d` (prepare for lowercase PNG filenames).
+  Update `__getitem__` and `__contains__` to try `.png` first with `.gif`
+  fallback, enabling future PNG migration. Extract shared `_load_icon()` helper.
+  Replace bare `except` clauses with explicit `KeyError`. Convert indentation
+  from spaces to tabs per repo style.
 - Fix menu font on macOS: change platform detection in `init_basics()` in
   [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py) from
   `os.name == 'posix'` to `sys.platform == 'linux'` so macOS no longer receives
@@ -454,7 +467,7 @@
 - Add sugar codes HTML gallery script
   [tools/sugar_codes_summary.py](tools/sugar_codes_summary.py) that reads all
   106 sugar codes from
-  [packages/oasa/oasa_data/sugar_codes.yml](packages/oasa/oasa_data/sugar_codes.yml),
+  [packages/oasa/oasa_data/sugar_codes.yaml](packages/oasa/oasa_data/sugar_codes.yaml),
   renders each valid ring/anomeric combination as a Haworth projection SVG
   file, and writes two separate HTML gallery pages:
   `output_smoke/sugar_codes_pyranose.html` and
@@ -523,7 +536,7 @@
   [packages/oasa/oasa/haworth/renderer.py](packages/oasa/oasa/haworth/renderer.py).
 - Implement Phase 6: expand sugar_code_to_smiles() from 2-entry bootstrap to
   generalized algorithmic Fischer-to-SMILES builder.  Supports all ~148 sugar
-  codes in sugar_codes.yml across pyranose/furanose ring forms and alpha/beta
+  codes in sugar_codes.yaml across pyranose/furanose ring forms and alpha/beta
   anomeric configurations.  Uses fixed ring traversal order with position-based
   chirality mapping (Fischer R/L to SMILES @/@@) derived from the existing
   Haworth spec up/down labels.  Handles aldoses and ketoses including tetroses
@@ -534,7 +547,7 @@
   [tests/test_sugar_code_smiles.py](tests/test_sugar_code_smiles.py).
 - Implement Phase 7: create smiles_to_sugar_code() reverse converter with
   two-tier approach.  Tier 1 builds a lookup table at module load from all
-  sugar_codes.yml entries via Phase 6 sugar_code_to_smiles().  Tier 2 parses
+  sugar_codes.yaml entries via Phase 6 sugar_code_to_smiles().  Tier 2 parses
   the SMILES into a molecule, finds sugar-like rings, and tries candidate
   matches.  New module
   [packages/oasa/oasa/smiles_to_sugar_code.py](packages/oasa/oasa/smiles_to_sugar_code.py)

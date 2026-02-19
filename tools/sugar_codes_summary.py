@@ -59,7 +59,7 @@ def load_oasa_modules(repo_root: pathlib.Path):
 #============================================
 def load_sugar_codes(repo_root: pathlib.Path) -> dict:
 	"""Load sugar codes from YAML file."""
-	yaml_path = repo_root / "packages" / "oasa" / "oasa_data" / "sugar_codes.yml"
+	yaml_path = repo_root / "packages" / "oasa" / "oasa_data" / "sugar_codes.yaml"
 	with open(yaml_path, encoding="utf-8") as fh:
 		data = yaml.safe_load(fh)
 	return data
