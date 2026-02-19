@@ -111,9 +111,11 @@ class BKChem( Tk):
     self.mode = 'draw' # this is normaly not a string but it makes things easier on startup
     self.init_mode_buttons()
 
-    # edit pool
+    # edit pool (Entry only; buttons are created per-mode in change_mode)
     self.editPool = editPool( self.main_frame, width=60)
+    # hidden until an edit_mode-derived mode activates it
     self.editPool.grid( row=3, sticky="wens")
+    self.editPool.grid_remove()
 
     # main drawing part packing
     self.notebook.grid( row=4, sticky="wens")
@@ -570,6 +572,8 @@ class BKChem( Tk):
       self.mode.copy_settings( old_mode)
 
     # tear down previous submode widgets (buttons, labels, separators)
+    # destroy edit pool buttons before destroying the ribbon frame they live in
+    self.editPool.destroy_buttons()
     if self.subbuttons:
       for butts in self.subbuttons:
         if hasattr( butts, 'deleteall()'):
@@ -642,6 +646,25 @@ class BKChem( Tk):
                                                 items = m.submodes_names[i],
                                                 command = self.change_submode))
         self.subbuttons[i].pack(side=LEFT, padx=(0, 2))
+
+    # add edit pool buttons to ribbon for edit_mode-derived modes
+    is_edit_derived = isinstance(m, modes.edit_mode)
+    # base edit_mode itself (submodes == []) gets no buttons/entry
+    is_base_edit = type(m) is modes.edit_mode
+    if is_edit_derived and not is_base_edit:
+      # vertical separator before the button group if submodes already exist
+      if self.subbuttons:
+        sep = Frame(self.subFrame, width=1, bg='#b0b0b0')
+        sep.pack(side=LEFT, fill='y', padx=2, pady=1)
+        self._sub_extra_widgets.append(sep)
+      bf = self.editPool.create_buttons(self.subFrame)
+      bf.pack(side=LEFT)
+      self._sub_extra_widgets.append(bf)
+      # show the Entry bar
+      self.editPool.grid(row=3, sticky="wens")
+    else:
+      # hide the Entry bar for non-editing modes
+      self.editPool.grid_remove()
 
     # highlight the selected mode button with a thick colored border
     for btn_name in self.modes_sort:

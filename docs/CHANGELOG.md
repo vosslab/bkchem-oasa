@@ -1,6 +1,24 @@
 # Changelog
 
 ## 2026-02-19
+- Move edit pool button definitions from hardcoded Python to YAML config in
+  [packages/bkchem-app/bkchem_data/modes.yaml](packages/bkchem-app/bkchem_data/modes.yaml):
+  add `edit_pool_buttons` top-level section with 3 groups (Text Input, Font Style,
+  Special). Refactor `create_buttons()` in
+  [packages/bkchem-app/bkchem/edit_pool.py](packages/bkchem-app/bkchem/edit_pool.py)
+  to read YAML config via `COMMAND_MAP` dispatch table. Add `get_edit_pool_config()`
+  loader in [packages/bkchem-app/bkchem/modes.py](packages/bkchem-app/bkchem/modes.py).
+  Remove `font_decorations` class attributes, `buttons` constructor parameter, and
+  `_button_config` from `editPool`.
+- Move edit pool buttons into the submode ribbon in
+  [packages/bkchem-app/bkchem/edit_pool.py](packages/bkchem-app/bkchem/edit_pool.py)
+  and
+  [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py):
+  split button creation from Entry widget into `create_buttons()`/`destroy_buttons()`
+  methods. Buttons now appear in the ribbon (row 2) only when an `edit_mode`-derived
+  mode is active, freeing vertical space. Entry bar is hidden in base edit mode.
+  Fix `grab_set()`/`grab_release()` to use `winfo_toplevel()` so buttons outside
+  the editPool Frame still receive clicks.
 - Remove spurious "how did we get here?!?" UserWarning from `event_to_key()` in
   [packages/bkchem-app/bkchem/modes.py](packages/bkchem-app/bkchem/modes.py):
   empty key is normal for modifier-only or dead-key events on macOS, return

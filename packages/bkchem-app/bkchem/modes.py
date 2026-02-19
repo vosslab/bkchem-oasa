@@ -61,8 +61,9 @@ from bkchem.context_menu import context_menu
 from bkchem.singleton_store import Store, Screen
 
 
-# module-level YAML config cache, loaded lazily on first use
+# module-level YAML config caches, loaded lazily on first use
 _MODES_CONFIG = None
+_EDIT_POOL_CONFIG = None
 
 
 #============================================
@@ -87,6 +88,44 @@ def get_modes_config() -> dict:
 def get_toolbar_order() -> list:
   """Return the toolbar mode ordering from YAML."""
   return list(get_modes_config()['toolbar_order'])
+
+
+#============================================
+def _load_edit_pool_from_yaml() -> list:
+  """Parse edit_pool_buttons from the YAML config.
+
+  Returns:
+    list of group dicts, each with keys:
+      group_label (str), options (list of dicts with
+      key, icon, name, tooltip, command)
+  """
+  cfg = get_modes_config()
+  raw_groups = cfg.get('edit_pool_buttons', [])
+  result = []
+  for grp in raw_groups:
+    parsed_group = {
+      'group_label': _(grp.get('group_label', '')),
+      'options': [],
+    }
+    for opt in grp.get('options', []):
+      parsed_group['options'].append({
+        'key': opt['key'],
+        'icon': opt.get('icon', opt['key']),
+        'name': _(opt.get('name', opt['key'])),
+        'tooltip': _(opt.get('tooltip', opt.get('name', opt['key']))),
+        'command': opt.get('command', opt['key']),
+      })
+    result.append(parsed_group)
+  return result
+
+
+#============================================
+def get_edit_pool_config() -> list:
+  """Return cached edit pool button config from YAML."""
+  global _EDIT_POOL_CONFIG
+  if _EDIT_POOL_CONFIG is None:
+    _EDIT_POOL_CONFIG = _load_edit_pool_from_yaml()
+  return _EDIT_POOL_CONFIG
 
 
 #============================================

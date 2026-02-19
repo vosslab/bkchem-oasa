@@ -243,3 +243,22 @@ modes:
           - {key: numbering, name: Numbering, size: large}
           - {key: wavy, name: Wavy line, size: large}
         default: 0
+
+# edit pool action buttons shown in the ribbon for all edit_mode-derived modes
+# command: key into editPool.COMMAND_MAP; defaults to key if omitted
+# icon/name/tooltip cascade from key when omitted
+edit_pool_buttons:
+  - group_label: Text Input
+    options:
+      - {key: interpret, tooltip: Interpret text (where applicable)}
+      - {key: asis, name: As is, tooltip: Leave text as is - do not interpret}
+      - {key: subnum, name: Sub numbers, tooltip: Convert numbers to subscript}
+  - group_label: Font Style
+    options:
+      - {key: italic, command: tag_i}
+      - {key: bold, command: tag_b}
+      - {key: subscript, command: tag_sub}
+      - {key: superscript, command: tag_sup}
+  - group_label: Special
+    options:
+      - {key: specialchar, name: Special Character, tooltip: Insert a special character}
