@@ -20,8 +20,7 @@ msgstr ""
 "X-Poedit-Language: Latvian\n"
 "X-Poedit-Country: LATVIA\n"
 
-#: ../../bkchem/arrow.py:51 ../../bkchem/modes.py:760
-#: ../../bkchem/modes.py:972
+#: ../../bkchem/arrow.py:51 ../../bkchem/modes.py:760 ../../bkchem/modes.py:972
 msgid "normal"
 msgstr "normāla"
 
@@ -842,12 +841,13 @@ msgid "Please correct the above errors first"
 msgstr "Lūdzu vispirms izlabojiet augstāk minētās kļūdas"
 
 #: ../../bkchem/interactors.py:255
+#, fuzzy
 msgid ""
 "A tutorial on how to prepare a template can be found in the file doc/"
-"CUSTOM_TEMPLATES.md"
+"custom_templates_en.html"
 msgstr ""
-"Pamācība veidņu sagatavošanai ir atrodama failā \"doc/custom_templates_en."
-"html\""
+"Pamācība veidņu sagatavošanai ir atrodama failā \"doc/"
+"custom_templates_en.html\""
 
 #: ../../bkchem/interactors.py:269
 msgid "Directory creation failed."
@@ -1594,8 +1594,7 @@ msgstr "CDGZ fails"
 msgid "Gzipped files"
 msgstr "Gzipsaspiesti faili"
 
-#: ../../bkchem/main.py:871 ../../bkchem/main.py:1065
-#: ../../bkchem/main.py:1130
+#: ../../bkchem/main.py:871 ../../bkchem/main.py:1065 ../../bkchem/main.py:1130
 msgid "All files"
 msgstr "Visi faili"
 
@@ -1999,8 +1998,8 @@ msgid ""
 msgstr ""
 "NEIZDEVĀS IMPORTĒT PMW\n"
 "\n"
-"Atvainojiet, bet \"BKChem\" darbības nodrošināšanai tam ir nepieciešama \"Pmw"
-"\". Lūdzu uzinstalējiet \"Pmw\" un mēģiniet vēlreiz.\n"
+"Atvainojiet, bet \"BKChem\" darbības nodrošināšanai tam ir nepieciešama "
+"\"Pmw\". Lūdzu uzinstalējiet \"Pmw\" un mēģiniet vēlreiz.\n"
 "(sīkākai informācijai par \"Pmw\" skatieties dokumentāciju)"
 
 #: ../../bkchem/messages.py:96
@@ -2473,6 +2472,46 @@ msgstr "Numerācija"
 msgid "Wavy line"
 msgstr "Viļņota līnija"
 
+#: modes.yaml (mode labels)
+msgid "bio"
+msgstr ""
+
+#: modes.yaml (mode labels)
+msgid "user"
+msgstr ""
+
+#: modes.yaml (mode labels)
+#, fuzzy
+msgid "transform"
+msgstr "transformāciju režīms"
+
+#: modes.yaml (mode labels)
+msgid "vector"
+msgstr ""
+
+#: modes.yaml (mode labels)
+msgid "misc"
+msgstr ""
+
+#: modes.yaml (mode names)
+#, fuzzy
+msgid "biomolecule templates"
+msgstr "lietotāju veidnes"
+
+#: modes.yaml (mode names)
+#, fuzzy
+msgid "user templates"
+msgstr "lietotāju veidnes"
+
+#: modes.yaml (mode names)
+#, fuzzy
+msgid "brackets"
+msgstr "Iekavas"
+
+#: modes.yaml (mode names)
+msgid "miscellaneous"
+msgstr ""
+
 #: ../../bkchem/paper.py:530
 msgid "Proceed"
 msgstr "Turpināt"
@@ -2683,6 +2722,13 @@ msgstr "Augšrakstīt lādiņus"
 msgid "Sup charges"
 msgstr "Augšraksta lādiņi"
 
+#: ../../bkchem/plugins/cairo_lowlevel.py:69
+#: ../../bkchem/plugins/piddle_lowlevel.py:52
+msgid ""
+"There is nothing to export. If you want to export an empty paper disable "
+"cropping of the drawing in the File/Properties menu."
+msgstr ""
+
 #: ../../bkchem/plugins/CDXML.py:47
 msgid "Imports a CDXML (ChemDraw XML format) document."
 msgstr "Importē CDXML (chemDraw XML formāta) dokumentu."
@@ -2829,6 +2875,18 @@ msgstr ""
 msgid "PDF (Cairo)"
 msgstr "PDF (Cairo)"
 
+#: ../../bkchem/plugins/pdf_piddle.py:33
+msgid ""
+"Exports PDF files via the Piddle library. It does a pretty good job, however "
+"does not support unicode strings (ASCII only) and the position of the text "
+"may be slightly off, depending on the fonts used."
+msgstr ""
+
+#: ../../bkchem/plugins/pdf_piddle.py:49
+#, fuzzy
+msgid "PDF (Piddle)"
+msgstr "PDF (Cairo)"
+
 #: ../../bkchem/plugins/png_cairo.py:39
 msgid ""
 "Exports PNG files via the Cairo (pycairo) library. The output is usually "
@@ -2905,6 +2963,18 @@ msgstr ""
 #: ../../bkchem/plugins/ps_cairo.py:71
 msgid "Postscript (Cairo)"
 msgstr "Postscript (Cairo)"
+
+#: ../../bkchem/plugins/ps_piddle.py:32
+msgid ""
+"Exports Encapsulated PostScript files via the Piddle library. Usually gives "
+"better results than the builtin method, but does not support unicode and the "
+"texts might be slightly misplaced."
+msgstr ""
+
+#: ../../bkchem/plugins/ps_piddle.py:47
+#, fuzzy
+msgid "PostScript (Piddle)"
+msgstr "PostScript (builtin)"
 
 #: ../../bkchem/plugins/svg_cairo.py:40
 msgid ""

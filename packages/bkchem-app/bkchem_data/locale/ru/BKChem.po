@@ -15,13 +15,12 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
-"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 "X-Poedit-Language: Russian\n"
 "X-Poedit-Country: RUSSIAN FEDERATION\n"
 
-#: ../../bkchem/arrow.py:51 ../../bkchem/modes.py:760
-#: ../../bkchem/modes.py:972
+#: ../../bkchem/arrow.py:51 ../../bkchem/modes.py:760 ../../bkchem/modes.py:972
 msgid "normal"
 msgstr "обычная"
 
@@ -839,9 +838,10 @@ msgid "Please correct the above errors first"
 msgstr "Сначала исправьте ошибки"
 
 #: ../../bkchem/interactors.py:255
+#, fuzzy
 msgid ""
 "A tutorial on how to prepare a template can be found in the file doc/"
-"CUSTOM_TEMPLATES.md"
+"custom_templates_en.html"
 msgstr ""
 "Руководство по созданию шаблона может быть найдено в файле doc/"
 "CUSTOM_TEMPLATES.md"
@@ -1584,8 +1584,7 @@ msgstr "файл CDGZ"
 msgid "Gzipped files"
 msgstr "Сжатые (gzip) файлы"
 
-#: ../../bkchem/main.py:871 ../../bkchem/main.py:1065
-#: ../../bkchem/main.py:1130
+#: ../../bkchem/main.py:871 ../../bkchem/main.py:1065 ../../bkchem/main.py:1130
 msgid "All files"
 msgstr "Все файлы"
 
@@ -2451,6 +2450,46 @@ msgstr "нумерация"
 msgid "Wavy line"
 msgstr "волнистая линия"
 
+#: modes.yaml (mode labels)
+msgid "bio"
+msgstr ""
+
+#: modes.yaml (mode labels)
+msgid "user"
+msgstr ""
+
+#: modes.yaml (mode labels)
+#, fuzzy
+msgid "transform"
+msgstr "трансформирование"
+
+#: modes.yaml (mode labels)
+msgid "vector"
+msgstr ""
+
+#: modes.yaml (mode labels)
+msgid "misc"
+msgstr ""
+
+#: modes.yaml (mode names)
+#, fuzzy
+msgid "biomolecule templates"
+msgstr "пользовательские шаблоны"
+
+#: modes.yaml (mode names)
+#, fuzzy
+msgid "user templates"
+msgstr "пользовательские шаблоны"
+
+#: modes.yaml (mode names)
+#, fuzzy
+msgid "brackets"
+msgstr "скобки"
+
+#: modes.yaml (mode names)
+msgid "miscellaneous"
+msgstr ""
+
 #: ../../bkchem/paper.py:530
 msgid "Proceed"
 msgstr "Продолжить"
@@ -2656,6 +2695,13 @@ msgstr "Заряды"
 msgid "Sup charges"
 msgstr "Заряды"
 
+#: ../../bkchem/plugins/cairo_lowlevel.py:69
+#: ../../bkchem/plugins/piddle_lowlevel.py:52
+msgid ""
+"There is nothing to export. If you want to export an empty paper disable "
+"cropping of the drawing in the File/Properties menu."
+msgstr ""
+
 #: ../../bkchem/plugins/CDXML.py:47
 msgid "Imports a CDXML (ChemDraw XML format) document."
 msgstr "Импортировать документа CDXML (ChemDraw XML)"
@@ -2790,6 +2836,18 @@ msgstr ""
 msgid "PDF (Cairo)"
 msgstr "PDF( Cairo)"
 
+#: ../../bkchem/plugins/pdf_piddle.py:33
+msgid ""
+"Exports PDF files via the Piddle library. It does a pretty good job, however "
+"does not support unicode strings (ASCII only) and the position of the text "
+"may be slightly off, depending on the fonts used."
+msgstr ""
+
+#: ../../bkchem/plugins/pdf_piddle.py:49
+#, fuzzy
+msgid "PDF (Piddle)"
+msgstr "PDF( Cairo)"
+
 #: ../../bkchem/plugins/png_cairo.py:39
 msgid ""
 "Exports PNG files via the Cairo (pycairo) library. The output is usually "
@@ -2863,6 +2921,18 @@ msgstr ""
 #: ../../bkchem/plugins/ps_cairo.py:71
 msgid "Postscript (Cairo)"
 msgstr "PostScript (Cairo)"
+
+#: ../../bkchem/plugins/ps_piddle.py:32
+msgid ""
+"Exports Encapsulated PostScript files via the Piddle library. Usually gives "
+"better results than the builtin method, but does not support unicode and the "
+"texts might be slightly misplaced."
+msgstr ""
+
+#: ../../bkchem/plugins/ps_piddle.py:47
+#, fuzzy
+msgid "PostScript (Piddle)"
+msgstr "PostScript (встроено)"
 
 #: ../../bkchem/plugins/svg_cairo.py:40
 msgid ""

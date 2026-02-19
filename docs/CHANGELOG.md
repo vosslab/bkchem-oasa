@@ -1,6 +1,15 @@
 # Changelog
 
 ## 2026-02-19
+- Remove spurious "how did we get here?!?" UserWarning from `event_to_key()` in
+  [packages/bkchem-app/bkchem/modes.py](packages/bkchem-app/bkchem/modes.py):
+  empty key is normal for modifier-only or dead-key events on macOS, return
+  empty string silently instead of warning.
+- Add YAML mode `label` and updated `name` strings to gettext catalog
+  [packages/bkchem-app/bkchem_data/locale/pot/BKChem.pot](packages/bkchem-app/bkchem_data/locale/pot/BKChem.pot):
+  add 9 new msgid entries (bio, user, transform, vector, misc, biomolecule
+  templates, user templates, brackets, miscellaneous). Run `update_l10ns.sh`
+  to merge into all 11 language `.po` files with fuzzy-matched translations.
 - Add ribbon-style group labels and vertical separators between submode
   button groups in
   [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py):

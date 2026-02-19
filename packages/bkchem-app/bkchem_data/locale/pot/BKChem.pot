@@ -2281,6 +2281,42 @@ msgstr ""
 msgid "Wavy line"
 msgstr ""
 
+#: modes.yaml (mode labels)
+msgid "bio"
+msgstr ""
+
+#: modes.yaml (mode labels)
+msgid "user"
+msgstr ""
+
+#: modes.yaml (mode labels)
+msgid "transform"
+msgstr ""
+
+#: modes.yaml (mode labels)
+msgid "vector"
+msgstr ""
+
+#: modes.yaml (mode labels)
+msgid "misc"
+msgstr ""
+
+#: modes.yaml (mode names)
+msgid "biomolecule templates"
+msgstr ""
+
+#: modes.yaml (mode names)
+msgid "user templates"
+msgstr ""
+
+#: modes.yaml (mode names)
+msgid "brackets"
+msgstr ""
+
+#: modes.yaml (mode names)
+msgid "miscellaneous"
+msgstr ""
+
 #: ../../bkchem/paper.py:530
 msgid "Proceed"
 msgstr ""

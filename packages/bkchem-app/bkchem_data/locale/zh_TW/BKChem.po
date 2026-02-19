@@ -10,8 +10,8 @@ msgstr ""
 "POT-Creation-Date: 2014-01-06 19:02+0200\n"
 "PO-Revision-Date: 2010-09-09 10:00+0800\n"
 "Last-Translator: I-Yuan Chiang (江易原) <iychiang1809@gmail.com>, 2007~\n"
-"Language-Team: Traditional Chinese (zh-l10n@linux.org.tw, tryneeds@gmail."
-"com)\n"
+"Language-Team: Traditional Chinese (zh-l10n@linux.org.tw, "
+"tryneeds@gmail.com)\n"
 "Language: zh_TW\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -20,8 +20,7 @@ msgstr ""
 "Generated-By: pygettext.py 1.5\n"
 "X-Poedit-Country: TAIWAN\n"
 
-#: ../../bkchem/arrow.py:51 ../../bkchem/modes.py:760
-#: ../../bkchem/modes.py:972
+#: ../../bkchem/arrow.py:51 ../../bkchem/modes.py:760 ../../bkchem/modes.py:972
 msgid "normal"
 msgstr "一般"
 
@@ -830,9 +829,10 @@ msgid "Please correct the above errors first"
 msgstr "請先修正上方的錯誤"
 
 #: ../../bkchem/interactors.py:255
+#, fuzzy
 msgid ""
 "A tutorial on how to prepare a template can be found in the file doc/"
-"CUSTOM_TEMPLATES.md"
+"custom_templates_en.html"
 msgstr "在 docs/CUSTOM_TEMPLATES.md 中有如何製作範本的教學指引"
 
 #: ../../bkchem/interactors.py:269
@@ -1554,8 +1554,7 @@ msgstr "CDGZ 檔"
 msgid "Gzipped files"
 msgstr "Gzipped 檔"
 
-#: ../../bkchem/main.py:871 ../../bkchem/main.py:1065
-#: ../../bkchem/main.py:1130
+#: ../../bkchem/main.py:871 ../../bkchem/main.py:1065 ../../bkchem/main.py:1130
 msgid "All files"
 msgstr "所有的檔案"
 
@@ -2370,6 +2369,46 @@ msgstr "加入編號"
 msgid "Wavy line"
 msgstr "波浪線"
 
+#: modes.yaml (mode labels)
+msgid "bio"
+msgstr ""
+
+#: modes.yaml (mode labels)
+msgid "user"
+msgstr ""
+
+#: modes.yaml (mode labels)
+#, fuzzy
+msgid "transform"
+msgstr "轉換模式"
+
+#: modes.yaml (mode labels)
+msgid "vector"
+msgstr ""
+
+#: modes.yaml (mode labels)
+msgid "misc"
+msgstr ""
+
+#: modes.yaml (mode names)
+#, fuzzy
+msgid "biomolecule templates"
+msgstr "使用者自訂圖型範本"
+
+#: modes.yaml (mode names)
+#, fuzzy
+msgid "user templates"
+msgstr "使用者自訂圖型範本"
+
+#: modes.yaml (mode names)
+#, fuzzy
+msgid "brackets"
+msgstr "括號"
+
+#: modes.yaml (mode names)
+msgid "miscellaneous"
+msgstr ""
+
 #: ../../bkchem/paper.py:530
 msgid "Proceed"
 msgstr "進行中"
@@ -2562,6 +2601,13 @@ msgstr "上標電荷"
 msgid "Sup charges"
 msgstr "上標電荷"
 
+#: ../../bkchem/plugins/cairo_lowlevel.py:69
+#: ../../bkchem/plugins/piddle_lowlevel.py:52
+msgid ""
+"There is nothing to export. If you want to export an empty paper disable "
+"cropping of the drawing in the File/Properties menu."
+msgstr ""
+
 #: ../../bkchem/plugins/CDXML.py:47
 msgid "Imports a CDXML (ChemDraw XML format) document."
 msgstr "匯入 CDXML (ChemDraw XML 格式) 文件"
@@ -2695,6 +2741,18 @@ msgstr ""
 msgid "PDF (Cairo)"
 msgstr "PDF (Cairo)"
 
+#: ../../bkchem/plugins/pdf_piddle.py:33
+msgid ""
+"Exports PDF files via the Piddle library. It does a pretty good job, however "
+"does not support unicode strings (ASCII only) and the position of the text "
+"may be slightly off, depending on the fonts used."
+msgstr ""
+
+#: ../../bkchem/plugins/pdf_piddle.py:49
+#, fuzzy
+msgid "PDF (Piddle)"
+msgstr "PDF (Cairo)"
+
 #: ../../bkchem/plugins/png_cairo.py:39
 msgid ""
 "Exports PNG files via the Cairo (pycairo) library. The output is usually "
@@ -2766,6 +2824,18 @@ msgstr ""
 #: ../../bkchem/plugins/ps_cairo.py:71
 msgid "Postscript (Cairo)"
 msgstr "Postscript (Cairo)"
+
+#: ../../bkchem/plugins/ps_piddle.py:32
+msgid ""
+"Exports Encapsulated PostScript files via the Piddle library. Usually gives "
+"better results than the builtin method, but does not support unicode and the "
+"texts might be slightly misplaced."
+msgstr ""
+
+#: ../../bkchem/plugins/ps_piddle.py:47
+#, fuzzy
+msgid "PostScript (Piddle)"
+msgstr "PostScript (builtin)"
 
 #: ../../bkchem/plugins/svg_cairo.py:40
 msgid ""

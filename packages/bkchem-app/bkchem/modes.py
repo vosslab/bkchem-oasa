@@ -2349,6 +2349,5 @@ def event_to_key( event):
       key = key.lower()
   if key:
     return key
-  else:
-    warn( 'how did we get here?!?', UserWarning, 2)
-    return ''
+  # empty key happens for modifier-only or dead-key events on macOS
+  return ''
