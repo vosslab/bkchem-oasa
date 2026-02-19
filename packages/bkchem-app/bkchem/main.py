@@ -352,14 +352,17 @@ class BKChem( Tk):
 
   def init_basics( self):
     Pmw.initialise( self)
-    if os.name == 'posix':
+    # set default font for all widgets
+    if sys.platform == 'linux':
       try:
         self.option_add( "*font", ("-adobe-helvetica-medium-r-normal-*-12-*-*-*-p-*-iso10646-1"))
-        ##self.option_add( "*font", ("-adobe-helvetica-medium-r-normal-*-*-100-*-*-*-*-*-*"))
       except:
         print("cannot init default font")
-    else:
-      self.option_add( "*font", ("Helvetica",10,"normal"))
+    elif sys.platform != 'darwin':
+      # Windows and other platforms
+      self.option_add( "*font", ("Helvetica", 10, "normal"))
+    # on macOS (darwin), skip setting *font entirely so Tk uses
+    # the native system font (San Francisco / Lucida Grande)
     # colors
     #self.option_add( "*background", "#d0d0d0")
     #self.option_add( "*borderwidth", config.border_width)

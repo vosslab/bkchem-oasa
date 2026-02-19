@@ -1,6 +1,11 @@
 # Changelog
 
 ## 2026-02-18
+- Fix menu font on macOS: change platform detection in `init_basics()` in
+  [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py) from
+  `os.name == 'posix'` to `sys.platform == 'linux'` so macOS no longer receives
+  an X11 XLFD font string that Aqua Tk cannot interpret. macOS now uses the
+  native system font (San Francisco / Lucida Grande) via `TkDefaultFont`.
 - Rename `packages/bkchem` to `packages/bkchem-app` to eliminate the dual
   sys.path problem where both the package dir and inner module dir were on
   PYTHONPATH causing duplicate module objects. Updated PYTHONPATH in
