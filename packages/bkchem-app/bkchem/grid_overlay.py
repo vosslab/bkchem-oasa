@@ -117,17 +117,17 @@ class HexGridOverlay:
 		canvas = self._canvas
 		scale = canvas._scale
 
-		# visible region in canvas coordinates
+		# visible region in canvas coordinates (account for zoom/scroll)
 		cx0 = canvas.canvasx(0)
 		cy0 = canvas.canvasy(0)
-		vis_w = canvas.winfo_width()
-		vis_h = canvas.winfo_height()
+		cx1 = canvas.canvasx(canvas.winfo_width())
+		cy1 = canvas.canvasy(canvas.winfo_height())
 
 		# convert to model coordinates by dividing by scale
 		model_x_min = cx0 / scale
 		model_y_min = cy0 / scale
-		model_x_max = (cx0 + vis_w) / scale
-		model_y_max = (cy0 + vis_h) / scale
+		model_x_max = cx1 / scale
+		model_y_max = cy1 / scale
 
 		# generate hex grid points in model space
 		points = oasa.hex_grid.generate_hex_grid_points(

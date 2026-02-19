@@ -52,8 +52,6 @@ from bkchem import os_support
 from bkchem import interactors
 from bkchem import oasa_bridge
 from bkchem import safe_xml
-from bkchem import template_catalog
-
 from bkchem.paper import chem_paper
 from bkchem.edit_pool import editPool
 from bkchem.id_manager import id_manager
@@ -608,8 +606,18 @@ class BKChem( Tk):
         lbl.pack(side=LEFT, padx=(2, 0))
         self._sub_extra_widgets.append(lbl)
 
-      if i not in m.pulldown_menu_submodes:
-        # these are normal button like menus
+      # determine layout for this submode group
+      layout = 'row'
+      if hasattr(m, 'group_layouts') and i < len(m.group_layouts):
+        layout = m.group_layouts[i]
+
+      if layout == 'grid':
+        # button grid layout (e.g. biomolecule templates with short labels)
+        grid_frame = self._build_submode_grid(m, i, tooltip_map)
+        self.subbuttons.append(grid_frame)
+        grid_frame.pack(side=LEFT, padx=(0, 2))
+      elif layout == 'row':
+        # normal horizontal button row
         self.subbuttons.append( Pmw.RadioSelect( self.subFrame,
                                                  buttontype = 'button',
                                                  selectmode = 'single',
@@ -644,7 +652,7 @@ class BKChem( Tk):
         j = m.submodes[i][ m.submode[i]]
         self.subbuttons[i].invoke( j)
       else:
-        # these are pulldown menus, to save space for text-only items
+        # fallback: dropdown menu
         self.subbuttons.append( Pmw.OptionMenu( self.subFrame,
                                                 items = m.submodes_names[i],
                                                 command = self.change_submode))
@@ -685,6 +693,106 @@ class BKChem( Tk):
 
   def change_submode( self, tag):
     self.mode.set_submode( tag)
+
+
+  def _build_submode_grid(self, m, group_index, tooltip_map):
+    """Build a Tk Frame with buttons arranged in a grid layout.
+
+    Args:
+      m: The current mode object.
+      group_index: Index of the submode group.
+      tooltip_map: Dict mapping submode keys to tooltip text.
+
+    Returns:
+      Frame: A Tk Frame containing the grid of buttons.
+    """
+    # get column count from YAML config
+    yaml_key = type(m).__name__.replace('_mode', '')
+    cfg = modes.get_modes_config()['modes'].get(yaml_key, {})
+    columns = 4
+    submode_groups = cfg.get('submodes', [])
+    if group_index < len(submode_groups):
+      columns = submode_groups[group_index].get('columns', 4)
+
+    grid_frame = Frame(self.subFrame, relief='ridge', borderwidth=0)
+    # track the selected button for this grid
+    grid_frame._grid_buttons = {}
+    grid_frame._grid_selected = None
+
+    def on_grid_click(name, btn):
+      """Handle grid button click -- highlight and set submode."""
+      # un-highlight previous selection
+      if grid_frame._grid_selected and grid_frame._grid_selected.winfo_exists():
+        grid_frame._grid_selected.configure(relief='raised', bg='#d9d9d9')
+      # highlight new selection
+      btn.configure(relief='sunken', bg='#b0c4de')
+      grid_frame._grid_selected = btn
+      self.change_submode(name)
+
+    submodes_list = m.submodes[group_index]
+    names_list = m.submodes_names[group_index]
+    for idx, sub in enumerate(submodes_list):
+      row = idx // columns
+      col = idx % columns
+      display_name = names_list[idx] if idx < len(names_list) else sub
+      tip_text = tooltip_map.get(sub, display_name)
+      btn = Button(
+        grid_frame, text=display_name,
+        width=4, padx=1, pady=1,
+        relief='raised', borderwidth=config.border_width,
+        font=('sans-serif', 9),
+        command=lambda n=sub, b_idx=idx: on_grid_click(n, grid_frame._grid_buttons[b_idx]),
+      )
+      btn.grid(row=row, column=col, padx=1, pady=1)
+      grid_frame._grid_buttons[idx] = btn
+      self.balloon.bind(btn, tip_text)
+
+    # auto-select first button
+    if submodes_list and 0 in grid_frame._grid_buttons:
+      first_btn = grid_frame._grid_buttons[0]
+      first_btn.configure(relief='sunken', bg='#b0c4de')
+      grid_frame._grid_selected = first_btn
+      self.change_submode(submodes_list[0])
+
+    return grid_frame
+
+
+  def refresh_submode_buttons(self, group_index):
+    """Rebuild the submode widget at the given group index.
+
+    Used when the template list changes (e.g. category switch
+    in biomolecule mode).
+
+    Args:
+      group_index: Index of the submode group to rebuild.
+    """
+    if group_index >= len(self.subbuttons):
+      return
+    m = self.mode
+    tooltip_map = getattr(m, 'tooltip_map', {})
+    # destroy existing widget
+    old_widget = self.subbuttons[group_index]
+    old_widget.destroy()
+    # determine layout
+    layout = 'row'
+    if hasattr(m, 'group_layouts') and group_index < len(m.group_layouts):
+      layout = m.group_layouts[group_index]
+    if layout == 'grid':
+      new_widget = self._build_submode_grid(m, group_index, tooltip_map)
+    else:
+      # rebuild as horizontal row
+      new_widget = Pmw.RadioSelect(self.subFrame,
+        buttontype='button', selectmode='single',
+        orient='horizontal', command=self.change_submode,
+        hull_borderwidth=0, padx=0, pady=0, hull_relief='ridge')
+      for sub in m.submodes[group_index]:
+        sub_idx = m.submodes[group_index].index(sub)
+        display_name = m.submodes_names[group_index][sub_idx]
+        new_widget.add(sub, text=display_name, borderwidth=config.border_width)
+      if m.submodes[group_index]:
+        new_widget.invoke(m.submodes[group_index][0])
+    new_widget.pack(side=LEFT, padx=(0, 2))
+    self.subbuttons[group_index] = new_widget
 
 
   def update_status( self, signal, time=None):
@@ -1532,11 +1640,12 @@ Enter InChI:""")
 
 
   def read_biomolecule_templates( self):
-    dirs = template_catalog.discover_biomolecule_template_dirs()
-    entries = template_catalog.scan_template_dirs( dirs)
+    from bkchem import biomolecule_loader
+    entries = biomolecule_loader.load_biomolecule_entries()
     for entry in entries:
-      label = template_catalog.format_entry_label( entry)
-      Store.btm.add_template_from_CDML( entry.path, name_override=label)
+      Store.btm.register_smiles_template(
+        entry['smiles'], name_override=entry['name']
+      )
 
 
   def gen_inchi( self):

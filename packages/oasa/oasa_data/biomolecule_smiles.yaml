@@ -1,46 +1,149 @@
 carbs:
   rings:
     furanose_scaffold:
+      label: Furn
       smiles: C1CCOC1  # tetrahydrofuran (oxolane)
     pyranose_scaffold:
+      label: Pyrn
       smiles: O1CCCCC1  # tetrahydropyran (oxane)
   monosaccharides:
     alpha-D-glucopyranose:
+      label: Glc
+      cid: 79025
       smiles: "OC[C@H]1O[C@H](O)[C@H](O)[C@@H](O)[C@@H]1O"
     beta-D-fructofuranose:
+      label: Fru
+      cid: 2723872
       smiles: "OCC1(O)OCC(O)C1O"
 
 nucleic_acids:
   bases:
     purine:
+      label: Pur
+      cid: 1044
       smiles: "C1=C2C(=NC=N1)N=CN2"
     pyrimidine:
+      label: Pyr
+      cid: 9260
       smiles: "n1cnccc1"
   nucleotides_monophosphate:
     AMP_5prime:
+      label: AMP
+      cid: 6083
       smiles: "c1nc(c2c(n1)n(cn2)[C@H]3[C@@H]([C@@H]([C@H](O3)COP(=O)(O)O)O)O)N"
     UMP_5prime:
+      label: UMP
+      cid: 6030
       smiles: "c1cn(c(=O)[nH]c1=O)[C@H]2[C@@H]([C@@H]([C@H](O2)COP(=O)(O)O)O)O"
 
 lipids:
   fatty_acids:
     palmitic_acid:
+      label: PlmA
+      cid: 985
       smiles: "CCCCCCCCCCCCCCCC(=O)O"
     palmitate_anion:
+      label: Plmt
+      cid: 985
       smiles: "CCCCCCCCCCCCCCCC(=O)[O-]"
       note: "Same as sodium palmitate SMILES, but without the [Na+]."
   glycerol_backbone:
     glycerol:
+      label: Glyc
+      cid: 753
       smiles: "OCC(O)CO"
     sn-glycerol-3-phosphate:
+      label: G3P
+      cid: 754
       smiles: "C([C@H](COP(=O)(O)O)O)O"
   steroids:
     gonane_core:
+      label: Gonn
       smiles: "C1CCC2C(C1)CCC1C3CCCCC3CCC21"
     cholesterol:
+      label: Chol
+      cid: 5997
       smiles: "CC(C)CCCC(C)C1CCC2C3CC=C4C[C@H](O)CC[C@]4(C)C3CC[C@]12C"
 
 protein:
   amino_acids:
     L-alanine:
+      label: Ala
+      cid: 5950
       smiles: "C[C@@H](C(=O)O)N"
+    L-arginine:
+      label: Arg
+      cid: 6322
+      smiles: "C(C[C@@H](C(=O)O)N)CN=C(N)N"
+    L-asparagine:
+      label: Asn
+      cid: 6267
+      smiles: "C([C@@H](C(=O)O)N)C(=O)N"
+    L-aspartate:
+      label: Asp
+      cid: 5960
+      smiles: "C([C@@H](C(=O)O)N)C(=O)O"
+    L-cysteine:
+      label: Cys
+      cid: 5862
+      smiles: "C([C@@H](C(=O)O)N)S"
+    L-glutamate:
+      label: Glu
+      cid: 33032
+      smiles: "C(CC(=O)O)[C@@H](C(=O)O)N"
+    L-glutamine:
+      label: Gln
+      cid: 5961
+      smiles: "C(CC(=O)N)[C@@H](C(=O)O)N"
+    glycine:
+      label: Gly
+      cid: 750
+      smiles: "C(C(=O)O)N"
+    L-histidine:
+      label: His
+      cid: 6274
+      smiles: "C1=C(NC=N1)C[C@@H](C(=O)O)N"
+    L-isoleucine:
+      label: Ile
+      cid: 6306
+      smiles: "CC[C@H](C)[C@@H](C(=O)O)N"
+    L-leucine:
+      label: Leu
+      cid: 6106
+      smiles: "CC(C)C[C@@H](C(=O)O)N"
+    L-lysine:
+      label: Lys
+      cid: 5962
+      smiles: "C(CCN)C[C@@H](C(=O)O)N"
+    L-methionine:
+      label: Met
+      cid: 6137
+      smiles: "CSCC[C@@H](C(=O)O)N"
+    L-phenylalanine:
+      label: Phe
+      cid: 6140
+      smiles: "C1=CC=C(C=C1)C[C@@H](C(=O)O)N"
+    L-proline:
+      label: Pro
+      cid: 145742
+      smiles: "C1C[C@H](NC1)C(=O)O"
+    L-serine:
+      label: Ser
+      cid: 5951
+      smiles: "C([C@@H](C(=O)O)N)O"
+    L-threonine:
+      label: Thr
+      cid: 6288
+      smiles: "C[C@H]([C@@H](C(=O)O)N)O"
+    L-tryptophan:
+      label: Trp
+      cid: 6305
+      smiles: "C1=CC=C2C(=C1)C(=CN2)C[C@@H](C(=O)O)N"
+    L-tyrosine:
+      label: Tyr
+      cid: 6057
+      smiles: "C1=CC(=CC=C1C[C@@H](C(=O)O)N)O"
+    L-valine:
+      label: Val
+      cid: 6287
+      smiles: "CC(C)[C@@H](C(=O)O)N"

@@ -1,6 +1,21 @@
 # Changelog
 
 ## 2026-02-19
+- Biomolecule templates now generated on demand from SMILES instead of
+  pre-built CDML files. Single source of truth is
+  [packages/oasa/oasa_data/biomolecule_smiles.yaml](packages/oasa/oasa_data/biomolecule_smiles.yaml)
+  with all 20 standard amino acids plus carbs, lipids, nucleic acids, and
+  steroids. New loader module
+  [packages/bkchem-app/bkchem/biomolecule_loader.py](packages/bkchem-app/bkchem/biomolecule_loader.py)
+  reads the YAML. Template manager
+  [packages/bkchem-app/bkchem/temp_manager.py](packages/bkchem-app/bkchem/temp_manager.py)
+  gains lazy `register_smiles_template()` that parses SMILES on first use.
+  Biomolecule template submodes render as a button grid with 3-letter codes
+  and full-name tooltips. Removed `template_catalog.py`,
+  `generate_biomolecule_templates.py`, and their tests.
+- Fix hex grid overlay not visible at zoom levels other than 100%. Use
+  `canvasx()`/`canvasy()` for the far edge in canvas coordinates in
+  [packages/bkchem-app/bkchem/grid_overlay.py](packages/bkchem-app/bkchem/grid_overlay.py).
 - Add hexagonal grid snap feature. New OASA module
   [packages/oasa/oasa/hex_grid.py](packages/oasa/oasa/hex_grid.py) provides
   pure geometry functions for flat-top hex grid: snap, index, generate, and

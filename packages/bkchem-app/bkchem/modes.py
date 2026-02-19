@@ -51,8 +51,6 @@ from bkchem import special_parents
 import oasa.hex_grid
 import bkchem.chem_compat
 from bkchem import helper_graphics as hg
-from bkchem import template_catalog
-
 from bkchem.bond import bond
 from bkchem.atom import atom
 from bkchem.arrow import arrow
@@ -213,7 +211,6 @@ class mode( object):
       self.group_layouts = []
       self.tooltip_map = {}
       self.size_map = {}
-    self.pulldown_menu_submodes = []
     self._key_sequences = {}
     self._recent_key_seq = ''
     self._specials_pressed = { 'C':0, 'A':0, 'M':0, 'S':0} # C-A-M-S
@@ -1403,47 +1400,60 @@ class template_mode( edit_mode):
 
 
   def _build_categorized_submodes( self):
-    """Build category + template submodes from the biomolecule catalog."""
-    entries = template_catalog.scan_template_dirs(
-      template_catalog.discover_biomolecule_template_dirs()
-    )
+    """Build category + template submodes from biomolecule_loader YAML."""
+    from bkchem import biomolecule_loader
+    entries = biomolecule_loader.load_biomolecule_entries()
     template_names = self.template_manager.get_template_names()
-    # map label -> index in template manager
-    label_to_index = {}
-    for i, label in enumerate(template_names):
-      label_to_index[label] = i
-    catalog = template_catalog.build_category_map(entries)
-    self._catalog = catalog
-    self._category_keys = sorted(catalog.keys())
+    # map name -> index in template manager
+    name_to_index = {}
+    for i, tname in enumerate(template_names):
+      name_to_index[tname] = i
+    # group entries by category
+    category_order = []
+    category_entries = {}
+    for entry in entries:
+      cat = entry['category']
+      if cat not in category_entries:
+        category_order.append(cat)
+        category_entries[cat] = []
+      category_entries[cat].append(entry)
+    self._category_keys = category_order
     self._category_labels = [k.replace('_', ' ').strip() for k in self._category_keys]
     self._category_label_to_key = dict(zip(self._category_labels, self._category_keys))
-    # build per-category template labels and indices
-    self._category_templates = {}
+    # build per-category template info
+    self._category_template_names = {}
+    self._category_template_labels = {}
     self._category_template_indices = {}
     for key in self._category_keys:
-      subcats = catalog[key]
-      entries_flat = []
-      for subcat in sorted(subcats.keys()):
-        entries_flat.extend(subcats[subcat])
+      cat_entries = category_entries[key]
+      names = []
       labels = []
       indices = []
-      for entry in entries_flat:
-        label = template_catalog.format_entry_label(entry)
-        if label not in label_to_index:
+      for entry in cat_entries:
+        mol_name = entry['name']
+        if mol_name not in name_to_index:
           continue
-        labels.append(label)
-        indices.append(label_to_index[label])
-      self._category_templates[key] = labels
+        names.append(mol_name)
+        labels.append(entry['label'])
+        indices.append(name_to_index[mol_name])
+      self._category_template_names[key] = names
+      self._category_template_labels[key] = labels
       self._category_template_indices[key] = indices
     # set initial template list from first category
-    self._template_labels = []
+    self._template_names_list = []
+    self._template_labels_list = []
     self._template_indices = []
     if self._category_labels:
       self._apply_category_selection(self._category_labels[0])
-    self.submodes = [self._category_labels, self._template_labels]
-    self.submodes_names = [self._category_labels, self._template_labels]
+    # submodes[0] = category keys, submodes[1] = template full names
+    self.submodes = [self._category_labels, self._template_names_list]
+    # submodes_names[0] = category display, submodes_names[1] = short labels
+    self.submodes_names = [self._category_labels, self._template_labels_list]
     self.submode = [0, 0]
-    self.pulldown_menu_submodes = [0, 1]
+    # build tooltip map: full name -> full name (for tooltip display)
+    for key in self._category_keys:
+      for mol_name in self._category_template_names.get(key, []):
+        self.tooltip_map[mol_name] = mol_name.replace('_', ' ')
 
 
   def _apply_category_selection( self, label):
@@ -1452,24 +1462,23 @@ class template_mode( edit_mode):
     if not key and self._category_keys:
       key = self._category_keys[0]
     if key:
-      self._template_labels = self._category_templates.get(key, [])
+      self._template_names_list = self._category_template_names.get(key, [])
+      self._template_labels_list = self._category_template_labels.get(key, [])
       self._template_indices = self._category_template_indices.get(key, [])
     else:
-      self._template_labels = []
+      self._template_names_list = []
+      self._template_labels_list = []
       self._template_indices = []
 
 
   def _update_template_menu( self):
-    """Refresh the template pulldown menu in the UI."""
+    """Refresh the template button grid in the UI."""
     if not hasattr(Store.app, "subbuttons"):
       return
     if len(Store.app.subbuttons) < 2:
       return
-    menu = Store.app.subbuttons[1]
-    if hasattr(menu, "setitems"):
-      menu.setitems(self._template_labels)
-    if self._template_labels and hasattr(menu, "setvalue"):
-      menu.setvalue(self._template_labels[0])
+    # rebuild the grid widget for the template group
+    Store.app.refresh_submode_buttons(1)
 
 
   def _get_selected_template_index( self):
@@ -1486,11 +1495,11 @@ class template_mode( edit_mode):
 
   def on_submode_switch( self, submode_index, name=''):
     """When category changes, refresh template list."""
-    if submode_index == 0 and hasattr(self, '_catalog'):
+    if submode_index == 0 and hasattr(self, '_category_keys'):
       self._apply_category_selection(name)
-      self.submodes[1] = self._template_labels
-      self.submodes_names[1] = self._template_labels
-      if self._template_labels:
+      self.submodes[1] = self._template_names_list
+      self.submodes_names[1] = self._template_labels_list
+      if self._template_names_list:
         self.submode[1] = 0
       self._update_template_menu()
 
