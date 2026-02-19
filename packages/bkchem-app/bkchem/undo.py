@@ -278,7 +278,9 @@ class state_record(object):
           # that takes neighboring edges into account
           neigh_edges2 = set()
           for e in neigh_edges:
-            neigh_edges2 |= set([e2 for e2 in e.neighbor_edges if e2 not in added])
+            # collect edges adjacent to both atoms of each neighboring bond
+            for a_of_e in e.get_atoms():
+              neigh_edges2 |= set([e2 for e2 in a_of_e.neighbor_edges if e2 not in added])
           to_redraw |= neigh_edges2
         elif o.object_type == 'bond':
           to_redraw |= set( [a for a in o.get_atoms() if a.show and not a in deleted and not a in added])

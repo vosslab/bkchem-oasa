@@ -27,6 +27,7 @@ except ImportError:
 
 from oasa import transform3d
 from oasa import cdml_writer
+from oasa.cdml_writer import CPK_COLORS
 
 from bkchem import bond
 from bkchem import atom
@@ -341,6 +342,10 @@ def oasa_atom_to_bkchem_atom( a, paper, m):
   at.y = a.y
   at.z = a.z
   at.set_name( a.symbol, interpret=1)
+  # apply CPK color for non-carbon heteroatoms (InChI path bypasses CDML)
+  cpk_color = CPK_COLORS.get(a.symbol)
+  if cpk_color and a.symbol != 'C':
+    at.line_color = cpk_color
   # chemistry properties set through public API
   at.charge = a.charge
   # inchi_number read from pure OASA atom properties_, not BKChem composition

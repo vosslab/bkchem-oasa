@@ -13,6 +13,8 @@ layer and how they communicate.
 - CDML serialization must round-trip cleanly through both sides.
 - The bridge layer (`oasa_bridge.py`) copies data between pure OASA objects and
   BKChem objects. It must never assume inheritance.
+- If a change would apply equally to a saved CDML file processed offline
+  (without the GUI running), it belongs in OASA, not BKChem.
 
 ---
 

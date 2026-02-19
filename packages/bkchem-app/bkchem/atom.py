@@ -381,7 +381,11 @@ class atom(drawable_chem_vertex):
       self.decide_pos()
     # hydrogens
     if self.show_hydrogens:
-      v = self.free_valency
+      # use user-typed hydrogen count when set, otherwise compute from valency
+      if self.explicit_hydrogens:
+        v = self.explicit_hydrogens
+      else:
+        v = self.free_valency
       if v:
         h = 'H'
       else:
@@ -448,6 +452,7 @@ class atom(drawable_chem_vertex):
     if elch:
       # name is element symbol + charge
       self.symbol = elch[0]
+      self.explicit_hydrogens = 0
       #self.show_hydrogens = 0
       self.charge += elch[1]
       return True
@@ -465,6 +470,7 @@ class atom(drawable_chem_vertex):
         if form['H'] in [i-valency+self.charge for i in PT.periodic_table[a[0]]['valency']]:
           self.symbol = a[0]
           self.show_hydrogens = 1
+          self.explicit_hydrogens = form['H']
           # decide hydrogen placement based on how the name was written (only if it has no neighbor)
           if occupied_valency:
             self.pos = None # decide later

@@ -1,6 +1,19 @@
 # Changelog
 
 ## 2026-02-19
+- Fix repo environment bootstrap in [source_me.sh](source_me.sh): only source
+  `~/.bashrc` when `BASHRC_COMMON_LOADED` is not already set (avoids the
+  top-level `return 0` guard short-circuiting setup), and compose `PYTHONPATH`
+  as repo package roots plus any existing value (`${PYTHONPATH:+...}`) to avoid
+  trailing-colon empty entries.
+- Add CPK element coloring to SMILES/peptide/InChI imports. Non-carbon
+  heteroatoms (O red, N blue, S yellow, etc.) now render in their conventional
+  CPK colors. CDML path: `CPK_COLORS` dict and `<font color>` emission in
+  [packages/oasa/oasa/cdml_writer.py](packages/oasa/oasa/cdml_writer.py).
+  InChI bridge path: direct `line_color` assignment in
+  [packages/bkchem-app/bkchem/oasa_bridge.py](packages/bkchem-app/bkchem/oasa_bridge.py).
+  Add offline-change ownership principle to
+  [docs/CDML_BACKEND_TO_FRONTEND_CONTRACT.md](docs/CDML_BACKEND_TO_FRONTEND_CONTRACT.md).
 - Fix peptide importer crash: add `remove_zero_order_bonds()` delegation to
   BKChem `molecule` in
   [packages/bkchem-app/bkchem/molecule.py](packages/bkchem-app/bkchem/molecule.py).

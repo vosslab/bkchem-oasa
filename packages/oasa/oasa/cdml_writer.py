@@ -32,6 +32,23 @@ from .molecule import molecule
 from .periodic_table import periodic_table as PT
 
 
+# CPK element colors for non-carbon heteroatom coloring in CDML output
+CPK_COLORS = {
+	'H':  '#FFFFFF',
+	'C':  '#909090',
+	'N':  '#3050F8',
+	'O':  '#FF0D0D',
+	'S':  '#FFFF30',
+	'P':  '#FF8000',
+	'F':  '#90E050',
+	'Cl': '#1FF01F',
+	'Br': '#A62929',
+	'I':  '#940094',
+	'B':  '#FFB5B5',
+	'Se': '#FFA100',
+	'Fe': '#E06633',
+}
+
 POINTS_PER_CM = 72.0 / 2.54
 CDML_NAMESPACE = "http://www.freesoftware.fsf.org/bkchem/cdml"
 CDML_DOC_URL = "https://github.com/vosslab/bkchem/blob/main/docs/CDML_FORMAT_SPEC.md"
@@ -237,6 +254,11 @@ def _write_cdml_atom_element(doc, atom_obj, atom_ids, coord_to_text=None):
 		z_text = _coord_to_text(z, coord_to_text=coord_to_text)
 		point_attrs = point_attrs + (("z", z_text),)
 	dom_ext.elementUnder(a_el, "point", attributes=point_attrs)
+
+	# emit CPK color for non-carbon atoms so BKChem picks it up via <font>
+	cpk_color = CPK_COLORS.get(symbol)
+	if cpk_color and symbol != 'C':
+		dom_ext.elementUnder(a_el, 'font', attributes=(('color', cpk_color),))
 
 	unknown = getattr(atom_obj, "_cdml_unknown_attrs", None)
 	present = getattr(atom_obj, "_cdml_present", None)
