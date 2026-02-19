@@ -14,6 +14,12 @@
   CDML atom coordinates to the hex grid.
 - Register `hex_grid` module in
   [packages/oasa/oasa/__init__.py](packages/oasa/oasa/__init__.py).
+- Fix zoom-to-content and export cropping broken when hex grid is visible.
+  Exclude `"hex_grid"` tagged canvas items from `_content_bbox()` and
+  `get_cropping_bbox()` in
+  [packages/bkchem-app/bkchem/paper.py](packages/bkchem-app/bkchem/paper.py).
+  Clear grid dots before `update_scrollregion()` in `scale_all()` so they do
+  not inflate `bbox(ALL)`, then redraw after.
 - Fix repo environment bootstrap in [source_me.sh](source_me.sh): only source
   `~/.bashrc` when `BASHRC_COMMON_LOADED` is not already set (avoids the
   top-level `return 0` guard short-circuiting setup), and compose `PYTHONPATH`

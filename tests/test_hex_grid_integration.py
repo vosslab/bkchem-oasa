@@ -24,7 +24,7 @@ TEMPLATES_CDML = os.path.join(
 )
 
 # snap CLI script path
-SNAP_CLI = os.path.join(REPO_ROOT, "snap_cdml_to_hex_grid.py")
+SNAP_CLI = os.path.join(REPO_ROOT, "tools", "snap_cdml_to_hex_grid.py")
 
 # tolerance for floating point comparisons
 TOL = 1e-6

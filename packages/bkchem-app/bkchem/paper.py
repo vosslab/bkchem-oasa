@@ -1341,13 +1341,17 @@ class chem_paper(Canvas, object):
 		if self._scale != 1.0:
 			self.scale(self.background, 0, 0, self._scale, self._scale)
 		self.lower(self.background)
-		# redraw hex grid overlay at new zoom level
+		# Clear hex grid before scroll region calc so dots do not
+		# inflate bbox(ALL); redraw after scrollregion is set.
 		if self._hex_grid_overlay and self._hex_grid_overlay.visible:
-			self._hex_grid_overlay.redraw()
+			self._hex_grid_overlay._clear_dots()
 		# Flush deferred Tk layout (text metrics, etc.) so that
 		# bbox(ALL) and the subsequent viewport centering are accurate.
 		self.update_idletasks()
 		self.update_scrollregion()
+		# redraw hex grid overlay at new zoom level
+		if self._hex_grid_overlay and self._hex_grid_overlay.visible:
+			self._hex_grid_overlay.redraw()
 		# Re-center viewport so the same model point stays at viewport center
 		if center_on_viewport:
 			self._center_viewport_on_canvas(mx * self._scale, my * self._scale)
@@ -1381,10 +1385,15 @@ class chem_paper(Canvas, object):
 		self.scale_all(fit_scale)
 
 	def _content_bbox(self):
-		"""Return bbox of drawn content only, excluding the page background."""
+		"""Return bbox of drawn content only, excluding the page background
+		and non-content overlays like the hex grid."""
 		items = list(self.find_all())
 		if self.background in items:
 			items.remove(self.background)
+		# exclude hex grid dots from content bbox
+		hex_items = set(self.find_withtag("hex_grid"))
+		if hex_items:
+			items = [i for i in items if i not in hex_items]
 		if not items:
 			return None
 		return self.list_bbox(items)
@@ -2000,6 +2009,10 @@ class chem_paper(Canvas, object):
 		margin = self.get_paper_property('crop_margin')
 		items = list( self.find_all())
 		items.remove( self.background)
+		# exclude hex grid dots from crop bbox
+		hex_items = set(self.find_withtag("hex_grid"))
+		if hex_items:
+			items = [i for i in items if i not in hex_items]
 
 		if not items:
 			return None
