@@ -1,6 +1,15 @@
 # Changelog
 
 ## 2026-02-19
+- Restrict edit pool ribbon buttons to text-entry modes only (`edit`/`text`/`atom`).
+  Add `show_edit_pool` YAML flag in
+  [packages/bkchem-app/bkchem_data/modes.yaml](packages/bkchem-app/bkchem_data/modes.yaml)
+  and load it in `mode.__init__` in
+  [packages/bkchem-app/bkchem/modes.py](packages/bkchem-app/bkchem/modes.py).
+  Replace `isinstance(m, edit_mode)` check in
+  [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py)
+  `change_mode()` with the YAML-driven flag. Other modes (draw, arrow, template,
+  rotate, etc.) no longer show text input buttons they cannot use.
 - Move edit pool button definitions from hardcoded Python to YAML config in
   [packages/bkchem-app/bkchem_data/modes.yaml](packages/bkchem-app/bkchem_data/modes.yaml):
   add `edit_pool_buttons` top-level section with 3 groups (Text Input, Font Style,

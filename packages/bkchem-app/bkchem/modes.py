@@ -190,6 +190,8 @@ class mode( object):
     self.name = _(cfg['name']) if 'name' in cfg else 'mode'
     # short button label: label -> name -> key (all i18n-wrapped)
     self.label = _(cfg.get('label', cfg.get('name', yaml_key)))
+    # whether this mode shows edit pool text-entry buttons in the ribbon
+    self.show_edit_pool = cfg.get('show_edit_pool', False)
     # load static submodes from YAML (dynamic modes override in their __init__)
     if not cfg.get('dynamic') and cfg.get('submodes'):
       parsed = _load_submodes_from_yaml(cfg)

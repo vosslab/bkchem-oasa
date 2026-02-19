@@ -647,11 +647,8 @@ class BKChem( Tk):
                                                 command = self.change_submode))
         self.subbuttons[i].pack(side=LEFT, padx=(0, 2))
 
-    # add edit pool buttons to ribbon for edit_mode-derived modes
-    is_edit_derived = isinstance(m, modes.edit_mode)
-    # base edit_mode itself (submodes == []) gets no buttons/entry
-    is_base_edit = type(m) is modes.edit_mode
-    if is_edit_derived and not is_base_edit:
+    # add edit pool buttons to ribbon for text-entry modes (YAML show_edit_pool)
+    if getattr(m, 'show_edit_pool', False):
       # vertical separator before the button group if submodes already exist
       if self.subbuttons:
         sep = Frame(self.subFrame, width=1, bg='#b0b0b0')

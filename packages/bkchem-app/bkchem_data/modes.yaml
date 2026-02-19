@@ -26,6 +26,7 @@ modes:
     name: edit
     parent: basic_mode
     icon: edit
+    show_edit_pool: true
     submodes: []
 
   draw:
@@ -108,6 +109,7 @@ modes:
     name: atom
     parent: edit_mode
     icon: atom
+    show_edit_pool: true
     submodes: []
 
   mark:
@@ -172,6 +174,7 @@ modes:
     name: text
     parent: edit_mode
     icon: text
+    show_edit_pool: true
     submodes: []
 
   bracket:
