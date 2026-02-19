@@ -140,7 +140,9 @@ class chem_paper(Canvas, object):
 
 		self._do_not_focus = [] # this is to enable an ugly hack in a drag-and-focus hack
 		self._hex_grid_overlay = None
-		self.hex_grid_snap_enabled = False
+		# both snap and grid dots on by default (Inkscape-style)
+		self.hex_grid_snap_enabled = True
+		self._hex_grid_show_on_bindings = True
 
 
 	def set_bindings( self):
@@ -179,8 +181,9 @@ class chem_paper(Canvas, object):
 			self.bind('<Control-equal>', lambda e: self.zoom_in())
 			self.bind('<Control-minus>', lambda e: self.zoom_out())
 			self.bind('<Control-Key-0>', lambda e: self.zoom_reset())
-			# hex grid toggle
+			# hex grid: Ctrl+G toggles dots, Shift+Ctrl+G toggles snap
 			self.bind('<Control-g>', lambda e: self.toggle_hex_grid())
+			self.bind('<Shift-Control-G>', lambda e: self.toggle_hex_grid_snap())
 
 
 	@property
@@ -270,6 +273,10 @@ class chem_paper(Canvas, object):
 
 	def add_bindings( self, active_names=()):
 		self.lower( self.background)
+		# show hex grid on first call if flagged for startup display
+		if getattr(self, '_hex_grid_show_on_bindings', False):
+			self._hex_grid_show_on_bindings = False
+			self.show_hex_grid()
 		# keep hex grid above background but below chemistry
 		if hasattr(self, '_hex_grid_overlay') and self._hex_grid_overlay:
 			self.tag_raise("hex_grid", self.background)
@@ -280,29 +287,39 @@ class chem_paper(Canvas, object):
 
 
 	#============================================
-	def toggle_hex_grid(self):
-		"""Toggle hex grid overlay visibility and snap."""
+	def _ensure_hex_grid_overlay(self):
+		"""Lazily create the hex grid overlay."""
 		if self._hex_grid_overlay is None:
 			self._hex_grid_overlay = bkchem.grid_overlay.HexGridOverlay(
 				self, self.standard.bond_length)
+
+	#============================================
+	def toggle_hex_grid(self):
+		"""Toggle hex grid dot visibility (does not affect snap)."""
+		self._ensure_hex_grid_overlay()
 		self._hex_grid_overlay.toggle()
-		self.hex_grid_snap_enabled = self._hex_grid_overlay.visible
+
+	#============================================
+	def toggle_hex_grid_snap(self):
+		"""Toggle snap-to-grid on or off (does not affect dot visibility)."""
+		self.hex_grid_snap_enabled = not self.hex_grid_snap_enabled
+		# log the change so user has feedback
+		if self.hex_grid_snap_enabled:
+			Store.log(_("Hex grid snap enabled"))
+		else:
+			Store.log(_("Hex grid snap disabled"))
 
 	#============================================
 	def show_hex_grid(self):
-		"""Show hex grid overlay and enable snap."""
-		if self._hex_grid_overlay is None:
-			self._hex_grid_overlay = bkchem.grid_overlay.HexGridOverlay(
-				self, self.standard.bond_length)
+		"""Show hex grid dots."""
+		self._ensure_hex_grid_overlay()
 		self._hex_grid_overlay.show()
-		self.hex_grid_snap_enabled = True
 
 	#============================================
 	def hide_hex_grid(self):
-		"""Hide hex grid overlay and disable snap."""
+		"""Hide hex grid dots."""
 		if self._hex_grid_overlay is not None:
 			self._hex_grid_overlay.hide()
-		self.hex_grid_snap_enabled = False
 
 	def remove_bindings( self, ids=()):
 		if not ids:
