@@ -50,6 +50,8 @@ CPK_COLORS = {
 }
 
 POINTS_PER_CM = 72.0 / 2.54
+DEFAULT_FONT_SIZE = 12
+DEFAULT_FONT_FAMILY = "helvetica"
 CDML_NAMESPACE = "http://www.freesoftware.fsf.org/bkchem/cdml"
 CDML_DOC_URL = "https://github.com/vosslab/bkchem/blob/main/docs/CDML_FORMAT_SPEC.md"
 DEFAULT_CDML_VERSION = "26.02"
@@ -258,7 +260,11 @@ def _write_cdml_atom_element(doc, atom_obj, atom_ids, coord_to_text=None):
 	# emit CPK color for non-carbon atoms so BKChem picks it up via <font>
 	cpk_color = CPK_COLORS.get(symbol)
 	if cpk_color and symbol != 'C':
-		dom_ext.elementUnder(a_el, 'font', attributes=(('color', cpk_color),))
+		dom_ext.elementUnder(a_el, 'font', attributes=(
+			('size', str(DEFAULT_FONT_SIZE)),
+			('family', DEFAULT_FONT_FAMILY),
+			('color', cpk_color),
+		))
 
 	unknown = getattr(atom_obj, "_cdml_unknown_attrs", None)
 	present = getattr(atom_obj, "_cdml_present", None)

@@ -581,8 +581,10 @@ class atom(drawable_chem_vertex):
     fnt = package.getElementsByTagName('font')
     if fnt:
       fnt = fnt[0]
-      self.font_size = int( fnt.getAttribute( 'size'))
-      self.font_family = fnt.getAttribute( 'family')
+      if fnt.getAttribute( 'size'):
+        self.font_size = int( fnt.getAttribute( 'size'))
+      if fnt.getAttribute( 'family'):
+        self.font_family = fnt.getAttribute( 'family')
       if fnt.getAttribute( 'color'):
         self.line_color = fnt.getAttribute( 'color')
     # show

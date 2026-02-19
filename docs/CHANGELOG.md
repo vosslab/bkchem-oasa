@@ -14,6 +14,14 @@
   [packages/bkchem-app/bkchem/oasa_bridge.py](packages/bkchem-app/bkchem/oasa_bridge.py).
   Add offline-change ownership principle to
   [docs/CDML_BACKEND_TO_FRONTEND_CONTRACT.md](docs/CDML_BACKEND_TO_FRONTEND_CONTRACT.md).
+- Fix SMILES/peptide import crash caused by CPK `<font>` element missing `size`
+  attribute: add `DEFAULT_FONT_SIZE` (12) and `DEFAULT_FONT_FAMILY` (helvetica)
+  constants to
+  [packages/oasa/oasa/cdml_writer.py](packages/oasa/oasa/cdml_writer.py) and
+  emit them on the CPK `<font>` element. Also guard `font_size` and
+  `font_family` reads in
+  [packages/bkchem-app/bkchem/atom.py](packages/bkchem-app/bkchem/atom.py)
+  `read_package()` against empty attribute strings.
 - Fix peptide importer crash: add `remove_zero_order_bonds()` delegation to
   BKChem `molecule` in
   [packages/bkchem-app/bkchem/molecule.py](packages/bkchem-app/bkchem/molecule.py).
