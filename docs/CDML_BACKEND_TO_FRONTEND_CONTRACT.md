@@ -169,22 +169,26 @@ def order(self, mol):
 
 ### 3.1 OASA-owned chemistry operations
 
-From `oasa.molecule` (inherits `oasa.graph.graph`):
+From `oasa.molecule` (inherits `oasa.graph.graph`). BKChem's composition layer
+(`self._chem_mol`) must delegate every OASA graph or chemistry method that
+callers use. The categories below describe what must be delegated, with examples
+from each group. When OASA adds a new method that callers invoke on a BKChem
+molecule, a matching delegation must be added to `bkchem.molecule`.
 
-| Operation | Notes |
-| --- | --- |
-| `atoms` / `vertices` | Aliased to graph vertex list |
-| `bonds` / `edges` | Aliased to graph edge set |
-| `add_vertex(v)` | Graph mutation |
-| `add_edge(v1, v2, e)` | Graph mutation, updates `_neighbors` |
-| `delete_vertex(v)` | Graph mutation |
-| `disconnect(v1, v2)` | Remove edge between vertices |
-| `is_connected()` | Connectivity check |
-| `get_disconnected_subgraphs()` | Component decomposition |
-| `get_smallest_independent_cycles()` | Ring perception (Hanser algorithm) |
-| `deep_copy()` | Full graph copy |
-| `create_vertex()` / `create_edge()` / `create_graph()` | Factory methods |
-| `stereochemistry` | List of stereochemistry descriptors |
+| Category | Examples | Notes |
+| --- | --- | --- |
+| Vertex/edge collections | `atoms`/`vertices`, `bonds`/`edges` | Aliased properties into graph lists |
+| Graph mutation | `add_vertex()`, `add_edge()`, `delete_vertex()`, `disconnect()` | Add or remove vertices and edges |
+| Connectivity queries | `is_connected()`, `path_exists()`, `find_path_between()` | Test or traverse graph connectivity |
+| Subgraph extraction | `get_disconnected_subgraphs()`, `get_connected_components()`, `get_induced_subgraph_from_vertices()` | Decompose graph into parts |
+| Cycle perception | `get_smallest_independent_cycles()`, `get_all_cycles()`, `contains_cycle()` | Ring detection algorithms |
+| Temporary edge ops | `temporarily_disconnect_edge()`, `reconnect_temporarily_disconnected_edge()` | Reversible edge removal for algorithms |
+| Copy operations | `copy()`, `deep_copy()` | Shallow and deep graph duplication |
+| SMILES cleanup | `remove_zero_order_bonds()` | Post-parse cleanup of dot-separator bonds |
+| Aromaticity | `localize_aromatic_bonds()`, `mark_aromatic_bonds()` | Kekulization and aromatic annotation |
+| Distance/path utilities | `mark_vertices_with_distance_from()`, `sort_vertices_in_path()` | BFS distance and path ordering |
+| Factory methods | `create_vertex()`, `create_edge()`, `create_graph()` | Must be overridden to produce BKChem types |
+| Stereochemistry | `stereochemistry`, `add_stereochemistry()`, `remove_stereochemistry()` | Stereo descriptor list management |
 
 ### 3.2 BKChem-owned molecule operations
 

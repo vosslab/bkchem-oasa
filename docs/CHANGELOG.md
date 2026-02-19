@@ -1,6 +1,17 @@
 # Changelog
 
 ## 2026-02-19
+- Fix peptide importer crash: add `remove_zero_order_bonds()` delegation to
+  BKChem `molecule` in
+  [packages/bkchem-app/bkchem/molecule.py](packages/bkchem-app/bkchem/molecule.py).
+  The SMILES codec returns a BKChem molecule (via `Config.molecule_class`), and
+  `oasa_bridge.smiles_to_cdml_elements()` calls `mol.remove_zero_order_bonds()`
+  which was missing from the composition delegations.
+- Refactor section 3.1 of
+  [docs/CDML_BACKEND_TO_FRONTEND_CONTRACT.md](docs/CDML_BACKEND_TO_FRONTEND_CONTRACT.md)
+  to list delegation categories with examples instead of enumerating every
+  individual OASA method. Adds guidance that new OASA methods used by callers
+  require a matching BKChem delegation.
 - Restrict edit pool ribbon buttons to text-entry modes only (`edit`/`text`/`atom`).
   Add `show_edit_pool` YAML flag in
   [packages/bkchem-app/bkchem_data/modes.yaml](packages/bkchem-app/bkchem_data/modes.yaml)

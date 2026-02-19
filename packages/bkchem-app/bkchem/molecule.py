@@ -297,6 +297,10 @@ class molecule( container, top_level, id_enabled, with_paper):
     """Return True if the graph is a tree."""
     return self._chem_mol.is_tree()
 
+  def remove_zero_order_bonds( self):
+    """Remove zero-order bonds created by SMILES parsing."""
+    self._chem_mol.remove_zero_order_bonds()
+
   def localize_aromatic_bonds( self):
     """Localize aromatic bonds in the molecule."""
     self._chem_mol.localize_aromatic_bonds()
