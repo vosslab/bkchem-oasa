@@ -138,7 +138,7 @@
 - Refresh [docs/INSTALL.md](docs/INSTALL.md) with merged repo run instructions
   and updated Python requirements.
 - Revise [docs/FILE_STRUCTURE.md](docs/FILE_STRUCTURE.md) for the
-  `packages/bkchem/` and `packages/oasa/` layout plus the local website mirror.
+  `packages/bkchem-app/` and `packages/oasa/` layout plus the local website mirror.
 - Update [docs/CODE_ARCHITECTURE.md](docs/CODE_ARCHITECTURE.md) to use the new
   monorepo paths and OASA doc references.
 - Update [packages/oasa/README.md](../packages/oasa/README.md) for monorepo
@@ -200,10 +200,10 @@
 - Add dedicated BKChem and OASA sections to [README.md](../README.md) with
   differences, use cases, and the backend relationship.
 - Fix BKChem test runners to add the legacy module path so `import data` resolves.
-- Keep `packages/bkchem/` ahead of the legacy module path so `bkchem.main` imports
+- Keep `packages/bkchem-app/` ahead of the legacy module path so `bkchem.main` imports
   correctly in the BKChem test runners.
 - Remove legacy HTML/DocBook sources now that Markdown docs are canonical.
-- Update `packages/bkchem/prepare_release.sh` to skip DocBook generation when
+- Update `packages/bkchem-app/prepare_release.sh` to skip DocBook generation when
   sources are no longer present.
 - Remove legacy log references from OASA file-structure docs after deleting
   `docs/legacy/`.

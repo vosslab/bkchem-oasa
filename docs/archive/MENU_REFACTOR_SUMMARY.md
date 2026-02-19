@@ -26,7 +26,7 @@ Current plugin types and their fate:
 | PDF, PNG, SVG (Cairo) | Renderers | Move to OASA | packages/oasa/oasa/renderers/ |
 | Script plugins (XML) | User extensions | Drop entirely | N/A (security risk) |
 | Mode plugins | Custom modes | Drop entirely | N/A (unused) |
-| Addons (8 tools) | Chemistry utilities | Built-in tools | packages/bkchem/bkchem/tools/ |
+| Addons (8 tools) | Chemistry utilities | Built-in tools | packages/bkchem-app/bkchem/tools/ |
 
 **Rationale:**
 - exec() is a security vulnerability

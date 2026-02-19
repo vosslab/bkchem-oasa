@@ -3,13 +3,13 @@
 ## Scope
 
 Reviewed the main GUI entry points and interaction layers:
-- [packages/bkchem/bkchem/main.py](packages/bkchem/bkchem/main.py) - main application class, menu system, mode toolbar
-- [packages/bkchem/bkchem/paper.py](packages/bkchem/bkchem/paper.py) - drawing canvas (chem_paper class), event bindings
-- [packages/bkchem/bkchem/modes.py](packages/bkchem/bkchem/modes.py) - mode classes, key sequence handling
-- [packages/bkchem/bkchem/context_menu.py](packages/bkchem/bkchem/context_menu.py) - right-click context menus
-- [packages/bkchem/bkchem/interactors.py](packages/bkchem/bkchem/interactors.py) - user interaction dialogs
-- [packages/bkchem/bkchem/singleton_store.py](packages/bkchem/bkchem/singleton_store.py) - global singleton pattern
-- [packages/bkchem/bkchem/plugin_support.py](packages/bkchem/bkchem/plugin_support.py) - plugin system
+- [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py) - main application class, menu system, mode toolbar
+- [packages/bkchem-app/bkchem/paper.py](packages/bkchem-app/bkchem/paper.py) - drawing canvas (chem_paper class), event bindings
+- [packages/bkchem-app/bkchem/modes.py](packages/bkchem-app/bkchem/modes.py) - mode classes, key sequence handling
+- [packages/bkchem-app/bkchem/context_menu.py](packages/bkchem-app/bkchem/context_menu.py) - right-click context menus
+- [packages/bkchem-app/bkchem/interactors.py](packages/bkchem-app/bkchem/interactors.py) - user interaction dialogs
+- [packages/bkchem-app/bkchem/singleton_store.py](packages/bkchem-app/bkchem/singleton_store.py) - global singleton pattern
+- [packages/bkchem-app/bkchem/plugin_support.py](packages/bkchem-app/bkchem/plugin_support.py) - plugin system
 
 ## Overall quality
 
@@ -25,40 +25,40 @@ concerns, hardening script execution boundaries, and stabilizing input handling.
   restrictions or sandboxing. This is a direct code execution surface and it
   runs inside the GUI process with full privileges. Consider gating it behind a
   trust prompt, or moving execution to a separate process. See
-  [packages/bkchem/bkchem/main.py](packages/bkchem/bkchem/main.py) lines
+  [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py) lines
   1435-1446.
 - High: Plugin execution loads and `exec`s Python scripts directly in the UI
   process, with only directory checks and a temporary sys.path mutation. There
   is no isolation, timeout, or error recovery strategy if a plugin blocks the
-  event loop. See [packages/bkchem/bkchem/plugin_support.py](packages/bkchem/bkchem/plugin_support.py)
+  event loop. See [packages/bkchem-app/bkchem/plugin_support.py](packages/bkchem-app/bkchem/plugin_support.py)
   lines 84-110.
 - Medium: Global singleton state (`Store.app`, `Screen.dpi`, and other Store
   usage) is set in the GUI constructor and consumed across modules. This makes
   the GUI hard to test, encourages cross module coupling, and blurs the boundary
-  between UI and model. See [packages/bkchem/bkchem/main.py](packages/bkchem/bkchem/main.py)
-  lines 69-87 and [packages/bkchem/bkchem/paper.py](packages/bkchem/bkchem/paper.py)
+  between UI and model. See [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py)
+  lines 69-87 and [packages/bkchem-app/bkchem/paper.py](packages/bkchem-app/bkchem/paper.py)
   lines 137-165.
 - Medium: Input handling is platform specific and incomplete. Mouse wheel
   bindings use Button-4 and Button-5 (Linux) while the Windows path is commented
   out, and there is no trackpad handling. This results in inconsistent zoom and
-  scroll behavior across platforms. See [packages/bkchem/bkchem/paper.py](packages/bkchem/bkchem/paper.py)
+  scroll behavior across platforms. See [packages/bkchem-app/bkchem/paper.py](packages/bkchem-app/bkchem/paper.py)
   lines 158-168.
 - Medium: Mode key sequence handling relies on manual modifier state and a
   cleanup hack to recover from dialogs that swallow key releases. This creates
   fragile keyboard state and risks stuck modifiers when focus changes. See
-  [packages/bkchem/bkchem/modes.py](packages/bkchem/bkchem/modes.py) lines
+  [packages/bkchem-app/bkchem/modes.py](packages/bkchem-app/bkchem/modes.py) lines
   113-168.
 - Low: Display form parsing manually encodes UTF-8 and falls back to escaping
   with broad exception handling. This can hide encoding errors and makes it hard
   to distinguish malformed input from input encoding problems. See
-  [packages/bkchem/bkchem/interactors.py](packages/bkchem/bkchem/interactors.py)
+  [packages/bkchem-app/bkchem/interactors.py](packages/bkchem-app/bkchem/interactors.py)
   lines 187-199.
 
 ## Additional architectural findings
 
 ### Menu system architecture
 
-The menu system (see [packages/bkchem/bkchem/main.py](packages/bkchem/bkchem/main.py) lines 178-289) uses a flat tuple-based template with an implicit schema:
+The menu system (see [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py) lines 178-289) uses a flat tuple-based template with an implicit schema:
 - Schema: `(menu_name, type, label, accelerator, status_help, command, state_var)`
 - Types include: `'menu'`, `'command'`, `'separator'`, `'cascade'`
 - Menu creation loops through the template and calls Pmw methods directly
@@ -76,9 +76,9 @@ Issues with this approach:
 
 ### Mode system architecture
 
-The mode system (see [packages/bkchem/bkchem/modes.py](packages/bkchem/bkchem/modes.py)) implements a state machine where each mode handles mouse and keyboard events differently. Key observations:
+The mode system (see [packages/bkchem-app/bkchem/modes.py](packages/bkchem-app/bkchem/modes.py)) implements a state machine where each mode handles mouse and keyboard events differently. Key observations:
 
-- **Mode registration**: Modes are registered in `init_modes()` at [packages/bkchem/bkchem/main.py](packages/bkchem/bkchem/main.py) line 456, with a separate ordering list `modes_sort` (line 476) that controls toolbar button order
+- **Mode registration**: Modes are registered in `init_modes()` at [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py) line 456, with a separate ordering list `modes_sort` (line 476) that controls toolbar button order
 - **Plugin modes**: Mode plugins are dynamically imported and added to the mode registry (lines 480-493), creating a potential name collision risk
 - **Submodes**: Each mode can have multiple submodes with either button-based or pulldown menu UIs (see mode toolbar creation at line 496)
 - **Submode state**: The submode state is stored per mode object and copied when modes switch (see `change_mode()` at line 546)
@@ -91,7 +91,7 @@ The mode toolbar (lines 496-524) creates a `Pmw.RadioSelect` widget for each mod
 
 ### Key sequence handling
 
-The key sequence system (see [packages/bkchem/bkchem/modes.py](packages/bkchem/bkchem/modes.py) lines 113-168) implements Emacs-style key chords:
+The key sequence system (see [packages/bkchem-app/bkchem/modes.py](packages/bkchem-app/bkchem/modes.py) lines 113-168) implements Emacs-style key chords:
 
 - **Modifier tracking**: CAMS (Control-Alt-Meta-Shift) modifiers are tracked in `_specials_pressed` dict
 - **Sequence building**: Each key press appends to `_recent_key_seq` with CAMS prefix
@@ -106,7 +106,7 @@ Critical fragility:
 
 ### Context menu architecture
 
-The context menu system (see [packages/bkchem/bkchem/context_menu.py](packages/bkchem/bkchem/context_menu.py)) dynamically builds menus based on the current selection:
+The context menu system (see [packages/bkchem-app/bkchem/context_menu.py](packages/bkchem-app/bkchem/context_menu.py)) dynamically builds menus based on the current selection:
 
 - **Configurable properties**: A `configurable` dict maps object types to attribute lists
 - **Dynamic values**: Each attribute references a `config_values` entry with internationalized names and value lists
@@ -118,7 +118,7 @@ The menu is rebuilt on every right-click, which is flexible but potentially slow
 
 ### Canvas event binding
 
-The canvas (chem_paper class) sets up event bindings in `set_bindings()` at [packages/bkchem/bkchem/paper.py](packages/bkchem/bkchem/paper.py) lines 137-163:
+The canvas (chem_paper class) sets up event bindings in `set_bindings()` at [packages/bkchem-app/bkchem/paper.py](packages/bkchem-app/bkchem/paper.py) lines 137-163:
 
 Platform-specific issues:
 - **Linux scrolling**: Button-4 and Button-5 for mouse wheel (lines 159-160)
@@ -134,14 +134,14 @@ The `add_bindings()` method at line 252 is misnamed - it does not actually add b
 
 ### Template and singleton initialization
 
-Singleton managers are initialized in `init_singletons()` at [packages/bkchem/bkchem/main.py](packages/bkchem/bkchem/main.py) lines 407-433:
+Singleton managers are initialized in `init_singletons()` at [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py) lines 407-433:
 - Template manager (tm): Default chemical templates
 - User template manager (utm): User-created templates
 - Biomolecule template manager (btm): Biomolecule templates
 - Group manager (gm): Chemical group definitions
 - Plugin manager: Script plugin registry
 
-All are stored in the global `Store` class (see [packages/bkchem/bkchem/singleton_store.py](packages/bkchem/bkchem/singleton_store.py)), making them accessible anywhere but hard to test or replace.
+All are stored in the global `Store` class (see [packages/bkchem-app/bkchem/singleton_store.py](packages/bkchem-app/bkchem/singleton_store.py)), making them accessible anywhere but hard to test or replace.
 
 ### Plugin menu integration
 
@@ -201,7 +201,7 @@ Recent files are added dynamically in `init_preferences()` at line 442, reading 
 - Key sequence handling: the code does not call a `cleanup_key_modifiers()` helper on
   every KeyRelease. Modifiers are cleared per-key in `key_released()`, and
   `clean_key_queue()` is called from the canvas enter/leave handlers in
-  [packages/bkchem/bkchem/paper.py](packages/bkchem/bkchem/paper.py).
+  [packages/bkchem-app/bkchem/paper.py](packages/bkchem-app/bkchem/paper.py).
 - Mode switching: `copy_settings()` only copies `_specials_pressed`. Submode state
   is not copied between modes.
 - Translation assets: runtime lookup uses compiled `.mo` files under

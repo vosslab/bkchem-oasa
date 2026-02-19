@@ -16,7 +16,7 @@ This document defines the architecture for **modular built-in menu functions** (
 
 ### Category 1: Import/Export Format Handlers
 
-**Current location:** `packages/bkchem/bkchem/plugins/*.py`
+**Current location:** `packages/bkchem-app/bkchem/plugins/*.py`
 
 **Examples:**
 - CML, CML2, CDXML (chemistry formats)
@@ -46,7 +46,7 @@ oasa/
 
 ### Category 2: Addons (Chemistry Tools)
 
-**Current location:** `packages/bkchem/addons/*.py` + `*.xml`
+**Current location:** `packages/bkchem-app/addons/*.py` + `*.xml`
 
 **Examples:**
 - `angle_between_bonds.py` - Measure bond angles
@@ -129,7 +129,7 @@ def measure_bond_angle_action(app):
 
 For tools that are GUI-specific:
 ```python
-# New location: packages/bkchem/bkchem/tools/
+# New location: packages/bkchem-app/bkchem/tools/
 bkchem/
   tools/
     __init__.py
@@ -150,7 +150,7 @@ bkchem/
 ### 1. Tool Interface
 
 ```python
-# packages/bkchem/bkchem/tools/base.py
+# packages/bkchem-app/bkchem/tools/base.py
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Optional, List, Any
@@ -294,7 +294,7 @@ default_registry = ToolRegistry()
 ### 2. Example Tool Implementation
 
 ```python
-# packages/bkchem/bkchem/tools/geometry.py
+# packages/bkchem-app/bkchem/tools/geometry.py
 """Geometry analysis tools."""
 from .base import Tool, ToolMetadata, default_registry
 import oasa.analysis.geometry
@@ -356,7 +356,7 @@ default_registry.register(MeasureBondAngleTool)
 ### 3. Tool Categories and Organization
 
 ```python
-# packages/bkchem/bkchem/tools/__init__.py
+# packages/bkchem-app/bkchem/tools/__init__.py
 """Chemistry tools - modular built-in functionality."""
 from .base import Tool, ToolMetadata, ToolRegistry, default_registry
 
@@ -459,7 +459,7 @@ addons/
 
 **After (built-in tool):**
 ```python
-# packages/bkchem/bkchem/tools/geometry.py
+# packages/bkchem-app/bkchem/tools/geometry.py
 class MeasureBondAngleTool(Tool):
     @property
     def metadata(self):

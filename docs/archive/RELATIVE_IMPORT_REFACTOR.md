@@ -2,7 +2,7 @@
 
 ## Objective
 
-Convert all bare local imports in `packages/bkchem/bkchem/` from `import X` and `from X import Y` to absolute package form (`from bkchem import X` and `from bkchem.X import Y`). This enables proper Python packaging and future macOS `.app` distribution without `sys.path` hacks.
+Convert all bare local imports in `packages/bkchem-app/bkchem/` from `import X` and `from X import Y` to absolute package form (`from bkchem import X` and `from bkchem.X import Y`). This enables proper Python packaging and future macOS `.app` distribution without `sys.path` hacks.
 
 ## Design philosophy
 
@@ -11,13 +11,13 @@ Convert all bare local imports in `packages/bkchem/bkchem/` from `import X` and 
 - External packages (`oasa`, stdlib, pip) stay unchanged
 - `from bkchem import X` for bare `import X` where X is a local module
 - `from bkchem.X import Y` for `from X import Y` where X is a local module
-- After conversion, remove `packages/bkchem/bkchem` from PYTHONPATH in launch script
+- After conversion, remove `packages/bkchem-app/bkchem` from PYTHONPATH in launch script
 
 ## Scope
 
-- ~45 `.py` files in `packages/bkchem/bkchem/`
-- ~3 files in `packages/bkchem/bkchem/plugins/`
-- ~10 files in `packages/bkchem/bkchem/actions/`
+- ~45 `.py` files in `packages/bkchem-app/bkchem/`
+- ~3 files in `packages/bkchem-app/bkchem/plugins/`
+- ~10 files in `packages/bkchem-app/bkchem/actions/`
 - ~245 import lines total
 
 ## Non-goals
@@ -27,7 +27,7 @@ Convert all bare local imports in `packages/bkchem/bkchem/` from `import X` and 
 - Do not rename modules or restructure directories
 - Do not touch test files or tools/
 
-## Local modules (files in packages/bkchem/bkchem/)
+## Local modules (files in packages/bkchem-app/bkchem/)
 
 arrow, atom, bkchem_app, bkchem_exceptions, bond, bond_cdml, bond_display,
 bond_drawing, bond_render_ops, bond_type_control, CDML_versions, checks,
@@ -71,16 +71,16 @@ Order matters: replace `..` patterns before `.` patterns.
 
 Per file:
 ```bash
-source source_me.sh && python3 -m py_compile packages/bkchem/bkchem/<file>.py
+source source_me.sh && python3 -m py_compile packages/bkchem-app/bkchem/<file>.py
 ```
 
 Integration:
 ```bash
 source source_me.sh && python3 -c "from bkchem import main"
-source source_me.sh && python3 -m pytest packages/bkchem/tests/ -x -q
+source source_me.sh && python3 -m pytest packages/bkchem-app/tests/ -x -q
 ```
 
 ## Post-integration
 
-- Remove `packages/bkchem/bkchem` from PYTHONPATH in `launch_bkchem_gui.sh`
+- Remove `packages/bkchem-app/bkchem` from PYTHONPATH in `launch_bkchem_gui.sh`
 - Update `docs/CHANGELOG.md`

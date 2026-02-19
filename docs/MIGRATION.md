@@ -18,10 +18,10 @@ preserving them as separate Python packages.
 
 ## Structural changes
 - Introduced a monorepo layout with a `packages/` top level.
-- `packages/bkchem/` contains the BKChem application package.
+- `packages/bkchem-app/` contains the BKChem application package.
 - `packages/oasa/` contains the OASA library package.
-- Moved BKChem source into `packages/bkchem/bkchem/`.
-- Consolidated BKChem runtime assets into `packages/bkchem/bkchem_data/`.
+- Moved BKChem source into `packages/bkchem-app/bkchem/`.
+- Consolidated BKChem runtime assets into `packages/bkchem-app/bkchem_data/`.
 - Left `docs/`, `tests/`, and `tools/` at the repository root.
 - Added `bkchem_webpage/` to `.gitignore` as a generated artifact.
 

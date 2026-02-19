@@ -4,7 +4,7 @@
 - Install BKChem from the repo as documented in
   [docs/INSTALL.md](docs/INSTALL.md).
 - Launch the GUI using the `bkchem` command (see
-  [packages/bkchem/README.md](packages/bkchem/README.md)).
+  [packages/bkchem-app/README.md](packages/bkchem-app/README.md)).
 
 ```sh
 bkchem

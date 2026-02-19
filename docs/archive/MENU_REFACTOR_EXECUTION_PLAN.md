@@ -133,7 +133,7 @@ def register_file_actions(registry: ActionRegistry, app) -> None:
 
 ## File Ownership Map (8 Coders)
 
-All paths relative to `packages/bkchem/`.
+All paths relative to `packages/bkchem-app/`.
 
 | New File | Coder | Purpose |
 | --- | --- | --- |
@@ -361,7 +361,7 @@ naming convention. Order must match current `menu_template` exactly.
 
 **Deliverables:**
 
-1. `packages/bkchem/bkchem_data/menus.yaml`:
+1. `packages/bkchem-app/bkchem_data/menus.yaml`:
    ```yaml
    menus:
      file:

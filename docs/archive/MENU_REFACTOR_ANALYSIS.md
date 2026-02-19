@@ -4,7 +4,7 @@
 
 ### Current Plugin Types
 
-**A. Import/Export Format Handlers** (packages/bkchem/bkchem/plugins/*.py)
+**A. Import/Export Format Handlers** (packages/bkchem-app/bkchem/plugins/*.py)
 
 These are NOT actually plugins - they are core format handlers statically imported:
 - CML, CML2 (Chemical Markup Language v1 and v2)
@@ -77,7 +77,7 @@ Move to `packages/oasa/oasa/formats/`:
 **Current problem:**
 ```python
 # BKChem has format handlers tightly coupled to GUI
-# packages/bkchem/bkchem/plugins/CML.py
+# packages/bkchem-app/bkchem/plugins/CML.py
 class CML_importer(plugin.importer):
     def get_cdml_dom(self, file_name):
         # Returns CDML (BKChem-specific format)
@@ -132,7 +132,7 @@ default_registry.register('InChI', ['.inchi'], InChICodec)
 default_registry.register('CDXML', ['.cdxml'], CDXMLCodec)
 
 # BKChem GUI just uses OASA registry
-# packages/bkchem/bkchem/main.py
+# packages/bkchem-app/bkchem/main.py
 def import_file(self, file_path):
     """Import molecule from file."""
     ext = os.path.splitext(file_path)[1]
@@ -210,7 +210,7 @@ Keep as optional but improve architecture:
 
 **Action:** Create a renderer plugin API with capability detection:
 ```python
-# packages/bkchem/bkchem/formats/renderer_plugin.py
+# packages/bkchem-app/bkchem/formats/renderer_plugin.py
 class RendererPlugin:
     """Base class for renderer plugins."""
 
@@ -796,7 +796,7 @@ def init_plugin(plugin_api):
 
 **Step 1:** Define platform-agnostic MenuBackend interface
 ```python
-# packages/bkchem/bkchem/menu_backend.py
+# packages/bkchem-app/bkchem/menu_backend.py
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Optional, Tuple
 from dataclasses import dataclass
@@ -1050,7 +1050,7 @@ class PmwMenuBackend(MenuBackend):
 
 **Step 2:** Platform-specific adapters
 ```python
-# packages/bkchem/bkchem/menu_adapters.py
+# packages/bkchem-app/bkchem/menu_adapters.py
 import Pmw
 
 class PmwAdapter:
@@ -1149,7 +1149,7 @@ class PmwWindowsAdapter(PmwAdapter):
 
 **Step 3:** Platform-agnostic MenuBuilder
 ```python
-# packages/bkchem/bkchem/menu_builder.py
+# packages/bkchem-app/bkchem/menu_builder.py
 class MenuBuilder:
     """Platform-agnostic menu builder.
 

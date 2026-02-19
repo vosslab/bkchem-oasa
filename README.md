@@ -5,14 +5,14 @@ Sketching Atoms and Molecules) is the chemistry library that powers structure
 conversion and analysis. This repository is the primary home for both projects.
 
 ## Packages
-- `packages/bkchem/` BKChem Tk GUI for drawing chemical structures.
+- `packages/bkchem-app/` BKChem Tk GUI for drawing chemical structures.
 - `packages/oasa/` OASA (Open Architecture for Sketching Atoms and Molecules)
   library and CLI converters used by BKChem.
 
 ## Terminology
 - Plugin: BKChem GUI extension (menu action or drawing mode) that runs inside the
   editor and uses Tk/UI state.
-- Addon: filesystem plugin loaded from `packages/bkchem/addons/` or
+- Addon: filesystem plugin loaded from `packages/bkchem-app/addons/` or
   `~/.bkchem/addons/`, described by a small XML manifest and script.
 - Codec: OASA format adapter for reading and writing molecules (SMILES, InChI,
   molfile, CDML). Codecs are non-GUI and registered in OASA.
@@ -75,7 +75,7 @@ core workflows that BKChem supports today.
 - [docs/TODO_CODE.md](docs/TODO_CODE.md) coding tasks and feature work.
 - [docs/USER_GUIDE.md](docs/USER_GUIDE.md) BKChem manual.
 - [packages/oasa/README.md](packages/oasa/README.md) for OASA-specific usage.
-- [packages/bkchem/README.md](packages/bkchem/README.md) for BKChem-specific usage.
+- [packages/bkchem-app/README.md](packages/bkchem-app/README.md) for BKChem-specific usage.
 
 ## Distribution
 - Planned: publish OASA to PyPI from this repository.

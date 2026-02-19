@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Three-layer 2D coordinate generator for OASA molecules.
 
 Produces RDKit-quality 2D coordinates without the RDKit dependency.

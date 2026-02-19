@@ -2,7 +2,7 @@
 #
 # This script is for TESTING AND DEVELOPMENT ONLY, not for installation.
 # It configures PYTHONPATH so you can run tests and scripts that import
-# from packages/oasa and packages/bkchem.
+# from packages/oasa and packages/bkchem-app.
 #
 # Usage:
 #   source source_me.sh
@@ -20,7 +20,7 @@ source $HOME/.bashrc
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 
 # Add packages to PYTHONPATH
-export PYTHONPATH="${REPO_ROOT}/packages/oasa:${REPO_ROOT}/packages/bkchem:${PYTHONPATH:-}"
+export PYTHONPATH="${REPO_ROOT}/packages/oasa:${REPO_ROOT}/packages/bkchem-app:${PYTHONPATH:-}"
 
 echo "Environment configured:"
 echo "  REPO_ROOT=${REPO_ROOT}"

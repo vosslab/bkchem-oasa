@@ -39,7 +39,7 @@ becomes the template name shown in the Custom templates menu.
 Templates can be stored in:
 
 - `~/.bkchem/templates/` for per-user templates.
-- `packages/bkchem/bkchem_data/templates/` for source checkouts.
+- `packages/bkchem-app/bkchem_data/templates/` for source checkouts.
 - `share/bkchem/templates/` when installed system-wide.
 
 Use `File -> Save As Template` to save and validate templates.

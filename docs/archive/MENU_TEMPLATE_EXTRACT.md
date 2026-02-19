@@ -4,7 +4,7 @@ Reference table for all `menu_template` entries in `main.py` lines 175-295.
 Every coder must use this as the source of truth for label keys, help keys,
 accelerators, handler expressions, and state variables.
 
-Source: `packages/bkchem/bkchem/main.py`
+Source: `packages/bkchem-app/bkchem/main.py`
 
 ## Tuple Format Reference
 

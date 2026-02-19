@@ -1,7 +1,7 @@
 ## Shell Usage
 - Use `bash` for shell command execution in this repo.
 - Prefix command runs with `source source_me.sh && ...` so repo defaults are consistently applied.
-- Prefix command runs with `source source_me.sh && python3 ` for python to get an allow 
+- Prefix command runs with `source source_me.sh && python3 ` for python to get an allow
 
 ## Coding Style
 See Python coding style in docs/PYTHON_STYLE.md.

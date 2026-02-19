@@ -47,7 +47,7 @@ Deliverable:
 
 ## Phase 3: BKChem integration (DONE)
 - Route BKChem import/export bridges through the registry:
-  - `packages/bkchem/bkchem/oasa_bridge.py` becomes the adapter that calls the
+  - `packages/bkchem-app/bkchem/oasa_bridge.py` becomes the adapter that calls the
     registry instead of direct module calls.
 - Update BKChem format plugins to use the bridge API only.
 - Keep plugin menu names and extensions unchanged for users.

@@ -1125,20 +1125,20 @@
   `output_smoke/l-sugar_matrix.html` with strict checks enabled and zero
   missing generated previews).
 - Remove dormant, unregistered mode implementations from
-  [packages/bkchem/bkchem/modes.py](packages/bkchem/bkchem/modes.py):
+  [packages/bkchem-app/bkchem/modes.py](packages/bkchem-app/bkchem/modes.py):
   `reaction_mode`, `external_data_mode`, and `rapid_draw_mode`; also remove
   stale commented registration lines in
-  [packages/bkchem/bkchem/main.py](packages/bkchem/bkchem/main.py).
+  [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py).
 - Modernize launcher runtime preflight in
-  [packages/bkchem/bkchem/import_checker.py](packages/bkchem/bkchem/import_checker.py)
+  [packages/bkchem-app/bkchem/import_checker.py](packages/bkchem-app/bkchem/import_checker.py)
   to Python 3.10+ policy, remove dead legacy PIL compatibility exports, and
   keep explicit runtime checks for `Pmw` and `oasa`.
 - Update startup failure output in
-  [packages/bkchem/bkchem/bkchem.py](packages/bkchem/bkchem/bkchem.py) to print
+  [packages/bkchem-app/bkchem/bkchem.py](packages/bkchem-app/bkchem/bkchem.py) to print
   readable text (not byte-literals) and exit with non-zero status on failed
   prerequisite checks.
 - Remove unused dead code path `_draw_normal_old` from
-  [packages/bkchem/bkchem/arrow.py](packages/bkchem/bkchem/arrow.py).
+  [packages/bkchem-app/bkchem/arrow.py](packages/bkchem-app/bkchem/arrow.py).
 - Close recovery gates from
   [docs/archive/COMPLETE_BOND_LABEL_PLAN.md](docs/archive/COMPLETE_BOND_LABEL_PLAN.md)
   addendum: remove Haworth renderer text-literal endpoint policy branches in
@@ -1192,16 +1192,16 @@
   [tests/test_phase_c_render_pipeline.py](tests/test_phase_c_render_pipeline.py)
   while preserving geometry/content invariant checks.
 - Remove legacy BKChem fallback writer file
-  `packages/bkchem/bkchem/non_xml_writer.py` (no remaining runtime references).
+  `packages/bkchem-app/bkchem/non_xml_writer.py` (no remaining runtime references).
 - Retire legacy BKChem HTTP export/control surface by removing
-  `packages/bkchem/bkchem/http_server.py`,
-  `packages/bkchem/bkchem/http_server2.py`, and
-  `packages/bkchem/bkchem/bkchem.js`; remove `BKChem.start_server()` wiring in
-  `packages/bkchem/bkchem/main.py`.
+  `packages/bkchem-app/bkchem/http_server.py`,
+  `packages/bkchem-app/bkchem/http_server2.py`, and
+  `packages/bkchem-app/bkchem/bkchem.js`; remove `BKChem.start_server()` wiring in
+  `packages/bkchem-app/bkchem/main.py`.
 - Remove legacy Tk XML/SVG writer module
-  `packages/bkchem/bkchem/xml_writer.py`; switch
+  `packages/bkchem-app/bkchem/xml_writer.py`; switch
   `chem_paper.selected_to_real_clipboard_as_SVG()` in
-  `packages/bkchem/bkchem/paper.py` to OASA render output instead of GUI
+  `packages/bkchem-app/bkchem/paper.py` to OASA render output instead of GUI
   writer internals.
 - Refresh architecture documentation in
   [docs/CODE_ARCHITECTURE.md](docs/CODE_ARCHITECTURE.md) to describe OASA-based
@@ -1338,24 +1338,24 @@
   and keep canary coverage in
   [tests/test_attach_targets.py](tests/test_attach_targets.py).
 - Migrate BKChem endpoint clipping to shared target resolution in
-  [packages/bkchem/bkchem/bond.py](packages/bkchem/bkchem/bond.py)
+  [packages/bkchem-app/bkchem/bond.py](packages/bkchem-app/bkchem/bond.py)
   (via `make_box_target(...)` + `resolve_attach_endpoint(...)`), eliminating
   standalone direct rectangle clipping in the bond endpoint path.
 - Decompose `bond.py` into focused mixins without behavior change:
   add
-  [packages/bkchem/bkchem/bond_drawing.py](packages/bkchem/bkchem/bond_drawing.py),
-  [packages/bkchem/bkchem/bond_display.py](packages/bkchem/bkchem/bond_display.py),
+  [packages/bkchem-app/bkchem/bond_drawing.py](packages/bkchem-app/bkchem/bond_drawing.py),
+  [packages/bkchem-app/bkchem/bond_display.py](packages/bkchem-app/bkchem/bond_display.py),
   and
-  [packages/bkchem/bkchem/bond_cdml.py](packages/bkchem/bkchem/bond_cdml.py),
+  [packages/bkchem-app/bkchem/bond_cdml.py](packages/bkchem-app/bkchem/bond_cdml.py),
   and wire
-  [packages/bkchem/bkchem/bond.py](packages/bkchem/bkchem/bond.py)
+  [packages/bkchem-app/bkchem/bond.py](packages/bkchem-app/bkchem/bond.py)
   to inherit these mixins.
 - Update phase governance language in
   [docs/archive/COMPLETE_BOND_LABEL_PLAN.md](docs/archive/COMPLETE_BOND_LABEL_PLAN.md)
   to reflect completed Phase C status, wrapper-removal state, and final
   migration/deletion cutover policy.
 - Fix BKChem import-mode compatibility for mixin decomposition in
-  [packages/bkchem/bkchem/bond.py](packages/bkchem/bkchem/bond.py):
+  [packages/bkchem-app/bkchem/bond.py](packages/bkchem-app/bkchem/bond.py):
   prefer package-relative mixin imports and add deterministic top-level import
   fallback via `importlib` for legacy `sys.path` usage (`import bond`).
 - Reconcile Phase C plan acceptance text in
@@ -1368,26 +1368,26 @@
   (`510 passed`, `6 skipped`).
 - Remove deprecated BKChem left/right hashed draw variants from runtime drawing:
   delete `_draw_l*`/`_draw_r*` and side-hash rendering path in
-  [packages/bkchem/bkchem/bond.py](packages/bkchem/bkchem/bond.py),
+  [packages/bkchem-app/bkchem/bond.py](packages/bkchem-app/bkchem/bond.py),
   normalize legacy `l/r` runtime draws to hashed `h` in `draw()`, and narrow
   hashed-only visibility/export handling in
-  [packages/bkchem/bkchem/bond_display.py](packages/bkchem/bkchem/bond_display.py)
+  [packages/bkchem-app/bkchem/bond_display.py](packages/bkchem-app/bkchem/bond_display.py)
   and
-  [packages/bkchem/bkchem/xml_writer.py](packages/bkchem/bkchem/xml_writer.py);
+  [packages/bkchem-app/bkchem/xml_writer.py](packages/bkchem-app/bkchem/xml_writer.py);
   full suite revalidated:
   `source source_me.sh && /opt/homebrew/opt/python@3.12/bin/python3.12 -m pytest`
   (`510 passed`, `6 skipped`).
 - Complete BKChem legacy draw-path deletion in
-  [packages/bkchem/bkchem/bond.py](packages/bkchem/bkchem/bond.py):
+  [packages/bkchem-app/bkchem/bond.py](packages/bkchem-app/bkchem/bond.py):
   remove the per-type `_draw_*` geometry pipeline from `bond.py`, route
   `bond.draw()` through shared OASA render-ops via new Tk adapter mixin
-  [packages/bkchem/bkchem/bond_render_ops.py](packages/bkchem/bkchem/bond_render_ops.py),
+  [packages/bkchem-app/bkchem/bond_render_ops.py](packages/bkchem-app/bkchem/bond_render_ops.py),
   move type/order geometry control to
-  [packages/bkchem/bkchem/bond_type_control.py](packages/bkchem/bkchem/bond_type_control.py),
+  [packages/bkchem-app/bkchem/bond_type_control.py](packages/bkchem-app/bkchem/bond_type_control.py),
   and keep only BKChem-specific object state/properties in `bond.py`
   (`312` lines).
 - Update BKChem display/export integration for render-op outputs in
-  [packages/bkchem/bkchem/bond_display.py](packages/bkchem/bkchem/bond_display.py)
+  [packages/bkchem-app/bkchem/bond_display.py](packages/bkchem-app/bkchem/bond_display.py)
   so focus/unfocus, deletion, and exporter item selection operate on the new
   rendered item-id list.
 - Update recovery status in
@@ -1619,8 +1619,8 @@
   `<metadata><doc href="https://github.com/vosslab/bkchem/blob/main/docs/CDML_FORMAT_SPEC.md"/></metadata>`
   in OASA/BKChem CDML output writers
   ([packages/oasa/oasa/cdml_writer.py](packages/oasa/oasa/cdml_writer.py),
-  [packages/bkchem/bkchem/paper.py](packages/bkchem/bkchem/paper.py), and
-  [packages/bkchem/bkchem/data.py](packages/bkchem/bkchem/data.py)),
+  [packages/bkchem-app/bkchem/paper.py](packages/bkchem-app/bkchem/paper.py), and
+  [packages/bkchem-app/bkchem/data.py](packages/bkchem-app/bkchem/data.py)),
   update spec guidance in
   [docs/CDML_FORMAT_SPEC.md](docs/CDML_FORMAT_SPEC.md), and add regression
   coverage in [tests/test_codec_registry.py](tests/test_codec_registry.py) and
@@ -1693,16 +1693,16 @@
   [packages/oasa/oasa/codecs/render.py](packages/oasa/oasa/codecs/render.py),
   and [packages/oasa/oasa/codecs/cdsvg.py](packages/oasa/oasa/codecs/cdsvg.py);
   route BKChem export paths through registry/bridge in
-  [packages/bkchem/bkchem/format_loader.py](packages/bkchem/bkchem/format_loader.py),
-  [packages/bkchem/bkchem/main.py](packages/bkchem/bkchem/main.py),
-  [packages/bkchem/bkchem/http_server2.py](packages/bkchem/bkchem/http_server2.py),
-  and [packages/bkchem/bkchem/export.py](packages/bkchem/bkchem/export.py);
+  [packages/bkchem-app/bkchem/format_loader.py](packages/bkchem-app/bkchem/format_loader.py),
+  [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py),
+  [packages/bkchem-app/bkchem/http_server2.py](packages/bkchem-app/bkchem/http_server2.py),
+  and [packages/bkchem-app/bkchem/export.py](packages/bkchem-app/bkchem/export.py);
   extend manifest entries in
-  [packages/bkchem/bkchem/format_menus.yaml](packages/bkchem/bkchem/format_menus.yaml);
+  [packages/bkchem-app/bkchem/format_menus.yaml](packages/bkchem-app/bkchem/format_menus.yaml);
   and remove the Tk/cairo renderer plugin stack
   (`tk2cairo.py`, `cairo_lowlevel.py`, `pdf_cairo.py`, `png_cairo.py`,
   `svg_cairo.py`, `ps_cairo.py`, `ps_builtin.py`, `odf.py`) from
-  [packages/bkchem/bkchem/plugins/](packages/bkchem/bkchem/plugins/).
+  [packages/bkchem-app/bkchem/plugins/](packages/bkchem-app/bkchem/plugins/).
 - Add Phase C regression coverage in
   [tests/test_phase_c_render_pipeline.py](tests/test_phase_c_render_pipeline.py),
   expand codec/manifest checks in
@@ -1714,7 +1714,7 @@
   [packages/oasa/oasa/molecule_utils.py](packages/oasa/oasa/molecule_utils.py)
   and route both
   [packages/oasa/oasa/render_out.py](packages/oasa/oasa/render_out.py) and
-  [packages/bkchem/bkchem/oasa_bridge.py](packages/bkchem/bkchem/oasa_bridge.py)
+  [packages/bkchem-app/bkchem/oasa_bridge.py](packages/bkchem-app/bkchem/oasa_bridge.py)
   through that shared utility; remove redundant SVG root append in
   [packages/oasa/oasa/render_out.py](packages/oasa/oasa/render_out.py); avoid
   built-in shadowing by switching `mol_to_output(..., format=...)` to
@@ -1734,11 +1734,11 @@
   to keep legacy CML codecs wired through explicit read callables.
 - Enforce legacy export-drop policy in bridge code by keeping CML export hard
   disabled in
-  [packages/bkchem/bkchem/oasa_bridge.py](packages/bkchem/bkchem/oasa_bridge.py),
+  [packages/bkchem-app/bkchem/oasa_bridge.py](packages/bkchem-app/bkchem/oasa_bridge.py),
   and remove stale commented code in `read_inchi`.
 - Add inline technical-debt note for SMILES/InChI selected-molecule special
   handling in
-  [packages/bkchem/bkchem/format_loader.py](packages/bkchem/bkchem/format_loader.py),
+  [packages/bkchem-app/bkchem/format_loader.py](packages/bkchem-app/bkchem/format_loader.py),
   and keep regression coverage aligned in
   [tests/test_codec_registry_bkchem_bridge.py](tests/test_codec_registry_bkchem_bridge.py).
 - Complete Phase B audit/retention work for
@@ -1750,7 +1750,7 @@
   [docs/archive/PURE_OASA_BACKEND_REFACTOR.md](docs/archive/PURE_OASA_BACKEND_REFACTOR.md),
   and add follow-up backlog items in [docs/TODO_CODE.md](docs/TODO_CODE.md).
 - Make GTML explicitly import-only by setting `exporter = None` in
-  [packages/bkchem/bkchem/plugins/gtml.py](packages/bkchem/bkchem/plugins/gtml.py)
+  [packages/bkchem-app/bkchem/plugins/gtml.py](packages/bkchem-app/bkchem/plugins/gtml.py)
   so no GTML exporter entry is exposed in the GUI export path.
 - Add Phase B guardrail coverage in
   [tests/test_phase_b_option_policy.py](tests/test_phase_b_option_policy.py)
@@ -1766,16 +1766,16 @@
   [packages/oasa/oasa/codecs/cml.py](packages/oasa/oasa/codecs/cml.py) and
   [packages/oasa/oasa/codecs/cml2.py](packages/oasa/oasa/codecs/cml2.py),
   add BKChem registry-driven format plumbing via
-  [packages/bkchem/bkchem/format_loader.py](packages/bkchem/bkchem/format_loader.py)
+  [packages/bkchem-app/bkchem/format_loader.py](packages/bkchem-app/bkchem/format_loader.py)
   and
-  [packages/bkchem/bkchem/format_menus.yaml](packages/bkchem/bkchem/format_menus.yaml),
+  [packages/bkchem-app/bkchem/format_menus.yaml](packages/bkchem-app/bkchem/format_menus.yaml),
   route menu handling through the loader in
-  [packages/bkchem/bkchem/main.py](packages/bkchem/bkchem/main.py), remove
+  [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py), remove
   format plugins (`CML.py`, `CML2.py`, `CDXML.py`, `molfile.py`, `smiles.py`,
   `inchi.py`, `povray.py`) from
-  [packages/bkchem/bkchem/plugins/](packages/bkchem/bkchem/plugins/), and keep
+  [packages/bkchem-app/bkchem/plugins/](packages/bkchem-app/bkchem/plugins/), and keep
   only legacy GTML/renderer plugin discovery in
-  [packages/bkchem/bkchem/plugins/__init__.py](packages/bkchem/bkchem/plugins/__init__.py).
+  [packages/bkchem-app/bkchem/plugins/__init__.py](packages/bkchem-app/bkchem/plugins/__init__.py).
 - Replace deleted-plugin tests with loader/bridge coverage in
   [tests/test_codec_registry_bkchem_plugins.py](tests/test_codec_registry_bkchem_plugins.py),
   update registry capability assertions in
@@ -1829,7 +1829,7 @@
   [docs/HAWORTH_CODE_ORGANIZATION_PLAN.md](docs/HAWORTH_CODE_ORGANIZATION_PLAN.md)
   by replacing corrupted separator lines with an ASCII markdown table.
 - Remove SOAP support references by deleting the legacy SOAP server startup
-  block from [packages/bkchem/bkchem/main.py](packages/bkchem/bkchem/main.py)
+  block from [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py)
   and dropping `SOAPpy` from [pip_requirements.txt](pip_requirements.txt).
 - Add inline purpose comments for each dependency in
   [pip_requirements.txt](pip_requirements.txt),
@@ -1844,11 +1844,11 @@
   [packages/oasa/oasa/codecs/cdxml.py](packages/oasa/oasa/codecs/cdxml.py)),
   registering them in
   [packages/oasa/oasa/codec_registry.py](packages/oasa/oasa/codec_registry.py),
-  extending [packages/bkchem/bkchem/oasa_bridge.py](packages/bkchem/bkchem/oasa_bridge.py)
+  extending [packages/bkchem-app/bkchem/oasa_bridge.py](packages/bkchem-app/bkchem/oasa_bridge.py)
   with generic codec file bridge helpers, and rewriting BKChem format plugins
-  [packages/bkchem/bkchem/plugins/CML.py](packages/bkchem/bkchem/plugins/CML.py),
-  [packages/bkchem/bkchem/plugins/CML2.py](packages/bkchem/bkchem/plugins/CML2.py),
-  and [packages/bkchem/bkchem/plugins/CDXML.py](packages/bkchem/bkchem/plugins/CDXML.py)
+  [packages/bkchem-app/bkchem/plugins/CML.py](packages/bkchem-app/bkchem/plugins/CML.py),
+  [packages/bkchem-app/bkchem/plugins/CML2.py](packages/bkchem-app/bkchem/plugins/CML2.py),
+  and [packages/bkchem-app/bkchem/plugins/CDXML.py](packages/bkchem-app/bkchem/plugins/CDXML.py)
   as thin bridge wrappers.
 - Expand codec integration coverage in
   [tests/test_codec_registry.py](tests/test_codec_registry.py) and
@@ -2660,7 +2660,7 @@
   to build a benzene ring (hexagon with alternating double bonds) and include
   it in [tests/run_smoke.sh](../tests/run_smoke.sh).
 - Replace deprecated inspect.getargspec with getfullargspec in
-  [packages/bkchem/bkchem/undo.py](../packages/bkchem/bkchem/undo.py) to
+  [packages/bkchem-app/bkchem/undo.py](../packages/bkchem-app/bkchem/undo.py) to
   restore undo/redo under Python 3.12.
 - Deiconify the GUI and add event-loop flush delays in
   [tests/test_bkchem_gui_events.py](../tests/test_bkchem_gui_events.py) so
@@ -2844,7 +2844,7 @@
   [docs/BOND_BACKEND_ALIGNMENT_PLAN.md](docs/BOND_BACKEND_ALIGNMENT_PLAN.md)
   to reflect current semantics and registry guidance.
 - Replace OASA-generated atom nodes with BKChem atom/group/text/query CDML
-  elements in `packages/bkchem/bkchem/molecule.py` to preserve vertex-specific
+  elements in `packages/bkchem-app/bkchem/molecule.py` to preserve vertex-specific
   serialization details.
 - Extend `tests/test_bkchem_cdml_writer_flag.py` dummy helpers with real-coordinate
   passthrough and unique IDs for atom replacement coverage.
@@ -3006,13 +3006,13 @@
 - Fix the Fischer explicit hydrogen test import path, remove the shebang, and
   avoid returning values from pytest tests in `tests/test_fischer_explicit_h.py`.
 - Route BKChem conversion helpers through the OASA codec registry in
-  `packages/bkchem/bkchem/oasa_bridge.py`.
+  `packages/bkchem-app/bkchem/oasa_bridge.py`.
 - Document codec-registry-backed plugin guidance in
   [docs/CUSTOM_PLUGINS.md](docs/CUSTOM_PLUGINS.md).
 - Add BKChem codec-registry bridge tests in
   `tests/test_codec_registry_bkchem_bridge.py`.
 - Flip the default `use_oasa_cdml_writer` flag to True in
-  `packages/bkchem/bkchem/config.py`.
+  `packages/bkchem-app/bkchem/config.py`.
 - Mark CDML architecture plan phases 1 and 2 complete in
   [docs/CDML_ARCHITECTURE_PLAN.md](docs/CDML_ARCHITECTURE_PLAN.md).
 - Remove legacy left/right hatch references from
@@ -3082,7 +3082,7 @@
 - Normalize legacy bond types and canonicalize wedge/hashed vertex ordering on
   CDML read in `packages/oasa/oasa/cdml.py`.
 - Normalize legacy bond types and canonicalize wedge/hashed vertex ordering on
-  BKChem CDML read in `packages/bkchem/bkchem/bond.py`.
+  BKChem CDML read in `packages/bkchem-app/bkchem/bond.py`.
 - Add vertex ordering tests for wedge/hashed bonds in
   `tests/test_bond_vertex_ordering.py`.
 - Add CDML bond semantics tests (legacy type normalization and canonicalized
@@ -3092,7 +3092,7 @@
 - Route OASA CDML bond parsing through shared CDML attribute helpers in
   `packages/oasa/oasa/cdml.py`.
 - Route BKChem CDML bond parsing and serialization through shared CDML
-  attribute helpers in `packages/bkchem/bkchem/bond.py`.
+  attribute helpers in `packages/bkchem-app/bkchem/bond.py`.
 - Add CDML bond IO unit tests in `tests/test_cdml_bond_io.py`.
 - Add a BKChem CDML bond serialization smoke test in
   `tests/test_bkchem_cdml_bond_smoke.py`.
@@ -3107,7 +3107,7 @@
   `tests/test_cdml_bond_semantics.py`.
 - Switch BKChem wedge rendering to the shared rounded wedge geometry and
   render Haworth `q` bonds as round-capped thick lines in
-  `packages/bkchem/bkchem/bond.py`.
+  `packages/bkchem-app/bkchem/bond.py`.
 - Add BKChem rounded wedge and Haworth `q` rendering tests in
   `tests/test_bkchem_round_wedge.py`.
 - Add shared atom color palettes in `packages/oasa/oasa/atom_colors.py` and
@@ -3119,14 +3119,14 @@
   route OASA CDML reads through it in `packages/oasa/oasa/cdml.py`, and add
   a basic writer unit test in `tests/test_cdml_writer.py`.
 - Add `config.use_oasa_cdml_writer` and a gated BKChem molecule serializer
-  path in `packages/bkchem/bkchem/config.py` and
-  `packages/bkchem/bkchem/molecule.py`.
+  path in `packages/bkchem-app/bkchem/config.py` and
+  `packages/bkchem-app/bkchem/molecule.py`.
 - Extend bond CDML helpers to store present/unknown attributes on the bond
   object (while keeping properties_ compatibility) in
   `packages/oasa/oasa/cdml_bond_io.py`.
 - Expose `render_ops` and `wedge_geometry` from `packages/oasa/oasa/__init__.py`
   and update BKChem bond rendering to import them directly in
-  `packages/bkchem/bkchem/bond.py`.
+  `packages/bkchem-app/bkchem/bond.py`.
 - Remove unused XML import from `packages/oasa/oasa/selftest_sheet.py`.
 - Regenerate reference outputs under `docs/reference_outputs/` using
   `tools/render_reference_outputs.py`.
@@ -3198,16 +3198,16 @@
 - Add ops-level substituent orientation tests in
   `tests/test_haworth_layout.py`.
 - Add folder-based template catalog scanning utilities in
-  `packages/bkchem/bkchem/template_catalog.py` plus a scan test in
+  `packages/bkchem-app/bkchem/template_catalog.py` plus a scan test in
   `tests/test_template_catalog.py`.
 - Add biomolecule template label formatting and biomolecule template directory
-  discovery helpers in `packages/bkchem/bkchem/template_catalog.py`.
+  discovery helpers in `packages/bkchem-app/bkchem/template_catalog.py`.
 - Add a biomolecule template manager, mode, and Insert-menu entry for
-  template insertion in `packages/bkchem/bkchem/main.py`,
-  `packages/bkchem/bkchem/modes.py`, and
-  `packages/bkchem/bkchem/singleton_store.py`.
+  template insertion in `packages/bkchem-app/bkchem/main.py`,
+  `packages/bkchem-app/bkchem/modes.py`, and
+  `packages/bkchem-app/bkchem/singleton_store.py`.
 - Add CDML biomolecule templates (carbs, protein, lipids, nucleic acids) under
-  `packages/bkchem/bkchem_data/templates/biomolecules/`.
+  `packages/bkchem-app/bkchem_data/templates/biomolecules/`.
 - Add biomolecule template insertion smoke coverage in
   `tests/test_biomolecule_templates.py`, plus label formatting coverage in
   `tests/test_template_catalog.py`.

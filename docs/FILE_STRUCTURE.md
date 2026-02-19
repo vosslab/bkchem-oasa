@@ -13,38 +13,38 @@
   dependency manifests.
 - [version.txt](version.txt) shared version registry for BKChem and OASA.
 
-## BKChem package (`packages/bkchem/`)
-- [packages/bkchem/bkchem/](packages/bkchem/bkchem/) BKChem application package.
-- [packages/bkchem/bkchem/bkchem.py](packages/bkchem/bkchem/bkchem.py)
+## BKChem package (`packages/bkchem-app/`)
+- [packages/bkchem-app/bkchem/](packages/bkchem-app/bkchem/) BKChem application package.
+- [packages/bkchem-app/bkchem/bkchem.py](packages/bkchem-app/bkchem/bkchem.py)
   application bootstrap and CLI flags.
-- [packages/bkchem/bkchem/main.py](packages/bkchem/bkchem/main.py) main Tk
+- [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py) main Tk
   application class and menus.
-- [packages/bkchem/bkchem/paper.py](packages/bkchem/bkchem/paper.py) canvas and
+- [packages/bkchem-app/bkchem/paper.py](packages/bkchem-app/bkchem/paper.py) canvas and
   document container (`chem_paper`).
-- [packages/bkchem/bkchem/molecule.py](packages/bkchem/bkchem/molecule.py),
-  [packages/bkchem/bkchem/atom.py](packages/bkchem/bkchem/atom.py),
-  [packages/bkchem/bkchem/bond.py](packages/bkchem/bkchem/bond.py) core chemical
+- [packages/bkchem-app/bkchem/molecule.py](packages/bkchem-app/bkchem/molecule.py),
+  [packages/bkchem-app/bkchem/atom.py](packages/bkchem-app/bkchem/atom.py),
+  [packages/bkchem-app/bkchem/bond.py](packages/bkchem-app/bkchem/bond.py) core chemical
   objects.
-- [packages/bkchem/bkchem/modes.py](packages/bkchem/bkchem/modes.py),
-  [packages/bkchem/bkchem/interactors.py](packages/bkchem/bkchem/interactors.py),
-  [packages/bkchem/bkchem/context_menu.py](packages/bkchem/bkchem/context_menu.py)
+- [packages/bkchem-app/bkchem/modes.py](packages/bkchem-app/bkchem/modes.py),
+  [packages/bkchem-app/bkchem/interactors.py](packages/bkchem-app/bkchem/interactors.py),
+  [packages/bkchem-app/bkchem/context_menu.py](packages/bkchem-app/bkchem/context_menu.py)
   UI modes and input handling.
-- [packages/bkchem/bkchem/export.py](packages/bkchem/bkchem/export.py) CDML and
+- [packages/bkchem-app/bkchem/export.py](packages/bkchem-app/bkchem/export.py) CDML and
   CD-SVG export helpers.
-- [packages/bkchem/bkchem/plugin_support.py](packages/bkchem/bkchem/plugin_support.py)
+- [packages/bkchem-app/bkchem/plugin_support.py](packages/bkchem-app/bkchem/plugin_support.py)
   plugin discovery and execution.
-- [packages/bkchem/bkchem/plugins/](packages/bkchem/bkchem/plugins/) built-in
+- [packages/bkchem-app/bkchem/plugins/](packages/bkchem-app/bkchem/plugins/) built-in
   exporter backends and format handlers.
-- [packages/bkchem/addons/](packages/bkchem/addons/) user-facing addon scripts
+- [packages/bkchem-app/addons/](packages/bkchem-app/addons/) user-facing addon scripts
   and XML descriptors.
-- [packages/bkchem/bkchem_data/](packages/bkchem/bkchem_data/) templates,
+- [packages/bkchem-app/bkchem_data/](packages/bkchem-app/bkchem_data/) templates,
   images, pixmaps, locale files, and DTDs.
-- [packages/bkchem/bkchem_data/templates/biomolecules/](packages/bkchem/bkchem_data/templates/biomolecules/)
+- [packages/bkchem-app/bkchem_data/templates/biomolecules/](packages/bkchem-app/bkchem_data/templates/biomolecules/)
   biomolecule template folders (carbs, protein, lipids, nucleic acids).
-- [packages/bkchem/pyproject.toml](packages/bkchem/pyproject.toml),
-  [packages/bkchem/MANIFEST.in](packages/bkchem/MANIFEST.in) packaging metadata.
-- [packages/bkchem/bkchem.iss](packages/bkchem/bkchem.iss),
-  [packages/bkchem/prepare_release.sh](packages/bkchem/prepare_release.sh)
+- [packages/bkchem-app/pyproject.toml](packages/bkchem-app/pyproject.toml),
+  [packages/bkchem-app/MANIFEST.in](packages/bkchem-app/MANIFEST.in) packaging metadata.
+- [packages/bkchem-app/bkchem.iss](packages/bkchem-app/bkchem.iss),
+  [packages/bkchem-app/prepare_release.sh](packages/bkchem-app/prepare_release.sh)
   release assets.
 
 ## OASA package (`packages/oasa/`)
@@ -79,7 +79,7 @@
 - `haworth_layout_smoke.svg`, `haworth_layout_smoke.png` when saved by tests.
 
 ## Where to add new work
-- New core BKChem features: [packages/bkchem/bkchem/](packages/bkchem/bkchem/).
+- New core BKChem features: [packages/bkchem-app/bkchem/](packages/bkchem-app/bkchem/).
 - New OASA features: [packages/oasa/oasa/](packages/oasa/oasa/).
 - New tests and smoke scripts: [tests/](tests/).
 - New docs: [docs/](docs/) following [docs/REPO_STYLE.md](docs/REPO_STYLE.md).

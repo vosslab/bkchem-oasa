@@ -9,33 +9,33 @@
 
 ## Major components
 - Application entry points
-  - [packages/bkchem/bkchem/bkchem.py](packages/bkchem/bkchem/bkchem.py) boots
+  - [packages/bkchem-app/bkchem/bkchem.py](packages/bkchem-app/bkchem/bkchem.py) boots
     the app, loads preferences, and parses CLI flags.
-  - [packages/bkchem/bkchem/cli.py](packages/bkchem/bkchem/cli.py) exposes the
+  - [packages/bkchem-app/bkchem/cli.py](packages/bkchem-app/bkchem/cli.py) exposes the
     console entry point for BKChem.
-  - [packages/bkchem/bkchem/main.py](packages/bkchem/bkchem/main.py) defines the
+  - [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py) defines the
     `BKChem` Tk application class, menus, and mode wiring.
 - UI and interaction layer
-  - [packages/bkchem/bkchem/paper.py](packages/bkchem/bkchem/paper.py) implements
+  - [packages/bkchem-app/bkchem/paper.py](packages/bkchem-app/bkchem/paper.py) implements
     `chem_paper`, the main Tk Canvas for drawing, selection, and events.
-  - [packages/bkchem/bkchem/modes.py](packages/bkchem/bkchem/modes.py),
-    [packages/bkchem/bkchem/interactors.py](packages/bkchem/bkchem/interactors.py),
-    and [packages/bkchem/bkchem/context_menu.py](packages/bkchem/bkchem/context_menu.py)
+  - [packages/bkchem-app/bkchem/modes.py](packages/bkchem-app/bkchem/modes.py),
+    [packages/bkchem-app/bkchem/interactors.py](packages/bkchem-app/bkchem/interactors.py),
+    and [packages/bkchem-app/bkchem/context_menu.py](packages/bkchem-app/bkchem/context_menu.py)
     define editing modes and input handlers.
-  - [packages/bkchem/bkchem/undo.py](packages/bkchem/bkchem/undo.py) and
-    [packages/bkchem/bkchem/edit_pool.py](packages/bkchem/bkchem/edit_pool.py)
+  - [packages/bkchem-app/bkchem/undo.py](packages/bkchem-app/bkchem/undo.py) and
+    [packages/bkchem-app/bkchem/edit_pool.py](packages/bkchem-app/bkchem/edit_pool.py)
     manage undo stacks and edit history.
 - Chemistry model and drawing objects
-  - [packages/bkchem/bkchem/molecule.py](packages/bkchem/bkchem/molecule.py)
+  - [packages/bkchem-app/bkchem/molecule.py](packages/bkchem-app/bkchem/molecule.py)
     wraps [packages/oasa/oasa/molecule.py](packages/oasa/oasa/molecule.py).
-  - [packages/bkchem/bkchem/atom.py](packages/bkchem/bkchem/atom.py) and
-    [packages/bkchem/bkchem/bond.py](packages/bkchem/bkchem/bond.py) extend OASA
+  - [packages/bkchem-app/bkchem/atom.py](packages/bkchem-app/bkchem/atom.py) and
+    [packages/bkchem-app/bkchem/bond.py](packages/bkchem-app/bkchem/bond.py) extend OASA
     atoms and bonds with drawing metadata.
-  - [packages/bkchem/bkchem/group.py](packages/bkchem/bkchem/group.py),
-    [packages/bkchem/bkchem/fragment.py](packages/bkchem/bkchem/fragment.py),
-    [packages/bkchem/bkchem/reaction.py](packages/bkchem/bkchem/reaction.py),
-    [packages/bkchem/bkchem/arrow.py](packages/bkchem/bkchem/arrow.py), and
-    [packages/bkchem/bkchem/textatom.py](packages/bkchem/bkchem/textatom.py)
+  - [packages/bkchem-app/bkchem/group.py](packages/bkchem-app/bkchem/group.py),
+    [packages/bkchem-app/bkchem/fragment.py](packages/bkchem-app/bkchem/fragment.py),
+    [packages/bkchem-app/bkchem/reaction.py](packages/bkchem-app/bkchem/reaction.py),
+    [packages/bkchem-app/bkchem/arrow.py](packages/bkchem-app/bkchem/arrow.py), and
+    [packages/bkchem-app/bkchem/textatom.py](packages/bkchem-app/bkchem/textatom.py)
     implement higher-level drawing objects.
 - OASA core library
   - [packages/oasa/oasa/](packages/oasa/oasa/) contains the chemistry graph
@@ -50,40 +50,40 @@
 - File formats and I/O
   - CDML serialization is handled by
     [packages/oasa/oasa/cdml_writer.py](packages/oasa/oasa/cdml_writer.py),
-    [packages/bkchem/bkchem/paper.py](packages/bkchem/bkchem/paper.py),
-    and [packages/bkchem/bkchem/CDML_versions.py](packages/bkchem/bkchem/CDML_versions.py).
+    [packages/bkchem-app/bkchem/paper.py](packages/bkchem-app/bkchem/paper.py),
+    and [packages/bkchem-app/bkchem/CDML_versions.py](packages/bkchem-app/bkchem/CDML_versions.py).
   - Export routing lives in
-    [packages/bkchem/bkchem/format_loader.py](packages/bkchem/bkchem/format_loader.py),
-    [packages/bkchem/bkchem/main.py](packages/bkchem/bkchem/main.py), and
-    [packages/bkchem/bkchem/oasa_bridge.py](packages/bkchem/bkchem/oasa_bridge.py).
+    [packages/bkchem-app/bkchem/format_loader.py](packages/bkchem-app/bkchem/format_loader.py),
+    [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py), and
+    [packages/bkchem-app/bkchem/oasa_bridge.py](packages/bkchem-app/bkchem/oasa_bridge.py).
   - Built-in exporters live under
-    [packages/bkchem/bkchem/plugins/](packages/bkchem/bkchem/plugins/).
+    [packages/bkchem-app/bkchem/plugins/](packages/bkchem-app/bkchem/plugins/).
 - Templates and reusable structures
   - Template loading is handled by
-    [packages/bkchem/bkchem/temp_manager.py](packages/bkchem/bkchem/temp_manager.py)
+    [packages/bkchem-app/bkchem/temp_manager.py](packages/bkchem-app/bkchem/temp_manager.py)
     and catalog discovery in
-    [packages/bkchem/bkchem/template_catalog.py](packages/bkchem/bkchem/template_catalog.py).
+    [packages/bkchem-app/bkchem/template_catalog.py](packages/bkchem-app/bkchem/template_catalog.py).
   - Built-in templates live under
-    [packages/bkchem/bkchem_data/templates/](packages/bkchem/bkchem_data/templates/),
+    [packages/bkchem-app/bkchem_data/templates/](packages/bkchem-app/bkchem_data/templates/),
     including biomolecule templates in
-    [packages/bkchem/bkchem_data/templates/biomolecules/](packages/bkchem/bkchem_data/templates/biomolecules/).
+    [packages/bkchem-app/bkchem_data/templates/biomolecules/](packages/bkchem-app/bkchem_data/templates/biomolecules/).
 - Plugin system
-  - [packages/bkchem/bkchem/plugin_support.py](packages/bkchem/bkchem/plugin_support.py)
+  - [packages/bkchem-app/bkchem/plugin_support.py](packages/bkchem-app/bkchem/plugin_support.py)
     loads addon XML descriptors and scripts from
-    [packages/bkchem/addons/](packages/bkchem/addons/).
+    [packages/bkchem-app/addons/](packages/bkchem-app/addons/).
 
 ## Data flow
-1. [packages/bkchem/bkchem/bkchem.py](packages/bkchem/bkchem/bkchem.py) loads
+1. [packages/bkchem-app/bkchem/bkchem.py](packages/bkchem-app/bkchem/bkchem.py) loads
    preferences, initializes locale, and creates a `BKChem` instance.
-2. [packages/bkchem/bkchem/main.py](packages/bkchem/bkchem/main.py) builds the UI
-   and constructs a [packages/bkchem/bkchem/paper.py](packages/bkchem/bkchem/paper.py)
+2. [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py) builds the UI
+   and constructs a [packages/bkchem-app/bkchem/paper.py](packages/bkchem-app/bkchem/paper.py)
    canvas.
 3. User input routes through modes and interactors into canvas operations.
 4. `chem_paper` maintains a stack of top-level objects (molecules, arrows, text).
 5. Model edits update atoms and bonds, which redraw onto the canvas.
 6. Save and export paths serialize CDML or render SVG/bitmap output through OASA.
 7. Imports use OASA parsers and
-   [packages/bkchem/bkchem/oasa_bridge.py](packages/bkchem/bkchem/oasa_bridge.py)
+   [packages/bkchem-app/bkchem/oasa_bridge.py](packages/bkchem-app/bkchem/oasa_bridge.py)
    to create BKChem molecules.
 
 ## Testing and verification
@@ -98,14 +98,14 @@
   [tests/test_reference_outputs.py](tests/test_reference_outputs.py).
 
 ## Extension points
-- Add new BKChem addons under [packages/bkchem/addons/](packages/bkchem/addons/)
+- Add new BKChem addons under [packages/bkchem-app/addons/](packages/bkchem-app/addons/)
   with XML descriptors for discovery.
 - Add export plugins under
-  [packages/bkchem/bkchem/plugins/](packages/bkchem/bkchem/plugins/).
+  [packages/bkchem-app/bkchem/plugins/](packages/bkchem-app/bkchem/plugins/).
 - Add templates under
-  [packages/bkchem/bkchem_data/templates/](packages/bkchem/bkchem_data/templates/)
+  [packages/bkchem-app/bkchem_data/templates/](packages/bkchem-app/bkchem_data/templates/)
   or subfolders scanned by
-  [packages/bkchem/bkchem/template_catalog.py](packages/bkchem/bkchem/template_catalog.py).
+  [packages/bkchem-app/bkchem/template_catalog.py](packages/bkchem-app/bkchem/template_catalog.py).
 
 ## Known gaps
 - Verify how installer packaging bundles `bkchem_data` assets in macOS and

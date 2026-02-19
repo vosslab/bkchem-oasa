@@ -29,8 +29,8 @@ python3 bkchem/bkchem.py
 ```
 
 BKChem reads templates, pixmaps, and localization files from
-`packages/bkchem/bkchem_data/` and loads addon descriptors from
-`packages/bkchem/addons/`.
+`packages/bkchem-app/bkchem_data/` and loads addon descriptors from
+`packages/bkchem-app/addons/`.
 
 ## System-wide install (pip)
 

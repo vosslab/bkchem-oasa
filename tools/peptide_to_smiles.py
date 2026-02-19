@@ -11,7 +11,6 @@ Usage:
 """
 
 # Standard Library
-import sys
 import argparse
 
 # Maps single-letter amino acid codes to their side chain SMILES fragments.
@@ -82,9 +81,9 @@ def sequence_to_smiles(sequence: str) -> str:
 	for aa in sequence:
 		if aa == 'P':
 			raise ValueError(
-				f"Proline (P) is not supported: its cyclic side chain "
-				f"modifies the backbone nitrogen and does not fit the "
-				f"generic polypeptide template"
+				"Proline (P) is not supported: its cyclic side chain "
+				"modifies the backbone nitrogen and does not fit the "
+				"generic polypeptide template"
 			)
 		if aa not in AMINO_ACID_SMILES:
 			raise ValueError(

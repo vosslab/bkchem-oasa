@@ -680,7 +680,7 @@ Reference forks:
 - marks are now positioned above atoms, so it is no more possible for a mark to be hidden under an atom
 - standard bond length is now 0.7 cm instead of 1 cm
 - svg export of text was hacked to compensate for wrong calculation of text size in Tkinter
-- on source code install on linux systems the path to the various parts of the program is no longer set via env variables but put into a file XXX/lib/pythonX.Y/site-packages/bkchem/site-config.py
+- on source code install on linux systems the path to the various parts of the program is no longer set via env variables but put into a file XXX/lib/pythonX.Y/site-packages/bkchem-app/site-config.py
 
 ## Release 0.8.1
 

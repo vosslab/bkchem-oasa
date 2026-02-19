@@ -184,7 +184,7 @@ import, center on the visible canvas area.
 - Update any imports if needed.
 
 **Done check**:
-- `grep -r "oasa_bridge.read_smiles" packages/bkchem/` returns zero hits
+- `grep -r "oasa_bridge.read_smiles" packages/bkchem-app/` returns zero hits
   (except possibly tests that test the new path).
 - Full test suite passes.
 
@@ -263,6 +263,6 @@ import, center on the visible canvas area.
   CDML format specification
 - [docs/active_plans/PUBCHEM_API_PLAN.md](docs/active_plans/PUBCHEM_API_PLAN.md):
   Related future plan for molecule lookup
-- `packages/bkchem/bkchem/oasa_bridge.py`: Current bridge code
-- `packages/bkchem/bkchem/main.py` lines 1262-1289: Current `read_smiles`
+- `packages/bkchem-app/bkchem/oasa_bridge.py`: Current bridge code
+- `packages/bkchem-app/bkchem/main.py` lines 1262-1289: Current `read_smiles`
 - `packages/oasa/oasa/cdml_writer.py` lines 117-170: CDML molecule writer

@@ -315,6 +315,6 @@ Test: Round-trip each file, assert invariants.
 ## References
 
 - Existing: `packages/oasa/oasa/cdml_bond_io.py` (bond attribute mapping)
-- Existing: `packages/bkchem/bkchem/CDML_versions.py` (version migration)
+- Existing: `packages/bkchem-app/bkchem/CDML_versions.py` (version migration)
 - Existing: `packages/*/safe_xml.py` (safe XML parsing)
 - Plan: `docs/RENDER_BACKEND_UNIFICATION.md` (analogous separation of concerns)

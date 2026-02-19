@@ -871,7 +871,7 @@ Depiction: `line_width`, `bond_width`, `wedge_width`, `double_ratio`,
 
 ## Legacy DTD
 
-The file `packages/bkchem/bkchem_data/dtd/cdml.dtd` contains a legacy DTD that
+The file `packages/bkchem-app/bkchem_data/dtd/cdml.dtd` contains a legacy DTD that
 is **incomplete and outdated**. It does not include:
 
 - `<paper>`, `<viewport>` elements

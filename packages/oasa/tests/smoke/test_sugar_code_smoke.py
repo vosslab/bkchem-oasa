@@ -1,63 +1,73 @@
-"""Smoke tests for sugar-code parser curated cases."""
+"""Smoke tests for sugar-code parser against curated sugar_codes.yml."""
 
 # Standard Library
 import os
 
-# Local repo modules
-import conftest
+# PIP3 modules
+import yaml
 
+# local repo modules
 import oasa.sugar_code as sugar_code
 
 
-#============================================
-def _fixture_path() -> str:
-	return os.path.join(
-		conftest.repo_root(),
-		"tests",
-		"fixtures",
-		"smoke_sugar_codes.txt",
-	)
+# path to the canonical sugar codes YAML shipped with oasa
+_SUGAR_CODES_YML = os.path.join(
+	os.path.dirname(__file__), '..', '..', 'oasa_data', 'sugar_codes.yml',
+)
+
+# hand-picked strings that must raise ValueError
+_INVALID_CODES = [
+	"",
+	"X",
+	"ZZZ",
+	"AAAA",
+	"123",
+	"arrdm",
+]
 
 
 #============================================
-def _load_cases(path: str) -> list[tuple[str, str, int]]:
-	cases = []
-	with open(path, "r", encoding="utf-8") as handle:
-		for line_number, line in enumerate(handle, start=1):
-			text = line.strip()
-			if not text:
-				continue
-			if text.startswith("#"):
-				continue
-			if "|" not in text:
-				raise ValueError(f"Invalid smoke fixture line {line_number}: {text}")
-			status, code = [part.strip() for part in text.split("|", 1)]
-			state = status.lower()
-			if state not in ("valid", "invalid"):
-				raise ValueError(
-					f"Invalid smoke fixture status '{status}' at line {line_number}"
-				)
-			cases.append((state, code, line_number))
-	return cases
+def _load_valid_codes() -> list:
+	"""Extract every sugar code from sugar_codes.yml.
+
+	Returns:
+		list of (code, common_name) tuples.
+	"""
+	with open(_SUGAR_CODES_YML, "r", encoding="utf-8") as handle:
+		data = yaml.safe_load(handle)
+	codes = []
+	for group_name, entries in data.items():
+		for code, name in entries.items():
+			codes.append((code, name))
+	return codes
 
 
 #============================================
-def test_sugar_code_smoke():
-	cases = _load_cases(_fixture_path())
-	assert cases
-	for state, code, line_number in cases:
-		if state == "valid":
-			parsed = sugar_code.parse(code)
-			assert parsed.sugar_code_raw == code
-			if "[" in code:
-				assert parsed.sugar_code_raw.startswith(parsed.sugar_code)
-			else:
-				assert parsed.sugar_code_raw == parsed.sugar_code
-			continue
+def test_all_yaml_codes_parse():
+	"""Every code in sugar_codes.yml should parse successfully."""
+	codes = _load_valid_codes()
+	# sanity: the YAML should have a reasonable number of sugars
+	assert len(codes) >= 40, f"Expected 40+ codes, got {len(codes)}"
+	for code, name in codes:
+		parsed = sugar_code.parse(code)
+		assert parsed.sugar_code_raw == code, (
+			f"sugar_code_raw mismatch for {code} ({name})"
+		)
+		# codes without bracket modifiers should round-trip exactly
+		if "[" not in code:
+			assert parsed.sugar_code_raw == parsed.sugar_code, (
+				f"sugar_code mismatch for {code} ({name})"
+			)
+
+
+#============================================
+def test_invalid_codes_raise():
+	"""Known-invalid codes must raise ValueError."""
+	for code in _INVALID_CODES:
 		try:
 			sugar_code.parse(code)
 		except ValueError:
 			continue
 		raise AssertionError(
-			f"Expected ValueError for invalid smoke case line {line_number}: {code}"
+			f"Expected ValueError for invalid code: {code!r}"
 		)

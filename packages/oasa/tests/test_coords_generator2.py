@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Tests for the three-layer 2D coordinate generator (coords_generator2)."""
 
 # Standard Library

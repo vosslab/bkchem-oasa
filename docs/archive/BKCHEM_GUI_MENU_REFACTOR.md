@@ -7,20 +7,20 @@ what to improve to make the system more modular and intuitive.
 
 ## Menu-related files
 
-- [packages/bkchem/bkchem/main.py](packages/bkchem/bkchem/main.py)
+- [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py)
   - Defines `menu_template` and constructs the top menu bar.
   - Adds plugin menu entries and wires enable/disable logic.
   - Builds the mode toolbar (radio buttons).
-- [packages/bkchem/bkchem/context_menu.py](packages/bkchem/bkchem/context_menu.py)
+- [packages/bkchem-app/bkchem/context_menu.py](packages/bkchem-app/bkchem/context_menu.py)
   - Defines the right-click context menu and dynamically builds entries based
     on the current selection.
-- [packages/bkchem/bkchem/modes.py](packages/bkchem/bkchem/modes.py)
+- [packages/bkchem-app/bkchem/modes.py](packages/bkchem-app/bkchem/modes.py)
   - Defines mode classes referenced by the mode toolbar.
-- [packages/bkchem/bkchem/pixmaps.py](packages/bkchem/bkchem/pixmaps.py)
+- [packages/bkchem-app/bkchem/pixmaps.py](packages/bkchem-app/bkchem/pixmaps.py)
   - Holds toolbar icons used by mode buttons.
-- [packages/bkchem/bkchem/plugins](packages/bkchem/bkchem/plugins)
+- [packages/bkchem-app/bkchem/plugins](packages/bkchem-app/bkchem/plugins)
   - Provides importer/exporter plugins that add to File > Import/Export.
-- [packages/bkchem/bkchem/plugin_support.py](packages/bkchem/bkchem/plugin_support.py)
+- [packages/bkchem-app/bkchem/plugin_support.py](packages/bkchem-app/bkchem/plugin_support.py)
   - Defines script plugin discovery and menu injection logic.
 
 ## How each menu entry is created
@@ -100,7 +100,7 @@ Two plugin sources are inserted into the menu system:
 
 ### How menu translation works
 
-BKChem uses the standard GNU gettext system for internationalization. The translation system is initialized at startup in [packages/bkchem/bkchem/bkchem.py](packages/bkchem/bkchem/bkchem.py) lines 44-96.
+BKChem uses the standard GNU gettext system for internationalization. The translation system is initialized at startup in [packages/bkchem-app/bkchem/bkchem.py](packages/bkchem-app/bkchem/bkchem.py) lines 44-96.
 
 **Translation initialization flow**:
 
@@ -328,7 +328,7 @@ The recommended approach combines **YAML for menu structure** with **Python data
 
 ### 1. YAML menu structure (human-editable hierarchy)
 
-Create `packages/bkchem/bkchem_data/menus.yaml` with the menu structure:
+Create `packages/bkchem-app/bkchem_data/menus.yaml` with the menu structure:
 
 ```yaml
 # Menu hierarchy - structure only, no translations
@@ -425,7 +425,7 @@ toolbar:
 
 ### 2. Python action registry (type-safe handlers)
 
-Create `packages/bkchem/bkchem/actions.py` with type-safe action definitions:
+Create `packages/bkchem-app/bkchem/actions.py` with type-safe action definitions:
 
 ```python
 """Action registry with type-safe dataclasses.
@@ -573,7 +573,7 @@ def register_all_actions(app) -> ActionRegistry:
 
 ### 3. Platform abstraction layer (toolkit and OS independence)
 
-Create `packages/bkchem/bkchem/menu_backend.py` with platform-agnostic interface:
+Create `packages/bkchem-app/bkchem/menu_backend.py` with platform-agnostic interface:
 
 ```python
 """Platform and toolkit-agnostic menu backend interface."""
@@ -665,7 +665,7 @@ class PmwMenuBackend(MenuBackend):
 	# (see MENU_REFACTOR_ANALYSIS.md for full code)
 ```
 
-Create `packages/bkchem/bkchem/menu_adapters.py` with platform-specific implementations:
+Create `packages/bkchem-app/bkchem/menu_adapters.py` with platform-specific implementations:
 
 ```python
 """Platform-specific Pmw menu adapters."""
@@ -723,7 +723,7 @@ class PmwWindowsAdapter(PmwAdapter):
 
 ### 4. Menu builder (combines YAML + actions)
 
-Create `packages/bkchem/bkchem/menu_builder.py` to combine YAML structure with Python actions:
+Create `packages/bkchem-app/bkchem/menu_builder.py` to combine YAML structure with Python actions:
 
 ```python
 """Menu builder that combines YAML structure with action registry."""
@@ -926,7 +926,7 @@ def update_menu_after_selection_change(self, event):
 
 **REQUIREMENT:** Menu state updates MUST NOT slow down interaction. Target < 5ms per update.
 
-Create `packages/bkchem/bkchem/menu_performance.py`:
+Create `packages/bkchem-app/bkchem/menu_performance.py`:
 
 ```python
 """Performance monitoring for menu system."""
@@ -1527,7 +1527,7 @@ def test_menu_builder_no_crashes():
 
 ## Suggested first step
 
-Start with Phase 1: Create `packages/bkchem/bkchem/actions.py` and register just the File > Save/Load actions:
+Start with Phase 1: Create `packages/bkchem-app/bkchem/actions.py` and register just the File > Save/Load actions:
 
 ```python
 # actions.py

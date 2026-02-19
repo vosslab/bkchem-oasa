@@ -45,8 +45,8 @@ Current results from `output_smoke/glyph_bond_alignment_report.txt`:
   - `packages/oasa/oasa/haworth/renderer.py`
   - `packages/oasa/oasa/cairo_out.py`
   - `packages/oasa/oasa/svg_out.py`
-  - `packages/bkchem/bkchem/bond_render_ops.py`
-  - `packages/bkchem/bkchem/bond_drawing.py`
+  - `packages/bkchem-app/bkchem/bond_render_ops.py`
+  - `packages/bkchem-app/bkchem/bond_drawing.py`
   - measurement and acceptance tooling under `tools/` and targeted tests
 - Out of scope:
   - New label text semantics

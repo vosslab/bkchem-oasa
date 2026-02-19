@@ -73,15 +73,15 @@ DG-1 grep commands:
 
 ```bash
 rg -n 'def _draw_(n|h|d|w|a|s|b|o)[123]?\b|def _draw_(hashed|dash|second_line|wedge|adder|wavy|bold_central|dotted)\b' \
-  packages/bkchem/bkchem/bond.py \
-  packages/bkchem/bkchem/bond_drawing.py \
-  packages/bkchem/bkchem/bond_render_ops.py
+  packages/bkchem-app/bkchem/bond.py \
+  packages/bkchem-app/bkchem/bond_drawing.py \
+  packages/bkchem-app/bkchem/bond_render_ops.py
 ```
 
 ```bash
 rg -n 'getattr\(.+_draw_|self\._draw_[a-z0-9_]+' \
-  packages/bkchem/bkchem/bond.py \
-  packages/bkchem/bkchem/bond_render_ops.py
+  packages/bkchem-app/bkchem/bond.py \
+  packages/bkchem-app/bkchem/bond_render_ops.py
 ```
 
 Pass criteria:
@@ -140,7 +140,7 @@ DG-3 grep commands:
 ```bash
 rg -n 'clip_bond_to_bbox|label_bbox_from_text_origin|label_bbox\(|label_attach_bbox_from_text_origin|label_attach_bbox\(|bbox_center\(|attach_bboxes|label_bboxes|job_text_bbox\(|text_bbox\(' \
   packages/oasa/oasa \
-  packages/bkchem/bkchem
+  packages/bkchem-app/bkchem
 ```
 
 Pass criteria:
@@ -293,7 +293,7 @@ but full unification is still incomplete:
 - Haworth keeps specialized oxygen-target logic and slot constraints in
   [packages/oasa/oasa/haworth/renderer.py](../../packages/oasa/oasa/haworth/renderer.py).
 - BKChem still computes attachment clipping in its own path using Tk metrics in
-  [packages/bkchem/bkchem/bond.py](../../packages/bkchem/bkchem/bond.py).
+  [packages/bkchem-app/bkchem/bond.py](../../packages/bkchem-app/bkchem/bond.py).
 - Some tests still rely on label-class-specific overlap exemptions instead of a
   unified legality contract.
 
@@ -322,7 +322,7 @@ In scope:
 - OASA Haworth schematic rendering via
   [packages/oasa/oasa/haworth/renderer.py](../../packages/oasa/oasa/haworth/renderer.py).
 - BKChem attachment paths in
-  [packages/bkchem/bkchem/bond.py](../../packages/bkchem/bkchem/bond.py) and
+  [packages/bkchem-app/bkchem/bond.py](../../packages/bkchem-app/bkchem/bond.py) and
   related label-leader attachment callers.
 - Shared geometry APIs and shared overlap test gates.
 - Nomenclature migration from `bbox` to `target` across production and test
@@ -399,7 +399,7 @@ Current attachment functions:
 - Hardcoded label-string checks: `text in ("OH", "HO")` at multiple sites,
   `str(label) == "CH(OH)CH2OH"` for furanose two-carbon tail.
 
-**packages/bkchem/bkchem/bond.py** (1,881 lines) - BKChem bond drawing class
+**packages/bkchem-app/bkchem/bond.py** (1,881 lines) - BKChem bond drawing class
 with legacy Tk-metric clipping. This file is too large for a single module and
 will be decomposed during Phase C. See the bond.py decomposition section below.
 
@@ -959,7 +959,7 @@ Deliverables:
   explicitly modeled allowed target apertures).
 
 Files:
-- [packages/bkchem/bkchem/bond.py](../../packages/bkchem/bkchem/bond.py) (split
+- [packages/bkchem-app/bkchem/bond.py](../../packages/bkchem-app/bkchem/bond.py) (split
   into multiple files)
 - BKChem leader-line modules that currently clip directly.
 
@@ -1162,7 +1162,7 @@ the thin Tk adapter.
 - All `_draw_*` methods and their helpers are deleted from `bond.py`.
 - `draw()` calls `build_bond_ops()` -> `_render_ops_to_tk_canvas()`.
 - BKChem bond rendering uses the same geometry code path as SVG/PDF export.
-- No file in `packages/bkchem/bkchem/` exceeds ~500 lines.
+- No file in `packages/bkchem-app/bkchem/` exceeds ~500 lines.
 - All existing BKChem tests pass.
 
 ## Strict overlap gate
@@ -1358,9 +1358,9 @@ This plan touches `bond.py` (1,880 lines) and `haworth/renderer.py`
 files exceed 1,500 lines and would benefit from decomposition, but are
 unrelated to bond-label attachment and must not be mixed into this plan:
 
-- `packages/bkchem/bkchem/modes.py` (2,753 lines) - UI event handlers.
-- `packages/bkchem/bkchem/paper.py` (1,882 lines) - canvas management.
-- `packages/bkchem/bkchem/main.py` (1,546 lines) - application startup.
+- `packages/bkchem-app/bkchem/modes.py` (2,753 lines) - UI event handlers.
+- `packages/bkchem-app/bkchem/paper.py` (1,882 lines) - canvas management.
+- `packages/bkchem-app/bkchem/main.py` (1,546 lines) - application startup.
 
 Each deserves its own decomposition plan. The `bond.py` decomposition in this
 plan demonstrates the pattern (identify duplication, eliminate it, then split

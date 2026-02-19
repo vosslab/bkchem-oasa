@@ -33,9 +33,9 @@
     - RDKit: SDF/SD, MOL2, PDB; CIF support is limited.
     - Open Babel: SDF/SD, MOL2, PDB, CIF (broader format coverage).
   - Candidate entry points:
-    - `packages/bkchem/bkchem/oasa_bridge.py` for conversion hooks.
-    - `packages/bkchem/bkchem/format_loader.py` and
-      `packages/bkchem/bkchem/format_menus.yaml` for BKChem format wiring.
+    - `packages/bkchem-app/bkchem/oasa_bridge.py` for conversion hooks.
+    - `packages/bkchem-app/bkchem/format_loader.py` and
+      `packages/bkchem-app/bkchem/format_menus.yaml` for BKChem format wiring.
     - [docs/SUPPORTED_FORMATS.md](docs/SUPPORTED_FORMATS.md) to list new formats.
 - Multi-ring Haworth layout coordinator for disaccharides/polysaccharides
   (see [docs/archive/HAWORTH_IMPLEMENTATION_PLAN_attempt2.md](docs/archive/HAWORTH_IMPLEMENTATION_PLAN_attempt2.md)

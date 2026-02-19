@@ -177,13 +177,15 @@ def _validate_body(body: str) -> None:
 					f"Digit '{token}' at backbone position {index} must equal the position index"
 				)
 			continue
-		if token.islower() and token not in _KNOWN_LETTER_CODES:
+		if token.islower():
+			if token in _KNOWN_LETTER_CODES:
+				continue
 			raise ValueError(
 				f"Unknown letter code '{token}' at backbone position {index}"
 			)
 		if token == "D" and index != len(body) - 1:
 			raise ValueError("D token is only valid in the penultimate position")
-		if token.isalpha():
+		if token.isupper() and token in _TOKEN_MEANINGS:
 			continue
 		raise ValueError(f"Invalid sugar code token '{token}' at backbone position {index}")
 
@@ -293,6 +295,9 @@ def _parse_config_and_terminal(
 	elif config_token == "L":
 		config = "LAEVUS"
 	elif prefix_token == "MK" and len(remainder) == 3:
+		config = "MESO"
+	elif prefix_token in ("MRK", "MLK") and len(remainder) == 5:
+		# 3-keto meso: e.g. MRKRM has 5-char body, no D/L penultimate
 		config = "MESO"
 	elif prefix_token == "A" and len(remainder) == 3 and remainder[1].isdigit():
 		config = "MESO"

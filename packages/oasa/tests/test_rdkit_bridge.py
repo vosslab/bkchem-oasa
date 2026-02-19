@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Tests for the OASA RDKit bridge module."""
 
 # Standard Library

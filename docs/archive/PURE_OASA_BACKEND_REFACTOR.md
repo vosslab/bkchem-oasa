@@ -348,7 +348,7 @@ debugging or documentation, but it is never read at runtime.
 ### BKChem GUI manifest (menus, dialogs, preferences)
 
 ```yaml
-# packages/bkchem/bkchem/format_menus.yaml
+# packages/bkchem-app/bkchem/format_menus.yaml
 # GUI-specific metadata. References OASA codec names.
 
 formats:
@@ -471,7 +471,7 @@ OASA. Each option has a `source` type:
 One Python module in BKChem replaces the entire `plugins/` directory:
 
 ```python
-# packages/bkchem/bkchem/format_loader.py
+# packages/bkchem-app/bkchem/format_loader.py
 
 def load_backend_capabilities():
     """Query OASA codec registry. Returns codec capabilities dict."""
@@ -630,26 +630,26 @@ The generic scope handler replaces the duplicated `on_begin()` /
 plugins. InChI `program_path` resolves from preferences via `gui_options`.
 
 **Files created:**
-- `packages/bkchem/bkchem/format_loader.py`: Queries registry, reads GUI
+- `packages/bkchem-app/bkchem/format_loader.py`: Queries registry, reads GUI
   manifest, builds menu items with scope validation and gui_option resolution.
-- `packages/bkchem/bkchem/format_menus.yaml`: GUI manifest declaring display
+- `packages/bkchem-app/bkchem/format_menus.yaml`: GUI manifest declaring display
   names, `menu_capabilities`, scope, and `gui_options`.
 
 **Files changed:**
-- `packages/bkchem/bkchem/main.py`: Replace `init_plugins_menu()`,
+- `packages/bkchem-app/bkchem/main.py`: Replace `init_plugins_menu()`,
   `plugin_import()`, `plugin_export()` with calls to the format loader.
 
 **Files deleted (format plugins only):**
-- `packages/bkchem/bkchem/plugins/CML.py`
-- `packages/bkchem/bkchem/plugins/CML2.py`
-- `packages/bkchem/bkchem/plugins/CDXML.py`
-- `packages/bkchem/bkchem/plugins/molfile.py`
-- `packages/bkchem/bkchem/plugins/smiles.py`
-- `packages/bkchem/bkchem/plugins/inchi.py`
-- `packages/bkchem/bkchem/plugins/povray.py`
+- `packages/bkchem-app/bkchem/plugins/CML.py`
+- `packages/bkchem-app/bkchem/plugins/CML2.py`
+- `packages/bkchem-app/bkchem/plugins/CDXML.py`
+- `packages/bkchem-app/bkchem/plugins/molfile.py`
+- `packages/bkchem-app/bkchem/plugins/smiles.py`
+- `packages/bkchem-app/bkchem/plugins/inchi.py`
+- `packages/bkchem-app/bkchem/plugins/povray.py`
 
 **Do NOT delete until Phase B decides retention:**
-- `packages/bkchem/bkchem/plugins/gtml.py` (GTML import retained until
+- `packages/bkchem-app/bkchem/plugins/gtml.py` (GTML import retained until
   Phase B audit confirms coverage; see B3)
 
 **Do NOT delete until Phase C gate passes:**
@@ -884,14 +884,14 @@ Delete the Tk canvas export pipeline once the new OASA render path passes all
 smoke tests.
 
 **Files deleted:**
-- `packages/bkchem/bkchem/plugins/tk2cairo.py`
-- `packages/bkchem/bkchem/plugins/cairo_lowlevel.py`
-- `packages/bkchem/bkchem/plugins/pdf_cairo.py`
-- `packages/bkchem/bkchem/plugins/png_cairo.py`
-- `packages/bkchem/bkchem/plugins/svg_cairo.py`
-- `packages/bkchem/bkchem/plugins/ps_cairo.py`
-- `packages/bkchem/bkchem/plugins/ps_builtin.py`
-- `packages/bkchem/bkchem/plugins/odf.py`
+- `packages/bkchem-app/bkchem/plugins/tk2cairo.py`
+- `packages/bkchem-app/bkchem/plugins/cairo_lowlevel.py`
+- `packages/bkchem-app/bkchem/plugins/pdf_cairo.py`
+- `packages/bkchem-app/bkchem/plugins/png_cairo.py`
+- `packages/bkchem-app/bkchem/plugins/svg_cairo.py`
+- `packages/bkchem-app/bkchem/plugins/ps_cairo.py`
+- `packages/bkchem-app/bkchem/plugins/ps_builtin.py`
+- `packages/bkchem-app/bkchem/plugins/odf.py`
 
 #### Phase C done checks
 
@@ -987,12 +987,12 @@ smoke tests.
 
 ### BKChem (GUI shell)
 
-- [packages/bkchem/bkchem/oasa_bridge.py](packages/bkchem/bkchem/oasa_bridge.py):
+- [packages/bkchem-app/bkchem/oasa_bridge.py](packages/bkchem-app/bkchem/oasa_bridge.py):
   Bridge layer with generic `_read_codec_file_to_bkchem_mols()` and
   `_write_codec_file_from_bkchem_paper()`.
-- [packages/bkchem/bkchem/plugins/__init__.py](packages/bkchem/bkchem/plugins/__init__.py):
+- [packages/bkchem-app/bkchem/plugins/__init__.py](packages/bkchem-app/bkchem/plugins/__init__.py):
   Current plugin loader (to be replaced).
-- [packages/bkchem/bkchem/main.py](packages/bkchem/bkchem/main.py):
+- [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py):
   `init_plugins_menu()`, `plugin_import()`, `plugin_export()` (to be
   replaced).
 

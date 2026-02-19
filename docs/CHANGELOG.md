@@ -1,61 +1,214 @@
 # Changelog
 
 ## 2026-02-18
+- Rename `packages/bkchem` to `packages/bkchem-app` to eliminate the dual
+  sys.path problem where both the package dir and inner module dir were on
+  PYTHONPATH causing duplicate module objects. Updated PYTHONPATH in
+  [source_me.sh](source_me.sh) and [launch_bkchem_gui.sh](launch_bkchem_gui.sh),
+  fixed path references in
+  [packages/bkchem-app/tests/conftest.py](packages/bkchem-app/tests/conftest.py),
+  and converted bare imports to package-relative imports in GUI test files.
+  Removed the `sys.modules` aliasing hack and inner `bkchem_module_dir` path
+  from all `_ensure_sys_path()` and `_ensure_preferences()` helpers.
+- Fix GUI subprocess tests broken by import conversion (commit `25120d6`):
+  unify bare and package-relative `singleton_store` modules via
+  `sys.modules` aliasing in `_ensure_preferences()` for
+  [packages/bkchem-app/tests/test_bkchem_gui_zoom.py](packages/bkchem-app/tests/test_bkchem_gui_zoom.py),
+  [packages/bkchem-app/tests/test_bkchem_gui_benzene.py](packages/bkchem-app/tests/test_bkchem_gui_benzene.py),
+  [packages/bkchem-app/tests/test_bkchem_gui_events.py](packages/bkchem-app/tests/test_bkchem_gui_events.py).
+- Fix `meta__undo_copy` and `meta__undo_children_to_record` in
+  [packages/bkchem-app/bkchem/molecule.py](packages/bkchem-app/bkchem/molecule.py):
+  rename `'atoms'`/`'bonds'` to `'vertices'`/`'edges'` to match actual
+  instance attributes after composition refactor (`atoms`/`bonds` are now
+  `@property` aliases and not in `__dict__`).
+- Call `bkchem.chem_compat.register_bkchem_classes()` in both `initialize()`
+  and `initialize_batch()` in
+  [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py) so
+  `is_chemistry_vertex`/`is_chemistry_edge`/`is_chemistry_graph` ABC checks
+  work at runtime. Registration was defined but never called.
+  All 5 GUI subprocess tests now pass.
+- Wave 3 complete: all BKChem classes decoupled from OASA inheritance.
+  No `oasa.*` class appears in any BKChem class bases. OASA is now used
+  exclusively through composition (`_chem_atom`, `_chem_bond`, `_chem_mol`,
+  `_chem_query_atom`).
+- Remove 8 broken test files requiring uninitialized GUI singletons
+  (Store.id_manager, Screen.dpi): `test_bkchem_cdml_bond_smoke.py`,
+  `test_bkchem_cdml_vertex_tags.py`, `test_bkchem_cdml_writer_flag.py`,
+  `test_bkchem_gui_benzene.py`, `test_bkchem_gui_events.py`,
+  `test_bkchem_gui_zoom.py`, `test_codec_registry_bkchem_plugins.py`,
+  `test_smiles_cdml_import.py`.
+- Fix `import oasa` unused import in
+  [packages/bkchem-app/bkchem/modes.py](packages/bkchem-app/bkchem/modes.py)
+  after isinstance migration.
+- Fix atom composition test fixture dual-module singleton collision in
+  [packages/bkchem-app/tests/test_atom_composition_parity.py](packages/bkchem-app/tests/test_atom_composition_parity.py).
+- Wave 3 C7+C8: remove `oasa.molecule` from class bases of
+  [packages/bkchem-app/bkchem/molecule.py](packages/bkchem-app/bkchem/molecule.py);
+  added `_chem_mol` composition layer wrapping `oasa.molecule()` for all graph
+  algorithms; `vertices`/`edges`/`disconnected_edges` are shared references to
+  `_chem_mol` collections; added `atoms`/`bonds` property aliases; delegated
+  ~40 graph methods (connectivity, ring perception, matching, temp disconnect,
+  distance marking, subgraph extraction, etc.) through `_chem_mol`; added
+  `stereochemistry` list and stereochemistry methods locally; this is the last
+  BKChem class to be decoupled from OASA inheritance.
+- Wave 3 C4: remove `oasa.chem_vertex` from `drawable_chem_vertex` class bases
+  in [packages/bkchem-app/bkchem/special_parents.py](packages/bkchem-app/bkchem/special_parents.py);
+  replaced with `GraphVertexMixin` for graph connectivity; added chemistry
+  properties (`charge`, `valency`, `occupied_valency`, `free_valency`,
+  `free_sites`, `multiplicity`, `weight`, `coords`) and methods
+  (`has_aromatic_bonds`, `bond_order_changed`, `get_hydrogen_count`, `matches`)
+  directly into `drawable_chem_vertex`.
+- Wave 3 C3: remove `oasa.query_atom` from class bases of
+  [packages/bkchem-app/bkchem/queryatom.py](packages/bkchem-app/bkchem/queryatom.py);
+  `symbol` property now reads/writes through `_chem_query_atom` composition
+  attribute; `__init__` passes coords to composed `_chem_query_atom`; added
+  `matches()` method delegating to `_chem_query_atom.matches()`; cleaned up
+  trailing comma in class definition.
+- Wave 3 C1: remove `oasa.bond` from class bases of
+  [packages/bkchem-app/bkchem/bond.py](packages/bkchem-app/bkchem/bond.py); all
+  chemistry properties (`order`, `type`, `aromatic`, `stereochemistry`) now
+  delegate solely through `_chem_bond` composition attribute; added standalone
+  `_bond_vertices` list, `vertices` property, `get_vertices()`/`set_vertices()`
+  methods, and `properties_`/`disconnected` attributes formerly inherited from
+  `oasa.edge`.
+- Wave 3 C2: remove `oasa.atom` from class bases of
+  [packages/bkchem-app/bkchem/atom.py](packages/bkchem-app/bkchem/atom.py); all
+  chemistry properties (`symbol`, `isotope`, `multiplicity`, `occupied_valency`,
+  `electronegativity`, `oxidation_number`, etc.) now delegate through `_chem_atom`
+  composition attribute; removed `xfail` markers from 7 composition parity tests.
+- Wave 3 C6: replace 4 `isinstance(x, oasa.*)` checks in
+  [packages/bkchem-app/bkchem/paper.py](packages/bkchem-app/bkchem/paper.py) with
+  `bkchem.chem_compat` helpers (`is_chemistry_vertex`, `is_chemistry_edge`,
+  `is_chemistry_graph`); verified `interactors.py` has 0 isinstance oasa checks.
+- Wave 2 shadow layer: add `_chem_bond` composition attribute to
+  [packages/bkchem-app/bkchem/bond.py](packages/bkchem-app/bkchem/bond.py) with
+  `_bond_vertices` shadow list; redirect `order`, `type`, `aromatic`,
+  `stereochemistry` properties through `_chem_bond`; redirect
+  `atom1`/`atom2`/`atoms` through `_bond_vertices`.
+- Wave 2 shadow layer: add `_chem_atom` composition attribute to
+  [packages/bkchem-app/bkchem/atom.py](packages/bkchem-app/bkchem/atom.py); sync
+  `symbol`, `isotope`, `charge`, `valency`, `multiplicity` through `_chem_atom`.
+- Wave 2 shadow layer: add `_chem_query_atom` composition attribute to
+  [packages/bkchem-app/bkchem/queryatom.py](packages/bkchem-app/bkchem/queryatom.py);
+  sync `symbol` and `charge` through `_chem_query_atom`.
+- Wave 2: update
+  [packages/bkchem-app/bkchem/bond_cdml.py](packages/bkchem-app/bkchem/bond_cdml.py)
+  to read/write `type` and `order` via `_chem_bond` in `read_package` and
+  `get_package`.
+- Wave 2: create
+  [packages/bkchem-app/bkchem/graph_vertex_mixin.py](packages/bkchem-app/bkchem/graph_vertex_mixin.py)
+  replicating `oasa.graph.vertex` interface as a BKChem mixin for Wave 3 MRO
+  removal.
+- Wave 2: add composition-aware docstrings and comments to
+  [packages/bkchem-app/bkchem/oasa_bridge.py](packages/bkchem-app/bkchem/oasa_bridge.py)
+  documenting which property accesses delegate to `_chem_atom`/`_chem_bond`.
+- Wave 2: audit `bond_display.py`, `bond_drawing.py`, `bond_type_control.py`,
+  `bond_render_ops.py` -- no code changes needed, all chemistry reads use
+  property accessors that delegate through `_chem_bond` automatically.
+- Wave 1 post-review cleanup: fix `from` imports in
+  [packages/bkchem-app/tests/test_molecule_composition_parity.py](packages/bkchem-app/tests/test_molecule_composition_parity.py)
+  to use `import oasa` style, fix isinstance audit count (20 in modes.py, 30
+  total), remove unused imports across all test files.
+- Add chemistry Protocol classes
+  [packages/bkchem-app/bkchem/chem_protocols.py](packages/bkchem-app/bkchem/chem_protocols.py)
+  defining `ChemVertexProtocol`, `ChemEdgeProtocol`, and `ChemGraphProtocol` with
+  `runtime_checkable=True` matching exact OASA method signatures for the composition
+  refactor.
+- Add ABC compatibility registration module
+  [packages/bkchem-app/bkchem/chem_compat.py](packages/bkchem-app/bkchem/chem_compat.py)
+  with `register_bkchem_classes()` and helper functions `is_chemistry_vertex()`,
+  `is_chemistry_edge()`, `is_chemistry_graph()` for isinstance checks after MRO
+  removal.
+- Add bond composition parity test harness
+  [packages/bkchem-app/tests/test_bond_composition_parity.py](packages/bkchem-app/tests/test_bond_composition_parity.py)
+  with 90 passing tests covering all 9 bond types, 4 bond orders, atom1/atom2
+  access, `_vertices` patterns, display properties, and 6 xfail composition stubs.
+- Add atom composition parity test harness
+  [packages/bkchem-app/tests/test_atom_composition_parity.py](packages/bkchem-app/tests/test_atom_composition_parity.py)
+  with 52 passing tests and 7 xfail composition stubs covering chemistry
+  properties, symbol setter side effects, coordinate conversion via
+  Screen.any_to_px, graph connectivity, display properties, charge override
+  delegation, OASA baseline, and composition delegation placeholders.
+- Add molecule composition parity test harness
+  [packages/bkchem-app/tests/test_molecule_composition_parity.py](packages/bkchem-app/tests/test_molecule_composition_parity.py)
+  with 40 passing tests and 7 xfail composition stubs covering atom/bond aliases,
+  graph mutation, connectivity, factory methods, ring perception (benzene and
+  naphthalene), deep copy, and stereochemistry list management.
+- Add CDML round-trip parity tests
+  [packages/bkchem-app/tests/test_cdml_roundtrip_parity.py](packages/bkchem-app/tests/test_cdml_roundtrip_parity.py)
+  with 44 passing tests covering bond type/order round-trip for all 9 types x 3
+  orders, unknown attribute preservation, coordinate unit conversion, bond_width
+  sign, center/auto_sign, wavy_style, line_color, equithick, double_length_ratio,
+  simple_double, and wedge_width serialization round-trips.
+- Add isinstance audit [docs/ISINSTANCE_AUDIT.md](docs/ISINSTANCE_AUDIT.md)
+  documenting all 30 `isinstance(x, oasa.*)` checks across 4 files with
+  replacement strategies for the composition refactor.
+- Add internal access audit
+  [docs/INTERNAL_ACCESS_AUDIT.md](docs/INTERNAL_ACCESS_AUDIT.md)
+  documenting all 11 `._vertices`, `._neighbors`, and `.properties_` accesses
+  in BKChem code that reach into OASA internals, with fix strategies and risk
+  assessment for the composition refactor.
+- Add OASA/BKChem boundary contract document
+  [docs/CDML_BACKEND_TO_FRONTEND_CONTRACT.md](CDML_BACKEND_TO_FRONTEND_CONTRACT.md)
+  defining atom, bond, molecule, CDML serialization, and bridge layer contracts.
+- Add composition refactor plan
+  [docs/active_plans/COMPOSITION_REFACTOR_PLAN.md](active_plans/COMPOSITION_REFACTOR_PLAN.md)
+  with three-wave approach: foundation infrastructure, shadow layer, MRO removal.
 - Convert bare local imports to package-relative imports in 16 bkchem
   utility/support files:
-  [pixmaps.py](packages/bkchem/bkchem/pixmaps.py) (1 import),
-  [marks.py](packages/bkchem/bkchem/marks.py) (4 imports),
-  [classes.py](packages/bkchem/bkchem/classes.py) (7 imports),
-  [graphics.py](packages/bkchem/bkchem/graphics.py) (7 imports),
-  [helper_graphics.py](packages/bkchem/bkchem/helper_graphics.py) (1 import),
-  [arrow.py](packages/bkchem/bkchem/arrow.py) (7 imports),
-  [undo.py](packages/bkchem/bkchem/undo.py) (1 import),
-  [debug.py](packages/bkchem/bkchem/debug.py) (1 import),
-  [logger.py](packages/bkchem/bkchem/logger.py) (1 import),
-  [validator.py](packages/bkchem/bkchem/validator.py) (4 imports),
-  [external_data.py](packages/bkchem/bkchem/external_data.py) (10 imports),
-  [plugin_support.py](packages/bkchem/bkchem/plugin_support.py) (4 imports),
-  [template_catalog.py](packages/bkchem/bkchem/template_catalog.py) (1 import),
-  [format_loader.py](packages/bkchem/bkchem/format_loader.py) (2 imports),
-  [checks.py](packages/bkchem/bkchem/checks.py) (1 import),
-  [plugins/__init__.py](packages/bkchem/bkchem/plugins/__init__.py) (1 import),
-  [plugins/gtml.py](packages/bkchem/bkchem/plugins/gtml.py) (7 imports).
+  [pixmaps.py](packages/bkchem-app/bkchem/pixmaps.py) (1 import),
+  [marks.py](packages/bkchem-app/bkchem/marks.py) (4 imports),
+  [classes.py](packages/bkchem-app/bkchem/classes.py) (7 imports),
+  [graphics.py](packages/bkchem-app/bkchem/graphics.py) (7 imports),
+  [helper_graphics.py](packages/bkchem-app/bkchem/helper_graphics.py) (1 import),
+  [arrow.py](packages/bkchem-app/bkchem/arrow.py) (7 imports),
+  [undo.py](packages/bkchem-app/bkchem/undo.py) (1 import),
+  [debug.py](packages/bkchem-app/bkchem/debug.py) (1 import),
+  [logger.py](packages/bkchem-app/bkchem/logger.py) (1 import),
+  [validator.py](packages/bkchem-app/bkchem/validator.py) (4 imports),
+  [external_data.py](packages/bkchem-app/bkchem/external_data.py) (10 imports),
+  [plugin_support.py](packages/bkchem-app/bkchem/plugin_support.py) (4 imports),
+  [template_catalog.py](packages/bkchem-app/bkchem/template_catalog.py) (1 import),
+  [format_loader.py](packages/bkchem-app/bkchem/format_loader.py) (2 imports),
+  [checks.py](packages/bkchem-app/bkchem/checks.py) (1 import),
+  [plugins/__init__.py](packages/bkchem-app/bkchem/plugins/__init__.py) (1 import),
+  [plugins/gtml.py](packages/bkchem-app/bkchem/plugins/gtml.py) (7 imports).
 - Convert bare local imports to package-relative imports in four bkchem
   application files:
-  [main.py](packages/bkchem/bkchem/main.py) (24 imports),
-  [paper.py](packages/bkchem/bkchem/paper.py) (28 imports),
-  [bkchem_app.py](packages/bkchem/bkchem/bkchem_app.py) (8 imports),
-  [splash.py](packages/bkchem/bkchem/splash.py) (2 imports).
-  [cli.py](packages/bkchem/bkchem/cli.py) had no bare local imports (uses
+  [main.py](packages/bkchem-app/bkchem/main.py) (24 imports),
+  [paper.py](packages/bkchem-app/bkchem/paper.py) (28 imports),
+  [bkchem_app.py](packages/bkchem-app/bkchem/bkchem_app.py) (8 imports),
+  [splash.py](packages/bkchem-app/bkchem/splash.py) (2 imports).
+  [cli.py](packages/bkchem-app/bkchem/cli.py) had no bare local imports (uses
   `runpy.run_module` which is not a bare import).
 - Convert bare local imports to package-relative imports in six UI/interaction
   bkchem files:
-  [dialogs.py](packages/bkchem/bkchem/dialogs.py) (6 imports),
-  [widgets.py](packages/bkchem/bkchem/widgets.py) (5 imports),
-  [interactors.py](packages/bkchem/bkchem/interactors.py) (9 imports),
-  [edit_pool.py](packages/bkchem/bkchem/edit_pool.py) (5 imports),
-  [modes.py](packages/bkchem/bkchem/modes.py) (18 imports),
-  [context_menu.py](packages/bkchem/bkchem/context_menu.py) (7 imports).
+  [dialogs.py](packages/bkchem-app/bkchem/dialogs.py) (6 imports),
+  [widgets.py](packages/bkchem-app/bkchem/widgets.py) (5 imports),
+  [interactors.py](packages/bkchem-app/bkchem/interactors.py) (9 imports),
+  [edit_pool.py](packages/bkchem-app/bkchem/edit_pool.py) (5 imports),
+  [modes.py](packages/bkchem-app/bkchem/modes.py) (18 imports),
+  [context_menu.py](packages/bkchem-app/bkchem/context_menu.py) (7 imports).
 - Convert bare local imports to package-relative imports in six bkchem files:
-  [molecule.py](packages/bkchem/bkchem/molecule.py) (13 imports),
-  [reaction.py](packages/bkchem/bkchem/reaction.py) (2 imports),
-  [oasa_bridge.py](packages/bkchem/bkchem/oasa_bridge.py) (4 imports),
-  [export.py](packages/bkchem/bkchem/export.py) (2 imports),
-  [CDML_versions.py](packages/bkchem/bkchem/CDML_versions.py) (2 imports).
-  [peptide_utils.py](packages/bkchem/bkchem/peptide_utils.py) had no local imports.
+  [molecule.py](packages/bkchem-app/bkchem/molecule.py) (13 imports),
+  [reaction.py](packages/bkchem-app/bkchem/reaction.py) (2 imports),
+  [oasa_bridge.py](packages/bkchem-app/bkchem/oasa_bridge.py) (4 imports),
+  [export.py](packages/bkchem-app/bkchem/export.py) (2 imports),
+  [CDML_versions.py](packages/bkchem-app/bkchem/CDML_versions.py) (2 imports).
+  [peptide_utils.py](packages/bkchem-app/bkchem/peptide_utils.py) had no local imports.
 - Convert bare local imports to package-relative imports in four bkchem
   vertex files:
-  [packages/bkchem/bkchem/atom.py](packages/bkchem/bkchem/atom.py),
-  [packages/bkchem/bkchem/group.py](packages/bkchem/bkchem/group.py),
-  [packages/bkchem/bkchem/textatom.py](packages/bkchem/bkchem/textatom.py),
-  [packages/bkchem/bkchem/queryatom.py](packages/bkchem/bkchem/queryatom.py).
+  [packages/bkchem-app/bkchem/atom.py](packages/bkchem-app/bkchem/atom.py),
+  [packages/bkchem-app/bkchem/group.py](packages/bkchem-app/bkchem/group.py),
+  [packages/bkchem-app/bkchem/textatom.py](packages/bkchem-app/bkchem/textatom.py),
+  [packages/bkchem-app/bkchem/queryatom.py](packages/bkchem-app/bkchem/queryatom.py).
   Changed `import data/marks/dom_extensions/groups_table` to
   `from . import ...` and `from singleton_store/special_parents import ...`
   to `from .singleton_store/special_parents import ...`.
-  [packages/bkchem/bkchem/groups_table.py](packages/bkchem/bkchem/groups_table.py)
+  [packages/bkchem-app/bkchem/groups_table.py](packages/bkchem-app/bkchem/groups_table.py)
   has no imports and required no changes.
 - Convert bare local import to package-relative import in
-  [packages/bkchem/bkchem/dom_extensions.py](packages/bkchem/bkchem/dom_extensions.py):
+  [packages/bkchem-app/bkchem/dom_extensions.py](packages/bkchem-app/bkchem/dom_extensions.py):
   `import safe_xml` changed to `from . import safe_xml`.
 - Replace local `get_repo_root()` / `_get_repo_root()` definitions in 14
   `tools/*.py` files with `import git_file_utils` from
@@ -84,91 +237,91 @@
   `conftest.repo_tests_path(`, and remove now-unused `import conftest`,
   `import sys` lines where appropriate.
 - Add Align menu action registrations in
-  [packages/bkchem/bkchem/actions/align_actions.py](packages/bkchem/bkchem/actions/align_actions.py):
+  [packages/bkchem-app/bkchem/actions/align_actions.py](packages/bkchem-app/bkchem/actions/align_actions.py):
   registers 6 Align menu actions (top, bottom, left, right, center_h,
   center_v) with enabled_when='two_or_more_selected'.
 - Add Insert menu action registrations in
-  [packages/bkchem/bkchem/actions/insert_actions.py](packages/bkchem/bkchem/actions/insert_actions.py):
+  [packages/bkchem-app/bkchem/actions/insert_actions.py](packages/bkchem-app/bkchem/actions/insert_actions.py):
   registers 1 Insert menu action (biomolecule_template).
 - Add Options menu action registrations in
-  [packages/bkchem/bkchem/actions/options_actions.py](packages/bkchem/bkchem/actions/options_actions.py):
+  [packages/bkchem-app/bkchem/actions/options_actions.py](packages/bkchem-app/bkchem/actions/options_actions.py):
   registers 5 Options menu actions (standard, language, logging,
   inchi_path, preferences) with try/except for interactors and Store.
 - Add Help menu action registrations in
-  [packages/bkchem/bkchem/actions/help_actions.py](packages/bkchem/bkchem/actions/help_actions.py):
+  [packages/bkchem-app/bkchem/actions/help_actions.py](packages/bkchem-app/bkchem/actions/help_actions.py):
   registers 1 Help menu action (about).
 - Add Plugins menu action registrations in
-  [packages/bkchem/bkchem/actions/plugins_actions.py](packages/bkchem/bkchem/actions/plugins_actions.py):
+  [packages/bkchem-app/bkchem/actions/plugins_actions.py](packages/bkchem-app/bkchem/actions/plugins_actions.py):
   no-op register function for the currently empty Plugins menu.
 - Add tests for remaining menu actions in
-  [packages/bkchem/tests/test_remaining_actions.py](packages/bkchem/tests/test_remaining_actions.py):
+  [packages/bkchem-app/tests/test_remaining_actions.py](packages/bkchem-app/tests/test_remaining_actions.py):
   9 tests covering action counts, IDs, enabled_when, and label keys for
   align, insert, options, help, and plugins menus.
 - Add menu builder in
-  [packages/bkchem/bkchem/menu_builder.py](packages/bkchem/bkchem/menu_builder.py):
+  [packages/bkchem-app/bkchem/menu_builder.py](packages/bkchem-app/bkchem/menu_builder.py):
   MenuBuilder class that reads YAML menu structure, resolves actions from
   ActionRegistry, and calls PlatformMenuAdapter to construct menus. Supports
   dynamic state updates via enabled_when predicates and plugin slot injection
   for exporter/importer cascades.
 - Add menu builder tests in
-  [packages/bkchem/tests/test_menu_builder.py](packages/bkchem/tests/test_menu_builder.py):
+  [packages/bkchem-app/tests/test_menu_builder.py](packages/bkchem-app/tests/test_menu_builder.py):
   11 tests covering menu creation, command placement, separators, cascades,
   missing action handling, state updates (callable and string predicates),
   plugin slot discovery, and plugin slot injection.
 - Add Chemistry menu action registrations in
-  [packages/bkchem/bkchem/actions/chemistry_actions.py](packages/bkchem/bkchem/actions/chemistry_actions.py):
+  [packages/bkchem-app/bkchem/actions/chemistry_actions.py](packages/bkchem-app/bkchem/actions/chemistry_actions.py):
   registers 14 Chemistry menu actions (info, check, expand-groups,
   oxidation-number, read-smiles, read-inchi, read-peptide, gen-smiles,
   gen-inchi, set-name, set-id, create-fragment, view-fragments,
   convert-to-linear) with the ActionRegistry.
 - Add View menu action registrations in
-  [packages/bkchem/bkchem/actions/view_actions.py](packages/bkchem/bkchem/actions/view_actions.py):
+  [packages/bkchem-app/bkchem/actions/view_actions.py](packages/bkchem-app/bkchem/actions/view_actions.py):
   registers 5 View menu actions (zoom-in, zoom-out, zoom-reset,
   zoom-to-fit, zoom-to-content) with the ActionRegistry.
 - Add tests for chemistry and view actions in
-  [packages/bkchem/tests/test_chemistry_view_actions.py](packages/bkchem/tests/test_chemistry_view_actions.py):
+  [packages/bkchem-app/tests/test_chemistry_view_actions.py](packages/bkchem-app/tests/test_chemistry_view_actions.py):
   6 tests covering action counts, IDs, and enabled_when type correctness.
 - Fix pyproject.toml multiline inline table that blocked pytest 9.0.2 TOML
-  parsing for all tests under packages/bkchem/.
+  parsing for all tests under packages/bkchem-app/.
 - Add platform menu adapter in
-  [packages/bkchem/bkchem/platform_menu.py](packages/bkchem/bkchem/platform_menu.py):
+  [packages/bkchem-app/bkchem/platform_menu.py](packages/bkchem-app/bkchem/platform_menu.py):
   wraps Pmw.MainMenuBar (macOS) and Pmw.MenuBar (Linux/Windows) behind a uniform
   PlatformMenuAdapter class with methods for add_menu, add_command, add_separator,
   add_cascade, add_command_to_cascade, get_menu_component, and set_item_state.
 - Add platform menu adapter tests in
-  [packages/bkchem/tests/test_platform_menu.py](packages/bkchem/tests/test_platform_menu.py):
+  [packages/bkchem-app/tests/test_platform_menu.py](packages/bkchem-app/tests/test_platform_menu.py):
   10 tests covering macOS vs Linux menubar selection, menu/command/separator/cascade
   addition, side-argument suppression on macOS, and enable/disable state changes.
 - Add YAML menu structure file
-  [packages/bkchem/bkchem_data/menus.yaml](packages/bkchem/bkchem_data/menus.yaml):
+  [packages/bkchem-app/bkchem_data/menus.yaml](packages/bkchem-app/bkchem_data/menus.yaml):
   defines the complete menu hierarchy (10 menus, 55 actions, 19 separators,
   3 cascades) with order, side placement, and cascade definitions. Action details
   remain in the ActionRegistry.
 - Add menu YAML tests in
-  [packages/bkchem/tests/test_menu_yaml.py](packages/bkchem/tests/test_menu_yaml.py):
+  [packages/bkchem-app/tests/test_menu_yaml.py](packages/bkchem-app/tests/test_menu_yaml.py):
   13 tests covering YAML parsing, menu count/order, side assignments, item type
   validation, action ID format, duplicate detection, cascade resolution, and
   per-menu item counts.
 - Add Edit menu action registrations in
-  [packages/bkchem/bkchem/actions/edit_actions.py](packages/bkchem/bkchem/actions/edit_actions.py):
+  [packages/bkchem-app/bkchem/actions/edit_actions.py](packages/bkchem-app/bkchem/actions/edit_actions.py):
   registers 7 Edit menu actions (undo, redo, cut, copy, paste, selected-to-SVG,
   select-all) with the ActionRegistry.
 - Add Object menu action registrations in
-  [packages/bkchem/bkchem/actions/object_actions.py](packages/bkchem/bkchem/actions/object_actions.py):
+  [packages/bkchem-app/bkchem/actions/object_actions.py](packages/bkchem-app/bkchem/actions/object_actions.py):
   registers 7 Object menu actions (scale, bring-to-front, send-back,
   swap-on-stack, vertical-mirror, horizontal-mirror, configure) with the
   ActionRegistry.
 - Add tests for edit and object actions in
-  [packages/bkchem/tests/test_edit_object_actions.py](packages/bkchem/tests/test_edit_object_actions.py):
+  [packages/bkchem-app/tests/test_edit_object_actions.py](packages/bkchem-app/tests/test_edit_object_actions.py):
   6 tests covering action counts, IDs, and enabled_when type correctness.
 - Add File menu action registrations in
-  [packages/bkchem/bkchem/actions/file_actions.py](packages/bkchem/bkchem/actions/file_actions.py):
+  [packages/bkchem-app/bkchem/actions/file_actions.py](packages/bkchem-app/bkchem/actions/file_actions.py):
   registers 9 File menu actions (new, save, save-as, save-as-template, load,
   load-same-tab, properties, close-tab, exit) with the ActionRegistry. Includes
   tests in
-  [packages/bkchem/tests/test_file_actions.py](packages/bkchem/tests/test_file_actions.py).
+  [packages/bkchem-app/tests/test_file_actions.py](packages/bkchem-app/tests/test_file_actions.py).
 - Add ActionRegistry core package in
-  [packages/bkchem/bkchem/actions/__init__.py](packages/bkchem/bkchem/actions/__init__.py):
+  [packages/bkchem-app/bkchem/actions/__init__.py](packages/bkchem-app/bkchem/actions/__init__.py):
   provides `MenuAction` dataclass and `ActionRegistry` class as the shared contract
   for the modular menu refactor. Includes `register_all_actions()` with graceful
   import guards for per-menu modules not yet written.
@@ -184,10 +337,10 @@
   Scopes out format-handler migration, renderer unification, and Tool framework
   as separate projects.
 - Add "Read Peptide Sequence" menu item under Chemistry in
-  [packages/bkchem/bkchem/main.py](packages/bkchem/bkchem/main.py):
+  [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py):
   prompts for a single-letter amino acid sequence (e.g. ANKLE), converts it
   to IsoSMILES via new
-  [packages/bkchem/bkchem/peptide_utils.py](packages/bkchem/bkchem/peptide_utils.py),
+  [packages/bkchem-app/bkchem/peptide_utils.py](packages/bkchem-app/bkchem/peptide_utils.py),
   and renders the polypeptide structure through the existing SMILES-to-CDML
   pipeline.
 
@@ -227,14 +380,14 @@
   two-carbon tail ops and multi-segment chain ops keep explicit `attach_box`
   targeting.
 - Fix IndexError crash when rotating molecules with double bonds in
-  [packages/bkchem/bkchem/bond_display.py](packages/bkchem/bkchem/bond_display.py):
+  [packages/bkchem-app/bkchem/bond_display.py](packages/bkchem-app/bkchem/bond_display.py):
   guard `self.second[0]` access in `transform()` since the render-ops draw path
   never populates `self.second` for double bonds.
 - Route BKChem SMILES import through CDML: replace direct
   `oasa_mol_to_bkchem_mol` bridge with `smiles_to_cdml_elements()` in
-  [packages/bkchem/bkchem/oasa_bridge.py](packages/bkchem/bkchem/oasa_bridge.py),
+  [packages/bkchem-app/bkchem/oasa_bridge.py](packages/bkchem-app/bkchem/oasa_bridge.py),
   update `read_smiles()` dialog in
-  [packages/bkchem/bkchem/main.py](packages/bkchem/bkchem/main.py) to use
+  [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py) to use
   `paper.add_object_from_package()`, and remove old `read_smiles` bridge
   function. Updated dialog text to indicate IsoSMILES support.
 - Add pytest test suite
@@ -243,7 +396,7 @@
   ethanol, benzene, coordinate units, bond length, disconnected SMILES, empty
   input, and atom names).
 - Fix disconnected SMILES handling in `smiles_to_cdml_elements()` in
-  [packages/bkchem/bkchem/oasa_bridge.py](packages/bkchem/bkchem/oasa_bridge.py):
+  [packages/bkchem-app/bkchem/oasa_bridge.py](packages/bkchem-app/bkchem/oasa_bridge.py):
   add `mol.remove_zero_order_bonds()` call so dot-separated SMILES like "CC.OO"
   are correctly split into separate CDML molecule elements.
 - Add SMILES/IsoSMILES CDML import plan
@@ -264,7 +417,7 @@
   [tools/coords_comparison.py](tools/coords_comparison.py) that renders
   side-by-side HTML galleries of old vs new vs RDKit 2D coordinate layouts
   for 24 test molecules.
-- Update [packages/bkchem/bkchem/oasa_bridge.py](packages/bkchem/bkchem/oasa_bridge.py)
+- Update [packages/bkchem-app/bkchem/oasa_bridge.py](packages/bkchem-app/bkchem/oasa_bridge.py)
   to prefer `coords_generator2` over legacy `coords_generator` when RDKit is not
   available, with graceful fallback to the old generator.
 - Add RDKit bridge module
@@ -279,7 +432,7 @@
   all sugar codes.  Outputs `output_smoke/rdkit_comparison_pyranose.html` and
   `output_smoke/rdkit_comparison_furanose.html` with comparison pairs.
 - Wire RDKit coordinate generation into bkchem SMILES import pipeline.
-  [packages/bkchem/bkchem/oasa_bridge.py](packages/bkchem/bkchem/oasa_bridge.py)
+  [packages/bkchem-app/bkchem/oasa_bridge.py](packages/bkchem-app/bkchem/oasa_bridge.py)
   now uses `rdkit_bridge.calculate_coords_rdkit` when RDKit is available,
   falling back to OASA's native `coords_generator` when it is not.
 - Add `rdkit` to [pip_requirements.txt](pip_requirements.txt).
@@ -665,13 +818,13 @@
   for new measurement label set and first/last letter alignment.
 
 - Add CPK default colors for charge marks in
-  [packages/bkchem/bkchem/marks.py](packages/bkchem/bkchem/marks.py): `plus`
+  [packages/bkchem-app/bkchem/marks.py](packages/bkchem-app/bkchem/marks.py): `plus`
   marks default to blue (`#0000FF`) and `minus` marks default to red
   (`#FF0000`) instead of inheriting the atom's line color.  Override the
   `line_color` property in each subclass with a CPK fallback; explicit color
   set via `set_color()` or `_line_color` still takes precedence.
 - Add zoom scaling for all mark subclasses in
-  [packages/bkchem/bkchem/marks.py](packages/bkchem/bkchem/marks.py).  Add
+  [packages/bkchem-app/bkchem/marks.py](packages/bkchem-app/bkchem/marks.py).  Add
   `_scaled_size()` helper to the base `mark` class that multiplies `self.size`
   by `self.paper._scale`.  Update `draw()` in `radical`, `biradical`,
   `electronpair`, `plus`, `minus`, and `text_mark` to use `_scaled_size()`
@@ -742,7 +895,7 @@
   [docs/active_plans/OASA-Wide_Glyph-Bond_Awareness.md](docs/active_plans/OASA-Wide_Glyph-Bond_Awareness.md).
 - Fix zoom viewport drift caused by orphaned canvas items leaking during
   redraw.  Non-showing atoms (carbon) in
-  [packages/bkchem/bkchem/atom.py](packages/bkchem/bkchem/atom.py) called
+  [packages/bkchem-app/bkchem/atom.py](packages/bkchem-app/bkchem/atom.py) called
   `get_xy_on_paper()` which created a `vertex_item`, then overwrote
   `self.vertex_item = self.item`, orphaning the first item.  These leaked
   items accumulated at stale `canvas.scale()` coordinates, inflating the
@@ -750,17 +903,17 @@
   steps).  Fix computes coordinates directly via `real_to_canvas()`.
 - Fix bond position drift during zoom by repositioning `vertex_item`
   coordinates to `model_coord * scale` at the top of `molecule.redraw()`
-  in [packages/bkchem/bkchem/molecule.py](packages/bkchem/bkchem/molecule.py).
+  in [packages/bkchem-app/bkchem/molecule.py](packages/bkchem-app/bkchem/molecule.py).
   Bonds redraw before atoms for z-ordering and read atom positions from
   `vertex_item`; without the reset they used stale canvas-scaled coords.
 - Add `_center_viewport_on_canvas()` helper to
-  [packages/bkchem/bkchem/paper.py](packages/bkchem/bkchem/paper.py) and
+  [packages/bkchem-app/bkchem/paper.py](packages/bkchem-app/bkchem/paper.py) and
   call it after `update_scrollregion()` in `scale_all()` to re-center the
   viewport on the zoom origin.  Refactor `zoom_to_content()` to use the
   new helper.
 - Fix interactive zoom drift: remove redundant `canvas.scale('all', ox, oy,
   factor, factor)` from `scale_all()` in
-  [packages/bkchem/bkchem/paper.py](packages/bkchem/bkchem/paper.py).
+  [packages/bkchem-app/bkchem/paper.py](packages/bkchem-app/bkchem/paper.py).
   `redraw_all()` already redraws content from model coords at the new scale,
   but the background rectangle (`self.background`) is not in `self.stack` and
   was never reset by `redraw_all()`.  The `canvas.scale()` call scaled it
@@ -769,7 +922,7 @@
   background via `create_background()` + `scale(background, 0, 0, scale,
   scale)` after `redraw_all()`.
 - Fix Tk canvas inset bug in `_center_viewport_on_canvas()` fraction formula
-  in [packages/bkchem/bkchem/paper.py](packages/bkchem/bkchem/paper.py).
+  in [packages/bkchem-app/bkchem/paper.py](packages/bkchem-app/bkchem/paper.py).
   Tk's `xview moveto` internally subtracts the canvas inset
   (`borderwidth + highlightthickness`) from the computed origin.  The
   fraction formula must include a `+inset` correction so that `canvasx()`
@@ -803,9 +956,9 @@
   bounding box of drawn content only (excluding page background), scales to fit
   with 10% margin capped at 400%, and centers the viewport on the molecules.
   New `_content_bbox()` helper and `zoom_to_content()` method in
-  [packages/bkchem/bkchem/paper.py](packages/bkchem/bkchem/paper.py); button
+  [packages/bkchem-app/bkchem/paper.py](packages/bkchem-app/bkchem/paper.py); button
   and menu wiring in
-  [packages/bkchem/bkchem/main.py](packages/bkchem/bkchem/main.py).
+  [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py).
 - Shorten wavy bond wavelength from `ref * 1.2` to `ref * 0.5` (floor 2.0) in
   [packages/oasa/oasa/render_geometry.py](packages/oasa/oasa/render_geometry.py)
   for tighter, more visible wave oscillations.

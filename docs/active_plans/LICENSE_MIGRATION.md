@@ -100,9 +100,9 @@ The renderer backend boundary aligns with licensing:
 - Future renderer utilities
 
 ### GPL-2.0 (legacy and GUI-specific code)
-- BKChem GUI: `packages/bkchem/bkchem/main.py`
+- BKChem GUI: `packages/bkchem-app/bkchem/main.py`
 - CDML glue: legacy parts of `packages/oasa/oasa/cdml.py`
-- BKChem bond rendering: `packages/bkchem/bkchem/bond.py`
+- BKChem bond rendering: `packages/bkchem-app/bkchem/bond.py`
 - Legacy IO and external data fetchers
 - Plugin system
 - Template catalog
@@ -294,7 +294,7 @@ Mixed files: C (D%)
 File                                    Total   GPL    LGPL   GPL%
                                         Commits Commits Commits
 packages/oasa/oasa/cdml.py              47      42     5      89.4%
-packages/bkchem/bkchem/bond.py          23      18     5      78.3%
+packages/bkchem-app/bkchem/bond.py          23      18     5      78.3%
 ...
 ```
 

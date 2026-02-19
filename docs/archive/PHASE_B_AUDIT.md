@@ -15,18 +15,18 @@ This report closes Phase B of
 
 | Option | Current location | Formats | Default | Classification | Rationale |
 |---|---|---|---|---|---|
-| `scope=selected_molecule` | `packages/bkchem/bkchem/format_menus.yaml` + `format_loader` | Molfile, SMILES, InChI | exactly one selected molecule required | keep in BKChem GUI | This is user intent, not codec behavior. |
-| `program_path` | `packages/bkchem/bkchem/format_menus.yaml` (`source: preference`) | InChI export | required preference value | keep in BKChem GUI | External binary location is host configuration, not molecular serialization policy. |
-| `menu_capabilities` | `packages/bkchem/bkchem/format_menus.yaml` | all registry-routed formats | derived from registry when omitted | keep in BKChem GUI | Menu presence is UI policy. |
+| `scope=selected_molecule` | `packages/bkchem-app/bkchem/format_menus.yaml` + `format_loader` | Molfile, SMILES, InChI | exactly one selected molecule required | keep in BKChem GUI | This is user intent, not codec behavior. |
+| `program_path` | `packages/bkchem-app/bkchem/format_menus.yaml` (`source: preference`) | InChI export | required preference value | keep in BKChem GUI | External binary location is host configuration, not molecular serialization policy. |
+| `menu_capabilities` | `packages/bkchem-app/bkchem/format_menus.yaml` | all registry-routed formats | derived from registry when omitted | keep in BKChem GUI | Menu presence is UI policy. |
 | CML/CML2 write path | `packages/oasa/oasa/codecs/cml.py`, `packages/oasa/oasa/codecs/cml2.py` | CML, CML2 | disabled | retire | Legacy export retired; import retained for recovery. |
 | Coordinate orientation (+Y up canonical exchange) | OASA codecs + bridge path | Molfile and all registry codecs | no per-format Y flip | move to codec defaults | Orientation is core data contract, not a per-format UI toggle. |
-| `invert_coords` hack | removed `packages/bkchem/bkchem/plugins/molfile.py` | legacy Molfile plugin | n/a | retire | Removed in Phase A; replaced by canonical coordinate boundary. |
+| `invert_coords` hack | removed `packages/bkchem-app/bkchem/plugins/molfile.py` | legacy Molfile plugin | n/a | retire | Removed in Phase A; replaced by canonical coordinate boundary. |
 | Per-plugin molecule selection dialogs | removed format plugins | legacy Molfile/SMILES/InChI plugins | n/a | retire | Replaced by shared `scope` handler in `format_loader`. |
-| GTML export menu entry | `packages/bkchem/bkchem/plugins/gtml.py` | GTML | disabled in Phase B | retire | GTML is legacy import-only. |
-| Crop toggle (`crop_svg`) | `packages/bkchem/bkchem/plugins/cairo_lowlevel.py`, `packages/bkchem/bkchem/plugins/ps_builtin.py` | legacy PDF/PNG/SVG/PS exporters | current paper property | keep in BKChem GUI (temporary) | Rendering plugins remain until Phase C swap. |
+| GTML export menu entry | `packages/bkchem-app/bkchem/plugins/gtml.py` | GTML | disabled in Phase B | retire | GTML is legacy import-only. |
+| Crop toggle (`crop_svg`) | `packages/bkchem-app/bkchem/plugins/cairo_lowlevel.py`, `packages/bkchem-app/bkchem/plugins/ps_builtin.py` | legacy PDF/PNG/SVG/PS exporters | current paper property | keep in BKChem GUI (temporary) | Rendering plugins remain until Phase C swap. |
 | Page size (`size_x`, `size_y`) | legacy render plugins | legacy PDF/PNG/SVG/PS/ODF exporters | current paper property | keep in BKChem GUI (temporary) | User-facing output size control remains until OASA renderers replace Tk path. |
-| PNG scaling and DPI controls | `packages/bkchem/bkchem/plugins/png_cairo.py` | legacy PNG exporter | dialog-selected values | keep in BKChem GUI (temporary) | Human output resolution choice; revisit during Phase C renderer options migration. |
-| PNG background color | `packages/bkchem/bkchem/plugins/png_cairo.py` | legacy PNG exporter | dialog-selected | keep in BKChem GUI (temporary) | User-facing visual output option; migrate in Phase C. |
+| PNG scaling and DPI controls | `packages/bkchem-app/bkchem/plugins/png_cairo.py` | legacy PNG exporter | dialog-selected values | keep in BKChem GUI (temporary) | Human output resolution choice; revisit during Phase C renderer options migration. |
+| PNG background color | `packages/bkchem-app/bkchem/plugins/png_cairo.py` | legacy PNG exporter | dialog-selected | keep in BKChem GUI (temporary) | User-facing visual output option; migrate in Phase C. |
 
 ### Decision record
 
@@ -61,7 +61,7 @@ Decision: retain GTML as import-only for legacy file recovery.
 
 Implementation:
 
-- `packages/bkchem/bkchem/plugins/gtml.py` now sets `exporter = None`.
+- `packages/bkchem-app/bkchem/plugins/gtml.py` now sets `exporter = None`.
 - GTML remains available in import paths, including HTTP import hooks.
 
 Documented data-loss exceptions for GTML -> CDML conversion through the OASA molecule codec path:

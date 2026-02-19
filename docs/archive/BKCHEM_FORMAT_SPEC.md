@@ -7,7 +7,7 @@ CDML uses `.cdgz`. CD-SVG uses `.svg` or `.svgz` and includes a `<cdml>` node
 inside the SVG.
 
 This document describes the current CDML structure as used by BKChem 26.02.
-The legacy DTD in `packages/bkchem/bkchem_data/dtd/cdml.dtd` is incomplete and
+The legacy DTD in `packages/bkchem-app/bkchem_data/dtd/cdml.dtd` is incomplete and
 does not reflect all modern elements or attributes.
 
 ## File types
