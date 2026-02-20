@@ -315,6 +315,6 @@ if __name__ == "__main__":
   if a.molecule:
     m = a.molecule
     coords_generator.calculate_coords( m)
-    coords_generator.show_mol( m)
+    print(f"molecule: {len(m.vertices)} atoms")
   else:
     print("nothing")

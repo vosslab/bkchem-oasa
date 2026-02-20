@@ -10,6 +10,7 @@ Same interface as coords_generator: calculate_coords(mol, bond_length, force).
 from math import pi, sqrt, sin, cos, atan2
 
 from oasa import geometry
+from oasa import ring_templates
 
 
 #============================================
@@ -247,10 +248,22 @@ class CoordsGenerator2:
 	def _place_ring_system(self, ring_system: list, placed: set) -> set:
 		"""Place a single ring system (list of rings sharing atoms).
 
-		Uses BFS from the largest ring outward to place fused rings.
+		First tries template lookup for cage molecules (cubane, adamantane).
+		Falls back to BFS from the largest ring outward to place fused rings.
 		"""
 		if not ring_system:
 			return placed
+
+		# collect all atoms in this ring system
+		all_ring_atoms = set()
+		for ring in ring_system:
+			all_ring_atoms.update(ring)
+
+		# try template placement if no atoms in this system already placed
+		if not (all_ring_atoms & placed):
+			if self._try_template_placement(all_ring_atoms):
+				placed.update(all_ring_atoms)
+				return placed
 
 		# sort rings by size descending, start with largest
 		ring_system_sorted = sorted(ring_system, key=len, reverse=True)
@@ -501,6 +514,46 @@ class CoordsGenerator2:
 			atom_obj.x = x
 			atom_obj.y = y
 			angle += _deg_to_rad(ext_angle)
+
+	#============================================
+	def _try_template_placement(self, ring_atoms: set) -> bool:
+		"""Try to place ring system atoms using a pre-computed template.
+
+		Builds the adjacency graph for the ring system (only intra-ring bonds)
+		and looks up a matching template. If found, assigns template coordinates
+		scaled to the current bond_length.
+
+		Args:
+			ring_atoms: set of atom objects in the ring system.
+
+		Returns:
+			True if a template was matched and coordinates applied.
+		"""
+		atoms = list(ring_atoms)
+		n = len(atoms)
+		# build adjacency within ring system only
+		atom_to_idx = {}
+		for i, a in enumerate(atoms):
+			atom_to_idx[a] = i
+		adj = {}
+		for i, a in enumerate(atoms):
+			adj[i] = set()
+			for nb in a.neighbors:
+				if nb in atom_to_idx:
+					adj[i].add(atom_to_idx[nb])
+		# look up matching template
+		result = ring_templates.find_template(n, adj)
+		if result is None:
+			return False
+		template, mapping = result
+		coords = template["coords"]
+		# apply template coordinates, scaled to bond_length
+		for i, atom_obj in enumerate(atoms):
+			template_idx = mapping[i]
+			x, y = coords[template_idx]
+			atom_obj.x = x * self.bond_length
+			atom_obj.y = y * self.bond_length
+		return True
 
 	# ======================================================
 	# Phase 2: Chain and substituent placement

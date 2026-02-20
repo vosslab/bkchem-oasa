@@ -1,6 +1,40 @@
 # Changelog
 
 ## 2026-02-20
+- Add `test_repair_ops.py` (112 tests) exercising all 5 pure-geometry repair
+  operations against 4 real biomolecules parsed from SMILES: cholesterol (fused
+  5+6+6+6 rings), GDP (fused purine + sugar), histidine (imidazole), and sucrose
+  (furanose + pyranose). Ring normalization tests verify each ring becomes a
+  regular N-gon using the `180*(N-2)/N` interior angle formula and uniform bond
+  lengths. Fused ring tests are xfail (known limitation: sequential ring
+  processing overwrites shared atoms). Documents snap-to-hex-grid as global-only:
+  N-member rings where N % 3 != 0 (4, 5, 7, 8, etc.) cannot tile a hex grid.
+- Migrate all callers from `coords_generator` to `coords_generator2`. Switch
+  `smiles_lib.py`, `inchi_lib.py`, `linear_formula.py`, and `cdml.py` to use
+  the newer three-layer 2D coordinate generator (ring placement, chain layout,
+  collision resolution, force-field refinement). Remove `show_mol()` debug call
+  from `linear_formula.py` `__main__` block.
+- Add RDKit-inspired ring template system for cage molecules. New module
+  `ring_templates.py` provides pre-computed 2D coordinate templates for cubane,
+  adamantane, and norbornane with graph-isomorphism-based matching. Templates
+  bypass the algorithmic ring-fusion approach that fails on polycyclic cage
+  structures. Cubane coordinates extracted from RDKit `TemplateSmiles.h`;
+  adamantane and norbornane hand-tuned.
+- Integrate template lookup into `coords_generator2.py`. The
+  `_place_ring_system()` method now attempts template matching before falling
+  back to BFS ring-fusion. Adds `_try_template_placement()` helper that builds
+  the ring system adjacency graph and queries `ring_templates.find_template()`.
+- Remove `calc_coords=False` workarounds from `graph_test_fixtures.py`. Both
+  `make_steroid_skeleton()` and `make_bridged_bicyclic()` fixtures now generate
+  coordinates normally. Remove the `calc_coords` parameter from
+  `_smiles_to_fixture()` helper.
+- Fix `line_length()` argument bug in legacy `coords_generator.py` (lines
+  401-402). The function was called with a single tuple instead of four
+  separate arguments, causing crashes in `_process_multi_anelated_ring()` for
+  polycyclic molecules. Fix corrects the call signature as a safety net.
+- Add cubane, adamantane, and norbornane test classes to
+  `test_coords_generator2.py` verifying coordinate generation, atom counts,
+  and non-overlapping layouts for template-based molecules.
 - Reduce pytest skips from 24 to 10 in graph parity tests. Extract
   `test_hexane_returns_empty` into standalone `TestAcyclicMolecules` class,
   filter `single_atom` fixture from path tests at collection time, and early

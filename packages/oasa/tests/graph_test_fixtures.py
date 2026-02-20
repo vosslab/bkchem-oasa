@@ -50,20 +50,18 @@ def build_rx_from_oasa(mol) -> tuple:
 
 
 #============================================
-def _smiles_to_fixture(smiles: str, name: str, expected: dict, calc_coords: bool = True) -> dict:
+def _smiles_to_fixture(smiles: str, name: str, expected: dict) -> dict:
 	"""Helper to build a fixture dict from a SMILES string.
 
 	Args:
 		smiles: SMILES string to parse.
 		name: Human-readable molecule name.
 		expected: Dict of expected graph properties.
-		calc_coords: Whether to calculate 2D coordinates (some bridged
-			molecules fail coord generation due to a known geometry bug).
 
 	Returns:
 		Fixture dict with oasa_mol, rx_graph, v_to_i, i_to_v, name, expected.
 	"""
-	mol = oasa.smiles_lib.text_to_mol(smiles, calc_coords=calc_coords)
+	mol = oasa.smiles_lib.text_to_mol(smiles)
 	mol.remove_zero_order_bonds()
 	rx_graph, v_to_i, i_to_v = build_rx_from_oasa(mol)
 	return {
@@ -144,9 +142,6 @@ def make_naphthalene() -> dict:
 def make_steroid_skeleton() -> dict:
 	"""Build steroid skeleton (4 fused saturated rings).
 
-	Uses calc_coords=False due to a known coords_generator bug with
-	multi-anelated ring systems.
-
 	Returns:
 		Fixture dict for steroid skeleton: 17 atoms, 20 bonds, 4 cycles.
 	"""
@@ -161,7 +156,6 @@ def make_steroid_skeleton() -> dict:
 			"cycle_count": 4,
 			"has_bridges": False,
 		},
-		calc_coords=False,
 	)
 
 
@@ -298,9 +292,6 @@ def make_cyclopentane() -> dict:
 def make_bridged_bicyclic() -> dict:
 	"""Build norbornane-like bridged bicyclic (C1CC2CCC1C2).
 
-	Uses calc_coords=False due to a known coords_generator bug with
-	multi-anelated ring systems.
-
 	Returns:
 		Fixture dict for bridged bicyclic: 7 atoms, 8 bonds, 2 cycles.
 	"""
@@ -315,7 +306,6 @@ def make_bridged_bicyclic() -> dict:
 			"cycle_count": 2,
 			"has_bridges": False,
 		},
-		calc_coords=False,
 	)
 
 

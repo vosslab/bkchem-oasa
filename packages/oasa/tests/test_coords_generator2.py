@@ -284,3 +284,74 @@ class TestTripleBond:
 		mol = _mol_from_smiles("C#C")
 		cg2.calculate_coords(mol, bond_length=1.0, force=1)
 		assert _all_coords_set(mol)
+
+
+# ======================================================
+# Test: cubane (cage molecule, template-based)
+# ======================================================
+
+#============================================
+class TestCubane:
+	def test_cubane_coords_set(self):
+		"""Cubane: all 8 atoms should get coordinates via template."""
+		mol = _mol_from_smiles("C12C3C4C1C5C3C4C25")
+		cg2.calculate_coords(mol, bond_length=1.0, force=1)
+		assert _all_coords_set(mol)
+
+	def test_cubane_atom_count(self):
+		"""Cubane has 8 heavy atoms."""
+		mol = _mol_from_smiles("C12C3C4C1C5C3C4C25")
+		cg2.calculate_coords(mol, bond_length=1.0, force=1)
+		assert len(mol.vertices) == 8
+
+	def test_cubane_no_overlap(self):
+		"""No two non-bonded atoms should overlap."""
+		mol = _mol_from_smiles("C12C3C4C1C5C3C4C25")
+		cg2.calculate_coords(mol, bond_length=1.0, force=1)
+		min_d = _min_nonbonded_distance(mol)
+		assert min_d > 0.2, f"cubane has overlapping atoms: min dist {min_d:.3f}"
+
+
+# ======================================================
+# Test: adamantane (cage molecule, template-based)
+# ======================================================
+
+#============================================
+class TestAdamantane:
+	def test_adamantane_coords_set(self):
+		"""Adamantane: all 10 atoms should get coordinates via template."""
+		mol = _mol_from_smiles("C1C2CC3CC1CC(C2)C3")
+		cg2.calculate_coords(mol, bond_length=1.0, force=1)
+		assert _all_coords_set(mol)
+
+	def test_adamantane_atom_count(self):
+		"""Adamantane has 10 heavy atoms."""
+		mol = _mol_from_smiles("C1C2CC3CC1CC(C2)C3")
+		cg2.calculate_coords(mol, bond_length=1.0, force=1)
+		assert len(mol.vertices) == 10
+
+	def test_adamantane_no_overlap(self):
+		"""No two non-bonded atoms should overlap."""
+		mol = _mol_from_smiles("C1C2CC3CC1CC(C2)C3")
+		cg2.calculate_coords(mol, bond_length=1.0, force=1)
+		min_d = _min_nonbonded_distance(mol)
+		assert min_d > 0.1, f"adamantane has overlapping atoms: min dist {min_d:.3f}"
+
+
+# ======================================================
+# Test: norbornane (bridged bicyclic, template-based)
+# ======================================================
+
+#============================================
+class TestNorbornane:
+	def test_norbornane_coords_set(self):
+		"""Norbornane: all 7 atoms should get coordinates."""
+		mol = _mol_from_smiles("C1CC2CCC1C2")
+		cg2.calculate_coords(mol, bond_length=1.0, force=1)
+		assert _all_coords_set(mol)
+
+	def test_norbornane_atom_count(self):
+		"""Norbornane has 7 heavy atoms."""
+		mol = _mol_from_smiles("C1CC2CCC1C2")
+		cg2.calculate_coords(mol, bond_length=1.0, force=1)
+		assert len(mol.vertices) == 7
