@@ -1,6 +1,42 @@
 # Changelog
 
 ## 2026-02-20
+- Add 2D spatial index (KD-tree) for OASA coordinate generation.
+  - New file
+    [`packages/oasa/oasa/graph/spatial_index.py`](packages/oasa/oasa/graph/spatial_index.py):
+    pure-Python KD-tree with `query_radius()` and `query_pairs()` for fast
+    radius-based neighbor lookups. Includes brute-force fallback helpers for
+    small molecules (< 20 atoms).
+  - Integrate into Phase 3 collision detection in
+    [`packages/oasa/oasa/coords_gen/phase3_collisions.py`](packages/oasa/oasa/coords_gen/phase3_collisions.py):
+    `_detect_collisions()` and `_count_collisions_for_atoms()` now use the
+    spatial index for molecules with 20+ atoms, reducing all-pairs O(n^2)
+    scans to O(n log n + nm).
+  - Integrate into Phase 4 force-field repulsion in
+    [`packages/oasa/oasa/coords_gen/phase4_refinement.py`](packages/oasa/oasa/coords_gen/phase4_refinement.py):
+    `_apply_repulsion()` uses the spatial index to find candidate pairs
+    within the repulsion cutoff. Index rebuilt every 10 iterations.
+  - New test suite
+    [`packages/oasa/tests/test_spatial_index.py`](packages/oasa/tests/test_spatial_index.py)
+    (29 tests): brute-force oracle validation, boundary cases, degenerate
+    geometries, random point cloud property tests, and scipy cross-checks.
+  - New benchmark script
+    [`tools/benchmark_spatial_index.py`](tools/benchmark_spatial_index.py):
+    shows 2-5x speedup for standalone radius queries at 200-1000 points.
+- Graph library cleanup: 5 targeted fixes.
+  - Remove unused incremental mirror methods (`add_node`, `remove_node`,
+    `add_edge`, `remove_edge`) from `RxBackend` in
+    [`packages/oasa/oasa/graph/rx_backend.py`](packages/oasa/oasa/graph/rx_backend.py)
+    and their tests in
+    [`packages/oasa/tests/test_rx_backend.py`](packages/oasa/tests/test_rx_backend.py).
+  - Add empty graph guard to `cycle_basis()` to prevent crash on node 0 lookup.
+  - Replace fragile `hasattr(item, '_neighbors')` duck typing with
+    `isinstance(item, Vertex)` in `find_path_between`.
+  - Replace mutable default args (`=[]`) with `=None` + guard in `Graph.__init__`,
+    `Graph.find_path_between`, `Edge.__init__`, `Edge.set_vertices`,
+    `Diedge.__init__`, `Diedge.set_vertices`, and `BkMolecule.find_path_between`.
+  - Fix `Vertex.remove_neighbor` truthiness check: `if to_del:` changed to
+    `if to_del is not None:` so falsy Edge objects are handled correctly.
 - Implement deferred ring system placement for multi-ring-system molecules
   (sucrose, raffinose). Phase 1 now defers unanchored ring systems instead of
   placing them at the origin; Phase 2 triggers their placement when chain

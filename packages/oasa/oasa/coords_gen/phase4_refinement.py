@@ -7,6 +7,8 @@ forces to preserve ring geometry.
 
 from math import pi, sqrt, sin
 
+from oasa.graph.spatial_index import SpatialIndex, SMALL_MOLECULE_THRESHOLD
+
 
 #============================================
 def force_refine(gen) -> None:
@@ -53,7 +55,25 @@ def force_refine(gen) -> None:
 			near.update(n.neighbors)
 		bonded_or_close[v] = near
 
+	# spatial index for repulsion acceleration on larger molecules;
+	# rebuilding every 10 iterations balances rebuild cost vs stale-index
+	# misses (a few missed pairs in intermediate iterations are acceptable
+	# since the force field converges regardless)
+	rebuild_interval = 10
+	spatial_idx = None
+	use_spatial = len(gen.mol.vertices) >= SMALL_MOLECULE_THRESHOLD
+
 	for _iteration in range(max_iters):
+		# rebuild spatial index periodically as atom positions shift
+		if use_spatial and _iteration % rebuild_interval == 0:
+			coords = []
+			idx_to_atom = []
+			for v in gen.mol.vertices:
+				if v.x is not None:
+					idx_to_atom.append(v)
+					coords.append((v.x, v.y))
+			spatial_idx = SpatialIndex.build(coords)
+
 		# compute gradients
 		grad = {}
 		for v in gen.mol.vertices:
@@ -66,7 +86,8 @@ def force_refine(gen) -> None:
 		_apply_angle_bend(gen, grad, ideal_angles, k_angle, step_size)
 
 		# non-bonded repulsion
-		_apply_repulsion(gen, grad, bonded_or_close, k_repel, step_size)
+		_apply_repulsion(gen, grad, bonded_or_close, k_repel, step_size,
+			spatial_idx, idx_to_atom if use_spatial else None)
 
 		# apply gradients with ring atom pinning and clamping
 		max_grad = 0
@@ -217,8 +238,12 @@ def _apply_angle_bend(gen, grad: dict, ideal_angles: dict,
 
 #============================================
 def _apply_repulsion(gen, grad: dict, bonded_or_close: dict,
-	k_repel: float, step_size: float) -> None:
+	k_repel: float, step_size: float,
+	spatial_idx=None, idx_to_atom: list = None) -> None:
 	"""Apply non-bonded repulsion gradient.
+
+	When a spatial index is provided, uses it to find candidate pairs
+	within the repulsion cutoff instead of scanning all O(n^2) pairs.
 
 	Args:
 		gen: CoordsGenerator2 instance.
@@ -226,10 +251,42 @@ def _apply_repulsion(gen, grad: dict, bonded_or_close: dict,
 		bonded_or_close: dict mapping atom -> set of bonded/close atoms.
 		k_repel: repulsion constant.
 		step_size: gradient step size.
+		spatial_idx: optional SpatialIndex for accelerated pair finding.
+		idx_to_atom: optional list mapping spatial index positions to atoms.
 	"""
+	repel_dist = 1.8 * gen.bond_length
+	repel_dist2 = repel_dist * repel_dist
+
+	if spatial_idx is not None and idx_to_atom is not None:
+		# accelerated path: use spatial index for candidate pairs
+		candidate_pairs = spatial_idx.query_pairs(repel_dist)
+		for i, j in candidate_pairs:
+			a1 = idx_to_atom[i]
+			a2 = idx_to_atom[j]
+			if a2 in bonded_or_close.get(a1, set()):
+				continue
+			dx = a1.x - a2.x
+			dy = a1.y - a2.y
+			d2 = dx * dx + dy * dy
+			# spatial index uses <= so a few pairs at boundary are included
+			if d2 > repel_dist2:
+				continue
+			d = sqrt(d2)
+			if d < 1e-8:
+				continue
+			# repulsive force: k/d^2
+			force = k_repel / (d * d)
+			gx = force * dx / d
+			gy = force * dy / d
+			grad[a1][0] += gx * step_size
+			grad[a1][1] += gy * step_size
+			grad[a2][0] -= gx * step_size
+			grad[a2][1] -= gy * step_size
+		return
+
+	# brute-force path for small molecules
 	atoms = gen.mol.vertices
 	n_atoms = len(atoms)
-	repel_dist = 1.8 * gen.bond_length
 	for i in range(n_atoms):
 		a1 = atoms[i]
 		if a1.x is None:
@@ -243,7 +300,7 @@ def _apply_repulsion(gen, grad: dict, bonded_or_close: dict,
 			dx = a1.x - a2.x
 			dy = a1.y - a2.y
 			d2 = dx * dx + dy * dy
-			if d2 > repel_dist * repel_dist:
+			if d2 > repel_dist2:
 				continue
 			d = sqrt(d2)
 			if d < 1e-8:

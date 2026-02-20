@@ -216,6 +216,46 @@ Convergence is declared when the maximum gradient magnitude falls below `1e-4`.
 
 ---
 
+## Spatial index acceleration
+
+**What it does.**
+Phase 3 (collision detection) and Phase 4 (force-field repulsion) both scan
+all atom pairs to find close neighbors. For molecules with 20+ atoms, a 2D
+spatial index (KD-tree) replaces these O(n^2) scans with O(n log n + nm)
+queries, where m is the small number of actual neighbors within the search
+radius.
+
+**How it works.**
+A recursive median-split KD-tree alternates x/y split axes at each level.
+Leaf nodes (up to 16 points) use brute-force distance checks. Two query
+operations are supported:
+
+- `query_radius(x, y, r)`: find all points within distance r of (x, y).
+- `query_pairs(r)`: find all point pairs within distance r of each other.
+
+The index is rebuilt from scratch each pass (Phase 3) or every 10 iterations
+(Phase 4). No incremental insert/delete is needed because coordinates change
+in bulk during optimization.
+
+For molecules with fewer than 20 atoms, the code falls back to brute-force
+loops since the KD-tree overhead is not worthwhile at small sizes.
+
+**Our implementation.**
+- Spatial index: [packages/oasa/oasa/graph/spatial_index.py](../packages/oasa/oasa/graph/spatial_index.py)
+- Integration in Phase 3: `_detect_collisions()` and
+  `_count_collisions_for_atoms()` in
+  [packages/oasa/oasa/coords_gen/phase3_collisions.py](../packages/oasa/oasa/coords_gen/phase3_collisions.py)
+- Integration in Phase 4: `_apply_repulsion()` and `force_refine()` in
+  [packages/oasa/oasa/coords_gen/phase4_refinement.py](../packages/oasa/oasa/coords_gen/phase4_refinement.py)
+- Benchmark: [tools/benchmark_spatial_index.py](../tools/benchmark_spatial_index.py)
+
+**Performance.**
+Standalone radius queries show 2x speedup at 200 points and 5.5x at 1000
+points. The threshold for using the spatial index (20 atoms) is chosen so
+that the KD-tree overhead never makes small molecules slower.
+
+---
+
 ## Template system
 
 **Why templates exist.**
@@ -321,5 +361,6 @@ source source_me.sh && python -m pytest tests/test_pyflakes_code_lint.py
 | [coords_generator2.py](../packages/oasa/oasa/coords_generator2.py) (legacy) | `RDDepictor.cpp` | Monolithic version of the same pipeline |
 | [coords_gen/helpers.py](../packages/oasa/oasa/coords_gen/helpers.py) | `DepictUtils.cpp` | Geometry utilities (angles, distances, reflection) |
 | [coords_gen/ring_templates.py](../packages/oasa/oasa/coords_gen/ring_templates.py) | `Templates.cpp` + `TemplateSmiles.h` | Pre-computed templates for cage molecules |
+| [graph/spatial_index.py](../packages/oasa/oasa/graph/spatial_index.py) | (no RDKit equivalent) | 2D KD-tree for radius queries in Phase 3/4 |
 
 RDKit source is under `rdkit/Code/GraphMol/Depictor/` in the repo root.

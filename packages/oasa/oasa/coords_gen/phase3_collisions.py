@@ -8,6 +8,7 @@ nudging to preserve ring geometry.
 from math import sqrt
 
 from oasa.coords_gen import helpers
+from oasa.graph.spatial_index import SpatialIndex, SMALL_MOLECULE_THRESHOLD
 
 
 #============================================
@@ -28,6 +29,10 @@ def resolve_all_collisions(gen) -> None:
 def _detect_collisions(gen) -> list:
 	"""Find pairs of non-bonded atoms that are too close.
 
+	Uses a 2D spatial index (KD-tree) for molecules with 20+ atoms to
+	avoid O(n^2) all-pairs scanning. Falls back to brute force for
+	small molecules where the index overhead is not worthwhile.
+
 	Args:
 		gen: CoordsGenerator2 instance.
 
@@ -37,21 +42,45 @@ def _detect_collisions(gen) -> list:
 	threshold = 0.45 * gen.bond_length
 	collisions = []
 	atoms = gen.mol.vertices
-	n = len(atoms)
-	for i in range(n):
-		a1 = atoms[i]
-		if a1.x is None:
+
+	# build coordinate list, skipping atoms without placed coordinates;
+	# atom_for_idx maps spatial index positions back to atom objects
+	coords = []
+	atom_for_idx = []
+	for a in atoms:
+		if a.x is not None:
+			atom_for_idx.append(a)
+			coords.append((a.x, a.y))
+
+	n = len(coords)
+	if n < SMALL_MOLECULE_THRESHOLD:
+		# brute force O(n^2) for small molecules where KD-tree overhead
+		# would be more expensive than just checking all pairs
+		for i in range(n):
+			a1 = atom_for_idx[i]
+			for j in range(i + 1, n):
+				a2 = atom_for_idx[j]
+				# bonded atoms can't collide by definition
+				if a2 in a1.neighbors:
+					continue
+				d = helpers.point_dist(a1.x, a1.y, a2.x, a2.y)
+				if d < threshold:
+					collisions.append((a1, a2, d))
+		return collisions
+
+	# use KD-tree spatial index for larger molecules;
+	# query_pairs returns only pairs within threshold distance,
+	# then we filter out bonded pairs (topology check)
+	index = SpatialIndex.build(coords)
+	candidate_pairs = index.query_pairs(threshold)
+	for i, j in candidate_pairs:
+		a1 = atom_for_idx[i]
+		a2 = atom_for_idx[j]
+		# spatial index finds geometric neighbors; skip bonded atoms
+		if a2 in a1.neighbors:
 			continue
-		for j in range(i + 1, n):
-			a2 = atoms[j]
-			if a2.x is None:
-				continue
-			# skip bonded atoms
-			if a2 in a1.neighbors:
-				continue
-			d = helpers.point_dist(a1.x, a1.y, a2.x, a2.y)
-			if d < threshold:
-				collisions.append((a1, a2, d))
+		d = helpers.point_dist(a1.x, a1.y, a2.x, a2.y)
+		collisions.append((a1, a2, d))
 	return collisions
 
 
@@ -158,7 +187,10 @@ def _get_subtree(root, exclude) -> list:
 
 #============================================
 def _count_collisions_for_atoms(gen, atom_set: list) -> int:
-	"""Count collisions involving any atom in atom_set.
+	"""Count collisions involving any atom in atom_set vs all other atoms.
+
+	Uses a spatial index for molecules with 20+ atoms to avoid
+	scanning all vertices for each atom in the set.
 
 	Args:
 		gen: CoordsGenerator2 instance.
@@ -170,19 +202,50 @@ def _count_collisions_for_atoms(gen, atom_set: list) -> int:
 	threshold = 0.45 * gen.bond_length
 	count = 0
 	atom_set_s = set(atom_set)
+	all_atoms = gen.mol.vertices
+	n_all = len(all_atoms)
+
+	if n_all < SMALL_MOLECULE_THRESHOLD:
+		# brute force: check each atom_set member against every other atom
+		for a1 in atom_set:
+			if a1.x is None:
+				continue
+			for a2 in all_atoms:
+				if a2 in atom_set_s:
+					continue
+				if a2.x is None:
+					continue
+				if a2 in a1.neighbors:
+					continue
+				d = helpers.point_dist(a1.x, a1.y, a2.x, a2.y)
+				if d < threshold:
+					count += 1
+		return count
+
+	# build spatial index from atoms NOT in atom_set;
+	# this lets us do per-atom radius queries instead of scanning all vertices
+	coords = []
+	idx_to_atom = []
+	for a in all_atoms:
+		if a.x is not None and a not in atom_set_s:
+			idx_to_atom.append(a)
+			coords.append((a.x, a.y))
+
+	if not coords:
+		return 0
+
+	# for each atom in the set, query the index for nearby non-set atoms
+	index = SpatialIndex.build(coords)
 	for a1 in atom_set:
 		if a1.x is None:
 			continue
-		for a2 in gen.mol.vertices:
-			if a2 in atom_set_s:
-				continue
-			if a2.x is None:
-				continue
+		neighbors_indices = index.query_radius(a1.x, a1.y, threshold)
+		for idx in neighbors_indices:
+			a2 = idx_to_atom[idx]
+			# skip bonded pairs (topology, not geometry)
 			if a2 in a1.neighbors:
 				continue
-			d = helpers.point_dist(a1.x, a1.y, a2.x, a2.y)
-			if d < threshold:
-				count += 1
+			count += 1
 	return count
 
 

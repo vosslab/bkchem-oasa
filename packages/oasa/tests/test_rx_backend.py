@@ -8,7 +8,6 @@ algorithm delegates, and invalidation.
 from oasa.graph.rx_backend import RxBackend
 from oasa.graph.graph_lib import Graph
 from oasa.graph.vertex_lib import Vertex
-from oasa.graph.edge_lib import Edge
 import graph_test_fixtures
 
 

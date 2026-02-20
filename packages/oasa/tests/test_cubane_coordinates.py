@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Tests for cubane 2D coordinate generation.
 
 Verifies that cubane (C12C3C4C1C5C4C3C25) gets correct template-based
