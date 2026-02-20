@@ -115,6 +115,20 @@ menus:
       - separator: true
       - action: chemistry.convert_to_linear
 
+  - name: repair
+    label_key: "Repair"
+    help_key: "Fix and normalize molecular geometry"
+    side: "left"
+    items:
+      - action: repair.normalize_bond_lengths
+      - action: repair.snap_to_hex_grid
+      - action: repair.normalize_bond_angles
+      - separator: true
+      - action: repair.normalize_rings
+      - action: repair.straighten_bonds
+      - separator: true
+      - action: repair.clean_geometry
+
   - name: options
     label_key: "Options"
     help_key: "Settings that affect how BKChem works"

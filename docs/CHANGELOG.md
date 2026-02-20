@@ -1,6 +1,60 @@
 # Changelog
 
 ## 2026-02-20
+- Add repair mode as a toolbar mode for click-to-repair geometry operations on
+  individual molecules. New file
+  [repair_mode.py](packages/bkchem-app/bkchem/modes/repair_mode.py) follows the
+  misc_mode pattern. Submodes: Normalize Lengths, Normalize Angles, Normalize
+  Rings, Straighten Bonds, Snap to Hex Grid, Clean Geometry. Registered in
+  [modes/\_\_init\_\_.py](packages/bkchem-app/bkchem/modes/__init__.py) and
+  [modes.yaml](packages/bkchem-app/bkchem_data/modes.yaml). Added toolbar icon
+  [repair.gif](packages/bkchem-app/bkchem_data/pixmaps/repair.gif). Existing
+  Repair menu actions remain unchanged for batch operations.
+- Split monolithic [modes.py](packages/bkchem-app/bkchem/modes_old.py) (2,440
+  lines, 18 classes) into a `modes/` package with 15 files. Each mode class
+  gets its own file; shared base classes live in
+  [modes_lib.py](packages/bkchem-app/bkchem/modes/modes_lib.py), YAML config
+  loaders in [config.py](packages/bkchem-app/bkchem/modes/config.py), and
+  the public API re-exported from
+  [\_\_init\_\_.py](packages/bkchem-app/bkchem/modes/__init__.py). Pure file
+  reorganization with no behavioral changes. Backward-compatible aliases
+  preserved.
+- Fix flaky GUI event test in
+  [test_bkchem_gui_events.py](packages/bkchem-app/tests/test_bkchem_gui_events.py):
+  disable hex grid snap during event simulation so atom canvas positions are
+  predictable for synthetic click coordinates.
+- Optimize hex grid at low zoom: add MAX_GRID_POINTS=5000 cutoff in
+  [hex_grid.py](packages/oasa/oasa/hex_grid.py) `generate_hex_grid_points()`
+  that returns None when the estimated point count is too large.
+  [grid_overlay.py](packages/bkchem-app/bkchem/grid_overlay.py) skips drawing
+  when None is returned. Also disable hex grid overlay redraw in
+  [paper.py](packages/bkchem-app/bkchem/paper.py) `scale_all()` when scale is
+  below 50%, clearing dots instead. Both guards prevent the slowdown from
+  creating thousands of canvas ovals at low zoom levels.
+- Reorder zoom diagnostic test steps in
+  [test_bkchem_gui_zoom.py](packages/bkchem-app/tests/test_bkchem_gui_zoom.py):
+  start with zoom_out/reset/zoom_in before zoom_to_fit and zoom_to_content,
+  add zoom_to_content recovery between min/max clamp tests. Add
+  zoom_to_content at start of model_coords and roundtrip tests so content is
+  visible on screen.
+- Move repair geometry algorithms to OASA per backend-to-frontend contract.
+  Pure graph-geometry operations (bond length normalization, angle snapping,
+  ring reshaping, bond straightening, hex grid snapping) now live in
+  [packages/oasa/oasa/repair_ops.py](packages/oasa/oasa/repair_ops.py).
+  BKChem [repair_ops.py](packages/bkchem-app/bkchem/repair_ops.py) is now
+  thin wrappers handling only selection, unit conversion, redraw, and undo.
+  Registered `repair_ops` in
+  [oasa/\_\_init\_\_.py](packages/oasa/oasa/__init__.py).
+- Add new top-level "Repair" menu with six geometry-fixing tools:
+  normalize bond lengths (BFS-based), snap to hex grid (via
+  `oasa.hex_grid`), normalize bond angles (60-degree snapping),
+  normalize ring structures (regular polygon reshaping), straighten
+  bonds (30-degree terminal snapping), and clean up geometry
+  (coordinate regeneration). New files:
+  [repair_ops.py](packages/bkchem-app/bkchem/repair_ops.py),
+  [repair_actions.py](packages/bkchem-app/bkchem/actions/repair_actions.py).
+  Modified: [menus.yaml](packages/bkchem-app/bkchem_data/menus.yaml),
+  [actions/\_\_init\_\_.py](packages/bkchem-app/bkchem/actions/__init__.py).
 - Remove 10 dead methods from
   [graph_lib.py](packages/oasa/oasa/graph/graph_lib.py) (720 to 630 lines):
   connect_a_graph, is_cycle, is_euler, get_size_of_pieces_after_edge_removal,

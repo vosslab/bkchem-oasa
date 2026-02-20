@@ -143,6 +143,7 @@ def register_all_actions(app) -> ActionRegistry:
 		('actions.view_actions', 'register_view_actions'),
 		('actions.align_actions', 'register_align_actions'),
 		('actions.insert_actions', 'register_insert_actions'),
+		('actions.repair_actions', 'register_repair_actions'),
 		('actions.options_actions', 'register_options_actions'),
 		('actions.help_actions', 'register_help_actions'),
 		('actions.plugins_actions', 'register_plugins_actions'),

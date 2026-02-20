@@ -95,6 +95,7 @@ from oasa import sugar_code_names
 from oasa import smiles_to_sugar_code
 from oasa import geometry
 from oasa import hex_grid
+from oasa import repair_ops
 from oasa import molecule_utils
 from oasa import known_groups
 
@@ -142,6 +143,7 @@ _EXPORTED_MODULES = [
 	smiles_to_sugar_code,
 	geometry,
 	hex_grid,
+	repair_ops,
 	molecule_utils,
 	known_groups,
 ]
@@ -161,7 +163,7 @@ allNames = [
 	'haworth', 'sugar_code', 'sugar_code_smiles',
 	'haworth_spec', 'haworth_renderer',
 	'sugar_code_names', 'smiles_to_sugar_code',
-	'hex_grid', 'molecule_utils', 'known_groups',
+	'hex_grid', 'repair_ops', 'molecule_utils', 'known_groups',
 	'__version__',
 ]
 

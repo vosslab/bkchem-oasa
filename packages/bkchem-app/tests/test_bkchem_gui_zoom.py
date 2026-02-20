@@ -197,15 +197,18 @@ def _run_zoom_diagnostic():
 		if snap0["bbox_cx"] is None:
 			raise AssertionError("Step 0: content bbox should exist after drawing benzene.")
 
-		# -- Step 1: zoom_to_fit --
-		paper.zoom_to_fit()
-		_flush_events(app, delay=0.05)
-		snap1 = _snapshot_state(paper, "1: zoom_to_fit")
-		snapshots.append(snap1)
-		if snap1["scale"] == 1.0:
-			raise AssertionError("Step 1: zoom_to_fit should change scale from 1.0.")
-		if snap1["bbox_cx"] is None:
-			raise AssertionError("Step 1: content bbox should exist after zoom_to_fit.")
+		# -- Step 1: zoom_out x3 --
+		for i in range(3):
+			paper.zoom_out()
+			_flush_events(app, delay=0.02)
+			snapshots.append(_snapshot_state(paper, "1.%d: zoom_out" % (i+1)))
+		snap1 = snapshots[-1]
+		expected_scale_1 = 1.0 / (1.2 ** 3)
+		if abs(snap1["scale"] - expected_scale_1) > 0.001:
+			raise AssertionError(
+				"Step 1: expected scale %.4f after 3x zoom_out, got %.4f"
+				% (expected_scale_1, snap1["scale"])
+			)
 
 		# -- Step 2: zoom_reset --
 		paper.zoom_reset()
@@ -218,103 +221,119 @@ def _run_zoom_diagnostic():
 				% snap2["scale"]
 			)
 
-		# -- Step 3: zoom_to_content --
+		# -- Step 3: zoom_in x3 --
+		for i in range(3):
+			paper.zoom_in()
+			_flush_events(app, delay=0.02)
+			snapshots.append(_snapshot_state(paper, "3.%d: zoom_in" % (i+1)))
+		snap3 = snapshots[-1]
+		expected_scale_3 = 1.0 * (1.2 ** 3)
+		if abs(snap3["scale"] - expected_scale_3) > 0.001:
+			raise AssertionError(
+				"Step 3: expected scale %.4f after 3x zoom_in, got %.4f"
+				% (expected_scale_3, snap3["scale"])
+			)
+
+		# -- Step 4: zoom_to_fit --
+		paper.zoom_to_fit()
+		_flush_events(app, delay=0.05)
+		snap4 = _snapshot_state(paper, "4: zoom_to_fit")
+		snapshots.append(snap4)
+		if snap4["bbox_cx"] is None:
+			raise AssertionError("Step 4: content bbox should exist after zoom_to_fit.")
+
+		# -- Step 5: zoom_to_content --
 		paper.zoom_to_content()
 		_flush_events(app, delay=0.05)
-		snap3 = _snapshot_state(paper, "3: zoom_to_content")
-		snapshots.append(snap3)
-		content_scale = snap3["scale"]
+		snap5 = _snapshot_state(paper, "5: zoom_to_content")
+		snapshots.append(snap5)
+		content_scale = snap5["scale"]
 		if content_scale < 0.1:
 			raise AssertionError(
-				"Step 3: zoom_to_content scale %.4f below ZOOM_MIN." % content_scale
+				"Step 5: zoom_to_content scale %.4f below ZOOM_MIN." % content_scale
 			)
 		if content_scale > 4.0:
 			raise AssertionError(
-				"Step 3: zoom_to_content scale %.4f above 4.0 cap." % content_scale
+				"Step 5: zoom_to_content scale %.4f above 4.0 cap." % content_scale
 			)
-		if snap3["bbox_cx"] is None:
-			raise AssertionError("Step 3: content bbox should exist after zoom_to_content.")
+		if snap5["bbox_cx"] is None:
+			raise AssertionError("Step 5: content bbox should exist after zoom_to_content.")
 
-		# -- Step 4: zoom_out x3 --
+		# -- Step 6: zoom_out x3 + zoom_in x3 round-trip --
 		for i in range(3):
 			paper.zoom_out()
 			_flush_events(app, delay=0.02)
-			snapshots.append(_snapshot_state(paper, "4.%d: zoom_out" % (i+1)))
-		snap4 = snapshots[-1]
-		expected_scale_4 = content_scale / (1.2 ** 3)
-		if abs(snap4["scale"] - expected_scale_4) > 0.001:
-			raise AssertionError(
-				"Step 4: expected scale %.4f after 3x zoom_out, got %.4f"
-				% (expected_scale_4, snap4["scale"])
-			)
-
-		# -- Step 5: zoom_in x3 (round-trip) --
+			snapshots.append(_snapshot_state(paper, "6a.%d: zoom_out" % (i+1)))
 		for i in range(3):
 			paper.zoom_in()
 			_flush_events(app, delay=0.02)
-			snapshots.append(_snapshot_state(paper, "5.%d: zoom_in" % (i+1)))
-		snap5 = snapshots[-1]
-		if abs(snap5["scale"] - content_scale) > 0.001:
+			snapshots.append(_snapshot_state(paper, "6b.%d: zoom_in" % (i+1)))
+		snap6 = snapshots[-1]
+		if abs(snap6["scale"] - content_scale) > 0.001:
 			raise AssertionError(
-				"Step 5: round-trip scale should be %.4f, got %.4f"
-				% (content_scale, snap5["scale"])
+				"Step 6: round-trip scale should be %.4f, got %.4f"
+				% (content_scale, snap6["scale"])
 			)
 
-		# -- Step 6: zoom_to_content again (idempotent check) --
+		# -- Step 7: zoom_to_content again (idempotent check) --
 		paper.zoom_to_content()
 		_flush_events(app, delay=0.05)
-		snap6 = _snapshot_state(paper, "6: zoom_to_content (2nd)")
-		snapshots.append(snap6)
+		snap7 = _snapshot_state(paper, "7: zoom_to_content (2nd)")
+		snapshots.append(snap7)
 		tolerance = 0.05
-		idempotent_drift = abs(snap6["scale"] - content_scale) / max(content_scale, 0.01)
+		idempotent_drift = abs(snap7["scale"] - content_scale) / max(content_scale, 0.01)
 		if idempotent_drift > tolerance:
 			raise AssertionError(
-				"Step 6: zoom_to_content not idempotent after round-trip. "
+				"Step 7: zoom_to_content not idempotent after round-trip. "
 				"Expected ~%.4f, got %.4f (%.1f%% off)."
-				% (content_scale, snap6["scale"], idempotent_drift * 100)
+				% (content_scale, snap7["scale"], idempotent_drift * 100)
 			)
 
-		# -- Step 7: zoom_out x50 (clamp at ZOOM_MIN) --
-		paper.zoom_reset()
-		_flush_events(app, delay=0.02)
+		# -- Step 8: zoom_out x50 (clamp at ZOOM_MIN) --
 		for i in range(50):
 			paper.zoom_out()
 		_flush_events(app, delay=0.05)
-		snap7 = _snapshot_state(paper, "7: zoom_out x50")
-		snapshots.append(snap7)
-		if abs(snap7["scale"] - 0.1) > 0.001:
+		snap8 = _snapshot_state(paper, "8: zoom_out x50")
+		snapshots.append(snap8)
+		if abs(snap8["scale"] - 0.1) > 0.001:
 			raise AssertionError(
-				"Step 7: scale should clamp at ZOOM_MIN=0.1, got %.4f"
-				% snap7["scale"]
+				"Step 8: scale should clamp at ZOOM_MIN=0.1, got %.4f"
+				% snap8["scale"]
 			)
 
-		# -- Step 8: zoom_in x50 after reset (clamp at ZOOM_MAX) --
-		paper.zoom_reset()
-		_flush_events(app, delay=0.02)
+		# -- Step 9: zoom_to_content (recover from min clamp) --
+		paper.zoom_to_content()
+		_flush_events(app, delay=0.05)
+		snap9 = _snapshot_state(paper, "9: zoom_to_content")
+		snapshots.append(snap9)
+		if snap9["bbox_cx"] is None:
+			raise AssertionError("Step 9: content bbox should exist after zoom_to_content.")
+
+		# -- Step 10: zoom_in x50 (clamp at ZOOM_MAX) --
 		for i in range(50):
 			paper.zoom_in()
 		_flush_events(app, delay=0.05)
-		snap8 = _snapshot_state(paper, "8: zoom_in x50")
-		snapshots.append(snap8)
-		if abs(snap8["scale"] - 10.0) > 0.001:
+		snap10 = _snapshot_state(paper, "10: zoom_in x50")
+		snapshots.append(snap10)
+		if abs(snap10["scale"] - 10.0) > 0.001:
 			raise AssertionError(
-				"Step 8: scale should clamp at ZOOM_MAX=10.0, got %.4f"
-				% snap8["scale"]
+				"Step 10: scale should clamp at ZOOM_MAX=10.0, got %.4f"
+				% snap10["scale"]
 			)
 
 		# -- Diagnostic output --
 		_print_diagnostic_table(snapshots)
 
-		# -- Viewport drift analysis (step 3 vs step 5) --
+		# -- Viewport drift analysis (step 5 vs step 6 round-trip) --
 		print()
-		print("VIEWPORT DRIFT ANALYSIS (step 3 vs step 5)")
+		print("VIEWPORT DRIFT ANALYSIS (step 5 vs step 6)")
 		print("-" * 50)
-		if snap3["vp_cx"] is not None and snap5["vp_cx"] is not None:
-			drift_x = abs(snap5["vp_cx"] - snap3["vp_cx"])
-			drift_y = abs(snap5["vp_cy"] - snap3["vp_cy"])
+		if snap5["vp_cx"] is not None and snap6["vp_cx"] is not None:
+			drift_x = abs(snap6["vp_cx"] - snap5["vp_cx"])
+			drift_y = abs(snap6["vp_cy"] - snap5["vp_cy"])
 			drift_total = math.sqrt(drift_x ** 2 + drift_y ** 2)
-			print(f"  VP center step 3: ({snap3['vp_cx']:.1f}, {snap3['vp_cy']:.1f})")
 			print(f"  VP center step 5: ({snap5['vp_cx']:.1f}, {snap5['vp_cy']:.1f})")
+			print(f"  VP center step 6: ({snap6['vp_cx']:.1f}, {snap6['vp_cy']:.1f})")
 			print(f"  Drift X: {drift_x:.1f} px")
 			print(f"  Drift Y: {drift_y:.1f} px")
 			print(f"  Drift total: {drift_total:.1f} px")
@@ -326,13 +345,13 @@ def _run_zoom_diagnostic():
 			else:
 				print("  OK: viewport drift is within 50 px tolerance.")
 
-		# -- BBox drift assertion (step 3 vs step 5) --
-		if snap3["bbox_cx"] is not None and snap5["bbox_cx"] is not None:
-			bbox_drift_x = abs(snap5["bbox_cx"] - snap3["bbox_cx"])
-			bbox_drift_y = abs(snap5["bbox_cy"] - snap3["bbox_cy"])
+		# -- BBox drift assertion (step 5 vs step 6) --
+		if snap5["bbox_cx"] is not None and snap6["bbox_cx"] is not None:
+			bbox_drift_x = abs(snap6["bbox_cx"] - snap5["bbox_cx"])
+			bbox_drift_y = abs(snap6["bbox_cy"] - snap5["bbox_cy"])
 			bbox_drift_total = math.sqrt(bbox_drift_x ** 2 + bbox_drift_y ** 2)
-			print(f"  BBox center step 3: ({snap3['bbox_cx']:.1f}, {snap3['bbox_cy']:.1f})")
 			print(f"  BBox center step 5: ({snap5['bbox_cx']:.1f}, {snap5['bbox_cy']:.1f})")
+			print(f"  BBox center step 6: ({snap6['bbox_cx']:.1f}, {snap6['bbox_cy']:.1f})")
 			print(f"  BBox drift total: {bbox_drift_total:.1f} px")
 			if bbox_drift_total > 50.0:
 				raise AssertionError(
@@ -373,6 +392,10 @@ def _run_zoom_model_coords_stable():
 		pcx = (bg[0] + bg[2]) / 2
 		pcy = (bg[1] + bg[3]) / 2
 		mol = _build_benzene(app, cx=pcx, cy=pcy)
+		_flush_events(app, delay=0.05)
+
+		# zoom_to_content so the benzene is visible on screen
+		paper.zoom_to_content()
 		_flush_events(app, delay=0.05)
 
 		# Record model coordinates before zoom
@@ -459,6 +482,10 @@ def _run_zoom_roundtrip_symmetry():
 		pcx = (bg[0] + bg[2]) / 2
 		pcy = (bg[1] + bg[3]) / 2
 		_build_benzene(app, cx=pcx, cy=pcy)
+		_flush_events(app, delay=0.05)
+
+		# zoom_to_content so the benzene is visible on screen
+		paper.zoom_to_content()
 		_flush_events(app, delay=0.05)
 
 		# Zoom to max (10x = 1000%)

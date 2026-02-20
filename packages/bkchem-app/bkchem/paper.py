@@ -1366,9 +1366,14 @@ class chem_paper(Canvas, object):
 		# bbox(ALL) and the subsequent viewport centering are accurate.
 		self.update_idletasks()
 		self.update_scrollregion()
-		# redraw hex grid overlay at new zoom level
+		# redraw hex grid overlay at new zoom level;
+		# skip at low zoom (<50%) where the visible model area is huge
+		# and drawing thousands of dots would be very slow
 		if self._hex_grid_overlay and self._hex_grid_overlay.visible:
-			self._hex_grid_overlay.redraw()
+			if self._scale >= 0.5:
+				self._hex_grid_overlay.redraw()
+			else:
+				self._hex_grid_overlay._clear_dots()
 		# Re-center viewport so the same model point stays at viewport center
 		if center_on_viewport:
 			self._center_viewport_on_canvas(mx * self._scale, my * self._scale)

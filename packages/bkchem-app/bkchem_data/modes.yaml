@@ -19,6 +19,7 @@ toolbar_order:
   - rotate
   - bondalign
   - vector
+  - repair
   - misc
 
 modes:
@@ -233,6 +234,22 @@ modes:
           - {key: circle, size: large}
           - {key: polygon, size: large}
           - {key: polyline, size: large}
+        default: 0
+
+  repair:
+    name: repair geometry
+    label: repair
+    parent: edit_mode
+    icon: repair
+    submodes:
+      - group_label: Operation
+        options:
+          - {key: normalize_lengths, name: Normalize Lengths, size: large}
+          - {key: normalize_angles, name: Normalize Angles, size: large}
+          - {key: normalize_rings, name: Normalize Rings, size: large}
+          - {key: straighten, name: Straighten Bonds, size: large}
+          - {key: snap_hex, name: Snap to Hex Grid, size: large}
+          - {key: clean, name: Clean Geometry, size: large}
         default: 0
 
   misc:

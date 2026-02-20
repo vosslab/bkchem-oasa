@@ -145,12 +145,25 @@ def generate_hex_grid_points(x_min: float, y_min: float,
 		origin_y: Y coordinate of the grid origin.
 
 	Returns:
-		List of (x, y) tuples for each grid point in the rectangle.
+		List of (x, y) tuples for each grid point in the rectangle,
+		or None if the estimated point count exceeds the internal
+		MAX_GRID_POINTS cutoff (too many dots for practical use).
 	"""
+	# maximum number of grid points before we bail out;
+	# drawing more dots than this would be too slow for any UI
+	MAX_GRID_POINTS = 5000
+
 	half_sqrt3 = sqrt(3.0) / 2.0
 	# estimate range of m values from y bounds
 	m_min_est = int((y_min - origin_y) / (spacing * half_sqrt3)) - 1
 	m_max_est = int((y_max - origin_y) / (spacing * half_sqrt3)) + 1
+
+	# quick estimate of total points; bail out early if too many
+	n_rows = m_max_est - m_min_est + 1
+	avg_cols = int((x_max - x_min) / spacing) + 2
+	if n_rows * avg_cols > MAX_GRID_POINTS:
+		return None
+
 	points = []
 	for m in range(m_min_est, m_max_est + 1):
 		# for this m, estimate range of n values from x bounds

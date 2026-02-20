@@ -163,6 +163,8 @@ def _run_gui_event_simulation():
 		_flush_events(app, delay=0.1)
 		paper = app.paper
 		paper.focus_set()
+		# disable hex grid snap so atom positions are predictable for event tests
+		paper.hex_grid_snap_enabled = False
 		_flush_events(app, delay=0.05)
 
 		app.change_mode("draw")

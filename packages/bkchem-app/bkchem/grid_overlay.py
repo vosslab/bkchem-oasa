@@ -129,12 +129,15 @@ class HexGridOverlay:
 		model_x_max = cx1 / scale
 		model_y_max = cy1 / scale
 
-		# generate hex grid points in model space
+		# generate hex grid points in model space;
+		# returns None if the visible area would produce too many dots
 		points = oasa.hex_grid.generate_hex_grid_points(
 			model_x_min, model_y_min,
 			model_x_max, model_y_max,
 			self._spacing_px,
 		)
+		if points is None:
+			return
 
 		# dot radius in canvas coords (1 pixel at current scale)
 		r = 1.0 * scale
