@@ -35,9 +35,9 @@ from xml.sax import saxutils
 from bkchem import bkchem_utils
 from bkchem import bkchem_config
 
-from bkchem.keysymdef import keysyms
+from bkchem.keysym_loader import get_keysyms
 from bkchem.singleton_store import Store
-from bkchem.groups_table import groups_table
+from bkchem.group_lib import GROUPS_TABLE
 
 
 _ = builtins.__dict__.get( '_', lambda m: m)
@@ -178,9 +178,9 @@ class editPool( Frame):
 
 	def _interpretButtonPressed( self, *e):
 		t = self.editPool.get()
-		if t.lower() in groups_table:
+		if t.lower() in GROUPS_TABLE:
 			self._setText( t)
-			#self._setText( groups_table[ string.lower(t)]['text'])
+			#self._setText( GROUPS_TABLE[ string.lower(t)]['text'])
 			#self.editPool.insert(0, self.text)
 		else:
 			self._setText( t)
@@ -273,10 +273,10 @@ class editPool( Frame):
 
 
 	def _key( self, event):
-		if len(event.keysym) > 1 and event.keysym in keysyms:
+		if len(event.keysym) > 1 and event.keysym in get_keysyms():
 			if self.editPool.selection_present():
 				self.editPool.delete( "anchor", "insert")
-			self.editPool.insert('insert', keysyms[event.keysym])
+			self.editPool.insert('insert', get_keysyms()[event.keysym])
 			return "break"
 
 

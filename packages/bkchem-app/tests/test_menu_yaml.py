@@ -45,16 +45,16 @@ def test_yaml_parses():
 	assert 'menus' in data
 
 #============================================
-def test_all_ten_menus_present():
-	"""Verify 10 menus with expected names."""
+def test_all_nine_menus_present():
+	"""Verify 9 menus with expected names."""
 	data = _load_yaml()
 	expected_names = {
 		'file', 'edit', 'insert', 'align', 'object',
-		'view', 'chemistry', 'options', 'help', 'plugins',
+		'view', 'chemistry', 'options', 'help',
 	}
 	menu_names = {m['name'] for m in data['menus']}
 	assert menu_names == expected_names
-	assert len(data['menus']) == 10
+	assert len(data['menus']) == 9
 
 #============================================
 def test_menu_order():
@@ -62,17 +62,17 @@ def test_menu_order():
 	data = _load_yaml()
 	expected_order = [
 		'file', 'edit', 'insert', 'align', 'object',
-		'view', 'chemistry', 'options', 'help', 'plugins',
+		'view', 'chemistry', 'options', 'help',
 	]
 	actual_order = [m['name'] for m in data['menus']]
 	assert actual_order == expected_order
 
 #============================================
-def test_help_and_plugins_right_side():
-	"""Help and plugins have side=right, others left."""
+def test_help_right_side():
+	"""Help has side=right, others left."""
 	data = _load_yaml()
 	for menu in data['menus']:
-		if menu['name'] in ('help', 'plugins'):
+		if menu['name'] == 'help':
 			assert menu['side'] == 'right', f"{menu['name']} should be right"
 		else:
 			assert menu['side'] == 'left', f"{menu['name']} should be left"

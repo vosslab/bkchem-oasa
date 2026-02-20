@@ -28,7 +28,6 @@ import os
 import sys
 import oasa
 import collections
-import importlib.util
 
 from tkinter import Button, Frame, Label, Scrollbar, StringVar, Tk
 from tkinter import HORIZONTAL, LEFT, RAISED, SUNKEN, VERTICAL
@@ -44,7 +43,6 @@ from bkchem import export
 from bkchem import logger
 from bkchem import dialogs
 from bkchem import pixmaps
-from bkchem import plugins
 from bkchem import format_loader
 from bkchem import messages
 from bkchem import molecule_lib
@@ -56,7 +54,6 @@ from bkchem.paper import chem_paper
 from bkchem.edit_pool import editPool
 from bkchem.id_manager import id_manager
 from bkchem.temp_manager import template_manager
-from bkchem.plugin_support import plugin_manager
 from bkchem.singleton_store import Store, Screen
 
 _ = builtins.__dict__.get( '_', lambda m: m)
@@ -298,8 +295,6 @@ class BKChem( Tk):
       ( _('Help'), 'menu', _("Help and information about the program"), "right"),
       ( _("Help"), 'command', _('About'), None, _("General information about BKChem"), self.about, None),
 
-      # plugins menu
-      ( _("Plugins"), 'menu', _("Small additional scripts"), "right")
       ]
 
 
@@ -333,23 +328,6 @@ class BKChem( Tk):
         self.menu.addcascademenu( temp[0], temp[2], temp[3], tearoff=0)
 
 
-    # ADDITION OF PLUGINS TO THE MENU
-
-    added_to = set()
-    for name in self.plug_man.get_names( type="script"):
-      tooltip = self.plug_man.get_description( name)
-      menu = self.plug_man.get_menu( name)
-      if menu and _(menu) in menus:
-        menu = _(menu)
-        if not menu in added_to:
-          self.menu.addmenuitem( menu, "separator")
-      else:
-        menu = _("Plugins")
-
-      self.menu.addmenuitem( menu, 'command', label=name,
-                               statusHelp=tooltip,
-                               command=bkchem_utils.lazy_apply( self.run_plugin, (name,)))
-      added_to.add( menu)
 
 
   def init_basics( self):
@@ -394,11 +372,6 @@ class BKChem( Tk):
     self.main_frame.rowconfigure( 4, weight=1)
     self.main_frame.columnconfigure( 0, weight=1)
 
-    self.plugins = {}
-    if plugins.__all__:
-      for name in plugins.__all__:
-        plugin = plugins.__dict__[ name]
-        self.plugins[ plugin.name] = plugin
     self.format_entries = {}
 
     self.paper = None
@@ -426,21 +399,6 @@ class BKChem( Tk):
                                statusHelp=_("Exports %s format.") % local_name,
                                command=bkchem_utils.lazy_apply( self.format_export, (codec_name,)))
 
-    # legacy plugin path (GTML import-only)
-    names = sorted(self.plugins.keys())
-    for name in names:
-      plugin = self.plugins[ name]
-      local_name = hasattr( plugin, "local_name") and getattr( plugin, "local_name") or plugin.name
-      if ('importer' in  plugin.__dict__) and plugin.importer:
-        doc_string = hasattr( plugin.importer, "doc_string") and getattr( plugin.importer, "doc_string") or plugin.importer.__doc__
-        self.menu.addmenuitem( _("Import"), 'command', label=local_name,
-                               statusHelp=doc_string,
-                               command=bkchem_utils.lazy_apply( self.plugin_import, (plugin.name,)))
-      if ('exporter' in plugin.__dict__) and plugin.exporter:
-        doc_string = hasattr( plugin.exporter, "doc_string") and getattr( plugin.exporter, "doc_string") or plugin.exporter.__doc__
-        self.menu.addmenuitem( _("Export"), 'command', label=local_name,
-                               statusHelp=doc_string,
-                               command=bkchem_utils.lazy_apply( self.plugin_export, (plugin.name,)))
 
 
   def init_singletons( self):
@@ -468,8 +426,6 @@ class BKChem( Tk):
     Store.gm.add_template_from_CDML( "groups.cdml")
     Store.gm.add_template_from_CDML( "groups2.cdml")
 
-    self.plug_man = plugin_manager()
-    self.plug_man.get_available_plugins()
 
 
   def init_preferences( self):
@@ -497,21 +453,6 @@ class BKChem( Tk):
     self.modes = modes.build_all_modes()
     self.modes_sort = modes.get_toolbar_order()
 
-    # import plugin modes
-    for plug_name in self.plug_man.get_names( type="mode"):
-      plug = self.plug_man.get_plugin_handler( plug_name)
-      module_name = plug.get_module_name()
-      try:
-        spec = importlib.util.spec_from_file_location( module_name, plug.filename)
-        if not spec or not spec.loader:
-          continue
-        module = importlib.util.module_from_spec( spec)
-        spec.loader.exec_module( module)
-      except ImportError:
-        continue
-      else:
-        self.modes[ module_name.replace("_","")] = module.plugin_mode()
-        self.modes_sort.append( module_name.replace("_",""))
 
 
   def init_mode_buttons( self):
@@ -1289,105 +1230,6 @@ class BKChem( Tk):
     return True
 
 
-  def plugin_import( self, pl_id, filename=None):
-    plugin = self.plugins[ pl_id]
-    if not filename:
-      if self.paper.changes_made:
-        if tkinter.messagebox.askokcancel( _("Forget changes?"),_("Forget changes in currently visiting file?"), default='ok', parent=self) == 0:
-          return 0
-      types = []
-      if 'extensions' in plugin.__dict__ and plugin.extensions:
-        for e in plugin.extensions:
-          types.append( (plugin.name+" "+_("file"), e))
-      types.append( (_("All files"),"*"))
-      a = askopenfilename( defaultextension = "",
-                           initialdir = self.save_dir,
-                           initialfile = self.save_file,
-                           title = _("Load")+" "+plugin.name,
-                           parent = self,
-                           filetypes=types)
-      if a:
-        filename = a
-      else:
-        return 0
-    # we have filename already
-    if plugin.importer.gives_molecule:
-      # plugins returning molecule need paper instance for molecule initialization
-      importer = plugin.importer( self.paper)
-    else:
-      importer = plugin.importer()
-    if importer.on_begin():
-      cdml = None
-      # some importers give back a cdml dom object
-      if importer.gives_cdml:
-        cdml = 1
-        try:
-          doc = importer.get_cdml_dom( filename)
-        except plugins.plugin.import_exception as detail:
-          tkinter.messagebox.showerror(_("Import error"), _("Plugin failed to import with following error:\n %s") % detail)
-          return 0
-      # others give directly a molecule object
-      elif importer.gives_molecule:
-        cdml = 0
-        try:
-          doc = importer.get_molecules( filename)
-        except plugins.plugin.import_exception as detail:
-          tkinter.messagebox.showerror(_("Import error"), _("Plugin failed to import with following error:\n %s") % detail)
-      self.paper.clean_paper()
-      if cdml == 0:
-        # doc is a molecule
-        self.paper.create_background()
-        for m in doc:
-          self.paper.stack.append( m)
-          m.draw()
-        self.paper.add_bindings()
-        self.paper.start_new_undo_record()
-      elif cdml:
-        self.paper.read_package( doc)
-
-      Store.log( _("loaded file: ")+filename)
-      return 1
-
-
-  def plugin_export( self, pl_id, filename=None, interactive=True, on_begin_attrs=None):
-    """interactive attribute tells whether the plugin should be run in interactive mode"""
-    plugin = self.plugins[ pl_id]
-    exporter = plugin.exporter( self.paper)
-    exporter.interactive = interactive and not self.in_batch_mode
-    attrs = on_begin_attrs or {}
-    if not exporter.on_begin( **attrs):
-      return False
-    if not filename:
-      file_name = self.paper.get_base_name()
-      types = []
-      if 'extensions' in plugin.__dict__ and plugin.extensions:
-        file_name += plugin.extensions[0]
-        for e in plugin.extensions:
-          types.append( (plugin.name+" "+_("file"), e))
-      types.append( (_("All files"),"*"))
-
-      a = asksaveasfilename( defaultextension = types[0][1],
-                             initialdir = self.save_dir,
-                             initialfile = file_name,
-                             title = _("Export")+" "+plugin.name,
-                             parent = self,
-                             filetypes=types)
-    else:
-      a = filename
-    if a:
-      if not bkchem_config.debug:
-        try:
-          exporter.write_to_file( a)
-        except Exception as error:
-          tkinter.messagebox.showerror(_("Export error"), _("Plugin failed to export with following error:\n %s") % error)
-          return False
-      else:
-        exporter.write_to_file( a)
-      Store.log( _("exported file: ")+a)
-      return True
-    return False
-
-
   def change_properties( self):
     dialogs.file_properties_dialog( self, self.paper)
 
@@ -1694,15 +1536,6 @@ Enter InChI:""")
       f.close()
     else:
       print("Error: Failed to open prefs.xml file.")
-
-
-  def run_plugin( self, name):
-    p = self.paper
-    self.plug_man.run_plugin( name)
-    if p == self.paper:
-      # we update bindings and start_new_undo_record only if the paper did not change during the run
-      self.paper.add_bindings()
-      self.paper.start_new_undo_record()
 
 
   def save_as_template( self):

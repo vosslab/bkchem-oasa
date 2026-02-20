@@ -30,8 +30,29 @@ import sys
 import xml.sax
 import tkinter.font
 
-from bkchem import tuning
 from bkchem import safe_xml
+
+# tuning constants for subscript/superscript positioning (inlined from tuning.py)
+_SUBSCRIPT_Y_SHIFT = {7: 0, 8: 1, 9: 1, 11: 1, 12: 1, 18: 3}
+_SUPSUBSCRIPT_X_SHIFT = {7: -1, 8: -1, 9: -1, 11: -1, 12: -1}
+
+
+#============================================
+def _pick_nearest(table: dict, font_size: int) -> int:
+	"""Pick the value from table whose key is nearest to font_size.
+
+	Args:
+		table: mapping of font sizes to tuning values.
+		font_size: the target font size to look up.
+
+	Returns:
+		The value associated with the nearest key in the table.
+	"""
+	if font_size in table:
+		return table[font_size]
+	# find the key with the smallest distance to font_size
+	best_key = min(table, key=lambda k: abs(k - font_size))
+	return table[best_key]
 
 
 
@@ -114,13 +135,13 @@ class BkFtext(object):
       weight = "normal"
 
     if 'sub' in chunk.attrs:
-      item = canvas.create_text( x+tuning.Tuning.Screen.pick_best_value("supsubscript_x_shift",self._font_size),
-                                 y+tuning.Tuning.Screen.pick_best_value("subscript_y_shift",self._font_size),
+      item = canvas.create_text( x+_pick_nearest(_SUPSUBSCRIPT_X_SHIFT, self._font_size),
+                                 y+_pick_nearest(_SUBSCRIPT_Y_SHIFT, self._font_size),
                                  tags=self.tags, text=chunk.text,
                                  font=(self._font_family, int( round( self._font_size*scale)), weight),
                                  anchor="nw", justify=self.justify, fill=self.fill)
     elif 'sup' in chunk.attrs:
-      item = canvas.create_text( x+tuning.Tuning.Screen.pick_best_value("supsubscript_x_shift",self._font_size),
+      item = canvas.create_text( x+_pick_nearest(_SUPSUBSCRIPT_X_SHIFT, self._font_size),
                                  y,
                                  tags=self.tags, text=chunk.text,
                                  font=(self._font_family, int( round( self._font_size*scale)), weight),

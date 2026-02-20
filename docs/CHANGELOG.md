@@ -1,6 +1,37 @@
 # Changelog
 
 ## 2026-02-20
+- Remove entire legacy plugin system. Delete `plugins/gtml.py`,
+  `plugins/plugin.py`, `plugins/__init__.py`, `plugin_support.py`, and
+  `bkchem_plugin_smoke.py` test. Clean up `main.py` by removing plugin imports,
+  `self.plugins` dict, `plugin_import()`, `plugin_export()`, `run_plugin()`
+  methods, plug_man initialization, and plugin mode loading. Remove Plugins menu
+  from `menus.yaml` and update menu YAML tests. The format_loader system fully
+  replaces legacy plugin import/export.
+- Convert `keysymdef.py` (756-entry Python dict) to YAML data file at
+  `bkchem_data/keysymdef.yaml`. Create `keysym_loader.py` with cached
+  `get_keysyms()` loader. Update `widgets.py` and `edit_pool.py` to use
+  the new loader. Remove `keysymdef.py`.
+- Inline `tuning.py` into its two consumers. Move subscript/superscript shift
+  tables and `pick_best_value` into `ftext_lib.py` as `_SUBSCRIPT_Y_SHIFT`,
+  `_SUPSUBSCRIPT_X_SHIFT`, and `_pick_nearest()`. Move bbox descent constant
+  into `special_parents.py` as `_BBOX_DESCENT_MOD`. Delete unused SVG tuning
+  class and remove `tuning.py`.
+- Inline `groups_table.py` into `group_lib.py` as `GROUPS_TABLE` constant.
+  Update `edit_pool.py` to import from `group_lib` instead. Remove the
+  standalone `groups_table.py` module.
+- Remove `bkchem_exceptions.py` module. Replace custom `bkchem_fragment_error`
+  and `bkchem_graph_error` exception classes with standard `ValueError` in
+  `fragment_lib.py`, `interactors.py`, and `molecule_lib.py`.
+- Add O(1) reverse index (`obj_map`) to `id_manager.py`. Convert
+  `is_registered_object()` and `get_id_of_object()` from O(n) scans to O(1)
+  dict lookups. Add Google-style docstrings to all methods.
+- Update `docs/GPL_FILE_PURPOSES.md`: pure GPLv2 count drops from 6 to 0.
+  All 5 removed files documented; `id_manager.py` reclassified as mixed
+  (26% GPLv2) after new code additions.
+- Remove unused `xml_serializer.py` (zero imports, Python 3 incompatible).
+  Update `docs/GPL_FILE_PURPOSES.md` with specific usage descriptions for the
+  remaining 6 pure GPLv2 files.
 - Remove legacy NIST WebBook addon scripts (`fetch_from_webbook.py`,
   `fetch_name_from_webbook.py`) and their XML descriptors. These used HTTP
   URLs, HTML scraping, and dated patterns. External chemistry data fetching

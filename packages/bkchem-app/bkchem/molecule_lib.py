@@ -32,7 +32,6 @@ from math import atan2, sin, cos, pi, sqrt
 
 from bkchem import bkchem_utils
 from bkchem import dom_extensions
-from bkchem import bkchem_exceptions
 from bkchem import safe_xml
 
 from bkchem.bond_lib import BkBond
@@ -569,7 +568,7 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
       f = BkFragment()
       try:
         f.read_package( fel)
-      except bkchem_exceptions.bkchem_fragment_error:
+      except ValueError:
         pass
       else:
         self.fragments.add( f)

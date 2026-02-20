@@ -28,8 +28,10 @@ from bkchem import bkchem_utils
 from bkchem import marks
 
 from bkchem.ftext_lib import BkFtext
-from bkchem.tuning import Tuning
 from bkchem.singleton_store import Store, Screen
+
+# tuning constant for bbox descent removal (inlined from tuning.py)
+_BBOX_DESCENT_MOD = (0, 0, 0, 1)
 from bkchem.graph_vertex_mixin import GraphVertexMixin
 from bkchem.parents import meta_enabled, area_colored, point_drawable, text_like, child_with_paper
 
@@ -831,7 +833,7 @@ class drawable_chem_vertex(GraphVertexMixin,
       box = self.paper.bbox( self.item)
       if substract_font_descent and self.show:
         hack_y = self.font.metrics()['descent']
-        x1, y1, x2, y2 = list(map( operator.add, box, Tuning.Screen.drawable_chem_vertex_bbox_mod_after_descent_removal))
+        x1, y1, x2, y2 = list(map( operator.add, box, _BBOX_DESCENT_MOD))
         box =  x1, y1, x2, y2-hack_y
       #if Store.app.in_batch_mode:
       #  # in batch mode the bboxes work really strangely and this fixes it somehow

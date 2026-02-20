@@ -39,7 +39,7 @@ import Pmw
 from bkchem import data
 from bkchem import bkchem_utils
 from bkchem import bkchem_config
-from bkchem.keysymdef import keysyms
+from bkchem.keysym_loader import get_keysyms
 from bkchem.singleton_store import Store
 
 _ = getattr( builtins, "_", None)
@@ -502,10 +502,10 @@ class HTMLLikeInput(tkinter.Frame, object):
 
 
 	def _key( self, event):
-		if len(event.keysym) > 1 and event.keysym in keysyms:
+		if len(event.keysym) > 1 and event.keysym in get_keysyms():
 			if self.editPool.selection_present():
 				self.editPool.delete( "anchor", "insert")
-			self.editPool.insert('insert', keysyms[event.keysym])
+			self.editPool.insert('insert', get_keysyms()[event.keysym])
 			return "break"
 
 

@@ -32,7 +32,6 @@ from bkchem import dialogs
 from bkchem import widgets
 from bkchem import validator
 from bkchem import os_support
-from bkchem import bkchem_exceptions as excs
 from bkchem import safe_xml
 
 _ = builtins.__dict__.get( '_', lambda m: m)
@@ -380,11 +379,8 @@ def convert_selected_to_linear_fragment( paper):
     except ValueError:
       Store.log( _("The selection does not define connected subgraph"), message_type="error")
       return
-    except excs.bkchem_graph_error as e:
-      if e.id == "circular_selection":
-        Store.log( e.value, message_type="error")
-      else:
-        raise
+    except ValueError as e:
+      Store.log( str(e), message_type="error")
     else:
       changes = changes or change
       if changes:
@@ -410,8 +406,7 @@ def atoms_to_linear_fragment( mol, vs, bond_length=10):
     ends = [v for v in vs if len( [n for n in v.neighbors if n in vs]) == 1]
     if not ends and len( vs) != 1:
       # whole ring is selected, how could this be possibly linearized?
-      raise excs.bkchem_graph_error( "circular_selection",
-                                     _("The selected part of a molecule is a whole ring, there is no way to linearize it"))
+      raise ValueError(_("The selected part of a molecule is a whole ring, there is no way to linearize it"))
     if len( vs) == 1:
       start = list(vs)[0]
       end = start

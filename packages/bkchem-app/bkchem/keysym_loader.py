@@ -1,10 +1,11 @@
+#!/usr/bin/env python3
 #--------------------------------------------------------------------------
 #     This file is part of BKChem - a chemical drawing program
 #     Copyright (C) 2002-2009 Beda Kosata <beda@zirael.org>
 
 #     This program is free software; you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
-#     the Free Software Foundation; either version 2 of the License, or
+#     the Free Software Foundation; either version 3 of the License, or
 #     (at your option) any later version.
 
 #     This program is distributed in the hope that it will be useful,
@@ -16,31 +17,30 @@
 #     main directory of the program
 
 #--------------------------------------------------------------------------
+"""Cached loader for keysym definition data."""
 
+# Standard Library
+import os
 
+# PIP3 modules
+import yaml
 
-import importlib
-import sys
-import traceback
+# local repo modules
+from bkchem import os_support
 
-from bkchem import bkchem_config
+_KEYSYMS_CACHE = None
 
+#============================================
+def get_keysyms() -> dict:
+	"""Load and cache the keysym-to-Unicode mapping from YAML.
 
-__all__ = []
-
-# format/render plugins were removed in Phases A/C; legacy GTML import remains
-_names = ["gtml"]
-
-for _name in _names:
-  try:
-    importlib.import_module(".%s" % _name, __name__)
-    __all__.append(_name)
-  except Exception as exc:
-    sys.stderr.write(
-      "Could not load module %s: %s: %s\n" % (_name, exc.__class__.__name__, exc)
-    )
-    if bkchem_config.debug:
-      traceback.print_exc()
-
-del _name
-del _names
+	Returns:
+		dict: mapping of keysym names to Unicode characters.
+	"""
+	global _KEYSYMS_CACHE
+	if _KEYSYMS_CACHE is None:
+		data_dir = os_support._get_bkchem_data_dir()
+		yaml_path = os.path.join(data_dir, "keysymdef.yaml")
+		with open(yaml_path) as fh:
+			_KEYSYMS_CACHE = yaml.safe_load(fh)
+	return _KEYSYMS_CACHE

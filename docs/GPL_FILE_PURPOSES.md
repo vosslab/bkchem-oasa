@@ -1,29 +1,33 @@
 # GPL File Purposes and Inventory
 
 This document records the purpose of files from the GPL/LGPL coverage scan
-(`tools/assess_gpl_coverage.py`, cutoff `2025-01-01`) and explicitly lists the
-7 files currently classified as pure GPLv2.
+(`tools/assess_gpl_coverage.py`, cutoff `2025-01-01`). As of 2026-02-20 there
+are zero pure GPLv2 files remaining.
 
-## Pure GPLv2 Files (7)
+## Pure GPLv2 Files (0)
 
-Purpose: legacy BKChem support modules that still contain only pre-cutoff
-provenance.
+All former pure GPLv2 files have been removed or received enough new LGPLv3
+code to become mixed. `id_manager.py` crossed the threshold after adding
+reverse-index logic and docstrings (26% GPLv2, 74% LGPLv3).
 
-- [packages/bkchem-app/bkchem/bkchem_exceptions.py](packages/bkchem-app/bkchem/bkchem_exceptions.py): BKChem-specific exception types.
-- [packages/bkchem-app/bkchem/groups_table.py](packages/bkchem-app/bkchem/groups_table.py): reference table for predefined groups/templates.
-- [packages/bkchem-app/bkchem/id_manager.py](packages/bkchem-app/bkchem/id_manager.py): object/document ID allocation and tracking.
-- [packages/bkchem-app/bkchem/keysymdef.py](packages/bkchem-app/bkchem/keysymdef.py): keyboard symbol definitions for GUI bindings.
-- [packages/bkchem-app/bkchem/plugins/plugin.py](packages/bkchem-app/bkchem/plugins/plugin.py): base plugin contract for BKChem plugins.
-- [packages/bkchem-app/bkchem/tuning.py](packages/bkchem-app/bkchem/tuning.py): tuning constants and defaults.
-- [packages/bkchem-app/bkchem/xml_serializer.py](packages/bkchem-app/bkchem/xml_serializer.py): XML serialization helpers.
+### Removed or reclassified pure GPLv2 files
+
+These files were eliminated or inlined to reduce the GPLv2 footprint:
+
+- `bkchem_exceptions.py`: replaced with standard `ValueError` in 3 call sites.
+- `groups_table.py`: inlined as `GROUPS_TABLE` constant in `group_lib.py`.
+- `keysymdef.py`: converted to `bkchem_data/keysymdef.yaml` with cached loader.
+- `plugins/plugin.py`: removed with the entire legacy plugin system.
+- `tuning.py`: inlined into `ftext_lib.py` and `special_parents.py`.
+- `id_manager.py`: now mixed (26% GPLv2) after adding reverse index and
+  docstrings.
 
 ## Mixed Files (GPLv2 + LGPLv3)
 
 ### BKChem Frontend Core
 
 Purpose: BKChem GUI app lifecycle, UI interaction modes, rendering orchestration,
-CDML handling, plugins, undo/redo, preferences, and frontend chemistry object
-layers.
+CDML handling, undo/redo, preferences, and frontend chemistry object layers.
 
 - [packages/bkchem-app/bkchem/CDML_versions.py](packages/bkchem-app/bkchem/CDML_versions.py)
 - [packages/bkchem-app/bkchem/arrow_lib.py](packages/bkchem-app/bkchem/arrow_lib.py)
@@ -47,6 +51,7 @@ layers.
 - [packages/bkchem-app/bkchem/graphics.py](packages/bkchem-app/bkchem/graphics.py)
 - [packages/bkchem-app/bkchem/group_lib.py](packages/bkchem-app/bkchem/group_lib.py)
 - [packages/bkchem-app/bkchem/helper_graphics.py](packages/bkchem-app/bkchem/helper_graphics.py)
+- [packages/bkchem-app/bkchem/id_manager.py](packages/bkchem-app/bkchem/id_manager.py)
 - [packages/bkchem-app/bkchem/import_checker.py](packages/bkchem-app/bkchem/import_checker.py)
 - [packages/bkchem-app/bkchem/interactors.py](packages/bkchem-app/bkchem/interactors.py)
 - [packages/bkchem-app/bkchem/logger.py](packages/bkchem-app/bkchem/logger.py)
@@ -60,9 +65,6 @@ layers.
 - [packages/bkchem-app/bkchem/paper.py](packages/bkchem-app/bkchem/paper.py)
 - [packages/bkchem-app/bkchem/parents.py](packages/bkchem-app/bkchem/parents.py)
 - [packages/bkchem-app/bkchem/pixmaps.py](packages/bkchem-app/bkchem/pixmaps.py)
-- [packages/bkchem-app/bkchem/plugin_support.py](packages/bkchem-app/bkchem/plugin_support.py)
-- [packages/bkchem-app/bkchem/plugins/__init__.py](packages/bkchem-app/bkchem/plugins/__init__.py)
-- [packages/bkchem-app/bkchem/plugins/gtml.py](packages/bkchem-app/bkchem/plugins/gtml.py)
 - [packages/bkchem-app/bkchem/pref_manager.py](packages/bkchem-app/bkchem/pref_manager.py)
 - [packages/bkchem-app/bkchem/queryatom_lib.py](packages/bkchem-app/bkchem/queryatom_lib.py)
 - [packages/bkchem-app/bkchem/reaction_lib.py](packages/bkchem-app/bkchem/reaction_lib.py)

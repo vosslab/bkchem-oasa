@@ -33,9 +33,38 @@ from oasa.known_groups import name_to_smiles
 from bkchem import data
 from bkchem import marks
 from bkchem import dom_extensions
-from bkchem import groups_table as GT
 
 from bkchem.singleton_store import Store, Screen
+
+# Common functional groups lookup table. Keys are lowercase abbreviations.
+GROUPS_TABLE = {
+	'och3':   {'name': 'OCH3', 'textf': 'OCH<sub>3</sub>',
+	           'textb': 'H<sub>3</sub>CO', 'composition': 'OCH3'},
+	'no2':    {'name': 'NO2', 'textf': 'NO<sub>2</sub>',
+	           'textb': 'O<sub>2</sub>N', 'composition': 'NO2'},
+	'cooh':   {'name': 'COOH', 'textf': 'COOH',
+	           'textb': 'HOOC', 'composition': 'COOH'},
+	'cooch3': {'name': 'COOCH3', 'textf': 'COOCH<sub>3</sub>',
+	           'textb': 'H<sub>3</sub>COOC', 'composition': 'COOCH3'},
+	'me':     {'name': 'Me', 'textf': 'Me',
+	           'textb': 'Me', 'composition': 'CH3'},
+	'cn':     {'name': 'CN', 'textf': 'CN',
+	           'textb': 'NC', 'composition': 'CN'},
+	'so3h':   {'name': 'SO3H', 'textf': 'SO<sub>3</sub>H',
+	           'textb': 'HO<sub>3</sub>S', 'composition': 'SO3H'},
+	'pph3':   {'name': 'PPh3', 'textf': 'PPh<sub>3</sub>',
+	           'textb': 'Ph<sub>3</sub>P', 'composition': 'C18H15P'},
+	'ome':    {'name': 'OMe', 'textf': 'OMe',
+	           'textb': 'MeO', 'composition': 'OCH3'},
+	'et':     {'name': 'Et', 'textf': 'Et',
+	           'textb': 'Et', 'composition': 'C2H5'},
+	'ph':     {'name': 'Ph', 'textf': 'Ph',
+	           'textb': 'Ph', 'composition': 'C6H5'},
+	'cocl':   {'name': 'COCl', 'textf': 'COCl',
+	           'textb': 'ClOC', 'composition': 'COCl'},
+	'ch2oh':  {'name': 'CH2OH', 'textf': 'CH<sub>2</sub>OH',
+	           'textb': 'HOCH<sub>2</sub>', 'composition': 'CH3O'},
+}
 from bkchem.special_parents import drawable_chem_vertex
 
 
@@ -122,9 +151,9 @@ class BkGroup( drawable_chem_vertex):
     """
     if self.group_type == "builtin":
       if self.pos == 'center-first':
-        return GT.groups_table[ self.symbol.lower()]['textf']
+        return GROUPS_TABLE[ self.symbol.lower()]['textf']
       else:
-        return GT.groups_table[ self.symbol.lower()]['textb']
+        return GROUPS_TABLE[ self.symbol.lower()]['textb']
     elif self.group_type in ("implicit","chain"):
       x = re.sub( r"\d+", r"<sub>\g<0></sub>", self.symbol)
       x = re.sub( r"[+-]", r"<sup>\g<0></sup>", x)
@@ -185,9 +214,9 @@ class BkGroup( drawable_chem_vertex):
   def set_name( self, name, interpret=1, occupied_valency=None):
     if occupied_valency is None:
       occupied_valency = self.occupied_valency
-    if occupied_valency == 1 and (name.lower() in GT.groups_table):
+    if occupied_valency == 1 and (name.lower() in GROUPS_TABLE):
       # name is a known group
-      self.symbol = GT.groups_table[ name.lower()]['name']
+      self.symbol = GROUPS_TABLE[ name.lower()]['name']
       self.group_type = "builtin"
       return True
     # try interpret the formula
@@ -308,7 +337,7 @@ class BkGroup( drawable_chem_vertex):
     """returns formula as dictionary that can
     be passed to functions in periodic_table"""
     if self.group_type == "builtin":
-      return PT.formula_dict( GT.groups_table[ self.symbol.lower()]['composition'])
+      return PT.formula_dict( GROUPS_TABLE[ self.symbol.lower()]['composition'])
     elif self.group_graph:
       form = self.group_graph.get_formula_dict()
       if 'H' in form:

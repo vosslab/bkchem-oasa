@@ -134,12 +134,6 @@ menus:
     items:
       - action: help.about
 
-  - name: plugins
-    label_key: "Plugins"
-    help_key: "Small additional scripts"
-    side: "right"
-    items: []
-
 cascades:
   recent_files:
     label_key: "Recent files"

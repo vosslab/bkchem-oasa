@@ -23,7 +23,6 @@ from bkchem import dom_extensions as dom_ext
 
 from bkchem.parents import simple_parent
 from bkchem.singleton_store import Store
-from bkchem.bkchem_exceptions import bkchem_fragment_error
 
 
 class BkFragment( simple_parent):
@@ -121,13 +120,13 @@ class BkFragment( simple_parent):
       try:
         self.edges.add( Store.id_manager.get_object_with_id( b.getAttribute( "id")))
       except KeyError:
-        raise bkchem_fragment_error( "inconsistent", "")
+        raise ValueError("inconsistent fragment reference")
 
     for v in dom_ext.simpleXPathSearch( doc, "vertex"):
       try:
         self.vertices.add( Store.id_manager.get_object_with_id( v.getAttribute( "id")))
       except KeyError:
-        raise bkchem_fragment_error( "inconsistent", "")
+        raise ValueError("inconsistent fragment reference")
 
     for p in dom_ext.simpleXPathSearch( doc, "property"):
       k = p.getAttribute( "name")
