@@ -20,9 +20,6 @@
 """CDML bond attribute helpers."""
 
 
-CDML_PRESENT_KEY = "_cdml_present"
-CDML_UNKNOWN_KEY = "_cdml_unknown_attrs"
-
 CDML_CORE_ATTRS = {
 	"type",
 	"start",
@@ -78,10 +75,7 @@ def read_cdml_bond_attributes(bond_el, bond, preserve_attrs=None, known_attrs=No
 		known_attrs = CDML_ALL_ATTRS
 	present = set()
 	if not hasattr(bond_el, "attributes") or bond_el.attributes is None:
-		bond.properties_[CDML_PRESENT_KEY] = present
-		bond._cdml_present = set(present)
 		return present
-	unknown = {}
 	for attr in bond_el.attributes.values():
 		name = attr.name
 		value = attr.value
@@ -100,27 +94,7 @@ def read_cdml_bond_attributes(bond_el, bond, preserve_attrs=None, known_attrs=No
 			continue
 		if name in preserve_attrs:
 			bond.properties_[name] = value
-			continue
-		if name not in known_attrs:
-			unknown[name] = value
-			bond.properties_[name] = value
-	bond.properties_[CDML_PRESENT_KEY] = present
-	bond._cdml_present = set(present)
-	if unknown:
-		bond._cdml_unknown_attrs = dict(unknown)
 	return present
-
-
-#============================================
-def get_cdml_present(bond):
-	"""Return the set of CDML attributes present on input, if recorded."""
-	present = getattr(bond, CDML_PRESENT_KEY, None)
-	if isinstance(present, set):
-		return set(present)
-	present = bond.properties_.get(CDML_PRESENT_KEY)
-	if isinstance(present, set):
-		return set(present)
-	return None
 
 
 #============================================
@@ -165,34 +139,4 @@ def select_cdml_attributes(
 			continue
 		if allow_non_default_without_presence:
 			out.append((name, value))
-	return out
-
-
-#============================================
-def collect_unknown_cdml_attributes(bond, known_attrs=None, present=None):
-	"""Collect unknown CDML attributes preserved in bond.properties_."""
-	if known_attrs is None:
-		known_attrs = CDML_ALL_ATTRS
-	unknown = getattr(bond, CDML_UNKNOWN_KEY, None)
-	out = []
-	if isinstance(unknown, dict):
-		for name in sorted(unknown.keys()):
-			value = unknown[name]
-			if present is not None and name not in present:
-				continue
-			if value is None:
-				continue
-			out.append((name, str(value)))
-		return out
-	for name in sorted(bond.properties_.keys()):
-		value = bond.properties_[name]
-		if name.startswith("_"):
-			continue
-		if name in known_attrs:
-			continue
-		if present is not None and name not in present:
-			continue
-		if value is None:
-			continue
-		out.append((name, str(value)))
 	return out

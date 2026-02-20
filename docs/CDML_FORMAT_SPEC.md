@@ -433,14 +433,6 @@ Bond depiction attributes are written in this order:
 `line_width`, `bond_width`, `center`, `auto_sign`, `equithick`, `wedge_width`,
 `double_ratio`, `simple_double`, `color`, `wavy_style`.
 
-### Unknown attribute preservation
-
-Any XML attribute on `<bond>` or `<atom>` that is not in the known set is
-preserved through round-trip read/write. This allows forward-compatible
-extension: older readers ignore unknown attributes, newer writers emit them.
-The preserved attributes are stored in `_cdml_unknown_attrs` and tracked via
-`_cdml_present`.
-
 ---
 
 ## Common child elements
@@ -843,22 +835,11 @@ OASA and BKChem both read and write CDML but at different scopes:
 | `<molecule>` with atoms and bonds | Read + Write | Read + Write |
 | `<group>` expansion from SMILES | -- | Yes (via `known_groups.cdml_to_smiles`) |
 | Version transformers (0.6 -> 26.02) | Yes | -- |
-| Unknown attribute preservation | Yes | Yes |
+| Unknown attribute preservation | No | No |
 | `<arrow>`, `<plus>`, `<text>`, graphics | Read + Write | -- |
 | `<reaction>` | Read + Write | -- |
 | CD-SVG embedding | Read + Write | -- |
 | Render-ops pipeline (molecule -> LineOp, TextOp, etc.) | -- | Yes |
-
-### OASA-level known atom attributes
-
-OASA recognizes a smaller set of atom attributes than BKChem:
-
-```
-id, name, charge, multiplicity, valency, isotope, free_sites
-```
-
-Any other attribute present on an `<atom>` element is preserved as an unknown
-attribute and re-emitted on write.
 
 ### OASA-level known bond attributes
 
@@ -903,4 +884,4 @@ If you generate CDML outside of BKChem or OASA:
 7. Reference atoms by `id` in bond `start` and `end` attributes.
 8. Use `cm` unit suffix for coordinates if targeting OASA codec compatibility.
 9. Prefer the current `<standard>` attribute names and children.
-10. Unknown attributes will be preserved on round-trip by both BKChem and OASA.
+10. Unknown attributes are silently ignored on read.

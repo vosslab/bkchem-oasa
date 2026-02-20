@@ -13,8 +13,6 @@ def test_cdml_writer_basic():
 	a1 = oasa.Atom(symbol="O")
 	a1.x = 0.0
 	a1.y = 0.0
-	a1._cdml_unknown_attrs = {"custom": "1"}
-	a1._cdml_present = {"custom"}
 	a2 = oasa.Atom(symbol="C")
 	a2.x = 12.0
 	a2.y = 0.0
@@ -30,7 +28,6 @@ def test_cdml_writer_basic():
 	assert element.tagName == "molecule"
 	atoms = element.getElementsByTagName("atom")
 	assert len(atoms) == 2
-	assert atoms[0].getAttribute("custom") == "1"
 	point = atoms[0].getElementsByTagName("point")[0]
 	assert point.getAttribute("x").endswith("cm")
 	bonds = element.getElementsByTagName("bond")

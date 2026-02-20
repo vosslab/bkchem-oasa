@@ -251,13 +251,12 @@ Bond CDML attributes (from `bond_cdml.py`):
 
 ### 4.3 Round-trip preservation rules
 
-1. All CDML attributes present in the source must be preserved on save, even if
-   BKChem does not use them (tracked via `properties_["_cdml_present"]`).
-2. Unknown attributes are stored in `properties_` and re-emitted on save via
-   `oasa.cdml_bond_io.collect_unknown_cdml_attributes()`.
-3. Bond type normalization uses `oasa.bond_semantics.normalize_bond_type_char()`
+1. Known CDML attributes are preserved on save. Unknown attributes are silently
+   ignored on read, matching how CML and other chemistry formats handle
+   unrecognized attributes.
+2. Bond type normalization uses `oasa.bond_semantics.normalize_bond_type_char()`
    on read and stores legacy types in `properties_["legacy_bond_type"]`.
-4. Bond vertex canonicalization runs on read via
+3. Bond vertex canonicalization runs on read via
    `oasa.bond_semantics.canonicalize_bond_vertices()`.
 
 ---

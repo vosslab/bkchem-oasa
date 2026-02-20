@@ -96,7 +96,6 @@ def read_cdml_molecule_element(mol_el):
 		else:
 			return None
 		atom_id_remap[atom_el.getAttribute("id")] = a
-		_record_atom_cdml_attrs(atom_el, a)
 
 	for bond_el in dom_ext.simpleXPathSearch(mol_el, "bond"):
 		type_value = bond_el.getAttribute("type")
@@ -210,24 +209,6 @@ def _assign_atom_ids(atoms):
 
 
 #============================================
-def _record_atom_cdml_attrs(atom_el, atom_obj):
-	present = set()
-	unknown = {}
-	if hasattr(atom_el, "attributes") and atom_el.attributes is not None:
-		for attr in atom_el.attributes.values():
-			name = attr.name
-			value = attr.value
-			present.add(name)
-			if name in _KNOWN_ATOM_ATTRS:
-				continue
-			unknown[name] = value
-	if present:
-		atom_obj._cdml_present = set(present)
-	if unknown:
-		atom_obj._cdml_unknown_attrs = dict(unknown)
-
-
-#============================================
 def _write_cdml_atom_element(doc, atom_obj, atom_ids, coord_to_text=None):
 	a_el = doc.createElement("atom")
 	a_el.setAttribute("id", atom_ids[atom_obj])
@@ -266,15 +247,6 @@ def _write_cdml_atom_element(doc, atom_obj, atom_ids, coord_to_text=None):
 			('color', cpk_color),
 		))
 
-	unknown = getattr(atom_obj, "_cdml_unknown_attrs", None)
-	present = getattr(atom_obj, "_cdml_present", None)
-	if isinstance(unknown, dict):
-		for name, value in sorted(unknown.items()):
-			if present is not None and name not in present:
-				continue
-			if a_el.hasAttribute(name):
-				continue
-			a_el.setAttribute(name, str(value))
 	return a_el
 
 
@@ -292,26 +264,11 @@ def _write_cdml_bond_element(doc, bond_obj, atom_ids, policy="present_only", wid
 		b_el.setAttribute("id", str(bond_id))
 
 	values, defaults = _bond_values_and_defaults(bond_obj, width_to_text=width_to_text)
-	present = cdml_bond_io.get_cdml_present(bond_obj)
-	force = set()
-	allow_non_default = policy != "present_only"
 	attrs = cdml_bond_io.select_cdml_attributes(
 		values,
 		defaults=defaults,
-		present=present,
-		force=force,
-		allow_non_default_without_presence=allow_non_default,
 	)
 	for name, value in attrs:
-		b_el.setAttribute(name, str(value))
-	unknown = cdml_bond_io.collect_unknown_cdml_attributes(
-		bond_obj,
-		known_attrs=cdml_bond_io.CDML_ALL_ATTRS,
-		present=present if policy == "present_only" else None,
-	)
-	for name, value in unknown:
-		if b_el.hasAttribute(name):
-			continue
 		b_el.setAttribute(name, str(value))
 	return b_el
 
@@ -401,12 +358,3 @@ def _cm_to_float_coord(x):
 	return float(x)
 
 
-_KNOWN_ATOM_ATTRS = {
-	"id",
-	"name",
-	"charge",
-	"multiplicity",
-	"valency",
-	"isotope",
-	"free_sites",
-}

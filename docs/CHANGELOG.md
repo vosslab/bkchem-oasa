@@ -1,6 +1,12 @@
 # Changelog
 
 ## 2026-02-20
+- Remove CDML unknown-attribute preservation system. Unknown XML attributes on
+  atoms, bonds, groups, queries, and text elements are now silently ignored on
+  read, matching how CML and other established chemistry formats handle
+  unrecognized attributes. Removed `cdml_vertex_io.py`, stripped unknown-attr
+  tracking from `cdml_bond_io.py` and `cdml_writer.py`, and removed related
+  hooks from the four vertex `*_lib.py` files and `bond_cdml.py`.
 - Fix three CDML backend-to-frontend contract violations:
   - Bug 1: `oasa_bridge.py` `oasa_atom_to_bkchem_atom()` now copies
     multiplicity from the source OASA atom instead of self-assigning (no-op).

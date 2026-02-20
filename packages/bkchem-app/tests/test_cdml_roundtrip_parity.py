@@ -171,28 +171,6 @@ def test_bond_type_order_roundtrip(paper, atoms, bond_type, order):
 	assert loaded.order == order
 
 
-# -- Test: unknown CDML attributes preserved --
-
-#============================================
-def test_unknown_cdml_attributes_preserved(paper, atoms):
-	"""Unknown CDML attributes stored in properties_ round-trip through save/load."""
-	bond = _make_bond(paper, atoms)
-	# inject an unknown attribute
-	bond.properties_["custom_data"] = "hello"
-	bond.properties_["_cdml_present"] = {
-		"type", "start", "end", "id", "custom_data",
-	}
-	doc = xml.dom.minidom.Document()
-	element = bond.get_package(doc)
-	# the unknown attribute should appear in the DOM
-	assert element.getAttribute("custom_data") == "hello"
-	# load into a new bond
-	loaded = bkchem.bond_lib.BkBond(standard=paper.standard, type="n", order=1)
-	loaded.parent = _DummyParent(paper)
-	loaded.read_package(element)
-	assert loaded.properties_.get("custom_data") == "hello"
-
-
 # -- Test: coordinate unit conversion round-trip --
 
 #============================================

@@ -9,21 +9,6 @@ import oasa
 
 # -- inline CDML test data --
 
-CUSTOM_ATTR_CDML = """\
-<?xml version="1.0" encoding="utf-8"?>
-<cdml version="26.02" xmlns="http://www.freesoftware.fsf.org/bkchem/cdml">
-  <molecule id="m1">
-    <atom id="a1" name="C">
-      <point x="1.0cm" y="1.0cm" />
-    </atom>
-    <atom id="a2" name="O">
-      <point x="2.0cm" y="1.0cm" />
-    </atom>
-    <bond type="n1" start="a1" end="a2" custom="keep" />
-  </molecule>
-</cdml>
-"""
-
 WAVY_COLOR_CDML = """\
 <?xml version="1.0" encoding="utf-8"?>
 <cdml version="26.02" xmlns="http://www.freesoftware.fsf.org/bkchem/cdml">
@@ -79,15 +64,6 @@ def _roundtrip_molecule(cdml_text: str):
 		)
 	)
 	return oasa.cdml.text_to_mol(doc.toxml("utf-8"))
-
-
-#============================================
-def test_cdml_writer_roundtrip_custom_attrs():
-	"""Custom bond attributes survive write-then-read round-trip."""
-	mol = _roundtrip_molecule(CUSTOM_ATTR_CDML)
-	assert mol is not None
-	bond = next(iter(mol.edges))
-	assert bond.properties_.get("custom") == "keep"
 
 
 #============================================

@@ -121,17 +121,10 @@ class BondCDMLMixin:
         Screen.any_to_px(self.paper.standard.wedge_width)
         * self.paper.screen_to_real_ratio()
       )
-    present = oasa.cdml_bond_io.get_cdml_present(self)
     optional_attrs = oasa.cdml_bond_io.select_cdml_attributes(
       values,
       defaults=defaults,
-      present=present,
     )
-    unknown_attrs = oasa.cdml_bond_io.collect_unknown_cdml_attributes(
-      self,
-      known_attrs=oasa.cdml_bond_io.CDML_ALL_ATTRS,
-      present=present,
-    )
-    if optional_attrs or unknown_attrs:
-      dom_extensions.setAttributes(bnd, tuple(optional_attrs + unknown_attrs))
+    if optional_attrs:
+      dom_extensions.setAttributes(bnd, tuple(optional_attrs))
     return bnd

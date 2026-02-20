@@ -24,7 +24,6 @@
 
 
 import sys
-import oasa
 from oasa import periodic_table as PT
 
 from bkchem import data
@@ -150,11 +149,6 @@ class BkTextatom( drawable_chem_vertex):
       self.show_number = bool( data.booleans.index( package.getAttribute( 'show_number')))
     if package.getAttribute( 'number'):
       self.number = package.getAttribute( 'number')
-    # track present and unknown CDML attributes for round-trip preservation
-    oasa.cdml_vertex_io.read_cdml_vertex_attributes(
-      package, self,
-      known_attrs=oasa.cdml_vertex_io.CDML_TEXT_KNOWN_ATTRS,
-    )
 
 
   def get_package( self, doc):
@@ -190,15 +184,6 @@ class BkTextatom( drawable_chem_vertex):
     if self.number:
       a.setAttribute( 'number', self.number)
       a.setAttribute( 'show_number', data.booleans[ int( self.show_number)])
-    # re-emit unknown CDML attributes for round-trip preservation
-    present = oasa.cdml_vertex_io.get_cdml_present(self)
-    for attr_name, attr_value in oasa.cdml_vertex_io.collect_unknown_cdml_vertex_attributes(
-        self,
-        known_attrs=oasa.cdml_vertex_io.CDML_TEXT_KNOWN_ATTRS,
-        present=present,
-    ):
-      a.setAttribute(attr_name, attr_value)
-
     return a
 
 
