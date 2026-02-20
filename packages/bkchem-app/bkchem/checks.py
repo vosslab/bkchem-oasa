@@ -25,11 +25,8 @@ Mainly from paper and modules.
 import builtins
 from bkchem.singleton_store import Store
 
-_ = getattr( builtins, "_", None)
-if not _:
-	def _( text):
-		return text
-	builtins._ = _
+# gettext i18n translation fallback
+_ = builtins.__dict__.get('_', lambda m: m)
 
 
 

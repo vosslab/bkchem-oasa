@@ -244,11 +244,11 @@ modes:
     submodes:
       - group_label: Operation
         options:
-          - {key: normalize_lengths, name: Normalize Lengths, size: large}
-          - {key: normalize_angles, name: Normalize Angles, size: large}
-          - {key: normalize_rings, name: Normalize Rings, size: large}
+          - {key: normalize-lengths, name: Normalize Lengths, size: large}
+          - {key: normalize-angles, name: Normalize Angles, size: large}
+          - {key: normalize-rings, name: Normalize Rings, size: large}
           - {key: straighten, name: Straighten Bonds, size: large}
-          - {key: snap_hex, name: Snap to Hex Grid, size: large}
+          - {key: snap-hex, name: Snap to Hex Grid, size: large}
           - {key: clean, name: Clean Geometry, size: large}
         default: 0
 

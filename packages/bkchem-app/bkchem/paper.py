@@ -69,17 +69,9 @@ except ImportError:
 	PaperPropertiesMixin = importlib.import_module("paper_lib.paper_properties").PaperPropertiesMixin
 	PaperLayoutMixin = importlib.import_module("paper_lib.paper_layout").PaperLayoutMixin
 
-_ = getattr( builtins, "_", None)
-if not _:
-	def _( text):
-		return text
-	builtins._ = _
-
-ngettext = getattr( builtins, "ngettext", None)
-if not ngettext:
-	def ngettext( single, plural, count):
-		return single if count == 1 else plural
-	builtins.ngettext = ngettext
+# gettext i18n translation fallbacks
+_ = builtins.__dict__.get('_', lambda m: m)
+ngettext = builtins.__dict__.get('ngettext', lambda s, p, n: s if n == 1 else p)
 
 
 class chem_paper(

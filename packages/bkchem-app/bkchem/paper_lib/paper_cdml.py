@@ -15,11 +15,8 @@ from bkchem.molecule_lib import BkMolecule
 from bkchem.singleton_store import Store
 
 import builtins
-_ = getattr( builtins, "_", None)
-if not _:
-	def _( text):
-		return text
-	builtins._ = _
+# gettext i18n translation fallback
+_ = builtins.__dict__.get('_', lambda m: m)
 
 
 class PaperCDMLMixin:

@@ -34,12 +34,12 @@ from bkchem import dom_extensions
 from bkchem import helper_graphics as hg
 from bkchem.bond_lib import BkBond
 from bkchem.atom_lib import BkAtom
-from bkchem.group_lib import BkGroup
 from bkchem.textatom_lib import BkTextatom
 from bkchem.context_menu import context_menu
 from bkchem.singleton_store import Store, Screen
 from bkchem.modes.modes_lib import basic_mode
 
+# gettext i18n translation fallback
 _ = builtins.__dict__.get( '_', lambda m: m)
 
 

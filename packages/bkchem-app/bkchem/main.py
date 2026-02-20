@@ -55,6 +55,7 @@ from bkchem.main_lib.main_chemistry_io import MainChemistryIOMixin
 from bkchem.main_lib.main_modes import MainModesMixin
 from bkchem.main_lib.main_tabs import MainTabsMixin
 
+# gettext i18n translation fallback
 _ = builtins.__dict__.get( '_', lambda m: m)
 
 

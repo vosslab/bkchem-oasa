@@ -10,7 +10,7 @@ import builtins
 import importlib
 import dataclasses
 
-# translation fallback: use builtins._() if available, else identity
+# gettext i18n translation fallback
 _ = builtins.__dict__.get('_', lambda m: m)
 
 

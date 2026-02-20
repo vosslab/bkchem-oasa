@@ -34,6 +34,7 @@ from bkchem import validator
 from bkchem import os_support
 from bkchem import safe_xml
 
+# gettext i18n translation fallbacks
 _ = builtins.__dict__.get( '_', lambda m: m)
 ngettext = builtins.__dict__.get( 'ngettext', lambda s, p, n: s if n == 1 else p)
 

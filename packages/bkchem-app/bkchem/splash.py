@@ -30,6 +30,7 @@ from bkchem import messages
 from bkchem import os_support
 
 
+# gettext i18n translation fallback
 _ = builtins.__dict__.get( '_', lambda m: m)
 
 

@@ -24,6 +24,7 @@ import tkinter.messagebox as tkMessageBox
 
 from bkchem.singleton_store import Store
 
+# gettext i18n translation fallback
 _ = builtins.__dict__.get( '_', lambda m: m)
 
 

@@ -11,7 +11,7 @@ import builtins
 # PIP3 modules
 import yaml
 
-# translation function fallback
+# gettext i18n translation fallback
 _ = builtins.__dict__.get('_', lambda m: m)
 
 

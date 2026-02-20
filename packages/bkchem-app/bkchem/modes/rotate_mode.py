@@ -34,6 +34,7 @@ from bkchem.arrow_lib import BkArrow
 from bkchem.singleton_store import Store
 from bkchem.modes.edit_mode import edit_mode
 
+# gettext i18n translation fallback
 _ = builtins.__dict__.get( '_', lambda m: m)
 
 

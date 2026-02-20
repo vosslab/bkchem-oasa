@@ -29,6 +29,7 @@ from bkchem import interactors
 from bkchem.singleton_store import Store
 from bkchem.modes.config import get_modes_config, _load_submodes_from_yaml
 
+# gettext i18n translation fallback
 _ = builtins.__dict__.get( '_', lambda m: m)
 
 

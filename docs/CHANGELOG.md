@@ -1,6 +1,19 @@
 # Changelog
 
 ## 2026-02-20
+- Standardize gettext i18n fallback pattern across 27 production files. Replace
+  verbose `getattr(builtins, "_", None)` multi-line fallback with standard
+  one-liner `builtins.__dict__.get('_', lambda m: m)` in 5 files (`checks.py`,
+  `paper.py`, `widgets.py`, `paper_layout.py`, `paper_cdml.py`). Remove
+  `builtins._ = _` assignments from consumer modules. Add consistent
+  `# gettext i18n translation fallback` comment to all 27 files.
+- Add `test_gui_modes.py` -- YAML-driven GUI test that cycles through all
+  toolbar modes and submodes from `modes.yaml`, verifying mode names, submode
+  state, and button border relief/highlightthickness on every switch.
+- Fix `ValueError` when clicking repair mode toolbar button. Replace underscores
+  with hyphens in repair submode keys (`normalize-lengths`, `normalize-angles`,
+  `normalize-rings`, `snap-hex`) in `modes.yaml` and `repair_mode.py` to avoid
+  Pmw `createcomponent()` rejecting underscore characters in component names.
 - Remove redundant `sys.path.insert` calls from 8 test files. The conftest
   files and `source_me.sh` already set PYTHONPATH correctly. Remove
   `_ensure_sys_path()` helper functions from 4 GUI test files. Add missing

@@ -4,6 +4,7 @@ from bkchem.group_lib import BkGroup as group
 from bkchem.textatom_lib import BkTextatom as textatom
 from bkchem.singleton_store import Store
 
+# gettext i18n translation fallback
 _ = builtins.__dict__.get( '_', lambda m: m)
 
 

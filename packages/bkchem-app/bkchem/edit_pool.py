@@ -40,6 +40,7 @@ from bkchem.singleton_store import Store
 from bkchem.group_lib import GROUPS_TABLE
 
 
+# gettext i18n translation fallback
 _ = builtins.__dict__.get( '_', lambda m: m)
 
 

@@ -66,15 +66,15 @@ class repair_mode(edit_mode):
 		op = self.get_submode(0)
 		bl = self._get_bond_length_px()
 		# dispatch to the correct repair operation
-		if op == "normalize_lengths":
+		if op == "normalize-lengths":
 			oasa.repair_ops.normalize_bond_lengths(mol, bl)
-		elif op == "normalize_angles":
+		elif op == "normalize-angles":
 			oasa.repair_ops.normalize_bond_angles(mol, bl)
-		elif op == "normalize_rings":
+		elif op == "normalize-rings":
 			oasa.repair_ops.normalize_rings(mol, bl)
 		elif op == "straighten":
 			oasa.repair_ops.straighten_bonds(mol)
-		elif op == "snap_hex":
+		elif op == "snap-hex":
 			oasa.repair_ops.snap_to_hex_grid(mol, bl)
 		elif op == "clean":
 			# select all atoms and bonds in the molecule, clean, restore selection

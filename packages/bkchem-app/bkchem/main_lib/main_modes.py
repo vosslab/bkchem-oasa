@@ -9,6 +9,7 @@ from bkchem.modes.config import get_modes_config
 from bkchem import pixmaps
 
 import builtins
+# gettext i18n translation fallback
 _ = builtins.__dict__.get( '_', lambda m: m)
 
 

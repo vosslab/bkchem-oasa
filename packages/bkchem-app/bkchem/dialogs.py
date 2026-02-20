@@ -36,6 +36,7 @@ from bkchem import widgets
 from bkchem import os_support
 from bkchem.singleton_store import Store, Screen
 
+# gettext i18n translation fallback
 _ = builtins.__dict__.get( '_', lambda m: m)
 
 

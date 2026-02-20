@@ -38,6 +38,7 @@ from bkchem.parents import meta_enabled, container, with_line, line_colored
 from bkchem.parents import interactive, drawable, top_level
 
 
+# gettext i18n translation fallback
 _ = builtins.__dict__.get( '_', lambda m: m)
 
 

@@ -21,6 +21,7 @@
 
 import builtins
 
+# gettext i18n translation fallback
 _ = builtins.__dict__.get( '_', lambda m: m)
 
 # -------------------- HELP MESSAGES FOR MODES --------------------

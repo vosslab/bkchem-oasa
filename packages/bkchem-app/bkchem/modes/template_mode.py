@@ -30,6 +30,7 @@ from bkchem.singleton_store import Store, Screen
 from bkchem.modes.edit_mode import edit_mode
 from bkchem.modes.config import get_modes_config, _TEMPLATE_MANAGERS
 
+# gettext i18n translation fallback
 _ = builtins.__dict__.get( '_', lambda m: m)
 
 

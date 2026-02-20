@@ -89,6 +89,7 @@ class validator_report(object):
     pass
 
   def get_summary( self):
+    # gettext i18n translation fallbacks
     _ = builtins.__dict__.get( '_', lambda m: m)
     ngettext = builtins.__dict__.get(
       'ngettext',
