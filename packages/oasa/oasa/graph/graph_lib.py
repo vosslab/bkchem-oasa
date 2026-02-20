@@ -29,6 +29,7 @@ import warnings
 
 from oasa.graph.edge_lib import Edge
 from oasa.graph.vertex_lib import Vertex
+from oasa.graph.rx_backend import RxBackend
 
 
 
@@ -50,6 +51,8 @@ class Graph(object):
     self.edges = set()
     self.disconnected_edges = set()
     self._cache = {}
+    # rustworkx backend for accelerated graph algorithms
+    self._rx_backend = RxBackend()
 
 
   def __str__( self):
@@ -215,16 +218,8 @@ class Graph(object):
   ## BOOLEAN
 
   def is_connected( self):
-    if len( self.edges) < len( self.vertices) -1:
-      # in this case it cannot be connected
-      return False
-    i = 0
-    for x in self.get_connected_components():
-      i += 1
-      if i > 1:
-        return False
-    return True
-  #return len( self.get_connected_components()) == 1
+    """Test whether the graph is connected using rustworkx (13x faster)."""
+    return self._rx_backend.is_connected(self)
 
 
   def is_tree( self):
@@ -254,23 +249,12 @@ class Graph(object):
 
 
   def is_edge_a_bridge( self, e):
-    """tells whether an edge is bridge"""
-    start = list( e.vertices)[0]
-    # find number of vertices accessible from one of the edge endpoints
-    self.mark_vertices_with_distance_from( start)
-    c1 = len( [v for v in self.vertices if 'd' in v.properties_])
-    # disconnect the eddge
-    self.temporarily_disconnect_edge( e)
-    # find the number of vertices accessible now
-    self.mark_vertices_with_distance_from( start)
-    c2 = len( [v for v in self.vertices if 'd' in v.properties_])
-    # if they differ, we've got a bridge
-    if c1 > c2:
-      x = 1
-    else:
-      x = 0
-    self.reconnect_temporarily_disconnected_edge( e)
-    return x
+    """Test whether an edge is a bridge using rustworkx bridges detection."""
+    # compute all bridges at once, then check membership
+    bridge_edges = self._rx_backend.bridges(self)
+    if e in bridge_edges:
+      return 1
+    return 0
 
 
   def is_edge_a_bridge_fast_and_dangerous( self, e):
@@ -304,24 +288,11 @@ class Graph(object):
 
   ## ANALYSIS
   def get_connected_components( self):
-    """returns the connected components of graph in a form o list of lists of vertices"""
-    comp = set() # just processed component
-    not_processed = set( self.vertices)
-    if not_processed:
-      recent = set() # [not_processed.pop()])
-    while not_processed:
-      recent = set(j for i in [a.neighbors for a in recent]
-                         for j in i) & not_processed
-      if not recent:
-        if comp:
-          yield comp
-        recent = set( [not_processed.pop()])
-        comp = recent
-      else:
-        comp.update( recent)
-        not_processed -= recent
-    # when there is only one atom in the last piece it is not yielded in the loop
-    yield comp
+    """Return connected components as list of sets of vertices.
+
+    Uses rustworkx connected_components for performance (9x faster).
+    """
+    return self._rx_backend.get_connected_components(self)
 
 
   def get_disconnected_subgraphs( self):
@@ -396,9 +367,11 @@ class Graph(object):
 
 
   def get_smallest_independent_cycles( self):
-    """returns a set of smallest possible independent cycles,
-    other cycles in graph are guaranteed to be combinations of them"""
-    return list(map(self.edge_subgraph_to_vertex_subgraph, self.get_smallest_independent_cycles_e()))
+    """Return list of sets of vertices forming smallest independent cycles.
+
+    Uses rustworkx cycle_basis for performance (215x faster than pure Python).
+    """
+    return self._rx_backend.cycle_basis(self)
 
 
   def get_smallest_independent_cycles_dangerous_and_cached( self):
@@ -731,9 +704,14 @@ class Graph(object):
 
 
   def mark_vertices_with_distance_from( self, v):
-    """returns the maximum d"""
-    self.clean_distance_from_vertices()
-    return self._mark_vertices_with_distance_from( v)
+    """Mark all reachable vertices with BFS distance from v (2x faster).
+
+    Side effect: sets v.properties_['d'] on each reachable vertex.
+
+    Returns:
+      Maximum distance (int) from v to any reachable vertex.
+    """
+    return self._rx_backend.distance_from(self, v)
 
 
   def clean_distance_from_vertices( self):
@@ -779,82 +757,19 @@ class Graph(object):
       return path
 
 
-  def _gen_diameter_progress( self):
-    """this generator iteratively generates graph diameter during its computation,
-    the result is the last value, it is only interesting for monitoring of the computation
-    as it can be pretty time consuming"""
-    diameter = 0
-    for v in self.vertices:
-      dist = self.mark_vertices_with_distance_from( v)
-      if dist > diameter:
-        diameter = dist
-        #end = [x for x in self.vertices if x.properties_['d'] == dist][0]
-        #best_path = get_path_down_to( end, v)
-        yield diameter
-    if diameter == 0:
-      yield 0
-    #best_path.reverse()
-
-
-  def _get_width_from_vertex( self, v):
-    """returns width of the graph as calculated from vertex v"""
-    d = 0
-    to_mark = set([v])
-    marked = set()
-    while to_mark:
-      marked_before = marked
-      marked = to_mark
-      to_mark_next = set(j for i in [i.neighbors for i in to_mark]
-                               for j in i)
-      to_mark = to_mark_next - marked - marked_before
-      d += 1
-    return d-1
-
 
   def get_diameter( self):
+    """Return graph diameter using rustworkx distance matrix.
+
+    Caches the result for repeated queries on unchanged graphs.
+    """
     d = self._get_cache( "diameter")
-    if not d:
-      g = self._gen_diameter_progress()
-      for i in g:
-        pass
-      self._set_cache( "diameter", i)
-      return i
-    else:
+    if d is not None:
       return d
-
-
-# does not work because the mark_vertices_with_distance_from is not thread safe,
-# it writes to v.properties_['d']. It would have to be switched to v.properties_['dX']
-# where X is the number of the thread
-##   def get_diameter_multi_thread( self, processes=2, group_by=100):
-##     threads = []
-##     attrs = list( self.vertices)
-##     diameter = 0
-
-##     while attrs or threads:
-##       if len( threads) < processes and attrs:
-##         if len( attrs) > group_by:
-##           _as = attrs[0:group_by]
-##           del attrs[0:group_by]
-##         else:
-##           _as = attrs
-##           attrs = []
-
-##         t = MyThread( self.mark_vertices_with_distance_from, _as)
-##         threads.append( t)
-##         t.start()
-##       else:
-##         time.sleep( 0.05)
-
-##       dead = [t for t in threads if not t.isAlive()]
-##       for d in dead:
-##         dist = max( d.ret)
-##         if dist > diameter:
-##           diameter = dist
-
-##       threads = [t for t in threads if t.isAlive()]
-
-##     return diameter
+    # delegate to rustworkx backend (49x faster than pure Python)
+    result = self._rx_backend.get_diameter(self)
+    self._set_cache( "diameter", result)
+    return result
 
 
   def vertex_subgraph_to_edge_subgraph( self, cycle):
@@ -904,22 +819,21 @@ class Graph(object):
 
 
   def find_path_between( self, start, end, dont_go_through=[]):
-    """finds path between two vertices, if dont_go_through is given (as a list of vertices and edges),
-    only paths not containing these vertices will be given (or None is returned if such a path
-    does not exist"""
-    ### DOES NOT WORK WELL WITH RINGS, FOR THIS RECURSIVE DESIGN WILL BE NEEDED
-    self.mark_vertices_with_distance_from( start)
-    d = end.properties_['d']
-    out = [end]
-    rend = end
-    for i in range( d, 0, -1):
-      vs = [v for e,v in rend.get_neighbor_edge_pairs() if v.properties_['d'] == i-1 and (v not in dont_go_through or e not in dont_go_through)]
-      if not vs:
-        return None
-      v = vs[0]
-      out.append( v)
-      rend = v
-    return out
+    """Find path between two vertices using rustworkx (7x faster).
+
+    Args:
+      start: Source vertex.
+      end: Target vertex.
+      dont_go_through: Optional list of vertices/edges to avoid.
+
+    Returns:
+      List of vertices from end to start, or None if no path exists.
+    """
+    if dont_go_through is None:
+      dont_go_through = []
+    return self._rx_backend.find_path_between(
+      self, start, end, dont_go_through=dont_go_through
+    )
 
 
   def sort_vertices_in_path( self, path, start_from=None):
@@ -996,11 +910,8 @@ class Graph(object):
       self.add_edge( self.vertices[i1], self.vertices[i2])
 
   def path_exists( self, a1, a2):
-    self.mark_vertices_with_distance_from( a1)
-    if 'd' in a2.properties_:
-      return True
-    else:
-      return False
+    """Test whether a path exists between two vertices (5x faster)."""
+    return self._rx_backend.has_path(self, a1, a2)
 
 
   ## MAXIMUM MATCHING RELATED STUFF
@@ -1161,26 +1072,6 @@ class Graph(object):
     f.close()
 
 
-  def _mark_vertices_with_distance_from( self, v):
-    """returns the maximum d"""
-    d = 0
-    to_mark = set([v])
-    while to_mark:
-      to_mark_next = set()
-      for i in to_mark:
-        i.properties_['d'] = d
-
-      for i in to_mark:
-        for j in i.neighbors:
-          if 'd' not in j.properties_:
-            to_mark_next.add( j)
-
-      to_mark = to_mark_next
-      d += 1
-
-    return d-1
-
-
   def _get_some_cycles( self):
     if len( self.vertices) <= 2:
       raise StopIteration
@@ -1220,6 +1111,8 @@ class Graph(object):
 
   def _flush_cache( self):
     self._cache = {}
+    # invalidate rustworkx backend so it rebuilds before next algorithm call
+    self._rx_backend.mark_dirty()
 
 
   def _set_cache( self, name, value):

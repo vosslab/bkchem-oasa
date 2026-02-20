@@ -4,3 +4,4 @@ Pmw  # GUI widget toolkit used by BKChem
 pycairo  # Cairo drawing backend for PNG/PDF/SVG export
 pyyaml  # YAML loader for repo configuration data
 rdkit  # 2D coordinate generation and molecule depiction
+rustworkx  # graph theory backend for OASA topology algorithms (cycle, path, bridge detection)

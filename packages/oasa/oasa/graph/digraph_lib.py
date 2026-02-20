@@ -43,6 +43,10 @@ class Digraph(base_graph):
   edge_class = Diedge
 
 
+  def create_edge( self):
+    return Diedge()
+
+
   def __str__( self):
     str = "digraph G(V,E), |V|=%d, |E|=%d" % ( len( self.vertices), len( self.edges))
     return str
@@ -77,10 +81,7 @@ class Digraph(base_graph):
         end = [x for x in self.vertices if 'd' in x.properties_ and x.properties_['d'] == dist][0]
         best_path = self.get_random_longest_path_numbered( v, end)
 
-    print("path")
     best_path.reverse()
-    for v in best_path:
-      print(v)
     return diameter
 
 

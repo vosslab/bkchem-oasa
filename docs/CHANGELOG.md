@@ -1,6 +1,89 @@
 # Changelog
 
 ## 2026-02-20
+- Phase B: Remove 188 lines of legacy algorithm code from
+  [graph_lib.py](packages/oasa/oasa/graph/graph_lib.py): 8 `_*_legacy` methods,
+  `_gen_diameter_progress`, `_get_width_from_vertex`, private
+  `_mark_vertices_with_distance_from` BFS helper, and dead commented-out
+  multi-thread diameter code. File reduced from 1517 to 1329 lines. All 867
+  OASA tests and 340/341 BKChem tests pass.
+- Integrate rustworkx backend into `Graph.__init__` and swap 8 graph algorithms
+  to use `RxBackend` delegates in
+  [graph_lib.py](packages/oasa/oasa/graph/graph_lib.py):
+  `get_smallest_independent_cycles` (cycle_basis 167x faster), `get_diameter`
+  (13x), `is_connected` (11x), `get_connected_components` (4x),
+  `find_path_between` (3.2x + correctness fix), `path_exists` (4x),
+  `is_edge_a_bridge` (replaces per-edge disconnect loop with Tarjan bridges),
+  and `mark_vertices_with_distance_from` (1.5x). All mutations call
+  `_flush_cache` which marks the backend dirty for lazy rebuild.
+- Fix start==end edge case in `RxBackend.find_path_between()` in
+  [rx_backend.py](packages/oasa/oasa/graph/rx_backend.py): return `[start]`
+  when source and target are the same vertex (dijkstra omits this from results).
+- Add `RxBackend` adapter class
+  ([rx_backend.py](packages/oasa/oasa/graph/rx_backend.py))
+  that mediates all rustworkx usage for OASA graph operations. Maintains
+  identity maps between OASA Vertex/Edge objects and rustworkx indices.
+  Provides 9 algorithm delegates (connected components, connectivity,
+  path existence, diameter, cycle basis, bridges, BFS distance, pathfinding,
+  dijkstra) plus mirror ops, rebuild, lazy sync, and invalidation.
+  Includes workaround for rustworkx 0.17.1 `bridges()` bug that misses
+  DFS root edges.
+- Add 48 unit tests for RxBackend
+  ([test_rx_backend.py](packages/oasa/tests/test_rx_backend.py))
+  covering init, mirror ops, rebuild, lazy sync, all algorithm delegates,
+  invalidation, and index conversion helpers.
+- Fix `Digraph.create_edge()` to return `Diedge()` instead of inherited `Edge()`,
+  matching the class's `edge_class = Diedge` declaration
+  ([digraph_lib.py](packages/oasa/oasa/graph/digraph_lib.py))
+- Remove debug `print()` statements from `Digraph.get_diameter()`
+  ([digraph_lib.py](packages/oasa/oasa/graph/digraph_lib.py))
+- Fix `make_bridged_bicyclic()` test fixture: norbornane has 0 bridges (every edge
+  is in a cycle), changed `has_bridges` from True to False
+  ([graph_test_fixtures.py](packages/oasa/tests/graph_test_fixtures.py))
+- Add graph algorithm parity test suite
+  [packages/oasa/tests/test_graph_parity.py](packages/oasa/tests/test_graph_parity.py)
+  with 8 test classes (95 tests) comparing OASA vs rustworkx across all 10
+  fixture molecules. Covers connected components, connectivity, path existence,
+  diameter, cycle basis, BFS distance, bridges, and pathfinding. Documents
+  rustworkx `bridges()` off-by-one bug (misses DFS root edge).
+- Add deterministic benchmark script
+  [packages/oasa/tests/benchmark_graph_algorithms.py](packages/oasa/tests/benchmark_graph_algorithms.py)
+  comparing OASA graph algorithms vs rustworkx on benzene, naphthalene, and
+  cholesterol (6-38 atoms). Tests 7 algorithm pairs with parity verification.
+  Key results at N=500: cycle_basis 197-244x, diameter 7-56x, is_connected
+  11-18x, connected_components 7-12x. All parity checks pass. Also benchmarks
+  3 rustworkx-only algorithms (bridges, articulation_points, max_weight_matching).
+- Add OASA graph semantics contract matrix
+  [docs/active_plans/GRAPH_SEMANTICS_MATRIX.md](docs/active_plans/GRAPH_SEMANTICS_MATRIX.md)
+  documenting every public method in Graph, Digraph, Vertex, Edge, and Diedge
+  classes. Covers input/output types, side effects, cache flush behavior,
+  `properties_` mutations, temporary disconnect usage, and confirmed rustworkx
+  API mappings. Phase 0 deliverable for the rustworkx backend integration.
+- Add graph test fixture module
+  [packages/oasa/tests/graph_test_fixtures.py](packages/oasa/tests/graph_test_fixtures.py)
+  with 10 molecule fixtures (benzene, cholesterol, naphthalene, steroid skeleton,
+  caffeine, hexane, single atom, disconnected, cyclopentane, bridged bicyclic) built
+  in both OASA and rustworkx.PyGraph formats. Includes `build_rx_from_oasa()` helper
+  and identity maps for parity testing.
+- Complete Phase -1 benchmark for rustworkx graph backend plan. Benchmark
+  cholesterol (28 atoms, 31 bonds) shows 8-215x speedups: cycle detection 215x,
+  diameter 49x, connectivity 13x, pathfinding 11x. All parity checks pass.
+  Feasibility decision: GO. Update
+  [docs/active_plans/RUSTWORKX_GRAPH_THEORY_BACKEND.md](docs/active_plans/RUSTWORKX_GRAPH_THEORY_BACKEND.md)
+  with benchmark results, confirmed rustworkx 0.17.1 API mapping, prioritized
+  algorithm swap order, bridges/articulation_points as bonus algorithms, and
+  resolved performance risk.
+- Expand
+  [docs/active_plans/RUSTWORKX_GRAPH_THEORY_BACKEND.md](docs/active_plans/RUSTWORKX_GRAPH_THEORY_BACKEND.md)
+  with a dedicated parallel execution section: independent stream breakdown,
+  ownership boundaries, serialized algorithm-swap lane, and explicit
+  pass/fail checkpoints (P1-P3) for concurrent planning and test work.
+- Add new active implementation plan
+  [docs/active_plans/RUSTWORKX_GRAPH_THEORY_BACKEND.md](docs/active_plans/RUSTWORKX_GRAPH_THEORY_BACKEND.md)
+  defining a feature-flagged rustworkx backend strategy for OASA graph
+  algorithms. Plan includes architecture boundaries, phased rollout, parity
+  gates, rebuild/invalidation invariants for temporary disconnect workflows,
+  risk register, and optional matching migration policy.
 - Remove entire legacy plugin system. Delete `plugins/gtml.py`,
   `plugins/plugin.py`, `plugins/__init__.py`, `plugin_support.py`, and
   `bkchem_plugin_smoke.py` test. Clean up `main.py` by removing plugin imports,
