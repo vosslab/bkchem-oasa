@@ -353,7 +353,7 @@ def oasa_atom_to_bkchem_atom( a, paper, m):
   at.show_number = False
   at.isotope = a.isotope
   at.valency = a.valency
-  at.multiplicity = at.multiplicity
+  at.multiplicity = a.multiplicity
   return at
 
 

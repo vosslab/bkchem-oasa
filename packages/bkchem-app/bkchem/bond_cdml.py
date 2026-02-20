@@ -34,7 +34,7 @@ class BondCDMLMixin:
     if package.getAttribute("line_width"):
       self.line_width = float(package.getAttribute("line_width"))
     if package.getAttribute("wedge_width"):
-      self.wedge_width = float(package.getAttribute("wedge_width"))
+      self.wedge_width = float(package.getAttribute("wedge_width")) * self.paper.real_to_screen_ratio()
     if package.getAttribute("center"):
       self.center = b.index(package.getAttribute("center"))
     else:

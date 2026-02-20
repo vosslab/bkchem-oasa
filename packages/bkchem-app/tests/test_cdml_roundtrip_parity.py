@@ -359,6 +359,50 @@ def test_wedge_width_roundtrip(paper, atoms):
 	assert abs(loaded.wedge_width - 5.0) < 0.01
 
 
+# -- Test: wedge_width round-trip at non-unity scale --
+
+#============================================
+class _ScaledPaper(object):
+	"""Paper stub with a non-unity screen/real ratio for scale tests."""
+
+	def __init__(self, standard, scale):
+		self.standard = standard
+		self._scale = scale
+
+	def screen_to_real_ratio(self):
+		return 1.0 / self._scale
+
+	def real_to_screen_ratio(self):
+		return self._scale
+
+
+#============================================
+def test_wedge_width_roundtrip_scaled():
+	"""wedge_width cm-to-px round-trip works at non-unity ratio (2x zoom)."""
+	standard = bkchem.classes.standard()
+	scaled_paper = _ScaledPaper(standard, scale=2.0)
+	a1 = _DummyAtom("a1")
+	a2 = _DummyAtom("a2")
+	Store.id_manager.register_id(a1, "a1")
+	Store.id_manager.register_id(a2, "a2")
+	# create bond with screen-pixel wedge width of 10.0
+	bnd = bkchem.bond_lib.BkBond(standard=standard, type="w", order=1)
+	bnd.parent = _DummyParent(scaled_paper)
+	bnd.atom1 = a1
+	bnd.atom2 = a2
+	bnd.wedge_width = 10.0
+	# serialize: 10.0 * screen_to_real_ratio(0.5) = 5.0 in CDML
+	doc = xml.dom.minidom.Document()
+	element = bnd.get_package(doc)
+	cdml_value = float(element.getAttribute("wedge_width"))
+	assert abs(cdml_value - 5.0) < 0.01, f"expected 5.0 in CDML, got {cdml_value}"
+	# deserialize: 5.0 * real_to_screen_ratio(2.0) = 10.0 in screen px
+	loaded = bkchem.bond_lib.BkBond(standard=standard, type="n", order=1)
+	loaded.parent = _DummyParent(scaled_paper)
+	loaded.read_package(element)
+	assert abs(loaded.wedge_width - 10.0) < 0.01, f"expected 10.0 px, got {loaded.wedge_width}"
+
+
 # -- Test: auto_bond_sign default is 1 --
 
 #============================================

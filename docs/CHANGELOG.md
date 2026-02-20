@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-02-20
+- Fix three CDML backend-to-frontend contract violations:
+  - Bug 1: `oasa_bridge.py` `oasa_atom_to_bkchem_atom()` now copies
+    multiplicity from the source OASA atom instead of self-assigning (no-op).
+    Radical and triplet states are now preserved on OASA-to-BKChem import.
+  - Bug 2: `bond_cdml.py` `read_package()` now applies
+    `real_to_screen_ratio()` when reading `wedge_width`, matching the existing
+    `bond_width` conversion. Fixes wedge-width round-trip at non-unity zoom.
+  - Bug 3: Added `oasa/cdml_vertex_io.py` for unknown-attribute preservation
+    on vertex types. Updated `atom_lib.py`, `group_lib.py`, `queryatom_lib.py`,
+    and `textatom_lib.py` to track and re-emit unknown CDML attributes on
+    save, matching the existing bond behavior in `cdml_bond_io.py`.
+- Add [docs/GPL_FILE_PURPOSES.md](docs/GPL_FILE_PURPOSES.md), documenting the
+  mixed-file inventory reported by `tools/assess_gpl_coverage.py` and explicitly
+  listing the 7 current pure GPLv2 files with short purpose notes.
+
 ## 2026-02-19
 - Phase 6: Remove all backward-compat aliases from OASA and BKChem. Removed
   class aliases (`atom = Atom`, `bond = Bond`, etc.) from 19 OASA `_lib` files,

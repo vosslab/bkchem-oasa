@@ -70,6 +70,7 @@ from oasa import coords_generator
 from oasa import coords_optimizer
 from oasa import cdml
 from oasa import cdml_bond_io
+from oasa import cdml_vertex_io
 from oasa import cdml_writer
 from oasa import codec_registry
 from oasa import bond_semantics
@@ -117,6 +118,7 @@ _EXPORTED_MODULES = [
 	coords_optimizer,
 	cdml,
 	cdml_bond_io,
+	cdml_vertex_io,
 	cdml_writer,
 	codec_registry,
 	bond_semantics,
@@ -152,7 +154,7 @@ allNames = [
 	'transform_lib', 'transform3d_lib', 'reaction_lib', 'plugin_lib',
 	'oasa_utils', 'oasa_config', 'oasa_exceptions',
 	'coords_generator', 'coords_optimizer',
-	'cdml', 'cdml_bond_io', 'cdml_writer',
+	'cdml', 'cdml_bond_io', 'cdml_vertex_io', 'cdml_writer',
 	'codec_registry', 'bond_semantics', 'safe_xml',
 	'graph', 'linear_formula', 'periodic_table',
 	'atom_colors', 'dom_extensions', 'svg_out',

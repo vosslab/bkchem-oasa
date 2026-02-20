@@ -609,6 +609,11 @@ class BkAtom(drawable_chem_vertex):
     # free_sites
     if package.getAttribute( 'free_sites'):
       self.free_sites = int( package.getAttribute( 'free_sites'))
+    # track present and unknown CDML attributes for round-trip preservation
+    oasa.cdml_vertex_io.read_cdml_vertex_attributes(
+      package, self,
+      known_attrs=oasa.cdml_vertex_io.CDML_ATOM_KNOWN_ATTRS,
+    )
 
 
   def get_package( self, doc):
@@ -659,6 +664,14 @@ class BkAtom(drawable_chem_vertex):
     # free_sites
     if self.free_sites:
       a.setAttribute( 'free_sites', str( self.free_sites))
+    # re-emit unknown CDML attributes for round-trip preservation
+    present = oasa.cdml_vertex_io.get_cdml_present(self)
+    for attr_name, attr_value in oasa.cdml_vertex_io.collect_unknown_cdml_vertex_attributes(
+        self,
+        known_attrs=oasa.cdml_vertex_io.CDML_ATOM_KNOWN_ATTRS,
+        present=present,
+    ):
+      a.setAttribute(attr_name, attr_value)
     return a
 
 
