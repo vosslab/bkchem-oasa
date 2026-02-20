@@ -25,7 +25,6 @@
 - `oasa/inchi.py` reads InChI; writing relies on external InChI tools.
 - `oasa/cdml.py` handles CDML import and export.
 - `oasa/linear_formula.py` and `oasa/periodic_table.py` support formula utilities.
-- `oasa/inchi_key.py` provides InChIKey helpers used by other modules.
 
 ## Geometry, stereochemistry, and layout
 - `oasa/geometry.py` provides geometric primitives and algorithms.

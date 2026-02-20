@@ -3,7 +3,7 @@ import tempfile
 
 import oasa
 import oasa.cairo_out
-#print(oasa.CAIRO_AVAILABLE)
+import oasa.smiles_lib
 
 def cairo_out_test2():
     mol = oasa.smiles_lib.text_to_mol( "c1ccccc1Cl.c1ccccc1OC.CCCl")

@@ -4,21 +4,24 @@
 
 # local repo modules
 import oasa
+import oasa.atom_lib
+import oasa.bond_lib
+import oasa.molecule_lib
 from oasa import cdml_writer
 
 
 #============================================
 def test_cdml_writer_basic():
-	mol = oasa.Molecule()
-	a1 = oasa.Atom(symbol="O")
+	mol = oasa.molecule_lib.Molecule()
+	a1 = oasa.atom_lib.Atom(symbol="O")
 	a1.x = 0.0
 	a1.y = 0.0
-	a2 = oasa.Atom(symbol="C")
+	a2 = oasa.atom_lib.Atom(symbol="C")
 	a2.x = 12.0
 	a2.y = 0.0
 	mol.add_vertex(a1)
 	mol.add_vertex(a2)
-	b = oasa.Bond(order=1, type="n")
+	b = oasa.bond_lib.Bond(order=1, type="n")
 	b.vertices = (a1, a2)
 	b.line_color = "#123456"
 	b.properties_["line_color"] = "#123456"

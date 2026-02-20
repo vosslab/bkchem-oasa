@@ -437,10 +437,12 @@ def _build_oasa_strand(mol, atoms: list, bonds: list) -> dict:
 		dict mapping atom ID strings to oasa.atom objects
 	"""
 	import oasa
+	import oasa.atom_lib
+	import oasa.bond_lib
 
 	atom_map = {}
 	for atom_data in atoms:
-		a = oasa.Atom(symbol=atom_data['symbol'])
+		a = oasa.atom_lib.Atom(symbol=atom_data['symbol'])
 		# convert cm coordinates to points for oasa rendering
 		a.x = atom_data['x'] * POINTS_PER_CM
 		a.y = atom_data['y'] * POINTS_PER_CM
@@ -465,7 +467,7 @@ def _build_oasa_strand(mol, atoms: list, bonds: list) -> dict:
 
 	for bond_data in bonds:
 		order = 2 if bond_data['type'] == 'n2' else 1
-		b = oasa.Bond(order=order, type='n')
+		b = oasa.bond_lib.Bond(order=order, type='n')
 		start_atom = atom_map[bond_data['start']]
 		end_atom = atom_map[bond_data['end']]
 		mol.add_edge(start_atom, end_atom, b)
@@ -485,8 +487,9 @@ def _build_oasa_molecule(strand_data: list, name: str):
 		oasa.molecule with all strands
 	"""
 	import oasa
+	import oasa.molecule_lib
 
-	mol = oasa.Molecule()
+	mol = oasa.molecule_lib.Molecule()
 	mol.name = name
 	for atoms, bonds in strand_data:
 		_build_oasa_strand(mol, atoms, bonds)

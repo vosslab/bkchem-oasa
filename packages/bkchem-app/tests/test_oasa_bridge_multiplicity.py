@@ -5,6 +5,7 @@ import pytest
 
 # local repo modules
 import oasa
+import oasa.atom_lib
 import bkchem.classes
 import bkchem.singleton_store
 import bkchem.oasa_bridge
@@ -80,7 +81,7 @@ def molecule(paper):
 
 
 #============================================
-def _make_oasa_atom(symbol: str = "C", multiplicity: int = 1) -> oasa.Atom:
+def _make_oasa_atom(symbol: str = "C", multiplicity: int = 1) -> oasa.atom_lib.Atom:
 	"""Create a pure OASA atom with the given multiplicity.
 
 	Args:
@@ -88,9 +89,9 @@ def _make_oasa_atom(symbol: str = "C", multiplicity: int = 1) -> oasa.Atom:
 		multiplicity: Spin multiplicity (1=singlet, 2=doublet/radical, 3=triplet).
 
 	Returns:
-		oasa.Atom with coordinates and multiplicity set.
+		oasa.atom_lib.Atom with coordinates and multiplicity set.
 	"""
-	a = oasa.Atom(symbol=symbol)
+	a = oasa.atom_lib.Atom(symbol=symbol)
 	a.x = 0.0
 	a.y = 0.0
 	a.z = 0.0

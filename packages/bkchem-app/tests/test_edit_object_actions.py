@@ -4,7 +4,7 @@
 import types
 
 # local repo modules
-from bkchem.actions import ActionRegistry
+from bkchem.actions.action_registry import ActionRegistry
 from bkchem.actions.edit_actions import register_edit_actions
 from bkchem.actions.object_actions import register_object_actions
 

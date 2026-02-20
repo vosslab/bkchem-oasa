@@ -42,14 +42,14 @@ class bracket_mode( edit_mode):
 		if self.get_submode(0) == "rectangularbracket":
 			dx = 0.05*math.sqrt( (y2-y1)**2 + (x2-x1)**2)
 			Store.app.paper.new_polyline( [x1+dx, y1,
-										   x1,    y1,
-										   x1,    y2,
-										   x1+dx, y2]).draw()
+											x1,    y1,
+											x1,    y2,
+											x1+dx, y2]).draw()
 
 			Store.app.paper.new_polyline( [x2-dx, y1,
-										   x2,    y1,
-										   x2,    y2,
-										   x2-dx, y2]).draw()
+											x2,    y1,
+											x2,    y2,
+											x2-dx, y2]).draw()
 
 		elif self.get_submode(0) == "roundbracket":
 			dx = 0.05*math.sqrt( (y2-y1)**2 + (x2-x1)**2)

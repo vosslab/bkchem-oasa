@@ -20,6 +20,7 @@
 import builtins
 import os
 import oasa
+import oasa.graph.vertex_lib
 import collections
 import tkinter
 
@@ -283,7 +284,7 @@ configurable = {'atom':    ('show', 'font_size','show_hydrogens','pos','number',
                 'mark':    ('size', draw_mark_circle),
                 parents.area_colored: ('area_color',),
                 parents.line_colored: ('line_color',),
-                oasa.graph.Vertex: ('symbol','group'),
+                oasa.graph.vertex_lib.Vertex: ('symbol','group'),
                 marks.electronpair: ('line_width',),
                 }
 

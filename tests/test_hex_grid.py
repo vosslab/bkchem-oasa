@@ -4,14 +4,8 @@
 
 # Standard Library
 import math
-import sys
 
 # local repo modules
-import git_file_utils
-
-REPO_ROOT = git_file_utils.get_repo_root()
-sys.path.insert(0, REPO_ROOT)
-
 import oasa.hex_grid
 
 

@@ -5,11 +5,7 @@ Tests cover initialization, mirror operations, rebuild, lazy sync,
 algorithm delegates, and invalidation.
 """
 
-# Standard Library
-import sys
-
 # local repo modules
-sys.path.insert(0, "packages/oasa")
 from oasa.graph.rx_backend import RxBackend
 from oasa.graph.graph_lib import Graph
 from oasa.graph.vertex_lib import Vertex
@@ -516,7 +512,7 @@ class TestRxBackendAlgorithms:
 		# block one neighbor so path must go the other way around
 		blocked = [mol.vertices[1]]
 		path = backend.find_path_between(mol, start, end,
-										 dont_go_through=blocked)
+											dont_go_through=blocked)
 		assert path is not None
 		# blocked vertex should not appear in path
 		for v in path:

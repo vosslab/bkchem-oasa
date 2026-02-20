@@ -6,6 +6,7 @@ import pytest
 
 # local repo modules
 import oasa
+import oasa.codec_registry
 from bkchem import oasa_bridge
 
 

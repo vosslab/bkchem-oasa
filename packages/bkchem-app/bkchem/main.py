@@ -34,7 +34,8 @@ from tkinter import LEFT, RAISED, SUNKEN
 
 import Pmw
 from bkchem import bkchem_utils
-from bkchem import modes
+from bkchem.modes.mode_loader import build_all_modes
+from bkchem.modes.config import get_toolbar_order
 from bkchem import bkchem_config
 from bkchem import logger
 from bkchem import dialogs
@@ -454,8 +455,8 @@ class BKChem(
 
   def init_modes( self):
     # build all mode instances from YAML config
-    self.modes = modes.build_all_modes()
-    self.modes_sort = modes.get_toolbar_order()
+    self.modes = build_all_modes()
+    self.modes_sort = get_toolbar_order()
 
 
 

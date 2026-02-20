@@ -26,6 +26,7 @@
 import re
 import sys
 import oasa
+import oasa.atom_lib
 
 from warnings import warn
 
@@ -59,9 +60,9 @@ class BkAtom(drawable_chem_vertex):
 
     # composition layer: companion OASA atom for chemistry delegation
     if xy:
-      self._chem_atom = oasa.Atom(coords=(xy[0], xy[1], 0))
+      self._chem_atom = oasa.atom_lib.Atom(coords=(xy[0], xy[1], 0))
     else:
-      self._chem_atom = oasa.Atom()
+      self._chem_atom = oasa.atom_lib.Atom()
 
     # chemistry attrs
     self.show = 0

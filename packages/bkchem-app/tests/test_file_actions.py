@@ -4,7 +4,7 @@
 import types
 
 # local repo modules
-from bkchem.actions import ActionRegistry
+from bkchem.actions.action_registry import ActionRegistry
 from bkchem.actions.file_actions import register_file_actions
 
 # expected action IDs in registration order

@@ -15,6 +15,10 @@ import rustworkx
 
 # local repo modules
 import oasa
+import oasa.atom_lib
+import oasa.bond_lib
+import oasa.molecule_lib
+import oasa.smiles_lib
 
 
 #============================================
@@ -22,7 +26,7 @@ def build_rx_from_oasa(mol) -> tuple:
 	"""Convert an OASA molecule to a rustworkx PyGraph with identity maps.
 
 	Args:
-		mol: An oasa.Molecule instance.
+		mol: An oasa.molecule_lib.Molecule instance.
 
 	Returns:
 		Tuple of (rx_graph, v_to_i, i_to_v) where:
@@ -235,18 +239,18 @@ def make_disconnected() -> dict:
 	Returns:
 		Fixture dict for disconnected: 4 atoms, 2 bonds, 2 components.
 	"""
-	mol = oasa.Molecule()
+	mol = oasa.molecule_lib.Molecule()
 	# first fragment: C-C
-	a1 = oasa.Atom("C")
-	a2 = oasa.Atom("C")
-	b1 = oasa.Bond()
+	a1 = oasa.atom_lib.Atom("C")
+	a2 = oasa.atom_lib.Atom("C")
+	b1 = oasa.bond_lib.Bond()
 	mol.add_vertex(a1)
 	mol.add_vertex(a2)
 	mol.add_edge(a1, a2, b1)
 	# second fragment: C-C
-	a3 = oasa.Atom("C")
-	a4 = oasa.Atom("C")
-	b2 = oasa.Bond()
+	a3 = oasa.atom_lib.Atom("C")
+	a4 = oasa.atom_lib.Atom("C")
+	b2 = oasa.bond_lib.Bond()
 	mol.add_vertex(a3)
 	mol.add_vertex(a4)
 	mol.add_edge(a3, a4, b2)

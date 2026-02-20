@@ -62,7 +62,7 @@ from oasa.render_lib.label_geometry import vertex_is_shown
 from oasa.render_lib.bond_ops import build_bond_ops
 from oasa.render_lib.molecule_ops import build_vertex_ops
 render_ops = oasa.render_ops
-haworth = oasa.haworth
+from oasa.haworth import layout as haworth_layout
 sugar_code = oasa.sugar_code
 haworth_spec = oasa.haworth_spec
 haworth_renderer = oasa.haworth_renderer
@@ -955,7 +955,7 @@ def _mol_from_smiles(smiles_str, calc_coords=True):
 		import oasa.smiles_lib as smiles_module
 
 	# Parse SMILES
-	# calc_coords=1 generates initial 2D layout (required for haworth.build_haworth)
+	# calc_coords=1 generates initial 2D layout (required for haworth_layout.build_haworth)
 	# calc_coords=0 gives connectivity only
 	mol = smiles_module.text_to_mol(smiles_str, calc_coords=1 if calc_coords else 0)
 	return mol
@@ -992,12 +992,12 @@ def _build_haworth_mol():
 	"""Build Haworth projection molecule using canonical layout rules."""
 	# Build pyranose from SMILES (oxygen-first for canonical ordering)
 	pyranose = _mol_from_smiles("O1CCCCC1")
-	haworth.build_haworth(pyranose, mode="pyranose")
+	haworth_layout.build_haworth(pyranose, mode="pyranose")
 	_assert_haworth_invariants(pyranose, "pyranose")
 
 	# Build furanose from SMILES
 	furanose = _mol_from_smiles("O1CCCC1")
-	haworth.build_haworth(furanose, mode="furanose")
+	haworth_layout.build_haworth(furanose, mode="furanose")
 	_assert_haworth_invariants(furanose, "furanose")
 
 	# Offset furanose for side-by-side layout

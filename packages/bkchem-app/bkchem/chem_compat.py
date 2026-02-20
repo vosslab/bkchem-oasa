@@ -15,7 +15,14 @@ import abc
 
 # PIP3 modules
 import oasa
-import oasa.graph
+import oasa.atom_lib
+import oasa.bond_lib
+import oasa.chem_vertex
+import oasa.molecule_lib
+import oasa.query_atom
+import oasa.graph.vertex_lib
+import oasa.graph.edge_lib
+import oasa.graph.graph_lib
 
 
 #============================================
@@ -46,13 +53,14 @@ def register_bkchem_classes() -> None:
 
 	Registration mapping:
 		ChemistryVertex:
-			oasa.graph.Vertex, oasa.ChemVertex, oasa.Atom, oasa.QueryAtom
+			oasa.graph.vertex_lib.Vertex, oasa.chem_vertex.ChemVertex,
+			oasa.atom_lib.Atom, oasa.query_atom.QueryAtom,
 			bkchem.atom_lib.BkAtom, bkchem.queryatom_lib.BkQueryatom
 		ChemistryEdge:
-			oasa.graph.Edge, oasa.Bond
+			oasa.graph.edge_lib.Edge, oasa.bond_lib.Bond,
 			bkchem.bond_lib.BkBond
 		ChemistryGraph:
-			oasa.graph.Graph, oasa.Molecule
+			oasa.graph.graph_lib.Graph, oasa.molecule_lib.Molecule,
 			bkchem.molecule_lib.BkMolecule
 	"""
 	# late imports to avoid circular dependencies at module level
@@ -63,16 +71,16 @@ def register_bkchem_classes() -> None:
 
 	# -- register OASA classes with the ABCs --
 	# vertex hierarchy
-	ChemistryVertex.register(oasa.graph.Vertex)
-	ChemistryVertex.register(oasa.ChemVertex)
-	ChemistryVertex.register(oasa.Atom)
-	ChemistryVertex.register(oasa.QueryAtom)
+	ChemistryVertex.register(oasa.graph.vertex_lib.Vertex)
+	ChemistryVertex.register(oasa.chem_vertex.ChemVertex)
+	ChemistryVertex.register(oasa.atom_lib.Atom)
+	ChemistryVertex.register(oasa.query_atom.QueryAtom)
 	# edge hierarchy
-	ChemistryEdge.register(oasa.graph.Edge)
-	ChemistryEdge.register(oasa.Bond)
+	ChemistryEdge.register(oasa.graph.edge_lib.Edge)
+	ChemistryEdge.register(oasa.bond_lib.Bond)
 	# graph hierarchy
-	ChemistryGraph.register(oasa.graph.Graph)
-	ChemistryGraph.register(oasa.Molecule)
+	ChemistryGraph.register(oasa.graph.graph_lib.Graph)
+	ChemistryGraph.register(oasa.molecule_lib.Molecule)
 
 	# -- register BKChem classes with the ABCs --
 	ChemistryVertex.register(bkchem.atom_lib.BkAtom)

@@ -8,6 +8,9 @@ import pytest
 
 # local repo modules
 import oasa
+import oasa.atom_lib
+import oasa.bond_lib
+import oasa.molecule_lib
 from oasa import render_ops
 from oasa.render_lib.label_geometry import label_attach_target
 from oasa.render_lib.label_geometry import label_target
@@ -26,11 +29,11 @@ def _make_two_atom_mol(
 		bond_order=1,
 		bond_type="n",
 ):
-	mol = oasa.Molecule()
-	left = oasa.Atom(symbol=left_symbol)
+	mol = oasa.molecule_lib.Molecule()
+	left = oasa.atom_lib.Atom(symbol=left_symbol)
 	left.x = 0.0
 	left.y = 0.0
-	right = oasa.Atom(symbol=right_symbol)
+	right = oasa.atom_lib.Atom(symbol=right_symbol)
 	right.x = 40.0
 	right.y = 0.0
 	right.charge = int(right_charge)
@@ -42,7 +45,7 @@ def _make_two_atom_mol(
 		right.properties_["attach_element"] = right_attach_element
 	mol.add_vertex(left)
 	mol.add_vertex(right)
-	bond = oasa.Bond(order=bond_order, type=bond_type)
+	bond = oasa.bond_lib.Bond(order=bond_order, type=bond_type)
 	bond.vertices = (left, right)
 	mol.add_edge(left, right, bond)
 	return mol, left, right

@@ -9,12 +9,14 @@ import pytest
 
 # local repo modules
 import oasa
+import oasa.atom_lib
+import oasa.bond_lib
+import oasa.molecule_lib
 
-# oasa.__init__ re-exports CamelCase classes at top level
-# (not the module). Use top-level names to avoid the naming collision.
-OasaMolecule = oasa.Molecule
-OasaAtom = oasa.Atom
-OasaBond = oasa.Bond
+# Explicit submodule imports for CamelCase classes.
+OasaMolecule = oasa.molecule_lib.Molecule
+OasaAtom = oasa.atom_lib.Atom
+OasaBond = oasa.bond_lib.Bond
 
 
 #============================================

@@ -4,18 +4,16 @@
 
 # Standard Library
 import os
-import math
 import sys
+import math
 import subprocess
 import tempfile
 
 # local repo modules
 import git_file_utils
+import oasa.hex_grid
 
 REPO_ROOT = git_file_utils.get_repo_root()
-sys.path.insert(0, REPO_ROOT)
-
-import oasa.hex_grid
 
 # path to the templates CDML file used by several tests
 TEMPLATES_CDML = os.path.join(

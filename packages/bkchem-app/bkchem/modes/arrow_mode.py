@@ -105,8 +105,9 @@ class arrow_mode( edit_mode):
 					pos = -1
 				else:
 					pos = self._arrow_to_update.points.index( self._start_point)
-				pnt = self._arrow_to_update.create_new_point( x0+Store.app.paper.real_to_canvas( Screen.any_to_px( Store.app.paper.standard.arrow_length)),
-															  y0, position=pos, use_paper_coords=True)
+				pnt = self._arrow_to_update.create_new_point(
+				x0+Store.app.paper.real_to_canvas( Screen.any_to_px( Store.app.paper.standard.arrow_length)),
+				y0, position=pos, use_paper_coords=True)
 				Store.app.paper.select( [pnt])
 				self._arrow_to_update.redraw()
 			#self.mouse_click( event)

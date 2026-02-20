@@ -1,7 +1,7 @@
 """Options menu action registrations for BKChem."""
 
 # local repo modules
-from bkchem.actions import MenuAction
+from bkchem.actions.action_registry import MenuAction
 
 try:
 	from bkchem import interactors

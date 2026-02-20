@@ -7,17 +7,14 @@ converts each vertex cycle to its edge set. If results match, we can replace the
 Gasteiger implementation with the wrapper.
 """
 
-# Standard Library
-import sys
-
 # PIP3 modules
 import pytest
-import rustworkx
 
 # local repo modules
-import oasa
+import oasa.atom_lib
+import oasa.bond_lib
+import oasa.molecule_lib
 from oasa import smiles_lib
-from oasa.graph import graph_lib
 
 
 # test SMILES covering a range of topologies
@@ -128,7 +125,7 @@ def _parse_smiles(smiles: str):
 		smiles: SMILES string.
 
 	Returns:
-		oasa.Molecule instance, or None if parsing fails.
+		oasa.molecule_lib.Molecule instance, or None if parsing fails.
 	"""
 	try:
 		mol = smiles_lib.text_to_mol(smiles)
@@ -240,8 +237,8 @@ class TestWrapperEdgeCases:
 
 	def test_single_atom(self):
 		"""Single atom graph has no cycles."""
-		mol = oasa.Molecule()
-		v = oasa.Atom("C")
+		mol = oasa.molecule_lib.Molecule()
+		v = oasa.atom_lib.Atom("C")
 		mol.add_vertex(v)
 		vertex_cycles = mol.get_smallest_independent_cycles()
 		wrapper_cycles = vertex_cycles_to_edge_cycles(mol, vertex_cycles)
@@ -249,9 +246,9 @@ class TestWrapperEdgeCases:
 
 	def test_two_atoms_one_bond(self):
 		"""Two atoms with one bond has no cycles."""
-		mol = oasa.Molecule()
-		v1 = oasa.Atom("C")
-		v2 = oasa.Atom("C")
+		mol = oasa.molecule_lib.Molecule()
+		v1 = oasa.atom_lib.Atom("C")
+		v2 = oasa.atom_lib.Atom("C")
 		mol.add_vertex(v1)
 		mol.add_vertex(v2)
 		mol.add_edge(v1, v2)
@@ -261,10 +258,10 @@ class TestWrapperEdgeCases:
 
 	def test_triangle(self):
 		"""Triangle (3 vertices, 3 edges) should give exactly 1 cycle of 3 edges."""
-		mol = oasa.Molecule()
-		v1 = oasa.Atom("C")
-		v2 = oasa.Atom("C")
-		v3 = oasa.Atom("C")
+		mol = oasa.molecule_lib.Molecule()
+		v1 = oasa.atom_lib.Atom("C")
+		v2 = oasa.atom_lib.Atom("C")
+		v3 = oasa.atom_lib.Atom("C")
 		mol.add_vertex(v1)
 		mol.add_vertex(v2)
 		mol.add_vertex(v3)
@@ -281,11 +278,11 @@ class TestWrapperEdgeCases:
 
 	def test_disconnected_rings(self):
 		"""Two disconnected triangles should give 2 independent cycles."""
-		mol = oasa.Molecule()
+		mol = oasa.molecule_lib.Molecule()
 		# first triangle
-		a1 = oasa.Atom("C")
-		a2 = oasa.Atom("C")
-		a3 = oasa.Atom("C")
+		a1 = oasa.atom_lib.Atom("C")
+		a2 = oasa.atom_lib.Atom("C")
+		a3 = oasa.atom_lib.Atom("C")
 		mol.add_vertex(a1)
 		mol.add_vertex(a2)
 		mol.add_vertex(a3)
@@ -293,9 +290,9 @@ class TestWrapperEdgeCases:
 		mol.add_edge(a2, a3)
 		mol.add_edge(a3, a1)
 		# second triangle
-		b1 = oasa.Atom("C")
-		b2 = oasa.Atom("C")
-		b3 = oasa.Atom("C")
+		b1 = oasa.atom_lib.Atom("C")
+		b2 = oasa.atom_lib.Atom("C")
+		b3 = oasa.atom_lib.Atom("C")
 		mol.add_vertex(b1)
 		mol.add_vertex(b2)
 		mol.add_vertex(b3)

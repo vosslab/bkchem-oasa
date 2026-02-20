@@ -25,6 +25,7 @@
 
 import copy
 import oasa
+import oasa.molecule_lib
 
 from oasa import geometry
 from oasa import periodic_table as PT
@@ -62,7 +63,7 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
 
   def __init__( self, paper=None, package = None):
     # composition layer: oasa.molecule for graph algorithms
-    self._chem_mol = oasa.Molecule()
+    self._chem_mol = oasa.molecule_lib.Molecule()
     # local collections that proxy to _chem_mol (same objects)
     self.vertices = self._chem_mol.vertices
     self.edges = self._chem_mol.edges

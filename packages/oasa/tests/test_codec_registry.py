@@ -8,20 +8,24 @@ import io
 import pytest
 # local repo modules
 import oasa
+import oasa.atom_lib
+import oasa.bond_lib
+import oasa.molecule_lib
+import oasa.codec_registry
 
 
 #============================================
 def _make_simple_mol():
-	mol = oasa.Molecule()
-	a1 = oasa.Atom(symbol="C")
+	mol = oasa.molecule_lib.Molecule()
+	a1 = oasa.atom_lib.Atom(symbol="C")
 	a1.x = 0.0
 	a1.y = 0.0
-	a2 = oasa.Atom(symbol="O")
+	a2 = oasa.atom_lib.Atom(symbol="O")
 	a2.x = 1.0
 	a2.y = 0.0
 	mol.add_vertex(a1)
 	mol.add_vertex(a2)
-	bond = oasa.Bond(order=1, type="n")
+	bond = oasa.bond_lib.Bond(order=1, type="n")
 	bond.vertices = (a1, a2)
 	mol.add_edge(a1, a2, bond)
 	return mol

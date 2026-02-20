@@ -81,7 +81,7 @@ class text_mode( edit_mode):
 					Store.app.paper.add_bindings()
 			elif bkchem.chem_compat.is_chemistry_vertex( self.focused):
 				Store.log( _("The text mode can no longer be used to edit atoms, use atom mode."),
-							  message_type="warning")
+								message_type="warning")
 
 
 	def leave_object( self, event):

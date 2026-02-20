@@ -23,7 +23,7 @@ _mock_store_module.Store = _mock_store
 sys.modules.setdefault('bkchem.singleton_store', _mock_store_module)
 
 # local repo modules
-from bkchem.actions import ActionRegistry
+from bkchem.actions.action_registry import ActionRegistry
 from bkchem.actions.chemistry_actions import register_chemistry_actions
 from bkchem.actions.view_actions import register_view_actions
 

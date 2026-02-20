@@ -1,6 +1,70 @@
 # Changelog
 
 ## 2026-02-20
+- Fix mixed indentation (tabs vs spaces) in 10 Python files to use tabs
+  exclusively per PYTHON_STYLE.md: `ftext_lib.py`, `group_lib.py`,
+  `arrow_mode.py`, `bracket_mode.py`, `draw_mode.py`, `edit_mode.py`,
+  `mark_mode.py`, `text_mode.py`, `rx_backend.py`, and `test_rx_backend.py`.
+  Convert space-only class bodies to tabs and replace tab+space continuation
+  lines with tab-only indentation.
+- Replace all CamelCase re-export references (`oasa.Atom`, `oasa.Bond`,
+  `oasa.Molecule`, `oasa.QueryAtom`, `oasa.ChemVertex`) with direct submodule
+  imports (`oasa.atom_lib.Atom`, `oasa.bond_lib.Bond`, etc.) across 24 files.
+  Add explicit `import oasa.codec_registry` to
+  [test_codec_registry.py](packages/oasa/tests/test_codec_registry.py) to fix
+  missing module attribute after `oasa/__init__.py` re-export removal.
+- Strip `actions/__init__.py` to docstring only per PYTHON_STYLE.md policy.
+  Move `MenuAction`, `ActionRegistry`, and `register_all_actions()` into new
+  [actions/action_registry.py](packages/bkchem-app/bkchem/actions/action_registry.py).
+  Update 10 production action modules and 4 test files to import from
+  `bkchem.actions.action_registry` directly.
+- Strip `modes/__init__.py` to license header + docstring per PYTHON_STYLE.md
+  policy. Move discovery logic and `build_all_modes()` into new
+  [modes/mode_loader.py](packages/bkchem-app/bkchem/modes/mode_loader.py).
+  Update consumers in `main.py`, `main_lib/main_modes.py`, and `edit_pool.py`
+  to import from `bkchem.modes.mode_loader` and `bkchem.modes.config` directly.
+- Strip `haworth/__init__.py` to license header + docstring only (no re-exports).
+  Update 6 consumer files to import from `oasa.haworth.layout` directly instead
+  of relying on package-level re-exports.
+- Add `## __init__.py FILES` section to
+  [docs/PYTHON_STYLE.md](docs/PYTHON_STYLE.md) codifying rules for minimal
+  `__init__.py` files: no implementation code, no re-export facades, no curated
+  lists, no class maps, no registrar logic, no global variables, no
+  `__version__` assignments, no inline lazy loaders, and no re-exports for
+  type-checker convenience.
+- Extract Haworth layout algorithms from
+  [haworth/\_\_init\_\_.py](packages/oasa/oasa/haworth/__init__.py) into new
+  [haworth/layout.py](packages/oasa/oasa/haworth/layout.py). Reduces
+  `__init__.py` from 525 lines to a ~30-line re-export facade. Updated sibling
+  imports in `renderer.py` and `renderer_config.py` to import from
+  `oasa.haworth.layout` directly.
+- Reduce hardcoded names in `__init__.py` files with auto-discovery. Saved
+  ~15.5 KB total across 4 files (42,784 -> 27,214 bytes). Changes:
+  - Gut [render_lib/\_\_init\_\_.py](packages/oasa/oasa/render_lib/__init__.py)
+    302-line re-export facade (zero consumers) down to a docstring (13,195 ->
+    1,107 bytes).
+  - Replace hardcoded `_module_registrars` list in
+    [actions/\_\_init\_\_.py](packages/bkchem-app/bkchem/actions/__init__.py) with
+    `pathlib.Path.glob("*_actions.py")` auto-discovery (4,642 -> 4,099 bytes).
+  - Replace 43 hardcoded imports and dead `_EXPORTED_MODULES` / `allNames` lists
+    in [oasa/\_\_init\_\_.py](packages/oasa/oasa/__init__.py) with
+    `pkgutil.iter_modules()` auto-discovery (5,114 -> 2,786 bytes).
+  - Replace 17 hardcoded mode imports and 16-entry `_MODE_CLASS_MAP` dict in
+    [modes/\_\_init\_\_.py](packages/bkchem-app/bkchem/modes/__init__.py) with
+    `pathlib.Path.glob("*_mode.py")` auto-discovery (3,175 -> 2,564 bytes).
+- Fix pyflakes failures in
+  [oasa/\_\_init\_\_.py](packages/oasa/oasa/__init__.py) (add `render_lib` to
+  export lists) and
+  [modes/\_\_init\_\_.py](packages/bkchem-app/bkchem/modes/__init__.py) (remove
+  6 unused re-exports: `event_to_key`, `mode`, `simple_mode`, `basic_mode`,
+  `biomolecule_template_mode`, `user_template_mode`, `bond_align_mode`; add
+  `__all__` for the 3 intentional config re-exports).
+- Delete `inchi_key.py` from OASA. The 1,348-line hand-rolled InChIKey generator
+  (with ~1,100 lines of hardcoded lookup table) is dead weight because the
+  external InChI program already returns the key. Simplified the fallback in
+  [inchi_lib.py](packages/oasa/oasa/inchi_lib.py) to raise or ignore on missing
+  key. Removed `INCHI_KEY_AVAILABLE` flag from
+  [\_\_init\_\_.py](packages/oasa/oasa/__init__.py).
 - Delete `render_geometry.py` backward-compat shim and update all 19 consumer
   files to import directly from `oasa.render_lib` sub-modules. Remove
   `render_geometry` from [\_\_init\_\_.py](packages/oasa/oasa/__init__.py)

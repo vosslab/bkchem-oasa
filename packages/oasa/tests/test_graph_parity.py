@@ -5,17 +5,10 @@ Each test class exercises one graph algorithm across all fixture molecules,
 comparing OASA output against the equivalent rustworkx operation.
 """
 
-# Standard Library
-import sys
-import os
-
 # PIP3 modules
 import numpy
 import pytest
 import rustworkx
-
-# ensure oasa is importable
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 # local repo modules
 import graph_test_fixtures

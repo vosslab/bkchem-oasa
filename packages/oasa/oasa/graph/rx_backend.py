@@ -381,7 +381,7 @@ class RxBackend:
 
 	#============================================
 	def find_path_between(self, graph, start, end,
-						  dont_go_through=None) -> list:
+							dont_go_through=None) -> list:
 		"""Find a path between two vertices, optionally avoiding some.
 
 		Args:

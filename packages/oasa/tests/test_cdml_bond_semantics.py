@@ -2,6 +2,7 @@
 
 # local repo modules
 import oasa
+import oasa.cdml
 
 
 #============================================

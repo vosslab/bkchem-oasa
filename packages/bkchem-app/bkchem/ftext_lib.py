@@ -58,134 +58,134 @@ def _pick_nearest(table: dict, font_size: int) -> int:
 
 class BkFtext(object):
 
-  def __init__( self, canvas, xy, text, font=None, pos="center-first", fill='#000', big_charges=True, justify='right'):
-    self.big_charges = big_charges  # should +- in <sup> be drawn in bigger font (not scaled down)?
-    self.canvas = canvas
-    self.items = []
-    self.tags = ('ftext'),
-    if xy:
-      self.x, self.y = xy
-    if text:
-      self.text = text
-    if font:
-      self.font = font
-    else:
-      self.font = tkinter.font.Font( family="Helvetica", size=12)
-    self._font_family = self.font.actual('family')
-    self._font_size = int( self.font.actual('size'))
-    self.pos = pos
-    self.fill = fill
-    self.justify = justify
+	def __init__( self, canvas, xy, text, font=None, pos="center-first", fill='#000', big_charges=True, justify='right'):
+		self.big_charges = big_charges  # should +- in <sup> be drawn in bigger font (not scaled down)?
+		self.canvas = canvas
+		self.items = []
+		self.tags = ('ftext'),
+		if xy:
+			self.x, self.y = xy
+		if text:
+			self.text = text
+		if font:
+			self.font = font
+		else:
+			self.font = tkinter.font.Font( family="Helvetica", size=12)
+		self._font_family = self.font.actual('family')
+		self._font_size = int( self.font.actual('size'))
+		self.pos = pos
+		self.fill = fill
+		self.justify = justify
 
 
-  def draw( self):
-    # split text to chunks
-    chs = self.get_chunks()
-    if not chs:
-      return None
+	def draw( self):
+		# split text to chunks
+		chs = self.get_chunks()
+		if not chs:
+			return None
 
-    self.items = []
-    self._current_x = self.x
-    self._current_y = self.y
+		self.items = []
+		self._current_x = self.x
+		self._current_y = self.y
 
-    self.items = chs
-    last_attrs = set()
-    last_x = self._current_x
+		self.items = chs
+		last_attrs = set()
+		last_x = self._current_x
 
-    for ch in self.items:
-      scale = 1
-      if set(('sub','sup')) & ch.attrs:
-        if not (ch.text in "-" and self.big_charges):
-          scale = 0.7
-        else:
-          scale = 1
-        # we ignore subscripts and superscript in bbox calculation
-        ch.ignore_y = True
-        ch.ignore_x = True
-        if set(('sub','sup')) & last_attrs:
-          self._current_x = last_x
-      last_x = self._current_x
-      last_attrs = ch.attrs
-      bbox = self._draw_chunk( ch, scale=scale)
-      if ch.newline_after:
-        self._current_y = bbox[3] + self.font.metrics()['linespace'] / 2.0
-        self._current_x = self.x
+		for ch in self.items:
+			scale = 1
+			if set(('sub','sup')) & ch.attrs:
+				if not (ch.text in "-" and self.big_charges):
+					scale = 0.7
+				else:
+					scale = 1
+				# we ignore subscripts and superscript in bbox calculation
+				ch.ignore_y = True
+				ch.ignore_x = True
+				if set(('sub','sup')) & last_attrs:
+					self._current_x = last_x
+			last_x = self._current_x
+			last_attrs = ch.attrs
+			bbox = self._draw_chunk( ch, scale=scale)
+			if ch.newline_after:
+				self._current_y = bbox[3] + self.font.metrics()['linespace'] / 2.0
+				self._current_x = self.x
 
-    #does not work when 1. character is not regular
-    if self.pos == 'center-first':
-      self.diff = self.font.measure( self.items[0].text[0])/2.0
-    elif self.pos == 'center-last':
-      x1, y1, x2, y2 = self.bbox()
-      self.diff = x2 -x1 -self.font.measure( self.items[0].text[-1])/2.0 -2
-    self.move( -self.diff, 0)
-    return self.bbox()
-
-
-  def _draw_chunk( self, chunk, scale=1):
-    weight = ''
-    canvas = self.canvas
-    x = self._current_x
-    y = self._current_y
-
-    if 'b' in chunk.attrs:
-      weight = "bold"
-    if 'i' in chunk.attrs:
-      weight += " italic"
-    if not weight:
-      weight = "normal"
-
-    if 'sub' in chunk.attrs:
-      item = canvas.create_text( x+_pick_nearest(_SUPSUBSCRIPT_X_SHIFT, self._font_size),
-                                 y+_pick_nearest(_SUBSCRIPT_Y_SHIFT, self._font_size),
-                                 tags=self.tags, text=chunk.text,
-                                 font=(self._font_family, int( round( self._font_size*scale)), weight),
-                                 anchor="nw", justify=self.justify, fill=self.fill)
-    elif 'sup' in chunk.attrs:
-      item = canvas.create_text( x+_pick_nearest(_SUPSUBSCRIPT_X_SHIFT, self._font_size),
-                                 y,
-                                 tags=self.tags, text=chunk.text,
-                                 font=(self._font_family, int( round( self._font_size*scale)), weight),
-                                 anchor="sw", justify=self.justify, fill=self.fill)
-    else:
-      item = canvas.create_text( x, y, tags=self.tags, text=chunk.text,
-                                 font=(self._font_family, int( round( self._font_size*scale)), weight),
-                                 anchor="w",
-                                 justify=self.justify,
-                                 fill=self.fill)
-    bbox = canvas.bbox( item)
-    chunk.item = item
-    chunk.dx = abs( bbox[0] - bbox[2])
-    self._current_x = bbox[2]
-    return bbox
+		#does not work when 1. character is not regular
+		if self.pos == 'center-first':
+			self.diff = self.font.measure( self.items[0].text[0])/2.0
+		elif self.pos == 'center-last':
+			x1, y1, x2, y2 = self.bbox()
+			self.diff = x2 -x1 -self.font.measure( self.items[0].text[-1])/2.0 -2
+		self.move( -self.diff, 0)
+		return self.bbox()
 
 
-  def get_chunks( self):
-    text = self.sanitized_text()
-    try:
-      root = safe_xml.parse_xml_string( text)
-    except Exception:
-      root = None
-    chunks = []
-    if root is not None:
-      _collect_chunks_from_element( root, chunks, [])
-    else:
-      chunks.append( text_chunk( text))
-    split_chunks = []
-    for ch in chunks:
-      parts = ch.text.split( "\n")
-      if len( parts) > 1:
-        for i, part in enumerate( parts):
-          split_chunks.append( text_chunk( text=part, attrs=ch.attrs, newline_after=i < len( parts) - 1))
-      else:
-        split_chunks.append( ch)
-    return split_chunks
+	def _draw_chunk( self, chunk, scale=1):
+		weight = ''
+		canvas = self.canvas
+		x = self._current_x
+		y = self._current_y
+
+		if 'b' in chunk.attrs:
+			weight = "bold"
+		if 'i' in chunk.attrs:
+			weight += " italic"
+		if not weight:
+			weight = "normal"
+
+		if 'sub' in chunk.attrs:
+			item = canvas.create_text( x+_pick_nearest(_SUPSUBSCRIPT_X_SHIFT, self._font_size),
+																	y+_pick_nearest(_SUBSCRIPT_Y_SHIFT, self._font_size),
+																	tags=self.tags, text=chunk.text,
+																	font=(self._font_family, int( round( self._font_size*scale)), weight),
+																	anchor="nw", justify=self.justify, fill=self.fill)
+		elif 'sup' in chunk.attrs:
+			item = canvas.create_text( x+_pick_nearest(_SUPSUBSCRIPT_X_SHIFT, self._font_size),
+																	y,
+																	tags=self.tags, text=chunk.text,
+																	font=(self._font_family, int( round( self._font_size*scale)), weight),
+																	anchor="sw", justify=self.justify, fill=self.fill)
+		else:
+			item = canvas.create_text( x, y, tags=self.tags, text=chunk.text,
+																	font=(self._font_family, int( round( self._font_size*scale)), weight),
+																	anchor="w",
+																	justify=self.justify,
+																	fill=self.fill)
+		bbox = canvas.bbox( item)
+		chunk.item = item
+		chunk.dx = abs( bbox[0] - bbox[2])
+		self._current_x = bbox[2]
+		return bbox
 
 
-  def bbox( self, complete=False):
-    """returns the bounding box of the object as a list of [x1,y1,x2,y2]"""
-    xbbox = list( self.canvas.list_bbox( [i.item for i in self.items if complete or not i.ignore_x]))
-    ybbox = list( self.canvas.list_bbox( [i.item for i in self.items if complete or not i.ignore_y]))
-    bbox = [xbbox[0], ybbox[1], xbbox[2], ybbox[3]]
+	def get_chunks( self):
+		text = self.sanitized_text()
+		try:
+			root = safe_xml.parse_xml_string( text)
+		except Exception:
+			root = None
+		chunks = []
+		if root is not None:
+			_collect_chunks_from_element( root, chunks, [])
+		else:
+			chunks.append( text_chunk( text))
+		split_chunks = []
+		for ch in chunks:
+			parts = ch.text.split( "\n")
+			if len( parts) > 1:
+				for i, part in enumerate( parts):
+					split_chunks.append( text_chunk( text=part, attrs=ch.attrs, newline_after=i < len( parts) - 1))
+			else:
+				split_chunks.append( ch)
+		return split_chunks
+
+
+	def bbox( self, complete=False):
+		"""returns the bounding box of the object as a list of [x1,y1,x2,y2]"""
+		xbbox = list( self.canvas.list_bbox( [i.item for i in self.items if complete or not i.ignore_x]))
+		ybbox = list( self.canvas.list_bbox( [i.item for i in self.items if complete or not i.ignore_y]))
+		bbox = [xbbox[0], ybbox[1], xbbox[2], ybbox[3]]
 ##     for i in self.items:
 ##       if i.ignore_y:
 ##         x1, y1, x2, y2 = self.canvas.bbox( i.item)
@@ -194,150 +194,150 @@ class BkFtext(object):
 ##           bbox[2] = max( (bbox[2], x2))
 ##         if y1 < bbox[1]:
 ##           bbox[1] -= 2 # hack
-    return bbox
+		return bbox
 
 
-  def move( self, dx, dy):
-    for i in self.items:
-      self.canvas.move( i.item, dx, dy)
+	def move( self, dx, dy):
+		for i in self.items:
+			self.canvas.move( i.item, dx, dy)
 
 
-  def move_to( self, x, y):
-    dx = self.x - x - self.diff
-    dy = self.y - y
-    for i in self.items:
-      self.canvas.move( i.item, dx, dy)
+	def move_to( self, x, y):
+		dx = self.x - x - self.diff
+		dy = self.y - y
+		for i in self.items:
+			self.canvas.move( i.item, dx, dy)
 
 
-  def lift( self):
-    for i in self.items:
-      self.canvas.lift( i.item)
+	def lift( self):
+		for i in self.items:
+			self.canvas.lift( i.item)
 
 
-  def delete( self):
-    for i in self.items:
-      self.canvas.delete( i.item)
+	def delete( self):
+		for i in self.items:
+			self.canvas.delete( i.item)
 
 
-  def sanitized_text( self):
-    return self.__class__.sanitize_text( self.text)
+	def sanitized_text( self):
+		return self.__class__.sanitize_text( self.text)
 
 
-  @classmethod
-  def sanitize_text( cls, text):
-    text = unescape_html_entity_references(text)
-    # Explicitly decode byte strings to avoid polluting results with b''
-    if sys.version_info[0] > 2:
-      if isinstance(text, bytes):
-        text = text.decode('utf-8')
-    else:
-      if isinstance(text, str):
-        text = text.decode('utf-8')
-    x = "<ftext>%s</ftext>" % text
-    try:
-      safe_xml.parse_xml_string( x)
-    except Exception:
-      text = xml.sax.saxutils.escape( text)
-      x = "<ftext>%s</ftext>" % text
-    # Handle only unicode strings in the rest of the program
-    if sys.version_info[0] > 2:
-      if isinstance(x, bytes):
-        x = x.decode('utf-8')
-    else:
-      if isinstance(x, str):
-        x = x.decode('utf-8')
-    return x
+	@classmethod
+	def sanitize_text( cls, text):
+		text = unescape_html_entity_references(text)
+		# Explicitly decode byte strings to avoid polluting results with b''
+		if sys.version_info[0] > 2:
+			if isinstance(text, bytes):
+				text = text.decode('utf-8')
+		else:
+			if isinstance(text, str):
+				text = text.decode('utf-8')
+		x = "<ftext>%s</ftext>" % text
+		try:
+			safe_xml.parse_xml_string( x)
+		except Exception:
+			text = xml.sax.saxutils.escape( text)
+			x = "<ftext>%s</ftext>" % text
+		# Handle only unicode strings in the rest of the program
+		if sys.version_info[0] > 2:
+			if isinstance(x, bytes):
+				x = x.decode('utf-8')
+		else:
+			if isinstance(x, str):
+				x = x.decode('utf-8')
+		return x
 
 
 
 class text_chunk(object):
 
-  def __init__( self, text, attrs=None, newline_after=False):
-    # Internally use only unicode strings
-    if sys.version_info[0] > 2:
-      if isinstance(text, bytes):
-        text = text.decode('utf-8')
-    else:
-      if isinstance(text, str):
-        text = text.decode('utf-8')
-    self.text = text
-    self.attrs = attrs or set()
-    self.item = None
-    self.dx = 0
-    self.ignore_y = False
-    self.ignore_x = False
-    self.newline_after = newline_after
+	def __init__( self, text, attrs=None, newline_after=False):
+		# Internally use only unicode strings
+		if sys.version_info[0] > 2:
+			if isinstance(text, bytes):
+				text = text.decode('utf-8')
+		else:
+			if isinstance(text, str):
+				text = text.decode('utf-8')
+		self.text = text
+		self.attrs = attrs or set()
+		self.item = None
+		self.dx = 0
+		self.ignore_y = False
+		self.ignore_x = False
+		self.newline_after = newline_after
 
 
 class FtextHandler ( xml.sax.ContentHandler):
 
-  def __init__( self):
-    xml.sax.ContentHandler.__init__( self)
-    self._above = []
-    self.chunks = []
-    self._text = ""
+	def __init__( self):
+		xml.sax.ContentHandler.__init__( self)
+		self._above = []
+		self.chunks = []
+		self._text = ""
 
 
-  def startElement( self, name, attrs):
-    self._closeCurrentText()
-    self._above.append( name)
+	def startElement( self, name, attrs):
+		self._closeCurrentText()
+		self._above.append( name)
 
 
-  def endElement( self, name):
-    self._closeCurrentText()
-    self._above.pop( -1)
+	def endElement( self, name):
+		self._closeCurrentText()
+		self._above.pop( -1)
 
 
-  def _closeCurrentText( self):
-    if self._text:
-      self.chunks.append( text_chunk( self._text, attrs = set( self._above)))
-      self._text = ""
+	def _closeCurrentText( self):
+		if self._text:
+			self.chunks.append( text_chunk( self._text, attrs = set( self._above)))
+			self._text = ""
 
 
-  def characters( self, data):
-    self._text += data
+	def characters( self, data):
+		self._text += data
 
 
 #============================================
 def _collect_chunks_from_element( element, chunks, above):
-  above.append( element.tag)
-  if element.text:
-    chunks.append( text_chunk( element.text, attrs=set( above)))
-  for child in list(element):
-    _collect_chunks_from_element( child, chunks, above)
-    if child.tail:
-      chunks.append( text_chunk( child.tail, attrs=set( above)))
-  above.pop()
+	above.append( element.tag)
+	if element.text:
+		chunks.append( text_chunk( element.text, attrs=set( above)))
+	for child in list(element):
+		_collect_chunks_from_element( child, chunks, above)
+		if child.tail:
+			chunks.append( text_chunk( child.tail, attrs=set( above)))
+	above.pop()
 
 
 
 import re
 try:
-  from html.entities import name2codepoint
+	from html.entities import name2codepoint
 except ImportError:
-  from html.entities import name2codepoint
+	from html.entities import name2codepoint
 
 
 def unescape_html_entity_references( text):
-  reX = "&([a-zA-Z]+);"
-  # Type of text and reX has to be the same
-  if sys.version_info[0] > 2:
-    if isinstance(text, bytes):
-      reX = reX.encode('utf-8')
-  else:
-    if isinstance(text, str):
-      reX = reX.decode('utf-8')
-  return re.sub(reX , _unescape_one_html_entity_reference, text)
+	reX = "&([a-zA-Z]+);"
+	# Type of text and reX has to be the same
+	if sys.version_info[0] > 2:
+		if isinstance(text, bytes):
+			reX = reX.encode('utf-8')
+	else:
+		if isinstance(text, str):
+			reX = reX.decode('utf-8')
+	return re.sub(reX , _unescape_one_html_entity_reference, text)
 
 
 def _unescape_one_html_entity_reference( m):
-  """we will use this function inside a regexp to replace entities"""
-  hit = m.group(1)
-  if hit not in ["amp","gt","lt"] and hit in name2codepoint:
-    if sys.version_info[0] > 2:
-      return chr(name2codepoint[hit])
-    else:
-      return chr(name2codepoint[hit])
-  else:
-    return "&"+hit+";"
+	"""we will use this function inside a regexp to replace entities"""
+	hit = m.group(1)
+	if hit not in ["amp","gt","lt"] and hit in name2codepoint:
+		if sys.version_info[0] > 2:
+			return chr(name2codepoint[hit])
+		else:
+			return chr(name2codepoint[hit])
+	else:
+		return "&"+hit+";"
 

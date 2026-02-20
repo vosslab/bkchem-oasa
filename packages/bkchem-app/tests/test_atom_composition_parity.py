@@ -13,6 +13,8 @@ import pytest
 
 # local repo modules
 import oasa
+import oasa.atom_lib
+import oasa.bond_lib
 import bkchem.atom_lib
 import bkchem.classes
 import bkchem.molecule_lib
@@ -311,7 +313,7 @@ class TestGraphConnectivity:
 		"""Adding a neighbor via the molecule increases degree."""
 		at1 = _make_atom(standard, mol, "C", xy=(0, 0))
 		at2 = _make_atom(standard, mol, "O", xy=(50, 0))
-		bond = oasa.Bond()
+		bond = oasa.bond_lib.Bond()
 		bond.order = 1
 		# use molecule's add_edge to wire up both vertices
 		mol.add_edge(at1, at2, bond)
@@ -322,7 +324,7 @@ class TestGraphConnectivity:
 		"""neighbors property returns the connected atom."""
 		at1 = _make_atom(standard, mol, "C", xy=(0, 0))
 		at2 = _make_atom(standard, mol, "N", xy=(50, 0))
-		bond = oasa.Bond()
+		bond = oasa.bond_lib.Bond()
 		bond.order = 1
 		mol.add_edge(at1, at2, bond)
 		assert at2 in at1.neighbors
@@ -332,7 +334,7 @@ class TestGraphConnectivity:
 		"""neighbor_edges returns the connecting bond."""
 		at1 = _make_atom(standard, mol, "C", xy=(0, 0))
 		at2 = _make_atom(standard, mol, "O", xy=(50, 0))
-		bond = oasa.Bond()
+		bond = oasa.bond_lib.Bond()
 		bond.order = 2
 		mol.add_edge(at1, at2, bond)
 		assert bond in at1.neighbor_edges
@@ -342,7 +344,7 @@ class TestGraphConnectivity:
 		"""occupied_valency reflects bond orders."""
 		at1 = _make_atom(standard, mol, "C", xy=(0, 0))
 		at2 = _make_atom(standard, mol, "O", xy=(50, 0))
-		bond = oasa.Bond()
+		bond = oasa.bond_lib.Bond()
 		bond.order = 2
 		mol.add_edge(at1, at2, bond)
 		assert at1.occupied_valency >= 2
@@ -351,7 +353,7 @@ class TestGraphConnectivity:
 		"""free_valency decreases when bonded."""
 		at1 = _make_atom(standard, mol, "C", xy=(0, 0))
 		at2 = _make_atom(standard, mol, "O", xy=(50, 0))
-		bond = oasa.Bond()
+		bond = oasa.bond_lib.Bond()
 		bond.order = 1
 		mol.add_edge(at1, at2, bond)
 		# carbon valency=4, single bond => free_valency=3
@@ -361,7 +363,7 @@ class TestGraphConnectivity:
 		"""get_edge_leading_to returns the bond between two atoms."""
 		at1 = _make_atom(standard, mol, "C", xy=(0, 0))
 		at2 = _make_atom(standard, mol, "N", xy=(50, 0))
-		bond = oasa.Bond()
+		bond = oasa.bond_lib.Bond()
 		bond.order = 1
 		mol.add_edge(at1, at2, bond)
 		found = at1.get_edge_leading_to(at2)
@@ -491,29 +493,29 @@ class TestOasaAtomBaseline:
 
 	def test_oasa_symbol_sets_valency(self):
 		"""OASA atom symbol setter auto-sets valency."""
-		at = oasa.Atom(symbol="C")
+		at = oasa.atom_lib.Atom(symbol="C")
 		assert at.valency == 4
 		at.symbol = "O"
 		assert at.valency == 2
 
 	def test_oasa_charge_default(self):
 		"""OASA atom default charge is 0."""
-		at = oasa.Atom(symbol="C")
+		at = oasa.atom_lib.Atom(symbol="C")
 		assert at.charge == 0
 
 	def test_oasa_isotope_default(self):
 		"""OASA atom default isotope is None."""
-		at = oasa.Atom(symbol="C")
+		at = oasa.atom_lib.Atom(symbol="C")
 		assert at.isotope is None
 
 	def test_oasa_explicit_hydrogens(self):
 		"""OASA atom default explicit_hydrogens is 0."""
-		at = oasa.Atom(symbol="C")
+		at = oasa.atom_lib.Atom(symbol="C")
 		assert at.explicit_hydrogens == 0
 
 	def test_oasa_multiplicity_default(self):
 		"""OASA atom default multiplicity is 1."""
-		at = oasa.Atom(symbol="C")
+		at = oasa.atom_lib.Atom(symbol="C")
 		assert at.multiplicity == 1
 
 
@@ -528,7 +530,7 @@ class TestCompositionDelegation:
 		"""Composition atom should have a _chem_atom attribute."""
 		at = _make_atom(standard, mol, "C")
 		assert hasattr(at, '_chem_atom')
-		assert isinstance(at._chem_atom, oasa.Atom)
+		assert isinstance(at._chem_atom, oasa.atom_lib.Atom)
 
 	def test_symbol_delegates_to_chem_atom(self, standard, mol):
 		"""symbol should read from _chem_atom.symbol."""
@@ -559,7 +561,7 @@ class TestCompositionDelegation:
 		assert at._chem_atom.multiplicity == 3
 
 	def test_no_oasa_in_mro(self, standard, mol):
-		"""After composition, oasa.Atom should not be in the MRO."""
+		"""After composition, oasa.atom_lib.Atom should not be in the MRO."""
 		at = _make_atom(standard, mol, "C")
-		# oasa.Atom should not appear in the inheritance chain
-		assert oasa.Atom not in type(at).__mro__
+		# oasa.atom_lib.Atom should not appear in the inheritance chain
+		assert oasa.atom_lib.Atom not in type(at).__mro__

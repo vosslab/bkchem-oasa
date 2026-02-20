@@ -92,9 +92,7 @@ def resolve_format(output_path, output_format):
 #============================================
 def render_molecule(mol, output_path, output_format):
 	"""Render the molecule using the cairo backend."""
-	if not oasa.CAIRO_AVAILABLE:
-		raise RuntimeError("Cairo backend not available. Install pycairo to render.")
-	from oasa import cairo_out
+	import oasa.cairo_out as cairo_out
 	renderer = cairo_out.cairo_out(color_bonds=True, color_atoms=True)
 	renderer.show_hydrogens_on_hetero = True
 	renderer.font_size = 20

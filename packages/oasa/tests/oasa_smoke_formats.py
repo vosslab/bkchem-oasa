@@ -72,9 +72,7 @@ def build_molecule(smiles_text):
 #============================================
 def render_format(mols, output_path, file_format, scale):
 	"""Render molecules to a single output file."""
-	if not oasa.CAIRO_AVAILABLE:
-		raise RuntimeError("Cairo backend not available. Install pycairo to render.")
-	from oasa import cairo_out
+	import oasa.cairo_out as cairo_out
 	renderer = cairo_out.cairo_out(color_bonds=True, color_atoms=True, scaling=scale)
 	renderer.show_hydrogens_on_hetero = True
 	renderer.font_size = 20

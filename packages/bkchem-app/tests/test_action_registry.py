@@ -1,7 +1,7 @@
 """Tests for the action registry core."""
 
 # local repo modules
-from bkchem.actions import MenuAction, ActionRegistry
+from bkchem.actions.action_registry import MenuAction, ActionRegistry
 
 
 #============================================

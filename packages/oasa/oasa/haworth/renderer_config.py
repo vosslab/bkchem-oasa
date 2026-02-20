@@ -4,7 +4,7 @@
 
 """Haworth renderer constants and configuration tables."""
 
-from oasa.haworth import PYRANOSE_O_INDEX, FURANOSE_O_INDEX
+from oasa.haworth.layout import PYRANOSE_O_INDEX, FURANOSE_O_INDEX
 
 
 #============================================

@@ -11,19 +11,6 @@ import time
 # Third Party
 import pytest
 
-# Local repo modules
-import conftest
-
-
-#============================================
-def _ensure_sys_path(root_dir):
-	"""Ensure BKChem and OASA package paths are on sys.path."""
-	bkchem_pkg_dir = os.path.join(root_dir, "packages", "bkchem-app")
-	if bkchem_pkg_dir not in sys.path:
-		sys.path.insert(0, bkchem_pkg_dir)
-	oasa_pkg_dir = os.path.join(root_dir, "packages", "oasa")
-	if oasa_pkg_dir not in sys.path:
-		sys.path.insert(0, oasa_pkg_dir)
 
 
 #============================================
@@ -162,8 +149,6 @@ def _print_diagnostic_table(snapshots):
 
 #============================================
 def _run_zoom_diagnostic():
-	root_dir = conftest.repo_root()
-	_ensure_sys_path(root_dir)
 	_ensure_gettext_fallbacks()
 	_verify_tkinter()
 	_ensure_preferences()
@@ -367,8 +352,6 @@ def _run_zoom_diagnostic():
 #============================================
 def _run_zoom_model_coords_stable():
 	"""Verify that model coordinates (atom.x, atom.y) are unchanged by zoom."""
-	root_dir = conftest.repo_root()
-	_ensure_sys_path(root_dir)
 	_ensure_gettext_fallbacks()
 	_verify_tkinter()
 	_ensure_preferences()
@@ -457,8 +440,6 @@ def _run_zoom_model_coords_stable():
 #============================================
 def _run_zoom_roundtrip_symmetry():
 	"""Zoom from 1000% down to ~250% and back; viewport center must match."""
-	root_dir = conftest.repo_root()
-	_ensure_sys_path(root_dir)
 	_ensure_gettext_fallbacks()
 	_verify_tkinter()
 	_ensure_preferences()

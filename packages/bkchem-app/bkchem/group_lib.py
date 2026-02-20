@@ -39,31 +39,31 @@ from bkchem.singleton_store import Store, Screen
 # Common functional groups lookup table. Keys are lowercase abbreviations.
 GROUPS_TABLE = {
 	'och3':   {'name': 'OCH3', 'textf': 'OCH<sub>3</sub>',
-	           'textb': 'H<sub>3</sub>CO', 'composition': 'OCH3'},
+		'textb': 'H<sub>3</sub>CO', 'composition': 'OCH3'},
 	'no2':    {'name': 'NO2', 'textf': 'NO<sub>2</sub>',
-	           'textb': 'O<sub>2</sub>N', 'composition': 'NO2'},
+		'textb': 'O<sub>2</sub>N', 'composition': 'NO2'},
 	'cooh':   {'name': 'COOH', 'textf': 'COOH',
-	           'textb': 'HOOC', 'composition': 'COOH'},
+		'textb': 'HOOC', 'composition': 'COOH'},
 	'cooch3': {'name': 'COOCH3', 'textf': 'COOCH<sub>3</sub>',
-	           'textb': 'H<sub>3</sub>COOC', 'composition': 'COOCH3'},
+		'textb': 'H<sub>3</sub>COOC', 'composition': 'COOCH3'},
 	'me':     {'name': 'Me', 'textf': 'Me',
-	           'textb': 'Me', 'composition': 'CH3'},
+		'textb': 'Me', 'composition': 'CH3'},
 	'cn':     {'name': 'CN', 'textf': 'CN',
-	           'textb': 'NC', 'composition': 'CN'},
+		'textb': 'NC', 'composition': 'CN'},
 	'so3h':   {'name': 'SO3H', 'textf': 'SO<sub>3</sub>H',
-	           'textb': 'HO<sub>3</sub>S', 'composition': 'SO3H'},
+		'textb': 'HO<sub>3</sub>S', 'composition': 'SO3H'},
 	'pph3':   {'name': 'PPh3', 'textf': 'PPh<sub>3</sub>',
-	           'textb': 'Ph<sub>3</sub>P', 'composition': 'C18H15P'},
+		'textb': 'Ph<sub>3</sub>P', 'composition': 'C18H15P'},
 	'ome':    {'name': 'OMe', 'textf': 'OMe',
-	           'textb': 'MeO', 'composition': 'OCH3'},
+		'textb': 'MeO', 'composition': 'OCH3'},
 	'et':     {'name': 'Et', 'textf': 'Et',
-	           'textb': 'Et', 'composition': 'C2H5'},
+		'textb': 'Et', 'composition': 'C2H5'},
 	'ph':     {'name': 'Ph', 'textf': 'Ph',
-	           'textb': 'Ph', 'composition': 'C6H5'},
+		'textb': 'Ph', 'composition': 'C6H5'},
 	'cocl':   {'name': 'COCl', 'textf': 'COCl',
-	           'textb': 'ClOC', 'composition': 'COCl'},
+		'textb': 'ClOC', 'composition': 'COCl'},
 	'ch2oh':  {'name': 'CH2OH', 'textf': 'CH<sub>2</sub>OH',
-	           'textb': 'HOCH<sub>2</sub>', 'composition': 'CH3O'},
+		'textb': 'HOCH<sub>2</sub>', 'composition': 'CH3O'},
 }
 from bkchem.special_parents import drawable_chem_vertex
 
@@ -75,339 +75,339 @@ from bkchem.special_parents import drawable_chem_vertex
 
 ### Class GROUP --------------------------------------------------
 class BkGroup( drawable_chem_vertex):
-  # note that all children of simple_parent have default meta infos set
-  # therefore it is not necessary to provide them for all new classes if they
-  # don't differ
+	# note that all children of simple_parent have default meta infos set
+	# therefore it is not necessary to provide them for all new classes if they
+	# don't differ
 
-  object_type = 'atom'
+	object_type = 'atom'
 
-  meta__undo_properties = drawable_chem_vertex.meta__undo_properties
+	meta__undo_properties = drawable_chem_vertex.meta__undo_properties
 
-  # only number marks are allowed for groups
-  meta__allowed_marks = ("atom_number",)
-
-
-  def __init__( self, standard=None, xy=(), package=None, molecule=None):
-    drawable_chem_vertex.__init__( self, standard=standard, xy=xy, molecule=molecule)
-
-    self.group_graph = None
-    self.connecting_atom = None
-    self.group_type = None
-    self.symbol = ''
-
-    if package:
-      self.read_package( package)
+	# only number marks are allowed for groups
+	meta__allowed_marks = ("atom_number",)
 
 
-  ## -------------------------------------- CLASS METHODS ------------------------------
+	def __init__( self, standard=None, xy=(), package=None, molecule=None):
+		drawable_chem_vertex.__init__( self, standard=standard, xy=xy, molecule=molecule)
 
-  @classmethod
-  def is_known_group( cls, text):
-    if (text in name_to_smiles): # or (text.capitalize() in name_to_smiles):
-      return True
-    return False
+		self.group_graph = None
+		self.connecting_atom = None
+		self.group_type = None
+		self.symbol = ''
 
-  ## ---------------------------------------- PROPERTIES ------------------------------
-
-  # symbol
-  @property
-  def symbol(self):
-    return self._symbol
+		if package:
+			self.read_package( package)
 
 
-  @symbol.setter
-  def symbol(self, symbol):
-    # Use unicode strings internally
-    if sys.version_info[0] > 2:
-      if isinstance(symbol, bytes):
-        symbol = symbol.decode('utf-8')
-    else:
-      if isinstance(symbol, str):
-        symbol = symbol.decode('utf-8')
-    self._symbol = symbol
-    self.dirty = 1
+	## -------------------------------------- CLASS METHODS ------------------------------
+
+	@classmethod
+	def is_known_group( cls, text):
+		if (text in name_to_smiles): # or (text.capitalize() in name_to_smiles):
+			return True
+		return False
+
+	## ---------------------------------------- PROPERTIES ------------------------------
+
+	# symbol
+	@property
+	def symbol(self):
+		return self._symbol
 
 
-  #valency (overrides chem_vertex.valency)
-  @property
-  def valency(self):
-    """Atoms (maximum) valency, used for hydrogen counting.
-
-    """
-    # is always equal to the currently occupied_valency so that free_valency is always == 0
-    return self.occupied_valency
-
-
-  @valency.setter
-  def valency(self, val):
-    pass
+	@symbol.setter
+	def symbol(self, symbol):
+		# Use unicode strings internally
+		if sys.version_info[0] > 2:
+			if isinstance(symbol, bytes):
+				symbol = symbol.decode('utf-8')
+		else:
+			if isinstance(symbol, str):
+				symbol = symbol.decode('utf-8')
+		self._symbol = symbol
+		self.dirty = 1
 
 
-  # xml_ftext (override drawable_chem_vertex.xml_ftext)
-  @property
-  def xml_ftext(self):
-    """Text used for rendering using the ftext class.
+	#valency (overrides chem_vertex.valency)
+	@property
+	def valency(self):
+		"""Atoms (maximum) valency, used for hydrogen counting.
 
-    """
-    if self.group_type == "builtin":
-      if self.pos == 'center-first':
-        return GROUPS_TABLE[ self.symbol.lower()]['textf']
-      else:
-        return GROUPS_TABLE[ self.symbol.lower()]['textb']
-    elif self.group_type in ("implicit","chain"):
-      x = re.sub( r"\d+", r"<sub>\g<0></sub>", self.symbol)
-      x = re.sub( r"[+-]", r"<sup>\g<0></sup>", x)
-      if self.paper.get_paper_property('use_real_minus'):
-        if sys.version_info[0] > 2:
-          x = re.sub("-", chr(8722), x)
-        else:
-          x = re.sub("-", chr(8722), x)
-      return x
+		"""
+		# is always equal to the currently occupied_valency so that free_valency is always == 0
+		return self.occupied_valency
 
 
-
-  ## JUST TO MIMICK ATOM
-  # show
-  @property
-  def show(self):
-    """Should the atom symbol be displayed?
-
-    Accepts both 0|1 and yes|no.
-    """
-    return 1
+	@valency.setter
+	def valency(self, val):
+		pass
 
 
-  @show.setter
-  def show(self, show):
-    pass
+	# xml_ftext (override drawable_chem_vertex.xml_ftext)
+	@property
+	def xml_ftext(self):
+		"""Text used for rendering using the ftext class.
 
-
-  # show_hydrogens
-  @property
-  def show_hydrogens(self):
-    return 1
-
-
-  @show_hydrogens.setter
-  def show_hydrogens(self, show_hydrogens):
-    pass
-
-
-  #group_type
-  @property
-  def group_type(self):
-    return self.__group_type
-
-
-  @group_type.setter
-  def group_type(self, group_type):
-    allowed_types = (None,"builtin","explicit","implicit","chain","general")
-    if group_type not in allowed_types:
-      raise ValueError("group_type must be one of "+ str( allowed_types) + "got %s" % group_type)
-    self.__group_type = group_type
+		"""
+		if self.group_type == "builtin":
+			if self.pos == 'center-first':
+				return GROUPS_TABLE[ self.symbol.lower()]['textf']
+			else:
+				return GROUPS_TABLE[ self.symbol.lower()]['textb']
+		elif self.group_type in ("implicit","chain"):
+			x = re.sub( r"\d+", r"<sub>\g<0></sub>", self.symbol)
+			x = re.sub( r"[+-]", r"<sup>\g<0></sup>", x)
+			if self.paper.get_paper_property('use_real_minus'):
+				if sys.version_info[0] > 2:
+					x = re.sub("-", chr(8722), x)
+				else:
+					x = re.sub("-", chr(8722), x)
+			return x
 
 
 
-  ## // -------------------- END OF PROPERTIES --------------------------
+	## JUST TO MIMICK ATOM
+	# show
+	@property
+	def show(self):
+		"""Should the atom symbol be displayed?
+
+		Accepts both 0|1 and yes|no.
+		"""
+		return 1
 
 
-  def set_name( self, name, interpret=1, occupied_valency=None):
-    if occupied_valency is None:
-      occupied_valency = self.occupied_valency
-    if occupied_valency == 1 and (name.lower() in GROUPS_TABLE):
-      # name is a known group
-      self.symbol = GROUPS_TABLE[ name.lower()]['name']
-      self.group_type = "builtin"
-      return True
-    # try interpret the formula
-    lf = oasa.linear_formula.linear_formula( name, start_valency=occupied_valency)
-    if not lf.molecule:
-      # it is possible the text goes the other way
-      lf = oasa.linear_formula.linear_formula( name, end_valency=occupied_valency)
-    if lf.molecule:
-      self.group_graph = lf.molecule
-      if lf.first_atom:
-        self.connecting_atom = lf.first_atom
-      elif lf.last_atom:
-        self.connecting_atom = lf.last_atom
-      else:
-        self.connecting_atom = lf.molecule.vertices[0]
-      self.symbol = name
-      self.group_type = "implicit"
-      self.group_graph.paper = self.paper
-      return True
-    # try chain
-    if re.compile( "^[cC][0-9]*[hH][0-9]*$").match( name):
-      form = PT.formula_dict( name.upper())
-      if occupied_valency == 1 and form.is_saturated_alkyl_chain():
-        self.symbol = str( form)
-        self.group_type = "chain"
-        return True
-    return False
+	@show.setter
+	def show(self, show):
+		pass
 
 
-  def interpret_name( self, name):
-    lf = oasa.linear_formula.linear_formula( name, start_valency=self.valency)
-    return lf.molecule
+	# show_hydrogens
+	@property
+	def show_hydrogens(self):
+		return 1
 
 
-  def read_package( self, package):
-    """reads the dom element package and sets internal state according to it"""
-    self.id = package.getAttribute( 'id')
-    self.pos = package.getAttribute( 'pos')
-    position = package.getElementsByTagName( 'point')[0]
-    # reading of coords regardless of their unit
-    x, y, z = Screen.read_xml_point( position)
-    if z is not None:
-      self.z = z* self.paper.real_to_screen_ratio()
-    # needed to support transparent handling of molecular size
-    x, y = self.paper.real_to_screen_coords( (x, y))
-    self.x = x
-    self.y = y
-    self.group_type = package.getAttribute( "group-type")
-    if self.group_type in ("implicit","explicit"):
-      #read the graph once
-      pass
-    self.symbol = package.getAttribute( "name")
-
-    # font and fill color
-    fnt = package.getElementsByTagName('font')
-    if fnt:
-      fnt = fnt[0]
-      self.font_size = int( fnt.getAttribute( 'size'))
-      self.font_family = fnt.getAttribute( 'family')
-      if fnt.getAttribute( 'color'):
-        self.line_color = fnt.getAttribute( 'color')
-    # background color
-    if package.getAttributeNode( 'background-color'):
-      self.area_color = package.getAttribute( 'background-color')
-
-    # marks
-    for m in package.getElementsByTagName( 'mark'):
-      mrk = marks.mark.read_package( m, self)
-      self.marks.add( mrk)
-    # number
-    if package.getAttribute( 'show_number'):
-      self.show_number = bool( data.booleans.index( package.getAttribute( 'show_number')))
-    if package.getAttribute( 'number'):
-      self.number = package.getAttribute( 'number')
+	@show_hydrogens.setter
+	def show_hydrogens(self, show_hydrogens):
+		pass
 
 
-  def get_package( self, doc):
-    """returns a DOM element describing the object in CDML,
-    doc is the parent document which is used for element creation
-    (the returned element is not inserted into the document)"""
-    a = doc.createElement('group')
-    a.setAttribute( 'id', str( self.id))
-    a.setAttribute( 'pos', self.pos)
-    # group type
-    if self.group_type:
-      a.setAttribute( 'group-type', self.group_type)
-    else:
-      raise ValueError("trying to save group without set group-type")
-
-    if self.font_size != self.paper.standard.font_size \
-       or self.font_family != self.paper.standard.font_family \
-       or self.line_color != self.paper.standard.line_color:
-      font = dom_extensions.elementUnder( a, 'font', attributes=(('size', str( self.font_size)), ('family', self.font_family)))
-      if self.line_color != self.paper.standard.line_color:
-        font.setAttribute( 'color', self.line_color)
-
-    a.setAttribute( 'name', self.symbol)
-
-    if self.area_color != self.paper.standard.area_color:
-      a.setAttribute( 'background-color', self.area_color)
-    # needed to support transparent handling of molecular size
-    x, y, z = list(map( Screen.px_to_text_with_unit, self.get_xyz( real=1)))
-    if self.z:
-      dom_extensions.elementUnder( a, 'point', attributes=(('x', x), ('y', y), ('z', z)))
-    else:
-      dom_extensions.elementUnder( a, 'point', attributes=(('x', x), ('y', y)))
-    # marks
-    for o in self.marks:
-      a.appendChild( o.get_package( doc))
-    # number
-    if self.number:
-      a.setAttribute( 'number', self.number)
-      a.setAttribute( 'show_number', data.booleans[ int( self.show_number)])
-    return a
+	#group_type
+	@property
+	def group_type(self):
+		return self.__group_type
 
 
-  def get_formula_dict( self):
-    """returns formula as dictionary that can
-    be passed to functions in periodic_table"""
-    if self.group_type == "builtin":
-      return PT.formula_dict( GROUPS_TABLE[ self.symbol.lower()]['composition'])
-    elif self.group_graph:
-      form = self.group_graph.get_formula_dict()
-      if 'H' in form:
-        if form['H'] > self.occupied_valency:
-          form['H'] -= self.occupied_valency
-        else:
-          del form['H']
-      return form
-    else:
-      return PT.formula_dict( self.symbol)
+	@group_type.setter
+	def group_type(self, group_type):
+		allowed_types = (None,"builtin","explicit","implicit","chain","general")
+		if group_type not in allowed_types:
+			raise ValueError("group_type must be one of "+ str( allowed_types) + "got %s" % group_type)
+		self.__group_type = group_type
 
 
-  def __str__( self):
-    return self.id
+
+	## // -------------------- END OF PROPERTIES --------------------------
 
 
-  def expand( self):
-    """expands the group and returns list of atoms that new drawing afterwords"""
-    if self.group_type == "builtin":
-      names = Store.gm.get_template_names()
-      if self.symbol in names:
-        a2 = self.neighbors[0]
-        x1, y1 = a2.get_xy()
-        x2, y2 = self.get_xy()
-        self.group_graph = Store.gm.get_transformed_template( names.index( self.symbol), (x1,y1,x2,y2), type='atom1')
-        replacement = self.group_graph.next_to_t_atom
-      else:
-        print("unknown group %s" % self.symbol)
-        return None
+	def set_name( self, name, interpret=1, occupied_valency=None):
+		if occupied_valency is None:
+			occupied_valency = self.occupied_valency
+		if occupied_valency == 1 and (name.lower() in GROUPS_TABLE):
+			# name is a known group
+			self.symbol = GROUPS_TABLE[ name.lower()]['name']
+			self.group_type = "builtin"
+			return True
+		# try interpret the formula
+		lf = oasa.linear_formula.linear_formula( name, start_valency=occupied_valency)
+		if not lf.molecule:
+			# it is possible the text goes the other way
+			lf = oasa.linear_formula.linear_formula( name, end_valency=occupied_valency)
+		if lf.molecule:
+			self.group_graph = lf.molecule
+			if lf.first_atom:
+				self.connecting_atom = lf.first_atom
+			elif lf.last_atom:
+				self.connecting_atom = lf.last_atom
+			else:
+				self.connecting_atom = lf.molecule.vertices[0]
+			self.symbol = name
+			self.group_type = "implicit"
+			self.group_graph.paper = self.paper
+			return True
+		# try chain
+		if re.compile( "^[cC][0-9]*[hH][0-9]*$").match( name):
+			form = PT.formula_dict( name.upper())
+			if occupied_valency == 1 and form.is_saturated_alkyl_chain():
+				self.symbol = str( form)
+				self.group_type = "chain"
+				return True
+		return False
 
-    elif self.group_type == "chain":
-      self.group_graph = self.molecule.create_graph()
-      p = PT.formula_dict( self.symbol)
-      n = p['C']
-      last = None
-      for i in range( n):
-        v = self.group_graph.add_vertex()
-        v.x, v.y = None, None
-        if last:
-          self.group_graph.add_edge( last, v)
-        last = v
-      replacement = self.group_graph.vertices[0]
-      replacement.x = self.x
-      replacement.y = self.y
 
-    elif self.group_type == "implicit":
-      if not self.group_graph:
-        self.set_name( self.symbol, occupied_valency=self.occupied_valency)
-      for v in self.group_graph.vertices:
-        v.x, v.y = None, None
-        v.show = v.symbol != 'C'
-      assert self.connecting_atom is not None
-      replacement = self.connecting_atom
-      replacement.x = self.x
-      replacement.y = self.y
+	def interpret_name( self, name):
+		lf = oasa.linear_formula.linear_formula( name, start_valency=self.valency)
+		return lf.molecule
 
-    self.molecule.eat_molecule( self.group_graph)
-    self.molecule.move_bonds_between_atoms( self, replacement)
-    self.molecule.delete_vertex( self)
-    if self.occupied_valency:
-      oasa.coords_generator.calculate_coords( self.molecule, bond_length=-1)
-    else:
-      # if the group is the only vertex of the molecule we must set the bond_length explicitly
-      # and the move the whole molecule
-      replacement.x = None
-      replacement.y = None
-      x, y = self.x, self.y
-      oasa.coords_generator.calculate_coords( self.molecule, bond_length=Screen.any_to_px( self.paper.standard.bond_length))
-      dx = x - replacement.x
-      dy = y - replacement.y
-      [a.move( dx, dy) for a in self.group_graph.vertices]
-    return self.group_graph.vertices
+
+	def read_package( self, package):
+		"""reads the dom element package and sets internal state according to it"""
+		self.id = package.getAttribute( 'id')
+		self.pos = package.getAttribute( 'pos')
+		position = package.getElementsByTagName( 'point')[0]
+		# reading of coords regardless of their unit
+		x, y, z = Screen.read_xml_point( position)
+		if z is not None:
+			self.z = z* self.paper.real_to_screen_ratio()
+		# needed to support transparent handling of molecular size
+		x, y = self.paper.real_to_screen_coords( (x, y))
+		self.x = x
+		self.y = y
+		self.group_type = package.getAttribute( "group-type")
+		if self.group_type in ("implicit","explicit"):
+			#read the graph once
+			pass
+		self.symbol = package.getAttribute( "name")
+
+		# font and fill color
+		fnt = package.getElementsByTagName('font')
+		if fnt:
+			fnt = fnt[0]
+			self.font_size = int( fnt.getAttribute( 'size'))
+			self.font_family = fnt.getAttribute( 'family')
+			if fnt.getAttribute( 'color'):
+				self.line_color = fnt.getAttribute( 'color')
+		# background color
+		if package.getAttributeNode( 'background-color'):
+			self.area_color = package.getAttribute( 'background-color')
+
+		# marks
+		for m in package.getElementsByTagName( 'mark'):
+			mrk = marks.mark.read_package( m, self)
+			self.marks.add( mrk)
+		# number
+		if package.getAttribute( 'show_number'):
+			self.show_number = bool( data.booleans.index( package.getAttribute( 'show_number')))
+		if package.getAttribute( 'number'):
+			self.number = package.getAttribute( 'number')
+
+
+	def get_package( self, doc):
+		"""returns a DOM element describing the object in CDML,
+		doc is the parent document which is used for element creation
+		(the returned element is not inserted into the document)"""
+		a = doc.createElement('group')
+		a.setAttribute( 'id', str( self.id))
+		a.setAttribute( 'pos', self.pos)
+		# group type
+		if self.group_type:
+			a.setAttribute( 'group-type', self.group_type)
+		else:
+			raise ValueError("trying to save group without set group-type")
+
+		if self.font_size != self.paper.standard.font_size \
+				or self.font_family != self.paper.standard.font_family \
+				or self.line_color != self.paper.standard.line_color:
+			font = dom_extensions.elementUnder( a, 'font', attributes=(('size', str( self.font_size)), ('family', self.font_family)))
+			if self.line_color != self.paper.standard.line_color:
+				font.setAttribute( 'color', self.line_color)
+
+		a.setAttribute( 'name', self.symbol)
+
+		if self.area_color != self.paper.standard.area_color:
+			a.setAttribute( 'background-color', self.area_color)
+		# needed to support transparent handling of molecular size
+		x, y, z = list(map( Screen.px_to_text_with_unit, self.get_xyz( real=1)))
+		if self.z:
+			dom_extensions.elementUnder( a, 'point', attributes=(('x', x), ('y', y), ('z', z)))
+		else:
+			dom_extensions.elementUnder( a, 'point', attributes=(('x', x), ('y', y)))
+		# marks
+		for o in self.marks:
+			a.appendChild( o.get_package( doc))
+		# number
+		if self.number:
+			a.setAttribute( 'number', self.number)
+			a.setAttribute( 'show_number', data.booleans[ int( self.show_number)])
+		return a
+
+
+	def get_formula_dict( self):
+		"""returns formula as dictionary that can
+		be passed to functions in periodic_table"""
+		if self.group_type == "builtin":
+			return PT.formula_dict( GROUPS_TABLE[ self.symbol.lower()]['composition'])
+		elif self.group_graph:
+			form = self.group_graph.get_formula_dict()
+			if 'H' in form:
+				if form['H'] > self.occupied_valency:
+					form['H'] -= self.occupied_valency
+				else:
+					del form['H']
+			return form
+		else:
+			return PT.formula_dict( self.symbol)
+
+
+	def __str__( self):
+		return self.id
+
+
+	def expand( self):
+		"""expands the group and returns list of atoms that new drawing afterwords"""
+		if self.group_type == "builtin":
+			names = Store.gm.get_template_names()
+			if self.symbol in names:
+				a2 = self.neighbors[0]
+				x1, y1 = a2.get_xy()
+				x2, y2 = self.get_xy()
+				self.group_graph = Store.gm.get_transformed_template( names.index( self.symbol), (x1,y1,x2,y2), type='atom1')
+				replacement = self.group_graph.next_to_t_atom
+			else:
+				print("unknown group %s" % self.symbol)
+				return None
+
+		elif self.group_type == "chain":
+			self.group_graph = self.molecule.create_graph()
+			p = PT.formula_dict( self.symbol)
+			n = p['C']
+			last = None
+			for i in range( n):
+				v = self.group_graph.add_vertex()
+				v.x, v.y = None, None
+				if last:
+					self.group_graph.add_edge( last, v)
+				last = v
+			replacement = self.group_graph.vertices[0]
+			replacement.x = self.x
+			replacement.y = self.y
+
+		elif self.group_type == "implicit":
+			if not self.group_graph:
+				self.set_name( self.symbol, occupied_valency=self.occupied_valency)
+			for v in self.group_graph.vertices:
+				v.x, v.y = None, None
+				v.show = v.symbol != 'C'
+			assert self.connecting_atom is not None
+			replacement = self.connecting_atom
+			replacement.x = self.x
+			replacement.y = self.y
+
+		self.molecule.eat_molecule( self.group_graph)
+		self.molecule.move_bonds_between_atoms( self, replacement)
+		self.molecule.delete_vertex( self)
+		if self.occupied_valency:
+			oasa.coords_generator.calculate_coords( self.molecule, bond_length=-1)
+		else:
+			# if the group is the only vertex of the molecule we must set the bond_length explicitly
+			# and the move the whole molecule
+			replacement.x = None
+			replacement.y = None
+			x, y = self.x, self.y
+			oasa.coords_generator.calculate_coords( self.molecule, bond_length=Screen.any_to_px( self.paper.standard.bond_length))
+			dx = x - replacement.x
+			dy = y - replacement.y
+			[a.move( dx, dy) for a in self.group_graph.vertices]
+		return self.group_graph.vertices
 

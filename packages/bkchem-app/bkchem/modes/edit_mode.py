@@ -153,9 +153,9 @@ class edit_mode(basic_mode):
 							o.move_to(sx, sy, use_paper_coords=False)
 				# repositioning of atoms and double bonds
 				atoms = [j for i in [o.neighbors for o in Store.app.paper.selected
-															 if (bkchem.chem_compat.is_chemistry_vertex(o) and
-																 o not in Store.app.paper.selected)]
-							 for j in i]
+																if (bkchem.chem_compat.is_chemistry_vertex(o) and
+																	o not in Store.app.paper.selected)]
+								for j in i]
 				atoms = bkchem_utils.filter_unique( [o for o in Store.app.paper.selected if bkchem.chem_compat.is_chemistry_vertex( o)] + atoms)
 				[o.decide_pos() for o in atoms]
 				[o.redraw() for o in atoms]
@@ -327,7 +327,7 @@ class edit_mode(basic_mode):
 
 	def _end_of_empty_drag( self, x1, y1, x2, y2):
 		Store.app.paper.select( [o for o in map( Store.app.paper.id_to_object,\
-												 Store.app.paper.find_enclosed( x1, y1, x2, y2)) if o])
+													Store.app.paper.find_enclosed( x1, y1, x2, y2)) if o])
 
 
 	## METHODS FOR KEY EVENTS RESPONSES
@@ -345,7 +345,7 @@ class edit_mode(basic_mode):
 	def _paste_clipboard( self):
 		Store.app.paper.unselect_all()
 		xy = (Store.app.paper.canvasx( Store.app.paper.winfo_pointerx() -Store.app.paper.winfo_rootx()),
-			  Store.app.paper.canvasy( Store.app.paper.winfo_pointery() -Store.app.paper.winfo_rooty()))
+				Store.app.paper.canvasy( Store.app.paper.winfo_pointery() -Store.app.paper.winfo_rooty()))
 		if xy[0] > 0 and xy[1] > 0:
 			Store.app.paper.paste_clipboard( xy)
 

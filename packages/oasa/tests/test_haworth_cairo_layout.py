@@ -7,7 +7,10 @@ import os
 import pytest
 
 import oasa
-from oasa import haworth
+import oasa.atom_lib
+import oasa.bond_lib
+import oasa.molecule_lib
+from oasa.haworth import layout as haworth_layout
 from oasa.render_lib.data_types import BondRenderContext
 from oasa.render_lib.bond_ops import build_bond_ops
 from oasa import render_ops
@@ -29,19 +32,19 @@ def output_path(output_dir, filename):
 
 #============================================
 def build_ring(size, oxygen_index=None):
-	mol = oasa.Molecule()
+	mol = oasa.molecule_lib.Molecule()
 	atoms = []
 	for idx in range(size):
 		symbol = 'C'
 		if oxygen_index is not None and idx == oxygen_index:
 			symbol = 'O'
-		a = oasa.Atom(symbol=symbol)
+		a = oasa.atom_lib.Atom(symbol=symbol)
 		a.x = idx * 20
 		a.y = 0
 		mol.add_vertex(a)
 		atoms.append(a)
 	for idx in range(size):
-		bond = oasa.Bond(order=1, type='n')
+		bond = oasa.bond_lib.Bond(order=1, type='n')
 		v1 = atoms[idx]
 		v2 = atoms[(idx + 1) % size]
 		bond.vertices = (v1, v2)
@@ -52,7 +55,7 @@ def build_ring(size, oxygen_index=None):
 #============================================
 def test_haworth_pyranose_layout_and_tags():
 	mol = build_ring(6)
-	result = haworth.build_haworth(mol, mode="pyranose")
+	result = haworth_layout.build_haworth(mol, mode="pyranose")
 	assert len(result["ring_atoms"]) == 6
 	front_types = [b.type for b in result["ring_bonds"] if b.type in ("w", "q")]
 	assert front_types.count("w") == 2
@@ -66,7 +69,7 @@ def test_haworth_pyranose_layout_and_tags():
 #============================================
 def test_haworth_furanose_layout_and_tags():
 	mol = build_ring(5)
-	result = haworth.build_haworth(mol, mode="furanose")
+	result = haworth_layout.build_haworth(mol, mode="furanose")
 	assert len(result["ring_atoms"]) == 5
 	front_types = [b.type for b in result["ring_bonds"] if b.type in ("w", "q")]
 	assert front_types.count("w") == 2
@@ -76,7 +79,7 @@ def test_haworth_furanose_layout_and_tags():
 #============================================
 def test_haworth_places_oxygen_at_top():
 	mol = build_ring(6, oxygen_index=0)
-	result = haworth.build_haworth(mol, mode="pyranose")
+	result = haworth_layout.build_haworth(mol, mode="pyranose")
 	oxygen_atoms = [a for a in result["ring_atoms"] if a.symbol == 'O']
 	assert len(oxygen_atoms) == 1
 	oxygen = oxygen_atoms[0]
@@ -87,7 +90,7 @@ def test_haworth_places_oxygen_at_top():
 #============================================
 def test_haworth_places_furanose_oxygen_at_top():
 	mol = build_ring(5, oxygen_index=0)
-	result = haworth.build_haworth(mol, mode="furanose")
+	result = haworth_layout.build_haworth(mol, mode="furanose")
 	oxygen_atoms = [a for a in result["ring_atoms"] if a.symbol == 'O']
 	assert len(oxygen_atoms) == 1
 	oxygen = oxygen_atoms[0]
@@ -99,7 +102,7 @@ def test_haworth_places_furanose_oxygen_at_top():
 def test_haworth_pyranose_oxygen_not_first():
 	"""Test oxygen placement when oxygen is not at index 0."""
 	mol = build_ring(6, oxygen_index=2)
-	result = haworth.build_haworth(mol, mode="pyranose")
+	result = haworth_layout.build_haworth(mol, mode="pyranose")
 	oxygen_atoms = [a for a in result["ring_atoms"] if a.symbol == 'O']
 	assert len(oxygen_atoms) == 1
 	oxygen = oxygen_atoms[0]
@@ -112,7 +115,7 @@ def test_haworth_pyranose_oxygen_not_first():
 def test_haworth_furanose_oxygen_not_first():
 	"""Test oxygen placement when oxygen is not at index 0."""
 	mol = build_ring(5, oxygen_index=3)
-	result = haworth.build_haworth(mol, mode="furanose")
+	result = haworth_layout.build_haworth(mol, mode="furanose")
 	oxygen_atoms = [a for a in result["ring_atoms"] if a.symbol == 'O']
 	assert len(oxygen_atoms) == 1
 	oxygen = oxygen_atoms[0]
@@ -152,11 +155,11 @@ def test_haworth_cairo_smoke(output_dir):
 #============================================
 def test_haworth_front_edge_and_wedges():
 	pyranose = build_ring(6)
-	result = haworth.build_haworth(pyranose, mode="pyranose")
+	result = haworth_layout.build_haworth(pyranose, mode="pyranose")
 	_assert_front_edge_and_wedges(result)
 
 	furanose = build_ring(5)
-	result = haworth.build_haworth(furanose, mode="furanose")
+	result = haworth_layout.build_haworth(furanose, mode="furanose")
 	_assert_front_edge_and_wedges(result)
 
 
@@ -181,10 +184,10 @@ def _assert_front_edge_and_wedges(result):
 #============================================
 def _build_haworth_smoke_mol():
 	pyranose = build_ring(6, oxygen_index=0)
-	haworth.build_haworth(pyranose, mode="pyranose")
+	haworth_layout.build_haworth(pyranose, mode="pyranose")
 
 	furanose = build_ring(5, oxygen_index=0)
-	haworth.build_haworth(furanose, mode="furanose")
+	haworth_layout.build_haworth(furanose, mode="furanose")
 	max_x = max(atom.x for atom in pyranose.vertices)
 	min_x = min(atom.x for atom in pyranose.vertices)
 	offset = (max_x - min_x) + 50.0
@@ -203,12 +206,12 @@ def _flip_y(mol):
 #============================================
 def test_haworth_substituent_orientation_ops_alpha():
 	mol = build_ring(6, oxygen_index=2)
-	layout = haworth.build_haworth(mol, mode="pyranose")
+	layout = haworth_layout.build_haworth(mol, mode="pyranose")
 	ring_atoms = layout["ring_atoms"]
 	anomeric_atom, reference_atom = _find_haworth_reference_atoms(ring_atoms)
 	an_sub, an_bond = _add_substituent(mol, anomeric_atom, "O")
 	ref_sub, ref_bond = _add_substituent(mol, reference_atom, "C")
-	haworth.place_substituents(mol, ring_atoms, series="D", stereo="alpha", bond_length=30)
+	haworth_layout.place_substituents(mol, ring_atoms, series="D", stereo="alpha", bond_length=30)
 	_assert_substituent_direction(anomeric_atom, an_sub, an_bond, expect="down")
 	_assert_substituent_direction(reference_atom, ref_sub, ref_bond, expect="up")
 
@@ -216,12 +219,12 @@ def test_haworth_substituent_orientation_ops_alpha():
 #============================================
 def test_haworth_substituent_orientation_ops_beta():
 	mol = build_ring(6, oxygen_index=2)
-	layout = haworth.build_haworth(mol, mode="pyranose")
+	layout = haworth_layout.build_haworth(mol, mode="pyranose")
 	ring_atoms = layout["ring_atoms"]
 	anomeric_atom, reference_atom = _find_haworth_reference_atoms(ring_atoms)
 	an_sub, an_bond = _add_substituent(mol, anomeric_atom, "O")
 	ref_sub, ref_bond = _add_substituent(mol, reference_atom, "C")
-	haworth.place_substituents(mol, ring_atoms, series="L", stereo="beta", bond_length=30)
+	haworth_layout.place_substituents(mol, ring_atoms, series="L", stereo="beta", bond_length=30)
 	_assert_substituent_direction(reference_atom, ref_sub, ref_bond, expect="down")
 	_assert_substituent_direction(anomeric_atom, an_sub, an_bond, expect="down")
 
@@ -243,11 +246,11 @@ def _find_haworth_reference_atoms(ring_atoms):
 
 #============================================
 def _add_substituent(mol, ring_atom, symbol):
-	sub = oasa.Atom(symbol=symbol)
+	sub = oasa.atom_lib.Atom(symbol=symbol)
 	sub.x = ring_atom.x
 	sub.y = ring_atom.y
 	mol.add_vertex(sub)
-	bond = oasa.Bond(order=1, type="n")
+	bond = oasa.bond_lib.Bond(order=1, type="n")
 	bond.vertices = (ring_atom, sub)
 	mol.add_edge(ring_atom, sub, bond)
 	return sub, bond

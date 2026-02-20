@@ -25,6 +25,10 @@ try:
 except ImportError:
   oasa_available = 0
 
+import oasa.atom_lib
+import oasa.bond_lib
+import oasa.molecule_lib
+
 from oasa import transform3d_lib as transform3d
 from oasa import cdml_writer
 from oasa.cdml_writer import CPK_COLORS
@@ -382,7 +386,7 @@ def oasa_bond_to_bkchem_bond( b, paper):
 # Reading BKChem properties (a.symbol, a.charge, b.order, b.atoms, etc.);
 # after Wave 2, these read from _chem_atom/_chem_bond internally.
 def bkchem_mol_to_oasa_mol( mol):
-  m = oasa.Molecule()
+  m = oasa.molecule_lib.Molecule()
   for a in mol.atoms:
     m.add_vertex( bkchem_atom_to_oasa_atom( a))
   for b in mol.bonds:
@@ -410,7 +414,7 @@ def bkchem_atom_to_oasa_atom( a):
   """
   # a.symbol reads from _chem_atom after Wave 2
   s = a.symbol
-  ret = oasa.Atom( symbol=s)
+  ret = oasa.atom_lib.Atom( symbol=s)
   # coordinates read through public API (delegate to _chem_atom after Wave 2)
   x, y, z = a.get_xyz()
   ret.x = x
@@ -438,7 +442,7 @@ def bkchem_bond_to_oasa_bond( b):
     OASA bond instance
   """
   # b.order and b.type read from _chem_bond after Wave 2
-  ret = oasa.Bond( order=b.order, type=b.type)
+  ret = oasa.bond_lib.Bond( order=b.order, type=b.type)
   return ret
 
 

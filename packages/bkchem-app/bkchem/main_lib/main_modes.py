@@ -5,7 +5,7 @@ from tkinter import Button, Frame, Label, LEFT
 import Pmw
 from bkchem import bkchem_config
 from bkchem import bkchem_utils
-from bkchem import modes
+from bkchem.modes.config import get_modes_config
 from bkchem import pixmaps
 
 import builtins
@@ -158,7 +158,7 @@ class MainModesMixin:
     """
     # get column count from YAML config
     yaml_key = type(m).__name__.replace('_mode', '')
-    cfg = modes.get_modes_config()['modes'].get(yaml_key, {})
+    cfg = get_modes_config()['modes'].get(yaml_key, {})
     columns = 4
     submode_groups = cfg.get('submodes', [])
     if group_index < len(submode_groups):

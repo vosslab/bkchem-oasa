@@ -8,6 +8,16 @@ import pytest
 
 # local repo modules
 import oasa
+import oasa.atom_lib
+import oasa.bond_lib
+import oasa.molecule_lib
+
+# check cairo availability
+try:
+	import oasa.cairo_out
+	CAIRO_AVAILABLE = True
+except ImportError:
+	CAIRO_AVAILABLE = False
 
 
 DEFAULT_SMILES = "CCCCC"
@@ -69,7 +79,7 @@ def build_molecule():
 #============================================
 def build_printer_self_test():
 	"""Build a molecule with all bond styles and colors for smoke testing."""
-	mol = oasa.Molecule()
+	mol = oasa.molecule_lib.Molecule()
 	spacing_x = 110
 	spacing_y = 70
 	segment = 80
@@ -77,15 +87,15 @@ def build_printer_self_test():
 		for col, (_label, bond_type, wavy_style) in enumerate(BOND_STYLE_COLUMNS):
 			x = col * spacing_x
 			y = row * spacing_y
-			a1 = oasa.Atom(symbol='C')
-			a2 = oasa.Atom(symbol='C')
+			a1 = oasa.atom_lib.Atom(symbol='C')
+			a2 = oasa.atom_lib.Atom(symbol='C')
 			a1.x = x
 			a1.y = y
 			a2.x = x + segment
 			a2.y = y
 			mol.add_vertex(a1)
 			mol.add_vertex(a2)
-			bond = oasa.Bond(order=1, type=bond_type)
+			bond = oasa.bond_lib.Bond(order=1, type=bond_type)
 			if wavy_style:
 				bond.wavy_style = wavy_style
 				bond.properties_['wavy_style'] = wavy_style
@@ -137,7 +147,7 @@ def test_oasa_bond_styles_svg(output_dir):
 
 #============================================
 def test_oasa_bond_styles_png(output_dir):
-	if not oasa.CAIRO_AVAILABLE:
+	if not CAIRO_AVAILABLE:
 		pytest.skip("Cairo backend not available.")
 	mol = build_molecule()
 	png_path = output_path(output_dir, "oasa_bond_styles_smoke.png")
@@ -162,7 +172,7 @@ def test_oasa_bond_styles_printer_svg(output_dir):
 
 #============================================
 def test_oasa_bond_styles_printer_png(output_dir):
-	if not oasa.CAIRO_AVAILABLE:
+	if not CAIRO_AVAILABLE:
 		pytest.skip("Cairo backend not available.")
 	mol = build_printer_self_test()
 	png_path = output_path(output_dir, "oasa_bond_styles_printer_self_test.png")

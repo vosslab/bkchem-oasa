@@ -8,6 +8,9 @@ import pytest
 
 # local repo modules
 import oasa
+import oasa.atom_lib
+import oasa.bond_lib
+import oasa.molecule_lib
 from oasa import render_ops
 from oasa.render_lib.bond_length_policy import bond_length_profile
 from oasa.render_lib.bond_length_policy import resolve_bond_length
@@ -32,16 +35,16 @@ def _distance(p1, p2):
 
 #============================================
 def _build_two_atom_molecule(order=1, edge_type='n'):
-	mol = oasa.Molecule()
-	a1 = oasa.Atom(symbol='C')
-	a2 = oasa.Atom(symbol='C')
+	mol = oasa.molecule_lib.Molecule()
+	a1 = oasa.atom_lib.Atom(symbol='C')
+	a2 = oasa.atom_lib.Atom(symbol='C')
 	a1.x = 0.0
 	a1.y = 0.0
 	a2.x = 10.0
 	a2.y = 0.0
 	mol.add_vertex(a1)
 	mol.add_vertex(a2)
-	bond = oasa.Bond(order=order, type=edge_type)
+	bond = oasa.bond_lib.Bond(order=order, type=edge_type)
 	bond.vertices = (a1, a2)
 	mol.add_edge(a1, a2, bond)
 	return mol, bond

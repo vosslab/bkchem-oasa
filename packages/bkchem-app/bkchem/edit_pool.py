@@ -113,7 +113,7 @@ class editPool( Frame):
 
 		Returns the frame so the caller can pack/grid it in the ribbon.
 		"""
-		from bkchem.modes import get_edit_pool_config
+		from bkchem.modes.config import get_edit_pool_config
 		self._button_frame = Frame( parent)
 		groups = get_edit_pool_config()
 		self._buttons_by_key = {}

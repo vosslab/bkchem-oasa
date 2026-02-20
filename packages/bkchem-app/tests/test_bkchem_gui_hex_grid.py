@@ -10,19 +10,6 @@ import time
 # Third Party
 import pytest
 
-# Local repo modules
-import conftest
-
-
-#============================================
-def _ensure_sys_path(root_dir):
-	"""Ensure BKChem and OASA package paths are on sys.path."""
-	bkchem_pkg_dir = os.path.join(root_dir, "packages", "bkchem-app")
-	if bkchem_pkg_dir not in sys.path:
-		sys.path.insert(0, bkchem_pkg_dir)
-	oasa_pkg_dir = os.path.join(root_dir, "packages", "oasa")
-	if oasa_pkg_dir not in sys.path:
-		sys.path.insert(0, oasa_pkg_dir)
 
 
 #============================================
@@ -76,8 +63,6 @@ def _flush_events(app, delay=0.05):
 #============================================
 def _init_app():
 	"""Create and initialize a BKChem app instance for testing."""
-	root_dir = conftest.repo_root()
-	_ensure_sys_path(root_dir)
 	_ensure_gettext_fallbacks()
 	_verify_tkinter()
 	_ensure_preferences()
@@ -265,9 +250,6 @@ def _run_zoom_threshold_test():
 #============================================
 def _run_cutoff_test():
 	"""Verify the MAX_GRID_POINTS cutoff in generate_hex_grid_points."""
-	root_dir = conftest.repo_root()
-	_ensure_sys_path(root_dir)
-
 	import oasa.hex_grid
 
 	spacing = 20.0

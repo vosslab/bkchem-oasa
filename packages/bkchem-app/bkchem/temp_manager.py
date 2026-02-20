@@ -30,6 +30,7 @@ from warnings import warn
 from oasa.transform_lib import Transform
 
 import oasa
+import oasa.atom_lib
 import oasa.oasa_config
 import oasa.smiles_lib
 from oasa.molecule_lib import Molecule as oasa_molecule_class
@@ -299,7 +300,7 @@ class template_manager(object):
 		neighbor = _choose_anchor_neighbor(anchor)
 
 		# build template anchor atom one bond length to the right
-		template_atom = oasa.Atom(symbol="C")
+		template_atom = oasa.atom_lib.Atom(symbol="C")
 		template_atom.x = anchor.x + 1.0
 		template_atom.y = anchor.y
 		template_atom.z = 0.0

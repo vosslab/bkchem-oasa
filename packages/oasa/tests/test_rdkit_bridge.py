@@ -2,14 +2,6 @@
 
 # Standard Library
 import math
-import pathlib
-import sys
-
-# ensure OASA is importable
-REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
-oasa_path = REPO_ROOT / "packages" / "oasa"
-if str(oasa_path) not in sys.path:
-	sys.path.insert(0, str(oasa_path))
 
 # PIP3 modules
 import rdkit.Chem

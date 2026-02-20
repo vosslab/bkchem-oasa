@@ -25,6 +25,7 @@
 
 import sys
 import oasa
+import oasa.query_atom
 
 from oasa import periodic_table as PT
 
@@ -59,9 +60,9 @@ class BkQueryatom(drawable_chem_vertex):
     drawable_chem_vertex.__init__( self, standard=standard, xy=xy, molecule=molecule)
     # composition: delegate chemistry to oasa.query_atom instance
     if xy:
-      self._chem_query_atom = oasa.QueryAtom(coords=(xy[0], xy[1], 0))
+      self._chem_query_atom = oasa.query_atom.QueryAtom(coords=(xy[0], xy[1], 0))
     else:
-      self._chem_query_atom = oasa.QueryAtom()
+      self._chem_query_atom = oasa.query_atom.QueryAtom()
 
     if package:
       self.read_package( package)

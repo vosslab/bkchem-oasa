@@ -11,7 +11,10 @@ import pytest
 
 # local repo modules
 import oasa
-from oasa import haworth
+import oasa.atom_lib
+import oasa.bond_lib
+import oasa.molecule_lib
+from oasa.haworth import layout as haworth_layout
 from oasa.render_lib.molecule_ops import molecule_to_ops
 from oasa import render_ops
 from oasa import render_out
@@ -27,20 +30,20 @@ def _mol_from_smiles(smiles_text):
 
 #============================================
 def _single_bond(v1, v2, bond_type="n"):
-	bond = oasa.Bond(order=1, type=bond_type)
+	bond = oasa.bond_lib.Bond(order=1, type=bond_type)
 	bond.vertices = (v1, v2)
 	return bond
 
 
 #============================================
 def _build_ring(size, oxygen_index=None):
-	mol = oasa.Molecule()
+	mol = oasa.molecule_lib.Molecule()
 	atoms = []
 	for idx in range(size):
 		symbol = "C"
 		if oxygen_index is not None and idx == oxygen_index:
 			symbol = "O"
-		atom = oasa.Atom(symbol=symbol)
+		atom = oasa.atom_lib.Atom(symbol=symbol)
 		atom.x = float(idx) * 20.0
 		atom.y = 0.0
 		mol.add_vertex(atom)
@@ -64,12 +67,12 @@ def _build_aromatic_molecule():
 
 #============================================
 def _build_charged_molecule():
-	mol = oasa.Molecule()
-	a1 = oasa.Atom(symbol="N")
+	mol = oasa.molecule_lib.Molecule()
+	a1 = oasa.atom_lib.Atom(symbol="N")
 	a1.x = 0.0
 	a1.y = 0.0
 	a1.charge = 1
-	a2 = oasa.Atom(symbol="C")
+	a2 = oasa.atom_lib.Atom(symbol="C")
 	a2.x = 40.0
 	a2.y = 0.0
 	mol.add_vertex(a1)
@@ -80,17 +83,17 @@ def _build_charged_molecule():
 
 #============================================
 def _build_stereo_style_molecule():
-	mol = oasa.Molecule()
-	a1 = oasa.Atom(symbol="C")
+	mol = oasa.molecule_lib.Molecule()
+	a1 = oasa.atom_lib.Atom(symbol="C")
 	a1.x = 0.0
 	a1.y = 0.0
-	a2 = oasa.Atom(symbol="C")
+	a2 = oasa.atom_lib.Atom(symbol="C")
 	a2.x = 24.0
 	a2.y = 4.0
-	a3 = oasa.Atom(symbol="C")
+	a3 = oasa.atom_lib.Atom(symbol="C")
 	a3.x = -16.0
 	a3.y = 20.0
-	a4 = oasa.Atom(symbol="C")
+	a4 = oasa.atom_lib.Atom(symbol="C")
 	a4.x = -16.0
 	a4.y = -20.0
 	for atom in (a1, a2, a3, a4):
@@ -104,7 +107,7 @@ def _build_stereo_style_molecule():
 #============================================
 def _build_haworth_molecule(mode):
 	mol = _build_ring(6 if mode == "pyranose" else 5, oxygen_index=0)
-	haworth.build_haworth(mol, mode=mode)
+	haworth_layout.build_haworth(mol, mode=mode)
 	return mol
 
 
@@ -262,15 +265,15 @@ def test_molecule_to_ops_fixture_smiles_non_empty():
 
 #============================================
 def test_molecule_to_ops_includes_charge_and_stereo_geometry():
-	mol = oasa.Molecule()
-	a1 = oasa.Atom(symbol="N")
+	mol = oasa.molecule_lib.Molecule()
+	a1 = oasa.atom_lib.Atom(symbol="N")
 	a1.x = 0.0
 	a1.y = 0.0
 	a1.charge = 1
-	a2 = oasa.Atom(symbol="C")
+	a2 = oasa.atom_lib.Atom(symbol="C")
 	a2.x = 40.0
 	a2.y = 0.0
-	a3 = oasa.Atom(symbol="C")
+	a3 = oasa.atom_lib.Atom(symbol="C")
 	a3.x = 12.0
 	a3.y = 40.0
 	mol.add_vertex(a1)

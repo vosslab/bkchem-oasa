@@ -29,7 +29,7 @@ if REPO_DIR not in sys.path:
 	sys.path.insert(0, REPO_DIR)
 
 # local repo modules
-import oasa
+import oasa.codec_registry
 
 
 CODEC_CODES = {
@@ -103,7 +103,7 @@ def parse_args():
 	parser.add_argument(
 		'--version',
 		action='version',
-		version=f"%(prog)s {oasa.__version__}",
+		version="%(prog)s 26.02",
 	)
 	parser.add_argument(
 		'-i', '--input',

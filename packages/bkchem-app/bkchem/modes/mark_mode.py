@@ -51,9 +51,9 @@ class mark_mode( edit_mode):
 	def mouse_click( self, event):
 		mark_name = self.get_submode( 0)
 		recode = {'dottedelectronpair':'dotted_electronpair',
-				  'plusincircle'      :'plus',
-				  'minusincircle'     :'minus',
-				  'pzorbital'         :'pz_orbital'}
+					'plusincircle'      :'plus',
+					'minusincircle'     :'minus',
+					'pzorbital'         :'pz_orbital'}
 		if mark_name in recode:
 			mark_name = recode[ mark_name]
 		if self.get_submode( 1) == 'add':

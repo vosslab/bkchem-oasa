@@ -1,19 +1,9 @@
 #!/usr/bin/env python3
 """Tests for biomolecule SMILES template loading and generation."""
 
-# Standard Library
-import os
-import sys
-
-# ensure repo packages are importable
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
-for pkg_dir in ('packages/oasa', 'packages/bkchem-app'):
-	full = os.path.join(REPO_ROOT, pkg_dir)
-	if full not in sys.path:
-		sys.path.insert(0, full)
-
 # local repo modules
 import oasa
+import oasa.atom_lib
 import oasa.smiles_lib
 import oasa.molecule_lib
 
@@ -135,7 +125,7 @@ class TestSmilesTemplateGeneration:
 		mol.normalize_bond_length(1.0)
 		anchor = _choose_anchor_atom(mol)
 		neighbor = _choose_anchor_neighbor(anchor)
-		template_atom = oasa.Atom(symbol="C")
+		template_atom = oasa.atom_lib.Atom(symbol="C")
 		template_atom.x = anchor.x + 1.0
 		template_atom.y = anchor.y
 		template_atom.z = 0.0
@@ -156,8 +146,8 @@ class TestRemoveUnimportantHydrogens:
 	"""Verify remove_unimportant_hydrogens works on pure OASA molecules."""
 
 	def test_method_exists_on_oasa_molecule(self):
-		"""oasa.Molecule (the class) should have remove_unimportant_hydrogens."""
-		assert hasattr(oasa.Molecule, 'remove_unimportant_hydrogens')
+		"""oasa.molecule_lib.Molecule (the class) should have remove_unimportant_hydrogens."""
+		assert hasattr(oasa.molecule_lib.Molecule, 'remove_unimportant_hydrogens')
 
 	def test_removes_implicit_hydrogens(self):
 		"""Parsing methane should give atoms, remove_unimportant_hydrogens reduces count."""

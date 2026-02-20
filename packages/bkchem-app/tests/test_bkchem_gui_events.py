@@ -10,19 +10,6 @@ import time
 # Third Party
 import pytest
 
-# Local repo modules
-import conftest
-
-
-#============================================
-def _ensure_sys_path(root_dir):
-	"""Ensure BKChem and OASA package paths are on sys.path."""
-	bkchem_pkg_dir = os.path.join(root_dir, "packages", "bkchem-app")
-	if bkchem_pkg_dir not in sys.path:
-		sys.path.insert(0, bkchem_pkg_dir)
-	oasa_pkg_dir = os.path.join(root_dir, "packages", "oasa")
-	if oasa_pkg_dir not in sys.path:
-		sys.path.insert(0, oasa_pkg_dir)
 
 
 #============================================
@@ -145,8 +132,6 @@ def _count_bonds(paper):
 
 #============================================
 def _run_gui_event_simulation():
-	root_dir = conftest.repo_root()
-	_ensure_sys_path(root_dir)
 	_ensure_gettext_fallbacks()
 	_verify_tkinter()
 	_ensure_preferences()

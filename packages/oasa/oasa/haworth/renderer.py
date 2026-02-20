@@ -9,7 +9,7 @@ import math
 import re
 
 # local repo modules
-from oasa.haworth import _ring_template
+from oasa.haworth.layout import _ring_template
 from oasa import geometry
 from oasa import sugar_code as _sugar_code
 from oasa import render_ops

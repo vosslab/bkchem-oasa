@@ -15,7 +15,7 @@ if OASA_DIR not in sys.path:
 
 
 # local repo modules
-from oasa import haworth
+from oasa.haworth import layout as haworth_layout
 from oasa import render_out
 from oasa import smiles_lib as smiles
 
@@ -140,7 +140,7 @@ def _render_haworth(args):
 	mol = smiles.text_to_mol(args.smiles, calc_coords=DEFAULT_BOND_LENGTH)
 
 	# Apply Haworth layout and optional substituent orientation
-	haworth.build_haworth(
+	haworth_layout.build_haworth(
 		mol,
 		mode=args.mode,
 		bond_length=DEFAULT_BOND_LENGTH,

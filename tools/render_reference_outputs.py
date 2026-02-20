@@ -52,20 +52,23 @@ def _ensure_dir(path):
 #============================================
 def _build_ring(size, oxygen_index=None):
 	import oasa
+	import oasa.atom_lib
+	import oasa.bond_lib
+	import oasa.molecule_lib
 
-	mol = oasa.Molecule()
+	mol = oasa.molecule_lib.Molecule()
 	atoms = []
 	for idx in range(size):
 		symbol = 'C'
 		if oxygen_index is not None and idx == oxygen_index:
 			symbol = 'O'
-		atom = oasa.Atom(symbol=symbol)
+		atom = oasa.atom_lib.Atom(symbol=symbol)
 		atom.x = idx * 20
 		atom.y = 0
 		mol.add_vertex(atom)
 		atoms.append(atom)
 	for idx in range(size):
-		bond = oasa.Bond(order=1, type='n')
+		bond = oasa.bond_lib.Bond(order=1, type='n')
 		v1 = atoms[idx]
 		v2 = atoms[(idx + 1) % size]
 		bond.vertices = (v1, v2)
@@ -75,13 +78,13 @@ def _build_ring(size, oxygen_index=None):
 
 #============================================
 def _build_haworth_reference():
-	import oasa.haworth
+	from oasa.haworth import layout as haworth_layout
 
 	pyranose = _build_ring(6, oxygen_index=0)
-	oasa.haworth.build_haworth(pyranose, mode="pyranose")
+	haworth_layout.build_haworth(pyranose, mode="pyranose")
 
 	furanose = _build_ring(5, oxygen_index=0)
-	oasa.haworth.build_haworth(furanose, mode="furanose")
+	haworth_layout.build_haworth(furanose, mode="furanose")
 
 	max_x = max(atom.x for atom in pyranose.vertices)
 	min_x = min(atom.x for atom in pyranose.vertices)

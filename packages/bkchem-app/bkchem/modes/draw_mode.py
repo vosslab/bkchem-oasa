@@ -44,8 +44,8 @@ class draw_mode( edit_mode):
 
 	def mouse_down( self, event, modifiers = []):
 		"""Starts a new bond, if no atom is focused (the mouse is being
-		   pressed on bank space) creates a new BkAtom.
-		   The BkBond is completed upon release (mouse_up())."""
+			pressed on bank space) creates a new BkAtom.
+			The BkBond is completed upon release (mouse_up())."""
 		edit_mode.mouse_down( self, event, modifiers = modifiers)
 		Store.app.paper.unselect_all()
 		if not self.focused:
@@ -119,9 +119,9 @@ class draw_mode( edit_mode):
 		else:
 			if bkchem.chem_compat.is_chemistry_vertex( self.focused):
 				b = BkBond( standard = Store.app.paper.standard,
-						  type=self.__mode_to_bond_type(),
-						  order=self.__mode_to_bond_order(),
-						  simple_double=self.submode[4])
+							type=self.__mode_to_bond_type(),
+							order=self.__mode_to_bond_order(),
+							simple_double=self.submode[4])
 				a, b = self.focused.molecule.add_atom_to( self.focused, bond_to_use=b)
 				# update atom text
 				if hasattr( self.focused, 'update_after_valency_change'):
@@ -175,17 +175,17 @@ class draw_mode( edit_mode):
 			if self.focused and bkchem.chem_compat.is_chemistry_vertex( self.focused):
 				self._start_atom = self.focused
 				b = BkBond( standard = Store.app.paper.standard,
-						  type=self.__mode_to_bond_type(),
-						  order=self.__mode_to_bond_order(),
-						  simple_double=self.submode[4])
+							type=self.__mode_to_bond_type(),
+							order=self.__mode_to_bond_order(),
+							simple_double=self.submode[4])
 				if self.submode[3] == 1:
 					# Free-hand lenght
 					self._moved_atom, self._bonds_to_update = self.focused.molecule.add_atom_to( self.focused,
-																								   bond_to_use=b,
-																								   pos=(event.x, event.y))
+																									bond_to_use=b,
+																									pos=(event.x, event.y))
 				else:
 					self._moved_atom, self._bonds_to_update = self.focused.molecule.add_atom_to( self.focused,
-																								   bond_to_use=b)
+																									bond_to_use=b)
 
 				# deactivate the new atom and bond for focus
 				Store.app.paper._do_not_focus = [self._moved_atom, b]

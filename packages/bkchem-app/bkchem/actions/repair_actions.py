@@ -1,7 +1,7 @@
 """Repair menu action registrations for BKChem."""
 
 # local repo modules
-from bkchem.actions import MenuAction
+from bkchem.actions.action_registry import MenuAction
 
 # these imports are needed for handler lambdas;
 # they may not resolve in isolated test environments

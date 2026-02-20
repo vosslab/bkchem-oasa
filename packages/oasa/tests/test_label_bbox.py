@@ -5,6 +5,7 @@ import pytest
 
 # local repo modules
 import oasa
+import oasa.atom_lib
 from oasa import render_ops
 from oasa.render_lib.data_types import AttachConstraints
 from oasa.render_lib.data_types import make_box_target
@@ -19,7 +20,7 @@ from oasa.render_lib.molecule_ops import build_vertex_ops
 
 #============================================
 def _make_vertex(symbol="O", label=None, anchor=None, x=0.0, y=0.0):
-	vertex = oasa.Atom(symbol=symbol)
+	vertex = oasa.atom_lib.Atom(symbol=symbol)
 	vertex.x = float(x)
 	vertex.y = float(y)
 	if label is not None:

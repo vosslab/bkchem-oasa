@@ -23,6 +23,7 @@
 
 import importlib
 import oasa
+import oasa.bond_lib
 
 from bkchem import bkchem_utils
 
@@ -86,7 +87,7 @@ class BkBond(
     # initiation
     self.molecule = molecule
     # composition layer: dedicated oasa.bond for chemistry data
-    self._chem_bond = oasa.Bond(order=order, type=type)
+    self._chem_bond = oasa.bond_lib.Bond(order=order, type=type)
     # standalone vertex list (no longer inheriting from oasa.edge)
     self._bond_vertices = list(atoms) if atoms else [None, None]
     # backward compat alias during transition
