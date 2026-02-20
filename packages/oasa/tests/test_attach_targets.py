@@ -15,7 +15,6 @@ from oasa.render_lib.label_geometry import label_target
 from oasa.render_lib.attach_resolution import resolve_attach_endpoint
 from oasa.render_lib.attach_resolution import retreat_endpoint_until_legal
 from oasa.render_lib.attach_resolution import validate_attachment_paint
-from oasa import render_geometry
 
 
 #============================================
@@ -139,13 +138,12 @@ def test_resolve_attach_endpoint_composite_uses_fallback_children():
 
 
 #============================================
-def test_phase_c_removed_bbox_wrappers():
-	assert not hasattr(render_geometry, "clip_bond_to_bbox")
-	assert not hasattr(render_geometry, "label_bbox")
-	assert not hasattr(render_geometry, "label_bbox_from_text_origin")
-	assert not hasattr(render_geometry, "label_attach_bbox")
-	assert not hasattr(render_geometry, "label_attach_bbox_from_text_origin")
-	assert not hasattr(render_geometry, "bbox_center")
+def test_render_geometry_shim_removed():
+	"""Verify the backward-compat shim module no longer exists."""
+	import importlib
+	with pytest.raises(ImportError):
+		# the shim was deleted after the render_lib sub-package split
+		importlib.import_module("oasa.render_geometry")
 
 
 #============================================

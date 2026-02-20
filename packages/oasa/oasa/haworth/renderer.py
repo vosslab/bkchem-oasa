@@ -19,9 +19,7 @@ from oasa.render_lib.data_types import ATTACH_GAP_TARGET
 from oasa.render_lib.data_types import HASHED_BOND_WEDGE_RATIO
 from oasa.render_lib.data_types import _coerce_attach_target
 from oasa.render_lib.data_types import make_attach_constraints
-from oasa.render_lib.data_types import make_box_target
 from oasa.render_lib.data_types import make_circle_target
-from oasa.render_lib.data_types import make_composite_target
 from oasa.render_lib.label_geometry import default_label_attach_policy
 from oasa.render_lib.label_geometry import label_allowed_target_from_text_origin
 from oasa.render_lib.label_geometry import label_attach_contract_from_text_origin

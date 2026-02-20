@@ -83,7 +83,6 @@ from oasa import atom_colors
 from oasa import dom_extensions
 from oasa import svg_out
 from oasa import render_lib
-from oasa import render_geometry
 from oasa import render_ops
 from oasa import render_out
 from oasa import wedge_geometry
@@ -131,7 +130,6 @@ _EXPORTED_MODULES = [
 	atom_colors,
 	dom_extensions,
 	svg_out,
-	render_geometry,
 	render_ops,
 	render_out,
 	wedge_geometry,
@@ -159,7 +157,7 @@ allNames = [
 	'codec_registry', 'bond_semantics', 'safe_xml',
 	'graph', 'linear_formula', 'periodic_table',
 	'atom_colors', 'dom_extensions', 'svg_out',
-	'render_geometry', 'render_ops', 'render_out',
+	'render_ops', 'render_out',
 	'wedge_geometry', 'geometry',
 	'haworth', 'sugar_code', 'sugar_code_smiles',
 	'haworth_spec', 'haworth_renderer',

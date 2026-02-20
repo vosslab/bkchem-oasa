@@ -1,15 +1,21 @@
 # Changelog
 
 ## 2026-02-20
-- Rewrite [test_menu_yaml.py](packages/bkchem-app/tests/test_menu_yaml.py) to remove
-  7 brittle hardcoded-count assertions (menu count, action count, separator count, etc.)
-  and replace with 3 structural tests (menu schema validation, no empty menus, no
-  adjacent or leading/trailing separators). 6 existing structural tests kept as-is.
-- Update [bond_drawing.py](packages/bkchem-app/bkchem/bond_drawing.py) and
-  [bond_render_ops.py](packages/bkchem-app/bkchem/bond_render_ops.py) to replace
-  `from oasa import render_geometry` with direct imports from `oasa.render_lib`
-  sub-modules (`data_types`, `attach_resolution`, `bond_ops`). All
-  `render_geometry.X` call sites replaced with bare `X` names.
+- Delete `render_geometry.py` backward-compat shim and update all 19 consumer
+  files to import directly from `oasa.render_lib` sub-modules. Remove
+  `render_geometry` from [\_\_init\_\_.py](packages/oasa/oasa/__init__.py)
+  exports. All `render_geometry.X` / `_render_geometry.X` / `_rg.X` call sites
+  replaced with bare names. Consumer files updated: 5 OASA runtime
+  ([render_out.py](packages/oasa/oasa/render_out.py),
+  [svg_out.py](packages/oasa/oasa/svg_out.py),
+  [cairo_out.py](packages/oasa/oasa/cairo_out.py),
+  [renderer.py](packages/oasa/oasa/haworth/renderer.py),
+  [renderer_layout.py](packages/oasa/oasa/haworth/renderer_layout.py)),
+  2 BKChem ([bond_drawing.py](packages/bkchem-app/bkchem/bond_drawing.py),
+  [bond_render_ops.py](packages/bkchem-app/bkchem/bond_render_ops.py)),
+  10 test files, 2 tool files
+  ([calibrate_glyph_model.py](tools/calibrate_glyph_model.py),
+  [selftest_sheet.py](tools/selftest_sheet.py)).
 - Remove 5 dead methods: `print_all_coords()`, `_open_debug_console()`,
   `flush_first_selected_mol_to_graph_file()` from
   [paper.py](packages/bkchem-app/bkchem/paper.py), and `_update_geometry()`,
