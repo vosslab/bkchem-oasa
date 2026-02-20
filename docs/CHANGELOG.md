@@ -1,6 +1,10 @@
 # Changelog
 
 ## 2026-02-20
+- Remove legacy NIST WebBook addon scripts (`fetch_from_webbook.py`,
+  `fetch_name_from_webbook.py`) and their XML descriptors. These used HTTP
+  URLs, HTML scraping, and dated patterns. External chemistry data fetching
+  will be replaced by PubChem integration.
 - Remove CDML unknown-attribute preservation system. Unknown XML attributes on
   atoms, bonds, groups, queries, and text elements are now silently ignored on
   read, matching how CML and other established chemistry formats handle

@@ -19,14 +19,6 @@ provenance.
 
 ## Mixed Files (GPLv2 + LGPLv3)
 
-### BKChem Addons
-
-Purpose: optional webbook/network helpers used to fetch external chemistry
-metadata.
-
-- [packages/bkchem-app/addons/fetch_from_webbook.py](packages/bkchem-app/addons/fetch_from_webbook.py)
-- [packages/bkchem-app/addons/fetch_name_from_webbook.py](packages/bkchem-app/addons/fetch_name_from_webbook.py)
-
 ### BKChem Frontend Core
 
 Purpose: BKChem GUI app lifecycle, UI interaction modes, rendering orchestration,
