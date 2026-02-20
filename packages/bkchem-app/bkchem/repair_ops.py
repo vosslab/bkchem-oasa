@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """BKChem thin wrappers for OASA repair algorithms.
 
 Each function handles selection, unit conversion, undo, and redraw.

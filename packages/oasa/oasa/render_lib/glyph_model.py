@@ -27,7 +27,6 @@ from oasa.render_lib.data_types import GlyphAttachPrimitive
 from oasa.render_lib.data_types import _OVAL_GLYPH_ELEMENTS
 from oasa.render_lib.data_types import _RECT_GLYPH_ELEMENTS
 from oasa.render_lib.data_types import _SPECIAL_GLYPH_ELEMENTS
-from oasa.render_lib.data_types import _normalize_attach_site
 from oasa.render_lib.data_types import _normalize_element_symbol
 
 try:

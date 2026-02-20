@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Pure repair algorithms for molecular geometry normalization.
 
 All functions operate on OASA-compatible molecule objects (anything with

@@ -39,7 +39,6 @@ from oasa.render_lib.low_level_geometry import _line_circle_intersection
 from oasa.render_lib.low_level_geometry import _line_intersection
 from oasa.render_lib.low_level_geometry import _point_in_attach_target
 from oasa.render_lib.low_level_geometry import _point_in_attach_target_closed
-from oasa.render_lib.low_level_geometry import _ray_box_boundary_intersection
 from oasa.render_lib.low_level_geometry import _ray_circle_boundary_intersection
 from oasa.render_lib.low_level_geometry import _snapped_direction_unit
 from oasa.render_lib.low_level_geometry import _vertical_circle_boundary

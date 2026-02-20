@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Parity tests: Gasteiger edge-based cycle basis vs rustworkx vertex cycle_basis + edge conversion.
 
 Compares the existing get_smallest_independent_cycles_e() (Gasteiger, ~175 lines)

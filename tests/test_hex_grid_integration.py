@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """Integration tests for the oasa.hex_grid module and snap_cdml_to_hex_grid CLI."""
 
 # Standard Library

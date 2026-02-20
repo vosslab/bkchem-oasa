@@ -1,11 +1,19 @@
 # Changelog
 
 ## 2026-02-20
+- Fix shebang alignment issues across 13 files. Remove shebangs from 11 test
+  files, fixture files, and library modules that are not standalone scripts
+  (`keysym_loader.py`, `repair_ops.py` x2, `graph_test_fixtures.py`, and 7
+  `test_*.py` files). Add executable permission to 2 standalone scripts
+  (`benchmark_graph_algorithms.py`, `snap_cdml_to_hex_grid.py`).
 - Fix mode button border color residue after cycling through toolbar modes.
   Reset `highlightbackground` and `highlightcolor` to their default values when
   deselecting buttons in `change_mode()`, preventing blue-tinted border artifacts
   on macOS Tk/Aqua. Strengthen `test_gui_modes.py` border checks to verify
   inactive buttons do not retain the `#4a90d9` accent color.
+- Remove 3 unused imports flagged by pyflakes in `oasa/render_lib/`: drop
+  `_normalize_attach_site` from `glyph_model.py`, `_ray_box_boundary_intersection`
+  from `attach_resolution.py`, and `make_box_target` from `low_level_geometry.py`.
 - Standardize gettext i18n fallback pattern across 27 production files. Replace
   verbose `getattr(builtins, "_", None)` multi-line fallback with standard
   one-liner `builtins.__dict__.get('_', lambda m: m)` in 5 files (`checks.py`,

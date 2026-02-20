@@ -23,7 +23,8 @@ fi
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 
 # Add packages to PYTHONPATH
-export PYTHONPATH="${REPO_ROOT}/packages/oasa:${REPO_ROOT}/packages/bkchem-app${PYTHONPATH:+:${PYTHONPATH}}"
+unset PYTHONPATH
+export PYTHONPATH="${REPO_ROOT}/packages/oasa:${REPO_ROOT}/packages/bkchem-app"
 
 echo "Environment configured:"
 echo "  REPO_ROOT=${REPO_ROOT}"

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #--------------------------------------------------------------------------
 #     This file is part of BKChem - a chemical drawing program
 #     Copyright (C) 2002-2009 Beda Kosata <beda@zirael.org>

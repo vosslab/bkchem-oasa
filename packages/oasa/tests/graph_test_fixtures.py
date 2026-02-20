@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Reusable test fixtures that build molecules in both OASA and rustworkx formats.
 
 Each make_*() function returns a dict with keys:

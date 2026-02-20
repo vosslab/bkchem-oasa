@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Parity tests: run graph algorithms through OASA and rustworkx, assert matching results.
 
 Each test class exercises one graph algorithm across all fixture molecules,

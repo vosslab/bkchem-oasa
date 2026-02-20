@@ -26,7 +26,6 @@ import math
 from oasa import geometry
 from oasa import oasa_utils as misc
 from oasa.render_lib.data_types import _coerce_attach_target
-from oasa.render_lib.data_types import make_box_target
 
 
 #============================================

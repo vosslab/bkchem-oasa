@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """Unit tests for the oasa.hex_grid module."""
 
 # Standard Library

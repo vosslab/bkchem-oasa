@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Unit tests for the RxBackend adapter.
 
 Tests cover initialization, mirror operations, rebuild, lazy sync,

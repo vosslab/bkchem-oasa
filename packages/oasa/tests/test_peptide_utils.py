@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
 """Unit tests for oasa.peptide_utils."""
