@@ -17,20 +17,24 @@ from oasa import smiles_lib
 
 
 # test SMILES covering a range of topologies
-MOLECULES = {
+CYCLIC_MOLECULES = {
 	"benzene": "c1ccccc1",
 	"naphthalene": "c1ccc2ccccc2c1",
 	"anthracene": "c1ccc2cc3ccccc3cc2c1",
 	"cholesterol": "OC1CCC2(C1)C1CCC3C(CCC4CC(=O)CCC43C)C1CC=C2C1CCCCC1",
 	"caffeine": "Cn1c(=O)c2c(ncn2C)n(C)c1=O",
 	"cyclopentane": "C1CCCC1",
-	"hexane": "CCCCCC",
 	"biphenyl": "c1ccc(-c2ccccc2)cc1",
 	"cubane": "C12C3C4C1C5C3C4C25",
 	"adamantane": "C1C2CC3CC1CC(C2)C3",
 	"spiro_compound": "C1CCC2(CC1)CCCC2",
 	"steroid_core": "C1CCC2C(C1)CCC1C2CCC2CCCCC21",
 }
+ACYCLIC_MOLECULES = {
+	"hexane": "CCCCCC",
+}
+# combined dict for the parametrized fixture
+MOLECULES = {**CYCLIC_MOLECULES, **ACYCLIC_MOLECULES}
 
 
 #============================================
@@ -207,7 +211,8 @@ class TestEdgeCycleParity:
 		num_components = len(mol.get_connected_components())
 		expected_ncycles = num_edges - num_verts + num_components
 		if expected_ncycles <= 0:
-			pytest.skip(f"{name}: acyclic molecule (ncycles={expected_ncycles})")
+			# acyclic molecules tested separately in TestAcyclicMolecules
+			return
 		gasteiger_cycles = mol.get_smallest_independent_cycles_e()
 		vertex_cycles = mol.get_smallest_independent_cycles()
 		wrapper_cycles = vertex_cycles_to_edge_cycles(mol, vertex_cycles)
@@ -217,17 +222,6 @@ class TestEdgeCycleParity:
 		assert len(wrapper_cycles) == expected_ncycles, (
 			f"{name}: Wrapper found {len(wrapper_cycles)}, expected {expected_ncycles}"
 		)
-
-	def test_hexane_returns_empty(self, molecule_pair):
-		"""Acyclic molecules should return empty cycle sets from both methods."""
-		mol, name = molecule_pair
-		if name != "hexane":
-			pytest.skip("Only testing hexane for acyclic case")
-		gasteiger_cycles = mol.get_smallest_independent_cycles_e()
-		vertex_cycles = mol.get_smallest_independent_cycles()
-		wrapper_cycles = vertex_cycles_to_edge_cycles(mol, vertex_cycles)
-		assert len(gasteiger_cycles) == 0, f"Gasteiger returned cycles for acyclic {name}"
-		assert len(wrapper_cycles) == 0, f"Wrapper returned cycles for acyclic {name}"
 
 
 #============================================
@@ -304,3 +298,27 @@ class TestWrapperEdgeCases:
 		assert len(wrapper_cycles) == 2
 		assert len(gasteiger_cycles) == 2
 		assert wrapper_cycles == gasteiger_cycles
+
+
+#============================================
+class TestAcyclicMolecules:
+	"""Verify acyclic molecules return empty cycle sets from both methods."""
+
+	@pytest.fixture(params=list(ACYCLIC_MOLECULES.keys()))
+	def acyclic_pair(self, request):
+		"""Fixture providing (mol, name) pairs for acyclic molecules."""
+		name = request.param
+		smiles = ACYCLIC_MOLECULES[name]
+		mol = _parse_smiles(smiles)
+		if mol is None:
+			pytest.skip(f"Could not parse SMILES for {name}")
+		return (mol, name)
+
+	def test_acyclic_returns_empty(self, acyclic_pair):
+		"""Acyclic molecules should return empty cycle sets from both methods."""
+		mol, name = acyclic_pair
+		gasteiger_cycles = mol.get_smallest_independent_cycles_e()
+		vertex_cycles = mol.get_smallest_independent_cycles()
+		wrapper_cycles = vertex_cycles_to_edge_cycles(mol, vertex_cycles)
+		assert len(gasteiger_cycles) == 0, f"Gasteiger returned cycles for acyclic {name}"
+		assert len(wrapper_cycles) == 0, f"Wrapper returned cycles for acyclic {name}"

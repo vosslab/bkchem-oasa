@@ -18,6 +18,9 @@ ALL_FIXTURES = graph_test_fixtures.get_all_fixtures()
 FIXTURE_IDS = [f["name"] for f in ALL_FIXTURES]
 CONNECTED_FIXTURES = [f for f in ALL_FIXTURES if f["expected"]["is_connected"]]
 CONNECTED_IDS = [f["name"] for f in CONNECTED_FIXTURES]
+# fixtures with at least 2 vertices (needed for path tests)
+MULTI_VERTEX_FIXTURES = [f for f in CONNECTED_FIXTURES if f["expected"]["atom_count"] >= 2]
+MULTI_VERTEX_IDS = [f["name"] for f in MULTI_VERTEX_FIXTURES]
 
 
 #============================================
@@ -63,15 +66,13 @@ class TestIsConnected:
 class TestPathExists:
 	"""Compare path existence checks between OASA and rustworkx."""
 
-	@pytest.mark.parametrize("fixture", CONNECTED_FIXTURES, ids=CONNECTED_IDS)
+	@pytest.mark.parametrize("fixture", MULTI_VERTEX_FIXTURES, ids=MULTI_VERTEX_IDS)
 	def test_path_exists_connected(self, fixture):
 		"""For connected graphs, path should exist between first and last vertex."""
 		mol = fixture["oasa_mol"]
 		rx_g = fixture["rx_graph"]
 		v_to_i = fixture["v_to_i"]
 		verts = mol.vertices
-		if len(verts) < 2:
-			pytest.skip("Need at least 2 vertices for path test")
 		v0, v1 = verts[0], verts[-1]
 		i0, i1 = v_to_i[v0], v_to_i[v1]
 		oasa_result = mol.path_exists(v0, v1)
@@ -236,15 +237,13 @@ class TestBridges:
 class TestFindPathBetween:
 	"""Compare path finding between OASA and rustworkx."""
 
-	@pytest.mark.parametrize("fixture", CONNECTED_FIXTURES, ids=CONNECTED_IDS)
+	@pytest.mark.parametrize("fixture", MULTI_VERTEX_FIXTURES, ids=MULTI_VERTEX_IDS)
 	def test_path_validity(self, fixture):
 		"""Both backends find valid paths; rustworkx path <= OASA path length."""
 		mol = fixture["oasa_mol"]
 		rx_g = fixture["rx_graph"]
 		v_to_i = fixture["v_to_i"]
 		verts = mol.vertices
-		if len(verts) < 2:
-			pytest.skip("Need at least 2 vertices for path test")
 		v0, v1 = verts[0], verts[-1]
 		i0, i1 = v_to_i[v0], v_to_i[v1]
 		# OASA path: list of vertices from end to start

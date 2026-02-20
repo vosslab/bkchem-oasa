@@ -1,6 +1,11 @@
 # Changelog
 
 ## 2026-02-20
+- Reduce pytest skips from 24 to 10 in graph parity tests. Extract
+  `test_hexane_returns_empty` into standalone `TestAcyclicMolecules` class,
+  filter `single_atom` fixture from path tests at collection time, and early
+  return instead of skip for acyclic molecules in `test_theoretical_cycle_count`.
+  Remaining 10 skips are legitimate SMILES parse failures (cubane, adamantane).
 - Fix shebang alignment issues across 13 files. Remove shebangs from 11 test
   files, fixture files, and library modules that are not standalone scripts
   (`keysym_loader.py`, `repair_ops.py` x2, `graph_test_fixtures.py`, and 7
