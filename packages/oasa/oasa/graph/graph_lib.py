@@ -43,7 +43,7 @@ class Graph(object):
   uses_cache = True
 
 
-  def __init__( self, vertices = []):
+  def __init__( self, vertices=None):
     if vertices:
       self.vertices = vertices
     else:
@@ -517,7 +517,7 @@ class Graph(object):
     return sub.is_connected()
 
 
-  def find_path_between( self, start, end, dont_go_through=[]):
+  def find_path_between( self, start, end, dont_go_through=None):
     """Find path between two vertices using rustworkx (7x faster).
 
     Args:

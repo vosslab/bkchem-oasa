@@ -8,11 +8,16 @@ from math import pi, cos, sin
 
 from oasa import geometry
 from oasa.coords_gen import helpers
+from oasa.coords_gen import phase1_rings
 
 
 #============================================
 def place_chains(gen, placed: set) -> None:
 	"""BFS outward from placed atoms to place all remaining atoms.
+
+	When chain expansion reaches an atom adjacent to a deferred ring
+	system, triggers placement of that ring system via Phase 1 and
+	adds its atoms to the frontier for further expansion.
 
 	Args:
 		gen: CoordsGenerator2 instance.
@@ -27,8 +32,55 @@ def place_chains(gen, placed: set) -> None:
 				return
 			new_atoms = _place_atom_neighbors(gen, v, placed)
 			placed.update(new_atoms)
+			# trigger deferred ring systems reached by chain expansion
+			triggered = _trigger_deferred_ring_systems(gen, new_atoms, placed)
+			placed.update(triggered)
 			next_frontier.extend(new_atoms)
+			next_frontier.extend(triggered)
 		frontier = next_frontier
+
+
+#============================================
+def _trigger_deferred_ring_systems(gen, new_atoms: list,
+	placed: set) -> list:
+	"""Check if newly-placed atoms have neighbors in deferred ring systems.
+
+	When a chain atom is placed adjacent to an atom belonging to a
+	deferred ring system, triggers placement of that ring system via
+	Phase 1 and returns the newly-placed ring atoms.
+
+	Args:
+		gen: CoordsGenerator2 instance.
+		new_atoms: list of atoms just placed by chain expansion.
+		placed: set of all placed atoms.
+
+	Returns:
+		List of atoms placed by triggered ring systems.
+	"""
+	membership = getattr(gen, 'ring_system_membership', {})
+	deferred = getattr(gen, 'deferred_ring_systems', [])
+	if not deferred or not membership:
+		return []
+	triggered_atoms = []
+	for atom in new_atoms:
+		for nb in atom.neighbors:
+			if nb not in placed and nb in membership:
+				ring_system = membership[nb]
+				if ring_system not in deferred:
+					continue
+				# snapshot placed set before ring placement
+				before = set(placed)
+				# place the deferred ring system now that an anchor exists
+				phase1_rings.place_deferred_ring_system(
+					gen, ring_system, placed
+				)
+				# collect newly placed ring atoms
+				for ring in ring_system:
+					for ra in ring:
+						if ra not in before and ra in placed:
+							triggered_atoms.append(ra)
+				deferred.remove(ring_system)
+	return triggered_atoms
 
 
 #============================================

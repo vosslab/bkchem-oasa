@@ -64,9 +64,38 @@ def place_ring_systems(gen, placed: set) -> set:
 	# sort ring systems: largest first for best backbone
 	ring_systems.sort(key=lambda rs: sum(len(r) for r in rs), reverse=True)
 
-	for ring_system in ring_systems:
-		placed = _place_ring_system(gen, ring_system, placed)
+	# place the first (largest) system unconditionally
+	placed = _place_ring_system(gen, ring_systems[0], placed)
+
+	# remaining systems: place if anchored, defer if not
+	for ring_system in ring_systems[1:]:
+		all_ring_atoms = set()
+		for ring in ring_system:
+			all_ring_atoms.update(ring)
+		anchor = _find_external_anchor(all_ring_atoms, placed)
+		if anchor:
+			placed = _place_ring_system(gen, ring_system, placed)
+		else:
+			gen.deferred_ring_systems.append(ring_system)
 	return placed
+
+
+#============================================
+def place_deferred_ring_system(gen, ring_system: list, placed: set) -> set:
+	"""Place a previously-deferred ring system now that an anchor exists.
+
+	Called by Phase 2 when chain expansion reaches an atom adjacent to
+	an unplaced ring system.
+
+	Args:
+		gen: CoordsGenerator2 instance.
+		ring_system: list of rings in this system.
+		placed: set of already-placed atoms.
+
+	Returns:
+		Updated set of placed atoms.
+	"""
+	return _place_ring_system(gen, ring_system, placed)
 
 
 #============================================

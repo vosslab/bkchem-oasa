@@ -14,6 +14,7 @@ import datetime
 import html
 import math
 import pathlib
+import random
 import signal
 import subprocess
 import sys
@@ -82,16 +83,21 @@ TEST_MOLECULES = [
 	("terphenyl", "c1ccc(-c2ccc(-c3ccccc3)cc2)cc1"),
 	("adamantane", "C1C2CC3CC1CC(C2)C3"),
 	("norbornane", "C1CC2CCC1C2"),
+
 	# biological molecules
-	("cholesterol", "C[C@H](CCCC(C)C)[C@H]1CC[C@@H]2[C@@]1(CC[C@H]3[C@H]2CC=C4[C@@]3(CC[C@@H](C4)O)C)C"),
-	("testosterone", "C[C@]12CC[C@H]3[C@H]([C@@H]1CC[C@@H]2O)CCC4=CC(=O)CC[C@]34C"),
 	("GTP", "C1=NC2=C(N1[C@H]3[C@@H]([C@@H]([C@H](O3)COP(=O)(O)OP(=O)(O)OP(=O)(O)O)O)O)N=C(NC2=O)N"),
 	("ATP", "C1=NC(=C2C(=N1)N(C=N2)[C@H]3[C@@H]([C@@H]([C@H](O3)COP(=O)(O)OP(=O)(O)OP(=O)(O)O)O)O)N"),
 	("NAD+", "C1=CC(=C[N+](=C1)[C@H]2[C@@H]([C@@H]([C@H](O2)COP(=O)(O)OP(=O)(O)OC[C@@H]3[C@H]([C@H]([C@@H](O3)N4C=NC5=C(N=CN=C54)N)O)O)O)O)C(=O)N"),
 	("sucrose", "C([C@@H]1[C@H]([C@@H]([C@H]([C@H](O1)O[C@]2([C@H]([C@@H]([C@H](O2)CO)O)O)CO)O)O)O)O"),
 	("raffinose", "C([C@@H]1[C@@H]([C@@H]([C@H]([C@H](O1)OC[C@@H]2[C@H]([C@@H]([C@H]([C@H](O2)O[C@]3([C@H]([C@@H]([C@H](O3)CO)O)O)CO)O)O)O)O)O)O)O"),
 	("tetraglycine", "C(C(=O)NCC(=O)NCC(=O)NCC(=O)O)N"),
+	("Val-Gly-Ser-Glu", "CC(C)[C@@H](C(=O)NCC(=O)N[C@@H](CO)C(=O)N[C@@H](CCC(=O)O)C(=O)O)N "),
 	("tryptophan", "C1=CC=C2C(=C1)C(=CN2)C[C@@H](C(=O)O)N"),
+	("Porphyrin", "C1=CC2=CC3=CC=C(N3)C=C4C=CC(=N4)C=C5C=CC(=N5)C=C1N2"),
+	("dihydroporphyrin", "CC1=C(C2=CC3=C(C(=C(N3)C=C4C(C(=O)C(=N4)C=C5C(C(=O)C(=N5)C=C1N2)(C)CC(=O)O)(C)CC(=O)O)C)/C=C/C(=O)O)CCC(=O)O"),
+	("cholesterol", "C[C@H](CCCC(C)C)[C@H]1CC[C@@H]2[C@@]1(CC[C@H]3[C@H]2CC=C4[C@@]3(CC[C@@H](C4)O)C)C"),
+	("testosterone", "C[C@]12CC[C@H]3[C@H]([C@@H]1CC[C@@H]2O)CCC4=CC(=O)CC[C@]34C"),
+	("27-Hydroxycholesterol-d6", "[2H]C([2H])([2H])C([2H])(CCC[C@@H](C)[C@H]1CC[C@@H]2[C@@]1(CC[C@H]3[C@H]2CC=C4[C@@]3(CC[C@@H](C4)O)C)C)C([2H])([2H])O"),
 ]
 
 
@@ -454,7 +460,9 @@ def generate_rdkit_coords(smiles_text: str) -> tuple:
 	if mol is None:
 		return None, None, 0.0
 	t0 = time.time()
-	rdkit.Chem.AllChem.Compute2DCoords(mol)
+	# enable ring templates so RDKit uses its gold standard path
+	# for cage molecules (cubane, adamantane, etc.)
+	rdkit.Chem.AllChem.Compute2DCoords(mol, useRingTemplates=True)
 	elapsed = time.time() - t0
 	conf = mol.GetConformer()
 	atoms_xy = []
@@ -705,7 +713,8 @@ def main():
 
 	# build template molecule list from ring_templates CXSMILES entries
 	import oasa.coords_gen.ring_templates as rt
-	for idx, tmpl in enumerate(rt._TEMPLATES):
+	subtemplates = random.sample(rt._TEMPLATES, 10)
+	for idx, tmpl in enumerate(subtemplates):
 		smiles_text = tmpl["name"]
 		label = f"template {idx + 1}: {smiles_text[:40]}"
 		TEMPLATE_MOLECULES.append((label, smiles_text))

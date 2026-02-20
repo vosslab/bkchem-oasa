@@ -83,8 +83,18 @@ class CoordsGenerator2:
 		# placed tracks atoms with coordinates
 		placed = set(atms_with_coords)
 
+		# initialize deferred ring system state for Phase 1/2 coordination
+		self.deferred_ring_systems = []
+		self.ring_system_membership = {}
+
 		# Phase 1: ring system placement
 		placed = phase1_rings.place_ring_systems(self, placed)
+
+		# build membership map for deferred systems so Phase 2 can find them
+		for ring_system in self.deferred_ring_systems:
+			for ring in ring_system:
+				for atom in ring:
+					self.ring_system_membership[atom] = ring_system
 
 		# if no rings, seed a 2-atom backbone
 		if not placed and len(mol.vertices) >= 2:

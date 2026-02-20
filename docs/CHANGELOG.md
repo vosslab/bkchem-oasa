@@ -1,6 +1,16 @@
 # Changelog
 
 ## 2026-02-20
+- Implement deferred ring system placement for multi-ring-system molecules
+  (sucrose, raffinose). Phase 1 now defers unanchored ring systems instead of
+  placing them at the origin; Phase 2 triggers their placement when chain
+  expansion reaches a neighboring atom. Follows the RDKit `mergeNoCommon()`
+  pattern from `EmbeddedFrag::expandEfrag()`. Modified
+  [`packages/oasa/oasa/coords_gen/phase1_rings.py`](packages/oasa/oasa/coords_gen/phase1_rings.py),
+  [`packages/oasa/oasa/coords_gen/phase2_chains.py`](packages/oasa/oasa/coords_gen/phase2_chains.py),
+  and [`packages/oasa/oasa/coords_gen/calculate.py`](packages/oasa/oasa/coords_gen/calculate.py).
+  Added sucrose and raffinose tests in
+  [`packages/oasa/tests/test_coords_generator2.py`](packages/oasa/tests/test_coords_generator2.py).
 - Update
   [`docs/OASA_MOLECULE_COORDINATE_GENERATION_METHODS.md`](docs/OASA_MOLECULE_COORDINATE_GENERATION_METHODS.md):
   fix stale file references so all "Our implementation" sections and the file
@@ -8,6 +18,9 @@
   `phase2_chains.py`, `phase3_collisions.py`, `phase4_refinement.py`) instead
   of the legacy `coords_generator2.py`. Strengthen contract language clarifying
   OASA implements RDKit's gold standard algorithms directly in Python.
+- Enable `useRingTemplates=True` in
+  [`tools/coords_comparison.py`](tools/coords_comparison.py) so the RDKit
+  comparison column uses the gold standard template path for cage molecules.
 - Add Weisfeiler-Leman color pruning to graph isomorphism in
   [`packages/oasa/oasa/coords_gen/ring_templates.py`](packages/oasa/oasa/coords_gen/ring_templates.py).
   The `_find_isomorphism` backtracker now pre-computes WL node colors and

@@ -45,114 +45,6 @@ class TestRxBackendInit:
 
 
 #============================================
-class TestRxBackendMirrorOps:
-	"""Test individual mirror operations (add/remove node/edge)."""
-
-	#============================================
-	def test_add_node_creates_mapping(self):
-		"""Adding a node should populate v_to_i and i_to_v maps."""
-		backend = RxBackend()
-		v = Vertex()
-		idx = backend.add_node(v)
-		assert backend.v_to_i[v] == idx
-		assert backend.i_to_v[idx] is v
-		assert len(backend.rx) == 1
-
-	#============================================
-	def test_add_multiple_nodes(self):
-		"""Adding multiple nodes should produce unique indices."""
-		backend = RxBackend()
-		v1 = Vertex()
-		v2 = Vertex()
-		v3 = Vertex()
-		i1 = backend.add_node(v1)
-		i2 = backend.add_node(v2)
-		i3 = backend.add_node(v3)
-		# all indices should be unique
-		assert len({i1, i2, i3}) == 3
-		assert len(backend.rx) == 3
-
-	#============================================
-	def test_add_edge_creates_mapping(self):
-		"""Adding an edge should populate e_to_i and i_to_e maps."""
-		backend = RxBackend()
-		v1 = Vertex()
-		v2 = Vertex()
-		backend.add_node(v1)
-		backend.add_node(v2)
-		e = Edge([v1, v2])
-		ei = backend.add_edge(v1, v2, e)
-		assert backend.e_to_i[e] == ei
-		assert backend.i_to_e[ei] is e
-		assert len(backend.rx.edge_list()) == 1
-
-	#============================================
-	def test_remove_node_cleans_maps(self):
-		"""Removing a node should clean up both vertex maps."""
-		backend = RxBackend()
-		v1 = Vertex()
-		v2 = Vertex()
-		backend.add_node(v1)
-		backend.add_node(v2)
-		# remove v1
-		backend.remove_node(v1)
-		assert v1 not in backend.v_to_i
-		# v2 should still be present
-		assert v2 in backend.v_to_i
-		# i_to_v should no longer contain the removed index
-		assert all(v is not v1 for v in backend.i_to_v.values())
-
-	#============================================
-	def test_remove_node_cleans_edge_maps(self):
-		"""Removing a node should also clean up edges connected to it."""
-		backend = RxBackend()
-		v1 = Vertex()
-		v2 = Vertex()
-		backend.add_node(v1)
-		backend.add_node(v2)
-		e = Edge([v1, v2])
-		backend.add_edge(v1, v2, e)
-		# remove v1 -- should also remove the edge
-		backend.remove_node(v1)
-		assert e not in backend.e_to_i
-		assert len(backend.i_to_e) == 0
-
-	#============================================
-	def test_remove_edge_cleans_maps(self):
-		"""Removing an edge should clean up both edge maps."""
-		backend = RxBackend()
-		v1 = Vertex()
-		v2 = Vertex()
-		backend.add_node(v1)
-		backend.add_node(v2)
-		e = Edge([v1, v2])
-		ei = backend.add_edge(v1, v2, e)
-		# remove edge
-		backend.remove_edge(e)
-		assert e not in backend.e_to_i
-		assert ei not in backend.i_to_e
-		# vertices should still be present
-		assert v1 in backend.v_to_i
-		assert v2 in backend.v_to_i
-
-	#============================================
-	def test_remove_nonexistent_node_is_safe(self):
-		"""Removing a vertex not in the backend should be a no-op."""
-		backend = RxBackend()
-		v = Vertex()
-		# should not raise
-		backend.remove_node(v)
-
-	#============================================
-	def test_remove_nonexistent_edge_is_safe(self):
-		"""Removing an edge not in the backend should be a no-op."""
-		backend = RxBackend()
-		e = Edge()
-		# should not raise
-		backend.remove_edge(e)
-
-
-#============================================
 class TestRxBackendRebuild:
 	"""Test rebuild_from_graph using an OASA Graph."""
 
@@ -621,21 +513,24 @@ class TestRxBackendIndexConversion:
 	#============================================
 	def test_vertex_to_index_roundtrip(self):
 		"""vertex_to_index and index_to_vertex should roundtrip."""
-		backend = RxBackend()
+		g = Graph()
 		v = Vertex()
-		idx = backend.add_node(v)
-		assert backend.vertex_to_index(v) == idx
+		g.add_vertex(v)
+		backend = RxBackend()
+		backend.rebuild_from_graph(g)
+		idx = backend.vertex_to_index(v)
 		assert backend.index_to_vertex(idx) is v
 
 	#============================================
 	def test_edge_to_index_roundtrip(self):
 		"""edge_to_index and index_to_edge should roundtrip."""
-		backend = RxBackend()
+		g = Graph()
 		v1 = Vertex()
 		v2 = Vertex()
-		backend.add_node(v1)
-		backend.add_node(v2)
-		e = Edge([v1, v2])
-		ei = backend.add_edge(v1, v2, e)
-		assert backend.edge_to_index(e) == ei
+		g.add_vertex(v1)
+		g.add_vertex(v2)
+		e = g.add_edge(v1, v2)
+		backend = RxBackend()
+		backend.rebuild_from_graph(g)
+		ei = backend.edge_to_index(e)
 		assert backend.index_to_edge(ei) is e

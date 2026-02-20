@@ -8,6 +8,9 @@ integer indices. Algorithm delegates return OASA objects, never raw indices.
 # PIP3 modules
 import rustworkx
 
+# local repo modules
+from oasa.graph.vertex_lib import Vertex
+
 
 #============================================
 class RxBackend:
@@ -33,95 +36,6 @@ class RxBackend:
 		self.i_to_v = {}
 		self.e_to_i = {}
 		self.i_to_e = {}
-		self._dirty = True
-
-	#============================================
-	def add_node(self, vertex) -> int:
-		"""Mirror an OASA vertex addition into the rustworkx graph.
-
-		Args:
-			vertex: The OASA Vertex object to add.
-
-		Returns:
-			The rustworkx node index assigned to this vertex.
-		"""
-		# add node with OASA vertex as payload
-		idx = self.rx.add_node(vertex)
-		self.v_to_i[vertex] = idx
-		self.i_to_v[idx] = vertex
-		self._dirty = True
-		return idx
-
-	#============================================
-	def remove_node(self, vertex):
-		"""Mirror an OASA vertex removal from the rustworkx graph.
-
-		Removes the node and cleans up all identity maps, including
-		any edges that were connected to this vertex.
-
-		Args:
-			vertex: The OASA Vertex object to remove.
-		"""
-		if vertex not in self.v_to_i:
-			return
-		idx = self.v_to_i[vertex]
-		# find and clean up edges connected to this node
-		edges_to_remove = []
-		for e, ei in list(self.e_to_i.items()):
-			# check if this edge connects to the vertex being removed
-			verts = e.get_vertices()
-			if vertex in verts:
-				edges_to_remove.append(e)
-		for e in edges_to_remove:
-			ei = self.e_to_i.pop(e)
-			self.i_to_e.pop(ei, None)
-		# remove the node from rustworkx graph
-		self.rx.remove_node(idx)
-		# clean up vertex maps
-		del self.v_to_i[vertex]
-		del self.i_to_v[idx]
-		self._dirty = True
-
-	#============================================
-	def add_edge(self, v1, v2, edge) -> int:
-		"""Mirror an OASA edge addition into the rustworkx graph.
-
-		Args:
-			v1: First OASA Vertex endpoint.
-			v2: Second OASA Vertex endpoint.
-			edge: The OASA Edge object to add.
-
-		Returns:
-			The rustworkx edge index assigned to this edge.
-		"""
-		i1 = self.v_to_i[v1]
-		i2 = self.v_to_i[v2]
-		# add edge with OASA edge as payload
-		ei = self.rx.add_edge(i1, i2, edge)
-		self.e_to_i[edge] = ei
-		self.i_to_e[ei] = edge
-		self._dirty = True
-		return ei
-
-	#============================================
-	def remove_edge(self, edge):
-		"""Mirror an OASA edge removal from the rustworkx graph.
-
-		Args:
-			edge: The OASA Edge object to remove.
-		"""
-		if edge not in self.e_to_i:
-			return
-		ei = self.e_to_i[edge]
-		# get endpoint indices for rustworkx removal
-		verts = edge.get_vertices()
-		i1 = self.v_to_i.get(verts[0])
-		i2 = self.v_to_i.get(verts[1])
-		if i1 is not None and i2 is not None:
-			self.rx.remove_edge(i1, i2)
-		# clean up edge maps
-		del self.e_to_i[edge]
-		self.i_to_e.pop(ei, None)
 		self._dirty = True
 
 	#============================================
@@ -285,6 +199,9 @@ class RxBackend:
 			forming one independent cycle.
 		"""
 		self.ensure_synced(graph)
+		# empty graph has no node 0, so return early
+		if len(self.rx) == 0:
+			return []
 		# pin root=0 for deterministic cycle basis on cage molecules
 		rx_cycles = rustworkx.cycle_basis(self.rx, root=0)
 		result = []
@@ -409,7 +326,7 @@ class RxBackend:
 			excluded_vertices = set()
 			excluded_edges = set()
 			for item in dont_go_through:
-				if hasattr(item, '_neighbors'):
+				if isinstance(item, Vertex):
 					# it's a vertex
 					excluded_vertices.add(item)
 				else:

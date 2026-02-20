@@ -25,7 +25,7 @@ class Edge(object):
 
   attrs_to_copy: tuple[str, ...] = ("disconnected",)
 
-  def __init__(self, vs=[]):
+  def __init__(self, vs=None):
     self._vertices = []
     self.set_vertices(vs)
     self.properties_ = {}
@@ -43,7 +43,7 @@ class Edge(object):
     return other
 
 
-  def set_vertices(self, vs=[]):
+  def set_vertices(self, vs=None):
     # Ring perception algorithm relies on allowing both vertices to be the same
     if vs and len(vs) == 2:
       self._vertices = list(vs)

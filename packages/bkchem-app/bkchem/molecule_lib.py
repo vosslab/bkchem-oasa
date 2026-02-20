@@ -273,7 +273,7 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
     """Return True if the vertices define a connected subgraph."""
     return self._chem_mol.defines_connected_subgraph_v( vertices)
 
-  def find_path_between( self, start, end, dont_go_through=[]):
+  def find_path_between( self, start, end, dont_go_through=None):
     """Find a path between two vertices."""
     return self._chem_mol.find_path_between( start, end, dont_go_through=dont_go_through)
 

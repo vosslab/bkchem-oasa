@@ -69,7 +69,7 @@ class Vertex(object):
       if v == vv:
         to_del = k
         break
-    if to_del:
+    if to_del is not None:
       del self._neighbors[to_del]
     else:
       raise Exception("Cannot remove non-existing neighbor")

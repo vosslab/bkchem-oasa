@@ -572,6 +572,89 @@ class TestRingGeometryPreservation:
 
 
 # ======================================================
+# Test: sucrose (two ring systems connected by chain bridge)
+# ======================================================
+
+#============================================
+class TestSucrose:
+	"""Sucrose has two ring systems (glucose 6-ring + fructose 5-ring)
+	connected by a glycosidic oxygen chain bridge."""
+
+	SMILES = (
+		"OC[C@H]1OC(O[C@@]2(CO)OC[C@@H](O)[C@@H]2O)"
+		"[C@H](O)[C@@H](O)[C@@H]1O"
+	)
+
+	def test_sucrose_all_coords_set(self):
+		"""Every atom in sucrose gets non-None x,y coordinates."""
+		mol = _mol_from_smiles(self.SMILES)
+		cg2.calculate_coords(mol, bond_length=1.0, force=1)
+		assert _all_coords_set(mol)
+
+	def test_sucrose_rings_separated(self):
+		"""Centroids of the two ring systems must be > 1.5 bond lengths apart."""
+		mol = _mol_from_smiles(self.SMILES)
+		cg2.calculate_coords(mol, bond_length=1.0, force=1)
+		rings = mol.get_smallest_independent_cycles()
+		assert len(rings) >= 2, f"expected 2+ rings, got {len(rings)}"
+		c1 = _ring_centroid(mol, rings[0])
+		c2 = _ring_centroid(mol, rings[1])
+		dist = math.sqrt((c1[0] - c2[0]) ** 2 + (c1[1] - c2[1]) ** 2)
+		assert dist > 1.5, (
+			f"ring centroids too close: {dist:.3f}, rings overlap"
+		)
+
+	def test_sucrose_bond_lengths(self):
+		"""All bonds should be within tolerance of target bond_length."""
+		mol = _mol_from_smiles(self.SMILES)
+		cg2.calculate_coords(mol, bond_length=1.0, force=1)
+		lengths = _bond_lengths(mol)
+		for bl in lengths:
+			assert abs(bl - 1.0) < 0.35, (
+				f"sucrose bond {bl:.3f} off target"
+			)
+
+
+# ======================================================
+# Test: raffinose (three ring systems, two chain bridges)
+# ======================================================
+
+#============================================
+class TestRaffinose:
+	"""Raffinose has three ring systems connected by two chain bridges.
+	Tests cascading deferred ring placement."""
+
+	SMILES = (
+		"OC[C@H]1OC(OC[C@H]2OC(O[C@@]3(CO)OC[C@@H](O)[C@@H]3O)"
+		"[C@H](O)[C@@H](O)[C@@H]2O)[C@H](O)[C@@H](O)[C@@H]1O"
+	)
+
+	def test_raffinose_all_coords_set(self):
+		"""Every atom in raffinose gets non-None x,y coordinates."""
+		mol = _mol_from_smiles(self.SMILES)
+		cg2.calculate_coords(mol, bond_length=1.0, force=1)
+		assert _all_coords_set(mol)
+
+	def test_raffinose_rings_separated(self):
+		"""All ring system centroids must be pairwise separated."""
+		mol = _mol_from_smiles(self.SMILES)
+		cg2.calculate_coords(mol, bond_length=1.0, force=1)
+		rings = mol.get_smallest_independent_cycles()
+		assert len(rings) >= 3, f"expected 3+ rings, got {len(rings)}"
+		centroids = [_ring_centroid(mol, r) for r in rings]
+		for i in range(len(centroids)):
+			for j in range(i + 1, len(centroids)):
+				ci = centroids[i]
+				cj = centroids[j]
+				dist = math.sqrt(
+					(ci[0] - cj[0]) ** 2 + (ci[1] - cj[1]) ** 2
+				)
+				assert dist > 1.0, (
+					f"ring centroids {i} and {j} too close: {dist:.3f}"
+				)
+
+
+# ======================================================
 # Test: template count
 # ======================================================
 
