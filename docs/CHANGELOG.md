@@ -1,6 +1,49 @@
 # Changelog
 
 ## 2026-02-20
+- Rewrite [test_menu_yaml.py](packages/bkchem-app/tests/test_menu_yaml.py) to remove
+  7 brittle hardcoded-count assertions (menu count, action count, separator count, etc.)
+  and replace with 3 structural tests (menu schema validation, no empty menus, no
+  adjacent or leading/trailing separators). 6 existing structural tests kept as-is.
+- Update [bond_drawing.py](packages/bkchem-app/bkchem/bond_drawing.py) and
+  [bond_render_ops.py](packages/bkchem-app/bkchem/bond_render_ops.py) to replace
+  `from oasa import render_geometry` with direct imports from `oasa.render_lib`
+  sub-modules (`data_types`, `attach_resolution`, `bond_ops`). All
+  `render_geometry.X` call sites replaced with bare `X` names.
+- Remove 5 dead methods: `print_all_coords()`, `_open_debug_console()`,
+  `flush_first_selected_mol_to_graph_file()` from
+  [paper.py](packages/bkchem-app/bkchem/paper.py), and `_update_geometry()`,
+  `clean()` from [main.py](packages/bkchem-app/bkchem/main.py).
+- Refactor [main.py](packages/bkchem-app/bkchem/main.py) to use mixin classes
+  from [main_lib/](packages/bkchem-app/bkchem/main_lib/). The `BKChem` class now
+  inherits from four mixins (MainTabsMixin, MainModesMixin,
+  MainChemistryIOMixin, MainFileIOMixin) plus Tk. File I/O methods (save_CDML,
+  load_CDML, format_import/export, etc.), chemistry I/O methods (read_smiles,
+  read_inchi, gen_smiles, gen_inchi, read_peptide_sequence), mode management
+  methods (change_mode, change_submode, refresh_submode_buttons,
+  _build_submode_grid), and tab management methods (change_paper, add_new_paper,
+  close_paper, close_current_paper, etc.) are removed from main.py and provided
+  by the mixins. Unused imports removed (export, oasa_bridge, safe_xml,
+  filedialog, tkinter.messagebox, data, chem_paper, Button, Scrollbar,
+  HORIZONTAL, VERTICAL). No behavioral changes.
+- Refactor [paper.py](packages/bkchem-app/bkchem/paper.py) to use mixin classes
+  from [paper_lib/](packages/bkchem-app/bkchem/paper_lib/). The `chem_paper`
+  class now inherits from nine mixins (PaperLayoutMixin, PaperPropertiesMixin,
+  PaperCDMLMixin, PaperFactoriesMixin, PaperEventsMixin, PaperIdManagerMixin,
+  PaperSelectionMixin, PaperTransformsMixin, PaperZoomMixin) plus Canvas.
+  Methods for zoom, transforms, selection, id management, events, factories,
+  CDML I/O, properties, and layout are removed from paper.py and provided by
+  the mixins. Only core methods (init, clipboard, undo/redo, hex grid, display
+  info, chemistry check) remain in paper.py. Unused imports removed. No
+  behavioral changes.
+- Fix [test_menu_yaml.py](packages/bkchem-app/tests/test_menu_yaml.py) to account
+  for the new repair menu: update expected menu count (9 to 10), menu order,
+  action count (55 to 61), and separator count (19 to 21).
+- Add GUI test for hex grid overlay and snap system in
+  [test_bkchem_gui_hex_grid.py](packages/bkchem-app/tests/test_bkchem_gui_hex_grid.py).
+  Three subprocess-based tests cover show/hide/toggle + snap toggle, the 50%
+  zoom threshold that clears and redraws dots, and the MAX_GRID_POINTS cutoff
+  in `generate_hex_grid_points()`.
 - Add repair mode as a toolbar mode for click-to-repair geometry operations on
   individual molecules. New file
   [repair_mode.py](packages/bkchem-app/bkchem/modes/repair_mode.py) follows the

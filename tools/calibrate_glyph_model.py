@@ -34,7 +34,8 @@ if _OASA_DIR not in sys.path:
 	sys.path.insert(0, _OASA_DIR)
 
 # local repo modules - renderer model
-from oasa import render_geometry as _rg
+from oasa.render_lib.label_geometry import _text_char_advances
+from oasa.render_lib.label_geometry import _visible_label_text
 from oasa import render_ops as _ro
 
 # local repo modules - measurement model
@@ -327,8 +328,8 @@ def _renderer_model_positions(
 	# converts text_origin -> label_position -> text_origin (round trip)
 	# For the renderer model, start from text_x, text_y
 	text = renderer_markup
-	visible_text = _rg._visible_label_text(text)
-	char_advances = _rg._text_char_advances(text, FONT_SIZE, FONT_NAME)
+	visible_text = _visible_label_text(text)
+	char_advances = _text_char_advances(text, FONT_SIZE, FONT_NAME)
 	if not char_advances or len(char_advances) != len(visible_text):
 		char_advances = [FONT_SIZE * 0.60] * len(visible_text)
 	total_width = sum(char_advances)

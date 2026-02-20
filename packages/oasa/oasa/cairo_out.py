@@ -24,8 +24,11 @@ import cairo
 from oasa import atom_colors
 from oasa import geometry
 from oasa import oasa_utils as misc
-from oasa import render_geometry
 from oasa import render_ops
+from oasa.render_lib.data_types import BondRenderContext
+from oasa.render_lib.data_types import make_attach_constraints
+from oasa.render_lib.data_types import make_box_target
+from oasa.render_lib.bond_ops import build_bond_ops
 from oasa import safe_xml
 from oasa import transform3d_lib as transform3d
 
@@ -273,9 +276,9 @@ class cairo_out(object):
         dx = v.x - ox
         dy = v.y - oy
         adj_bbox = (bbox[0]+dx, bbox[1]+dy, bbox[2]+dx, bbox[3]+dy)
-        label_targets[v] = render_geometry.make_box_target(adj_bbox)
-      constraints = render_geometry.make_attach_constraints(line_width=self.line_width)
-      context = render_geometry.BondRenderContext(
+        label_targets[v] = make_box_target(adj_bbox)
+      constraints = make_attach_constraints(line_width=self.line_width)
+      context = BondRenderContext(
         molecule=self.molecule,
         line_width=self.line_width,
         bond_width=self.bond_width,
@@ -292,7 +295,7 @@ class cairo_out(object):
         attach_targets=label_targets,
         attach_constraints=constraints,
       )
-      ops = render_geometry.build_bond_ops( e, start, end, context)
+      ops = build_bond_ops( e, start, end, context)
       render_ops.ops_to_cairo( self.context, ops)
 
     if transform:

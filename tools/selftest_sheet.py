@@ -57,7 +57,10 @@ bond_module = importlib.import_module("oasa.bond")
 molecule = importlib.import_module("oasa.molecule")
 atom_colors = oasa.atom_colors
 dom_extensions = oasa.dom_extensions
-render_geometry = oasa.render_geometry
+from oasa.render_lib.data_types import BondRenderContext
+from oasa.render_lib.label_geometry import vertex_is_shown
+from oasa.render_lib.bond_ops import build_bond_ops
+from oasa.render_lib.molecule_ops import build_vertex_ops
 render_ops = oasa.render_ops
 haworth = oasa.haworth
 sugar_code = oasa.sugar_code
@@ -574,7 +577,7 @@ def _build_bond_fragment(bond_type, color):
 	mol.add_edge(a1, a2, bond)
 
 	# Build ops using existing infrastructure
-	context = render_geometry.BondRenderContext(
+	context = BondRenderContext(
 		molecule=mol,
 		line_width=1.0,
 		bond_width=3.0,
@@ -585,7 +588,7 @@ def _build_bond_fragment(bond_type, color):
 		point_for_atom=None,
 	)
 
-	return render_geometry.build_bond_ops(bond, (0, 0), (30, 0), context)
+	return build_bond_ops(bond, (0, 0), (30, 0), context)
 
 
 #============================================
@@ -728,13 +731,13 @@ def _build_molecule_ops(mol, options):
 	if font_size_ratio is not None:
 		font_size = _scaled_font_size(mol, font_size_ratio, font_size)
 
-	shown_vertices = set([v for v in mol.vertices if render_geometry.vertex_is_shown(v)])
+	shown_vertices = set([v for v in mol.vertices if vertex_is_shown(v)])
 	bond_coords = {}
 	for edge in mol.edges:
 		v1, v2 = edge.vertices
 		bond_coords[edge] = ((v1.x, v1.y), (v2.x, v2.y))
 
-	context = render_geometry.BondRenderContext(
+	context = BondRenderContext(
 		molecule=mol,
 		line_width=line_width,
 		bond_width=bond_width,
@@ -751,10 +754,10 @@ def _build_molecule_ops(mol, options):
 	ops = []
 	for edge in mol.edges:
 		start, end = bond_coords.get(edge, (None, None))
-		ops.extend(render_geometry.build_bond_ops(edge, start, end, context))
+		ops.extend(build_bond_ops(edge, start, end, context))
 
 	for vertex in mol.vertices:
-		ops.extend(render_geometry.build_vertex_ops(
+		ops.extend(build_vertex_ops(
 			vertex,
 			show_hydrogens_on_hetero=show_hydrogens_on_hetero,
 			color_atoms=color_atoms,

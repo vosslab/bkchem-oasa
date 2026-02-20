@@ -12,7 +12,7 @@ import pytest
 # local repo modules
 import oasa
 from oasa import haworth
-from oasa import render_geometry
+from oasa.render_lib.molecule_ops import molecule_to_ops
 from oasa import render_ops
 from oasa import render_out
 
@@ -255,7 +255,7 @@ def test_molecule_to_ops_fixture_smiles_non_empty():
 	)
 	for smiles_text in fixtures:
 		mol = _mol_from_smiles(smiles_text)
-		ops = render_geometry.molecule_to_ops(mol)
+		ops = molecule_to_ops(mol)
 		assert ops, smiles_text
 		assert any(isinstance(op, render_ops.LineOp) for op in ops), smiles_text
 
@@ -278,7 +278,7 @@ def test_molecule_to_ops_includes_charge_and_stereo_geometry():
 	mol.add_vertex(a3)
 	mol.add_edge(a1, a2, _single_bond(a1, a2, bond_type="w"))
 	mol.add_edge(a1, a3, _single_bond(a1, a3, bond_type="h"))
-	ops = render_geometry.molecule_to_ops(mol, style={"show_carbon_symbol": True})
+	ops = molecule_to_ops(mol, style={"show_carbon_symbol": True})
 	assert any(isinstance(op, render_ops.PolygonOp) for op in ops)
 	assert any(isinstance(op, render_ops.TextOp) and "+" in op.text for op in ops)
 

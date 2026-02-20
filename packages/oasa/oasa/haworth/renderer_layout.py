@@ -23,7 +23,8 @@ from oasa.haworth.renderer_config import (
 )
 from oasa.haworth import renderer_geometry as _geom
 from oasa.haworth import renderer_text as _text
-from oasa import render_geometry as _render_geometry
+from oasa.render_lib.data_types import AttachTarget
+from oasa.render_lib.label_geometry import label_target_from_text_origin
 
 
 #============================================
@@ -336,7 +337,7 @@ def resolve_internal_group_scaling(jobs: list[dict]) -> None:
 
 
 #============================================
-def job_text_target(job: dict, length: float) -> _render_geometry.AttachTarget:
+def job_text_target(job: dict, length: float) -> AttachTarget:
 	"""Approximate text target for one simple-label placement job."""
 	end_x, end_y = job_end_point(job, length)
 	text = _text.format_label_text(job["label"], anchor=job["anchor"])
@@ -344,7 +345,7 @@ def job_text_target(job: dict, length: float) -> _render_geometry.AttachTarget:
 	draw_font_size = layout_font_size * float(job.get("text_scale", 1.0))
 	text_x = end_x + _text.anchor_x_offset(text, job["anchor"], layout_font_size)
 	text_y = end_y + _text.baseline_shift(job["direction"], layout_font_size, text)
-	return _render_geometry.label_target_from_text_origin(
+	return label_target_from_text_origin(
 		text_x=text_x,
 		text_y=text_y,
 		text=text,
@@ -360,9 +361,9 @@ def text_target(
 		text_y: float,
 		text: str,
 		anchor: str,
-		font_size: float) -> _render_geometry.AttachTarget:
+		font_size: float) -> AttachTarget:
 	"""Return one shared label target from text geometry fields."""
-	return _render_geometry.label_target_from_text_origin(
+	return label_target_from_text_origin(
 		text_x=text_x,
 		text_y=text_y,
 		text=text,

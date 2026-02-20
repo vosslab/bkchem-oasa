@@ -82,6 +82,7 @@ from oasa import oasa_exceptions
 from oasa import atom_colors
 from oasa import dom_extensions
 from oasa import svg_out
+from oasa import render_lib
 from oasa import render_geometry
 from oasa import render_ops
 from oasa import render_out

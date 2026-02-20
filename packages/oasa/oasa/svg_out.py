@@ -23,8 +23,13 @@ import defusedxml.minidom as safe_minidom
 
 from oasa import atom_colors
 from oasa import dom_extensions
-from oasa import render_geometry
 from oasa import render_ops
+from oasa.render_lib.data_types import BondRenderContext
+from oasa.render_lib.data_types import make_attach_constraints
+from oasa.render_lib.label_geometry import label_target
+from oasa.render_lib.bond_ops import build_bond_ops
+from oasa.render_lib.molecule_ops import _resolved_vertex_label_layout
+from oasa.render_lib.molecule_ops import build_vertex_ops
 from oasa import transform_lib as transform
 
 
@@ -89,19 +94,19 @@ class svg_out(object):
     self._bond_coords = {}
     label_targets = {}
     for v in self._shown_vertices:
-      layout = render_geometry._resolved_vertex_label_layout(
+      layout = _resolved_vertex_label_layout(
         v, show_hydrogens_on_hetero=self.show_hydrogens_on_hetero,
         font_size=16, font_name="Arial",
       )
       if layout is None:
         continue
       tx, ty = self.transformer.transform_xy(v.x, v.y)
-      target = render_geometry.label_target(
+      target = label_target(
         tx, ty, layout["text"], layout["anchor"], 16, font_name="Arial",
       )
       label_targets[v] = target
-    constraints = render_geometry.make_attach_constraints(line_width=self.line_width)
-    self._bond_context = render_geometry.BondRenderContext(
+    constraints = make_attach_constraints(line_width=self.line_width)
+    self._bond_context = BondRenderContext(
       molecule=self.molecule,
       line_width=self.line_width,
       bond_width=self.bond_width,
@@ -159,7 +164,7 @@ class svg_out(object):
       return
     start, end = coords
     parent = self._create_parent( e, self.top)
-    ops = render_geometry.build_bond_ops( e, start, end, self._bond_context)
+    ops = build_bond_ops( e, start, end, self._bond_context)
     render_ops.ops_to_svg( parent, ops)
 
 
@@ -186,7 +191,7 @@ class svg_out(object):
   def _draw_vertex( self, v):
     parent = self._create_parent( v, self.top)
 
-    ops = render_geometry.build_vertex_ops(
+    ops = build_vertex_ops(
       v,
       transform_xy=self.transformer.transform_xy,
       show_hydrogens_on_hetero=self.show_hydrogens_on_hetero,

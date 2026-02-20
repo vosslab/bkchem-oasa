@@ -1,4 +1,4 @@
-"""Connector clipping tests for render_geometry.molecule_to_ops."""
+"""Connector clipping tests for molecule_to_ops."""
 
 # Standard Library
 import math
@@ -8,8 +8,10 @@ import pytest
 
 # local repo modules
 import oasa
-from oasa import render_geometry
 from oasa import render_ops
+from oasa.render_lib.label_geometry import label_attach_target
+from oasa.render_lib.label_geometry import label_target
+from oasa.render_lib.molecule_ops import molecule_to_ops
 
 
 #============================================
@@ -83,10 +85,10 @@ def _point_not_inside_bbox(point, bbox):
 #============================================
 def test_bond_clipped_to_shown_vertex():
 	mol, _left, right = _make_two_atom_mol(right_symbol="O")
-	ops = render_geometry.molecule_to_ops(mol, style={"font_size": 16.0})
+	ops = molecule_to_ops(mol, style={"font_size": 16.0})
 	line = _first_line(ops)
 	assert line.p2 != pytest.approx((right.x, right.y))
-	full_bbox = render_geometry.label_target(right.x, right.y, "O", "middle", 16.0).box
+	full_bbox = label_target(right.x, right.y, "O", "middle", 16.0).box
 	assert _point_not_inside_bbox(line.p2, full_bbox)
 	assert math.hypot(line.p2[0] - line.p1[0], line.p2[1] - line.p1[1]) > 0
 
@@ -94,7 +96,7 @@ def test_bond_clipped_to_shown_vertex():
 #============================================
 def test_bond_not_clipped_to_hidden_vertex():
 	mol, _left, right = _make_two_atom_mol(right_symbol="C")
-	ops = render_geometry.molecule_to_ops(mol, style={"font_size": 16.0})
+	ops = molecule_to_ops(mol, style={"font_size": 16.0})
 	line = _first_line(ops)
 	assert line.p2 == pytest.approx((right.x, right.y))
 
@@ -102,10 +104,10 @@ def test_bond_not_clipped_to_hidden_vertex():
 #============================================
 def test_double_bond_clipped():
 	mol, _left, right = _make_two_atom_mol(right_symbol="O", bond_order=2)
-	ops = render_geometry.molecule_to_ops(mol, style={"font_size": 16.0})
+	ops = molecule_to_ops(mol, style={"font_size": 16.0})
 	lines = _line_ops(ops)
 	assert len(lines) == 2
-	full_bbox = render_geometry.label_target(right.x, right.y, "O", "middle", 16.0).box
+	full_bbox = label_target(right.x, right.y, "O", "middle", 16.0).box
 	for line in lines:
 		assert line.p2 != pytest.approx((right.x, right.y))
 		assert _point_not_inside_bbox(line.p2, full_bbox)
@@ -115,10 +117,10 @@ def test_double_bond_clipped():
 #============================================
 def test_clipped_endpoint_on_bbox_edge():
 	mol, _left, right = _make_two_atom_mol(right_symbol="O")
-	ops = render_geometry.molecule_to_ops(mol, style={"font_size": 16.0})
+	ops = molecule_to_ops(mol, style={"font_size": 16.0})
 	line = _first_line(ops)
 	assert line.p2 != pytest.approx((right.x, right.y))
-	full_bbox = render_geometry.label_target(right.x, right.y, "O", "middle", 16.0).box
+	full_bbox = label_target(right.x, right.y, "O", "middle", 16.0).box
 	assert _point_not_inside_bbox(line.p2, full_bbox)
 
 
@@ -126,13 +128,13 @@ def test_clipped_endpoint_on_bbox_edge():
 def test_charged_label_clipping():
 	mol_neutral, _left, _right = _make_two_atom_mol(right_symbol="N", right_charge=0)
 	mol_charged, _left_c, right_charged = _make_two_atom_mol(right_symbol="N", right_charge=1)
-	neutral_ops = render_geometry.molecule_to_ops(mol_neutral, style={"font_size": 16.0})
-	charged_ops = render_geometry.molecule_to_ops(mol_charged, style={"font_size": 16.0})
+	neutral_ops = molecule_to_ops(mol_neutral, style={"font_size": 16.0})
+	charged_ops = molecule_to_ops(mol_charged, style={"font_size": 16.0})
 	neutral_line = _first_line(neutral_ops)
 	charged_line = _first_line(charged_ops)
 	assert neutral_line.p2 != pytest.approx((40.0, 0.0))
 	assert charged_line.p2 != pytest.approx((40.0, 0.0))
-	charged_bbox = render_geometry.label_target(right_charged.x, right_charged.y, "N+", "start", 16.0).box
+	charged_bbox = label_target(right_charged.x, right_charged.y, "N+", "start", 16.0).box
 	assert _point_not_inside_bbox(charged_line.p2, charged_bbox)
 	assert math.hypot(charged_line.p2[0] - charged_line.p1[0], charged_line.p2[1] - charged_line.p1[1]) > 0
 
@@ -140,7 +142,7 @@ def test_charged_label_clipping():
 #============================================
 def test_wedge_bond_clipped():
 	mol, _left, right = _make_two_atom_mol(right_symbol="O", bond_type="w")
-	ops = render_geometry.molecule_to_ops(mol, style={"font_size": 16.0})
+	ops = molecule_to_ops(mol, style={"font_size": 16.0})
 	paths = _path_ops(ops)
 	assert paths
 	points = _path_draw_points(paths[0])
@@ -156,10 +158,10 @@ def test_multi_atom_label_attach_first():
 		right_label="CH2OH",
 		right_attach_atom="first",
 	)
-	ops = render_geometry.molecule_to_ops(mol, style={"font_size": 16.0})
+	ops = molecule_to_ops(mol, style={"font_size": 16.0})
 	line = _first_line(ops)
 	assert line.p2 != pytest.approx((right.x, right.y))
-	full_bbox = render_geometry.label_target(right.x, right.y, "CH2OH", "start", 16.0).box
+	full_bbox = label_target(right.x, right.y, "CH2OH", "start", 16.0).box
 	assert _point_not_inside_bbox(line.p2, full_bbox)
 	assert math.hypot(line.p2[0] - line.p1[0], line.p2[1] - line.p1[1]) > 0
 
@@ -171,10 +173,10 @@ def test_multi_atom_label_attach_last():
 		right_label="CH2OH",
 		right_attach_atom="last",
 	)
-	ops = render_geometry.molecule_to_ops(mol, style={"font_size": 16.0})
+	ops = molecule_to_ops(mol, style={"font_size": 16.0})
 	line = _first_line(ops)
 	assert line.p2 != pytest.approx((right.x, right.y))
-	attach_bbox = render_geometry.label_attach_target(
+	attach_bbox = label_attach_target(
 		right.x, right.y, "CH2OH", "start", 16.0, attach_atom="last", font_name="Arial"
 	).box
 	assert _point_not_inside_bbox(line.p2, attach_bbox)
@@ -193,8 +195,8 @@ def test_multi_atom_label_attach_default_first_when_missing():
 		right_label="CH2OH",
 		right_attach_atom="first",
 	)
-	default_ops = render_geometry.molecule_to_ops(mol_default, style={"font_size": 16.0})
-	first_ops = render_geometry.molecule_to_ops(mol_first, style={"font_size": 16.0})
+	default_ops = molecule_to_ops(mol_default, style={"font_size": 16.0})
+	first_ops = molecule_to_ops(mol_first, style={"font_size": 16.0})
 	assert _first_line(default_ops).p2 == pytest.approx(_first_line(first_ops).p2)
 
 
@@ -206,10 +208,10 @@ def test_multi_atom_label_attach_element_overrides_attach_atom_first():
 		right_attach_atom="last",
 		right_attach_element="C",
 	)
-	ops = render_geometry.molecule_to_ops(mol, style={"font_size": 16.0})
+	ops = molecule_to_ops(mol, style={"font_size": 16.0})
 	line = _first_line(ops)
 	assert line.p2 != pytest.approx((right.x, right.y))
-	attach_bbox = render_geometry.label_attach_target(
+	attach_bbox = label_attach_target(
 		right.x, right.y, "CH2OH", "start", 16.0,
 		attach_atom="last", attach_element="C", font_name="Arial",
 	).box
@@ -226,4 +228,4 @@ def test_malformed_attach_atom_hard_fails_with_clear_error():
 		right_attach_atom="frist",
 	)
 	with pytest.raises(ValueError, match=r"Invalid attach_atom value: 'frist'"):
-		render_geometry.molecule_to_ops(mol, style={"font_size": 16.0})
+		molecule_to_ops(mol, style={"font_size": 16.0})

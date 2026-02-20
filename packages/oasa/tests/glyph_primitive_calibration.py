@@ -5,7 +5,8 @@ import argparse
 import json
 
 # local repo modules
-from oasa import render_geometry
+from oasa.render_lib.label_geometry import _text_char_advances
+from oasa.render_lib.glyph_model import glyph_attach_primitive
 
 try:
 	import cairo
@@ -138,10 +139,10 @@ def _glyph_outline_metrics(symbol: str, font_name: str, font_size: float) -> dic
 #============================================
 def _primitive_metrics(symbol: str, font_name: str, font_size: float) -> dict:
 	"""Return normalized primitive centerline/boundary metrics for one glyph."""
-	advances = render_geometry._text_char_advances(symbol, float(font_size), font_name)
+	advances = _text_char_advances(symbol, float(font_size), font_name)
 	span_width = float(advances[0]) if advances else float(font_size * 0.60)
 	span_width = max(1e-6, span_width)
-	primitive = render_geometry.glyph_attach_primitive(
+	primitive = glyph_attach_primitive(
 		symbol=symbol,
 		span_x1=0.0,
 		span_x2=span_width,

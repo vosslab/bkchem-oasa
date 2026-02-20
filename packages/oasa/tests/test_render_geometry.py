@@ -7,7 +7,23 @@ import math
 import pytest
 
 # local repo modules
-from oasa import render_geometry
+from oasa.render_lib.data_types import AttachConstraints
+from oasa.render_lib.data_types import ATTACH_GAP_FONT_FRACTION
+from oasa.render_lib.data_types import ATTACH_GAP_TARGET
+from oasa.render_lib.data_types import ATTACH_PERP_TOLERANCE
+from oasa.render_lib.data_types import BondRenderContext
+from oasa.render_lib.data_types import make_attach_constraints
+from oasa.render_lib.data_types import make_box_target
+from oasa.render_lib.data_types import make_circle_target
+from oasa.render_lib.data_types import make_composite_target
+from oasa.render_lib.attach_resolution import _correct_endpoint_for_alignment
+from oasa.render_lib.attach_resolution import _min_distance_point_to_target_boundary
+from oasa.render_lib.attach_resolution import _perpendicular_distance_to_line
+from oasa.render_lib.attach_resolution import _retreat_to_target_gap
+from oasa.render_lib.bond_ops import _avoid_cross_label_overlaps
+from oasa.render_lib.bond_ops import _clip_to_target
+from oasa.render_lib.bond_ops import _resolve_endpoint_with_constraints
+from oasa.render_lib.bond_ops import build_bond_ops
 
 
 #============================================
@@ -17,7 +33,7 @@ from oasa import render_geometry
 #============================================
 def test_perpendicular_distance_point_on_line():
 	# point on the line should have distance 0
-	dist = render_geometry._perpendicular_distance_to_line(
+	dist = _perpendicular_distance_to_line(
 		(5.0, 5.0), (0.0, 0.0), (10.0, 10.0),
 	)
 	assert dist == pytest.approx(0.0, abs=1e-10)
@@ -26,7 +42,7 @@ def test_perpendicular_distance_point_on_line():
 #============================================
 def test_perpendicular_distance_horizontal_line():
 	# point (3, 5) above horizontal line y=0
-	dist = render_geometry._perpendicular_distance_to_line(
+	dist = _perpendicular_distance_to_line(
 		(3.0, 5.0), (0.0, 0.0), (10.0, 0.0),
 	)
 	assert dist == pytest.approx(5.0, abs=1e-10)
@@ -35,7 +51,7 @@ def test_perpendicular_distance_horizontal_line():
 #============================================
 def test_perpendicular_distance_vertical_line():
 	# point (7, 3) to the right of vertical line x=0
-	dist = render_geometry._perpendicular_distance_to_line(
+	dist = _perpendicular_distance_to_line(
 		(7.0, 3.0), (0.0, 0.0), (0.0, 10.0),
 	)
 	assert dist == pytest.approx(7.0, abs=1e-10)
@@ -44,7 +60,7 @@ def test_perpendicular_distance_vertical_line():
 #============================================
 def test_perpendicular_distance_diagonal():
 	# point (1, 0) to line from (0,0) to (0,1) -- distance is 1
-	dist = render_geometry._perpendicular_distance_to_line(
+	dist = _perpendicular_distance_to_line(
 		(1.0, 0.0), (0.0, 0.0), (0.0, 1.0),
 	)
 	assert dist == pytest.approx(1.0, abs=1e-10)
@@ -53,7 +69,7 @@ def test_perpendicular_distance_diagonal():
 #============================================
 def test_perpendicular_distance_degenerate_line():
 	# degenerate line (start == end) falls back to euclidean distance
-	dist = render_geometry._perpendicular_distance_to_line(
+	dist = _perpendicular_distance_to_line(
 		(3.0, 4.0), (0.0, 0.0), (0.0, 0.0),
 	)
 	assert dist == pytest.approx(5.0, abs=1e-10)
@@ -62,7 +78,7 @@ def test_perpendicular_distance_degenerate_line():
 #============================================
 def test_perpendicular_distance_negative_coords():
 	# point (-3, 0) to horizontal line y=4 from (-10,4) to (10,4)
-	dist = render_geometry._perpendicular_distance_to_line(
+	dist = _perpendicular_distance_to_line(
 		(-3.0, 0.0), (-10.0, 4.0), (10.0, 4.0),
 	)
 	assert dist == pytest.approx(4.0, abs=1e-10)
@@ -74,7 +90,7 @@ def test_perpendicular_distance_45_degree_line():
 	# perpendicular distance = |0*1 - 1*1 + 0| / sqrt(2) ... using formula
 	# cross product: |dy*(px-sx) - dx*(py-sy)| / length
 	# = |1*(0-0) - 1*(1-0)| / sqrt(2) = 1/sqrt(2)
-	dist = render_geometry._perpendicular_distance_to_line(
+	dist = _perpendicular_distance_to_line(
 		(0.0, 1.0), (0.0, 0.0), (1.0, 1.0),
 	)
 	assert dist == pytest.approx(1.0 / math.sqrt(2.0), abs=1e-10)
@@ -87,7 +103,7 @@ def test_perpendicular_distance_45_degree_line():
 #============================================
 def test_retreat_zero_gap_returns_endpoint():
 	# target_gap=0 should return the endpoint unchanged
-	result = render_geometry._retreat_to_target_gap(
+	result = _retreat_to_target_gap(
 		(0.0, 0.0), (10.0, 0.0), 0.0, [],
 	)
 	assert result == pytest.approx((10.0, 0.0), abs=1e-10)
@@ -96,7 +112,7 @@ def test_retreat_zero_gap_returns_endpoint():
 #============================================
 def test_retreat_negative_gap_returns_endpoint():
 	# negative target_gap should return the endpoint unchanged
-	result = render_geometry._retreat_to_target_gap(
+	result = _retreat_to_target_gap(
 		(0.0, 0.0), (10.0, 0.0), -1.0, [],
 	)
 	assert result == pytest.approx((10.0, 0.0), abs=1e-10)
@@ -106,8 +122,8 @@ def test_retreat_negative_gap_returns_endpoint():
 def test_retreat_gap_already_satisfied():
 	# endpoint is 5 units from the box boundary, target_gap=2
 	# box from (12, -5) to (20, 5), endpoint at (10, 0) -> distance to box = 2
-	box = render_geometry.make_box_target((12.0, -5.0, 20.0, 5.0))
-	result = render_geometry._retreat_to_target_gap(
+	box = make_box_target((12.0, -5.0, 20.0, 5.0))
+	result = _retreat_to_target_gap(
 		(0.0, 0.0), (10.0, 0.0), 2.0, [box],
 	)
 	assert result == pytest.approx((10.0, 0.0), abs=1e-10)
@@ -117,8 +133,8 @@ def test_retreat_gap_already_satisfied():
 def test_retreat_gap_needs_retreat():
 	# box from (11, -5) to (20, 5), endpoint at (10, 0) -> distance to box = 1
 	# target_gap=3, so need to retreat by 2 units
-	box = render_geometry.make_box_target((11.0, -5.0, 20.0, 5.0))
-	result = render_geometry._retreat_to_target_gap(
+	box = make_box_target((11.0, -5.0, 20.0, 5.0))
+	result = _retreat_to_target_gap(
 		(0.0, 0.0), (10.0, 0.0), 3.0, [box],
 	)
 	# endpoint should move toward start (x < 10) but not past it (x > 0)
@@ -132,8 +148,8 @@ def test_retreat_gap_vertical_direction():
 	# vertical bond: start=(5,0), endpoint=(5,10), box at (3,12) to (7,20)
 	# distance from (5,10) to box boundary = 2 (y direction)
 	# target_gap=4, need to retreat 2 units
-	box = render_geometry.make_box_target((3.0, 12.0, 7.0, 20.0))
-	result = render_geometry._retreat_to_target_gap(
+	box = make_box_target((3.0, 12.0, 7.0, 20.0))
+	result = _retreat_to_target_gap(
 		(5.0, 0.0), (5.0, 10.0), 4.0, [box],
 	)
 	# endpoint should stay on the vertical line (x == 5)
@@ -146,7 +162,7 @@ def test_retreat_gap_vertical_direction():
 #============================================
 def test_retreat_gap_no_forbidden_regions():
 	# no forbidden regions: current_gap=0, so retreat by full target_gap
-	result = render_geometry._retreat_to_target_gap(
+	result = _retreat_to_target_gap(
 		(0.0, 0.0), (10.0, 0.0), 2.0, [],
 	)
 	assert result[0] == pytest.approx(8.0, abs=1e-10)
@@ -156,8 +172,8 @@ def test_retreat_gap_no_forbidden_regions():
 #============================================
 def test_retreat_gap_excessive_retreat_clamps_to_start():
 	# target gap exceeds bond length -- should clamp to line_start
-	box = render_geometry.make_box_target((3.0, -1.0, 5.0, 1.0))
-	result = render_geometry._retreat_to_target_gap(
+	box = make_box_target((3.0, -1.0, 5.0, 1.0))
+	result = _retreat_to_target_gap(
 		(0.0, 0.0), (2.0, 0.0), 100.0, [box],
 	)
 	assert result == pytest.approx((0.0, 0.0), abs=1e-10)
@@ -166,7 +182,7 @@ def test_retreat_gap_excessive_retreat_clamps_to_start():
 #============================================
 def test_retreat_gap_degenerate_zero_length():
 	# start == endpoint: should return endpoint unchanged
-	result = render_geometry._retreat_to_target_gap(
+	result = _retreat_to_target_gap(
 		(5.0, 5.0), (5.0, 5.0), 1.0, [],
 	)
 	assert result == pytest.approx((5.0, 5.0), abs=1e-10)
@@ -178,17 +194,17 @@ def test_retreat_gap_diagonal_approach_converges():
 	# under-corrects because retreat distance != perpendicular gap.
 	# The iterative loop should converge to the target gap.
 	# box from (10, 10) to (20, 20), bond from (0, 0) toward (10, 10)
-	box = render_geometry.make_box_target((10.0, 10.0, 20.0, 20.0))
+	box = make_box_target((10.0, 10.0, 20.0, 20.0))
 	target_gap = 3.0
 	# start endpoint just outside the box corner at 45 degrees
 	# distance from (9, 9) to box corner (10,10) = sqrt(2) ~ 1.414
 	start = (0.0, 0.0)
 	endpoint = (9.0, 9.0)
-	result = render_geometry._retreat_to_target_gap(
+	result = _retreat_to_target_gap(
 		start, endpoint, target_gap, [box],
 	)
 	# verify the achieved gap meets the target
-	achieved_gap = render_geometry._min_distance_point_to_target_boundary(
+	achieved_gap = _min_distance_point_to_target_boundary(
 		result, box,
 	)
 	assert achieved_gap >= target_gap - 0.01, (
@@ -208,8 +224,8 @@ def test_retreat_gap_diagonal_approach_converges():
 #============================================
 def test_correct_alignment_already_aligned():
 	# bond from (0,0) to (10,0), alignment center at (10,0) -- on the line
-	box = render_geometry.make_box_target((8.0, -2.0, 12.0, 2.0))
-	result = render_geometry._correct_endpoint_for_alignment(
+	box = make_box_target((8.0, -2.0, 12.0, 2.0))
+	result = _correct_endpoint_for_alignment(
 		(0.0, 0.0), (10.0, 0.0), (10.0, 0.0), box, 0.5,
 	)
 	assert result == pytest.approx((10.0, 0.0), abs=1e-10)
@@ -218,8 +234,8 @@ def test_correct_alignment_already_aligned():
 #============================================
 def test_correct_alignment_within_tolerance():
 	# bond from (0,0) to (10,0), alignment center at (10, 0.1) -- within tolerance
-	box = render_geometry.make_box_target((8.0, -2.0, 12.0, 2.0))
-	result = render_geometry._correct_endpoint_for_alignment(
+	box = make_box_target((8.0, -2.0, 12.0, 2.0))
+	result = _correct_endpoint_for_alignment(
 		(0.0, 0.0), (10.0, 0.0), (10.0, 0.1), box, 0.5,
 	)
 	assert result == pytest.approx((10.0, 0.0), abs=1e-10)
@@ -229,15 +245,15 @@ def test_correct_alignment_within_tolerance():
 def test_correct_alignment_off_axis_corrects():
 	# bond from (0,0) to (10,0), alignment center at (10, 5) -- off axis
 	# correction should redirect toward alignment center and hit box boundary
-	box = render_geometry.make_box_target((8.0, -2.0, 12.0, 8.0))
-	result = render_geometry._correct_endpoint_for_alignment(
+	box = make_box_target((8.0, -2.0, 12.0, 8.0))
+	result = _correct_endpoint_for_alignment(
 		(0.0, 0.0), (10.0, 0.0), (10.0, 5.0), box, 0.5,
 	)
 	# the corrected endpoint should be on the box boundary
 	# and the line from (0,0) through result should pass closer to (10,5)
 	assert result != pytest.approx((10.0, 0.0), abs=1e-2)
 	# verify the correction moved the endpoint
-	perp = render_geometry._perpendicular_distance_to_line(
+	perp = _perpendicular_distance_to_line(
 		(10.0, 5.0), (0.0, 0.0), result,
 	)
 	# the corrected line should pass much closer to alignment center
@@ -248,8 +264,8 @@ def test_correct_alignment_off_axis_corrects():
 def test_correct_alignment_circle_target():
 	# bond from (0,0) to (10,0), alignment center at (10, 3)
 	# circle target centered at (10,3) radius 2
-	circle = render_geometry.make_circle_target((10.0, 3.0), 2.0)
-	result = render_geometry._correct_endpoint_for_alignment(
+	circle = make_circle_target((10.0, 3.0), 2.0)
+	result = _correct_endpoint_for_alignment(
 		(0.0, 0.0), (10.0, 0.0), (10.0, 3.0), circle, 0.5,
 	)
 	# should correct to point toward the circle center
@@ -264,8 +280,8 @@ def test_correct_alignment_circle_target():
 #============================================
 def test_correct_alignment_coincident_start_center():
 	# bond_start == alignment_center: should return endpoint unchanged
-	box = render_geometry.make_box_target((8.0, -2.0, 12.0, 2.0))
-	result = render_geometry._correct_endpoint_for_alignment(
+	box = make_box_target((8.0, -2.0, 12.0, 2.0))
+	result = _correct_endpoint_for_alignment(
 		(10.0, 0.0), (10.0, 0.0), (10.0, 0.0), box, 0.5,
 	)
 	assert result == pytest.approx((10.0, 0.0), abs=1e-10)
@@ -279,25 +295,25 @@ def test_composite_alignment_picks_best_perp():
 	alignment_center = (9.0, 2.0)
 	tolerance = 0.01
 
-	circle_target = render_geometry.make_circle_target((10.0, 3.0), 2.0)
-	box_target = render_geometry.make_box_target((7.0, 0.0, 11.0, 4.0))
+	circle_target = make_circle_target((10.0, 3.0), 2.0)
+	box_target = make_box_target((7.0, 0.0, 11.0, 4.0))
 
 	# circle-only result for comparison
-	circle_result = render_geometry._correct_endpoint_for_alignment(
+	circle_result = _correct_endpoint_for_alignment(
 		bond_start, endpoint, alignment_center, circle_target, tolerance,
 	)
 
 	# composite: circle first, box second
-	composite = render_geometry.make_composite_target([circle_target, box_target])
-	result = render_geometry._correct_endpoint_for_alignment(
+	composite = make_composite_target([circle_target, box_target])
+	result = _correct_endpoint_for_alignment(
 		bond_start, endpoint, alignment_center, composite, tolerance,
 	)
 
 	# result should have lower or equal perp error compared to circle-only
-	result_perp = render_geometry._perpendicular_distance_to_line(
+	result_perp = _perpendicular_distance_to_line(
 		alignment_center, bond_start, result,
 	)
-	circle_perp = render_geometry._perpendicular_distance_to_line(
+	circle_perp = _perpendicular_distance_to_line(
 		alignment_center, bond_start, circle_result,
 	)
 	assert result_perp <= circle_perp
@@ -311,11 +327,11 @@ def test_composite_alignment_already_aligned():
 	alignment_center = (8.0, 5.0)
 	tolerance = 0.07
 
-	circle_target = render_geometry.make_circle_target((8.0, 5.0), 1.5)
-	box_target = render_geometry.make_box_target((6.0, 3.5, 9.0, 6.5))
-	composite = render_geometry.make_composite_target([circle_target, box_target])
+	circle_target = make_circle_target((8.0, 5.0), 1.5)
+	box_target = make_box_target((6.0, 3.5, 9.0, 6.5))
+	composite = make_composite_target([circle_target, box_target])
 
-	result = render_geometry._correct_endpoint_for_alignment(
+	result = _correct_endpoint_for_alignment(
 		bond_start, endpoint, alignment_center, composite, tolerance,
 	)
 	assert result == pytest.approx(endpoint)
@@ -330,17 +346,17 @@ def test_composite_alignment_single_child_match():
 	tolerance = 0.01
 
 	# box far away -- no intersection with centerline, returns endpoint unchanged
-	far_box = render_geometry.make_box_target((50.0, 50.0, 55.0, 55.0))
+	far_box = make_box_target((50.0, 50.0, 55.0, 55.0))
 	# circle near alignment_center -- produces valid correction
-	near_circle = render_geometry.make_circle_target((10.0, 3.0), 2.0)
+	near_circle = make_circle_target((10.0, 3.0), 2.0)
 
 	# circle-only result for comparison
-	circle_result = render_geometry._correct_endpoint_for_alignment(
+	circle_result = _correct_endpoint_for_alignment(
 		bond_start, endpoint, alignment_center, near_circle, tolerance,
 	)
 
-	composite = render_geometry.make_composite_target([far_box, near_circle])
-	result = render_geometry._correct_endpoint_for_alignment(
+	composite = make_composite_target([far_box, near_circle])
+	result = _correct_endpoint_for_alignment(
 		bond_start, endpoint, alignment_center, composite, tolerance,
 	)
 	assert result == pytest.approx(circle_result)
@@ -355,11 +371,11 @@ def test_composite_alignment_no_children_match():
 	tolerance = 0.01
 
 	# both circles far away -- centerline misses both, so no intersection
-	far_circle1 = render_geometry.make_circle_target((50.0, 50.0), 1.0)
-	far_circle2 = render_geometry.make_circle_target((-40.0, 30.0), 0.5)
+	far_circle1 = make_circle_target((50.0, 50.0), 1.0)
+	far_circle2 = make_circle_target((-40.0, 30.0), 0.5)
 
-	composite = render_geometry.make_composite_target([far_circle1, far_circle2])
-	result = render_geometry._correct_endpoint_for_alignment(
+	composite = make_composite_target([far_circle1, far_circle2])
+	result = _correct_endpoint_for_alignment(
 		bond_start, endpoint, alignment_center, composite, tolerance,
 	)
 	assert result == endpoint
@@ -382,9 +398,9 @@ def test_cross_label_no_cross_targets():
 	# only own-vertex targets present -- endpoints unchanged
 	v1 = _FakeVertex("A")
 	v2 = _FakeVertex("B")
-	box_a = render_geometry.make_box_target((0.0, -2.0, 2.0, 2.0))
+	box_a = make_box_target((0.0, -2.0, 2.0, 2.0))
 	label_targets = {v1: box_a}
-	result = render_geometry._avoid_cross_label_overlaps(
+	result = _avoid_cross_label_overlaps(
 		(0.0, 0.0), (20.0, 0.0), half_width=0.5,
 		own_vertices={v1, v2}, label_targets=label_targets,
 	)
@@ -397,9 +413,9 @@ def test_cross_label_own_target_excluded():
 	# own vertex's box sits on the bond path but must be ignored
 	v1 = _FakeVertex("A")
 	v2 = _FakeVertex("B")
-	box_on_path = render_geometry.make_box_target((8.0, -2.0, 12.0, 2.0))
+	box_on_path = make_box_target((8.0, -2.0, 12.0, 2.0))
 	label_targets = {v1: box_on_path}
-	result = render_geometry._avoid_cross_label_overlaps(
+	result = _avoid_cross_label_overlaps(
 		(0.0, 0.0), (20.0, 0.0), half_width=0.5,
 		own_vertices={v1, v2}, label_targets=label_targets,
 	)
@@ -413,10 +429,10 @@ def test_cross_label_near_end_retreats_end():
 	v1 = _FakeVertex("A")
 	v2 = _FakeVertex("B")
 	v3 = _FakeVertex("C")
-	box_c = render_geometry.make_box_target((16.0, -3.0, 22.0, 3.0))
-	label_targets = {v1: render_geometry.make_box_target((-2.0, -1.0, 0.0, 1.0)),
+	box_c = make_box_target((16.0, -3.0, 22.0, 3.0))
+	label_targets = {v1: make_box_target((-2.0, -1.0, 0.0, 1.0)),
 		v3: box_c}
-	result = render_geometry._avoid_cross_label_overlaps(
+	result = _avoid_cross_label_overlaps(
 		(0.0, 0.0), (20.0, 0.0), half_width=0.5,
 		own_vertices={v1, v2}, label_targets=label_targets,
 	)
@@ -431,9 +447,9 @@ def test_cross_label_near_start_retreats_start():
 	v1 = _FakeVertex("A")
 	v2 = _FakeVertex("B")
 	v3 = _FakeVertex("C")
-	box_c = render_geometry.make_box_target((-2.0, -3.0, 4.0, 3.0))
+	box_c = make_box_target((-2.0, -3.0, 4.0, 3.0))
 	label_targets = {v3: box_c}
-	result = render_geometry._avoid_cross_label_overlaps(
+	result = _avoid_cross_label_overlaps(
 		(0.0, 0.0), (20.0, 0.0), half_width=0.5,
 		own_vertices={v1, v2}, label_targets=label_targets,
 	)
@@ -448,9 +464,9 @@ def test_cross_label_no_intersection():
 	v1 = _FakeVertex("A")
 	v2 = _FakeVertex("B")
 	v3 = _FakeVertex("C")
-	box_c = render_geometry.make_box_target((50.0, 50.0, 60.0, 60.0))
+	box_c = make_box_target((50.0, 50.0, 60.0, 60.0))
 	label_targets = {v3: box_c}
-	result = render_geometry._avoid_cross_label_overlaps(
+	result = _avoid_cross_label_overlaps(
 		(0.0, 0.0), (20.0, 0.0), half_width=0.5,
 		own_vertices={v1, v2}, label_targets=label_targets,
 	)
@@ -466,9 +482,9 @@ def test_cross_label_min_length_guard():
 	v3 = _FakeVertex("C")
 	half_width = 0.5
 	# bond only 3 units long, box covers the whole path
-	box_c = render_geometry.make_box_target((-1.0, -3.0, 4.0, 3.0))
+	box_c = make_box_target((-1.0, -3.0, 4.0, 3.0))
 	label_targets = {v3: box_c}
-	result = render_geometry._avoid_cross_label_overlaps(
+	result = _avoid_cross_label_overlaps(
 		(0.0, 0.0), (3.0, 0.0), half_width=half_width,
 		own_vertices={v1, v2}, label_targets=label_targets,
 	)
@@ -485,15 +501,15 @@ def test_cross_label_min_length_guard():
 #============================================
 def test_attach_constraints_default_alignment_tolerance():
 	"""Default AttachConstraints should use ATTACH_PERP_TOLERANCE."""
-	constraints = render_geometry.AttachConstraints()
-	assert constraints.alignment_tolerance == render_geometry.ATTACH_PERP_TOLERANCE
+	constraints = AttachConstraints()
+	assert constraints.alignment_tolerance == ATTACH_PERP_TOLERANCE
 	assert constraints.alignment_tolerance == 0.07
 
 
 #============================================
 def test_attach_constraints_custom_alignment_tolerance():
 	"""AttachConstraints should accept a custom alignment_tolerance."""
-	constraints = render_geometry.AttachConstraints(alignment_tolerance=0.5)
+	constraints = AttachConstraints(alignment_tolerance=0.5)
 	assert constraints.alignment_tolerance == 0.5
 
 
@@ -502,22 +518,22 @@ def test_alignment_correction_uses_constraints_tolerance():
 	"""_correct_endpoint_for_alignment behavior changes with tolerance."""
 	# bond from (0,0) to (10,0), alignment center at (10, 0.5)
 	# perp distance from (10, 0.5) to the line y=0 is 0.5
-	box = render_geometry.make_box_target((8.0, -2.0, 12.0, 2.0))
+	box = make_box_target((8.0, -2.0, 12.0, 2.0))
 	bond_start = (0.0, 0.0)
 	endpoint = (10.0, 0.0)
 	alignment_center = (10.0, 0.5)
 	# loose tolerance (1.0 > 0.5): no correction needed
-	ep_loose = render_geometry._correct_endpoint_for_alignment(
+	ep_loose = _correct_endpoint_for_alignment(
 		bond_start, endpoint, alignment_center, box, 1.0,
 	)
 	assert ep_loose == pytest.approx(endpoint, abs=1e-10)
 	# tight tolerance (0.1 < 0.5): correction fires
-	ep_tight = render_geometry._correct_endpoint_for_alignment(
+	ep_tight = _correct_endpoint_for_alignment(
 		bond_start, endpoint, alignment_center, box, 0.1,
 	)
 	assert ep_tight != pytest.approx(endpoint, abs=1e-2)
 	# the corrected endpoint should aim closer to alignment center
-	perp_after = render_geometry._perpendicular_distance_to_line(
+	perp_after = _perpendicular_distance_to_line(
 		alignment_center, bond_start, ep_tight,
 	)
 	assert perp_after < 0.5
@@ -527,10 +543,10 @@ def test_alignment_correction_uses_constraints_tolerance():
 def test_no_hardcoded_tolerance_fallback():
 	"""Default alignment_tolerance uses the module constant ATTACH_PERP_TOLERANCE,
 	not the old max(line_width * 0.5, 0.25) expression."""
-	constraints = render_geometry.AttachConstraints(line_width=2.0)
+	constraints = AttachConstraints(line_width=2.0)
 	# alignment_tolerance should equal the module-level constant
 	assert constraints.alignment_tolerance == pytest.approx(
-		render_geometry.ATTACH_PERP_TOLERANCE
+		ATTACH_PERP_TOLERANCE
 	)
 	# and it should NOT be the old line-width-derived formula
 	assert constraints.alignment_tolerance != max(2.0 * 0.5, 0.25)
@@ -543,23 +559,23 @@ def test_no_hardcoded_tolerance_fallback():
 #============================================
 def test_make_attach_constraints_default_absolute_gap():
 	"""No args returns ATTACH_GAP_TARGET as the gap."""
-	constraints = render_geometry.make_attach_constraints()
-	assert constraints.target_gap == render_geometry.ATTACH_GAP_TARGET
-	assert constraints.alignment_tolerance == render_geometry.ATTACH_PERP_TOLERANCE
+	constraints = make_attach_constraints()
+	assert constraints.target_gap == ATTACH_GAP_TARGET
+	assert constraints.alignment_tolerance == ATTACH_PERP_TOLERANCE
 
 
 #============================================
 def test_make_attach_constraints_font_relative_gap():
 	"""font_size arg computes font-relative gap via ATTACH_GAP_FONT_FRACTION."""
-	constraints = render_geometry.make_attach_constraints(font_size=12.0)
-	expected_gap = 12.0 * render_geometry.ATTACH_GAP_FONT_FRACTION
+	constraints = make_attach_constraints(font_size=12.0)
+	expected_gap = 12.0 * ATTACH_GAP_FONT_FRACTION
 	assert constraints.target_gap == pytest.approx(expected_gap)
 
 
 #============================================
 def test_make_attach_constraints_explicit_gap_overrides_font():
 	"""Explicit target_gap takes priority over font_size."""
-	constraints = render_geometry.make_attach_constraints(
+	constraints = make_attach_constraints(
 		font_size=12.0, target_gap=5.0,
 	)
 	assert constraints.target_gap == 5.0
@@ -569,7 +585,7 @@ def test_make_attach_constraints_explicit_gap_overrides_font():
 def test_make_attach_constraints_passthrough_fields():
 	"""All fields are forwarded correctly to AttachConstraints."""
 	center = (1.0, 2.0)
-	constraints = render_geometry.make_attach_constraints(
+	constraints = make_attach_constraints(
 		line_width=2.5,
 		clearance=0.3,
 		vertical_lock=True,
@@ -590,10 +606,10 @@ def test_make_attach_constraints_matches_haworth_gap():
 	"""Haworth calling convention: explicit target_gap overrides font-relative gap."""
 	# Haworth renderer now passes target_gap=ATTACH_GAP_TARGET explicitly
 	font_size = 12.0
-	constraints = render_geometry.make_attach_constraints(
-		font_size=font_size, target_gap=render_geometry.ATTACH_GAP_TARGET,
+	constraints = make_attach_constraints(
+		font_size=font_size, target_gap=ATTACH_GAP_TARGET,
 	)
-	assert constraints.target_gap == render_geometry.ATTACH_GAP_TARGET
+	assert constraints.target_gap == ATTACH_GAP_TARGET
 
 
 #============================================
@@ -603,7 +619,7 @@ def test_make_attach_constraints_matches_haworth_gap():
 #============================================
 def test_resolve_endpoint_none_target():
 	"""None target returns bond_start unchanged."""
-	result = render_geometry._resolve_endpoint_with_constraints(
+	result = _resolve_endpoint_with_constraints(
 		(5.0, 3.0), None,
 	)
 	assert result == pytest.approx((5.0, 3.0), abs=1e-10)
@@ -613,33 +629,33 @@ def test_resolve_endpoint_none_target():
 def test_resolve_endpoint_matches_clip_to_target():
 	"""Default constraints produce identical results to _clip_to_target()
 	for axis-aligned bonds (direction snapping preserves the angle)."""
-	box = render_geometry.make_box_target((8.0, -2.0, 12.0, 2.0))
+	box = make_box_target((8.0, -2.0, 12.0, 2.0))
 	cases = [
 		((0.0, 0.0), "horizontal"),
 		((10.0, -20.0), "vertical"),
 	]
 	for bond_start, label in cases:
-		old = render_geometry._clip_to_target(bond_start, box)
-		new = render_geometry._resolve_endpoint_with_constraints(bond_start, box)
+		old = _clip_to_target(bond_start, box)
+		new = _resolve_endpoint_with_constraints(bond_start, box)
 		assert new == pytest.approx(old, abs=1e-10), f"mismatch for {label} bond"
 
 
 #============================================
 def test_resolve_endpoint_alignment_correction():
 	"""Explicit alignment_center triggers centerline correction."""
-	box = render_geometry.make_box_target((8.0, -2.0, 12.0, 8.0))
+	box = make_box_target((8.0, -2.0, 12.0, 8.0))
 	bond_start = (0.0, 0.0)
 	# with alignment_center at (10, 5): endpoint should correct toward (10, 5)
-	constraints = render_geometry.AttachConstraints(
+	constraints = AttachConstraints(
 		direction_policy="auto",
 		alignment_center=(10.0, 5.0),
 		alignment_tolerance=0.07,
 	)
-	ep_corrected = render_geometry._resolve_endpoint_with_constraints(
+	ep_corrected = _resolve_endpoint_with_constraints(
 		bond_start, box, constraints=constraints,
 	)
 	# the corrected line should pass closer to (10, 5)
-	perp = render_geometry._perpendicular_distance_to_line(
+	perp = _perpendicular_distance_to_line(
 		(10.0, 5.0), bond_start, ep_corrected,
 	)
 	assert perp < 1.0
@@ -648,17 +664,17 @@ def test_resolve_endpoint_alignment_correction():
 #============================================
 def test_resolve_endpoint_gap_retreat():
 	"""target_gap > 0 creates a gap between endpoint and target."""
-	box = render_geometry.make_box_target((8.0, -2.0, 12.0, 2.0))
+	box = make_box_target((8.0, -2.0, 12.0, 2.0))
 	bond_start = (0.0, 0.0)
-	constraints = render_geometry.AttachConstraints(
+	constraints = AttachConstraints(
 		direction_policy="auto",
 		target_gap=2.0,
 	)
-	ep = render_geometry._resolve_endpoint_with_constraints(
+	ep = _resolve_endpoint_with_constraints(
 		bond_start, box, constraints=constraints,
 	)
 	# endpoint should be further from the box than without gap
-	ep_no_gap = render_geometry._resolve_endpoint_with_constraints(bond_start, box)
+	ep_no_gap = _resolve_endpoint_with_constraints(bond_start, box)
 	assert ep[0] < ep_no_gap[0]  # retreated toward start (leftward)
 
 
@@ -667,12 +683,12 @@ def test_resolve_endpoint_legality_retreat():
 	"""Endpoint inside target gets retreated out with nonzero line_width."""
 	# box covers the endpoint area; with line_width > 0 the stroke footprint
 	# extends inside the box, triggering legality retreat.
-	box = render_geometry.make_box_target((7.0, -3.0, 13.0, 3.0))
+	box = make_box_target((7.0, -3.0, 13.0, 3.0))
 	bond_start = (0.0, 0.0)
-	ep_thin = render_geometry._resolve_endpoint_with_constraints(
+	ep_thin = _resolve_endpoint_with_constraints(
 		bond_start, box, line_width=0.0,
 	)
-	ep_wide = render_geometry._resolve_endpoint_with_constraints(
+	ep_wide = _resolve_endpoint_with_constraints(
 		bond_start, box, line_width=4.0,
 	)
 	# wider line should retreat more (or at least not advance)
@@ -684,7 +700,7 @@ def test_build_bond_ops_triple_clips_offsets():
 	"""Triple bond offset lines respect label targets."""
 	v1 = _FakeVertex("A")
 	v2 = _FakeVertex("B")
-	box_b = render_geometry.make_box_target((18.0, -3.0, 24.0, 3.0))
+	box_b = make_box_target((18.0, -3.0, 24.0, 3.0))
 
 	class FakeEdge:
 		order = 3
@@ -692,7 +708,7 @@ def test_build_bond_ops_triple_clips_offsets():
 		vertices = (v1, v2)
 		properties_ = {}
 
-	context = render_geometry.BondRenderContext(
+	context = BondRenderContext(
 		molecule=None,
 		line_width=1.0,
 		bond_width=3.0,
@@ -701,7 +717,7 @@ def test_build_bond_ops_triple_clips_offsets():
 		bond_second_line_shortening=0.0,
 		label_targets={v2: box_b},
 	)
-	ops = render_geometry.build_bond_ops(
+	ops = build_bond_ops(
 		FakeEdge(), (0.0, 0.0), (20.0, 0.0), context,
 	)
 	# should have 3 line ops (center + 2 offsets)

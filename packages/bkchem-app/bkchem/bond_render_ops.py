@@ -6,8 +6,12 @@ from warnings import warn
 import oasa
 
 from oasa import geometry
-from oasa import render_geometry
 from oasa import render_ops
+from oasa.render_lib.data_types import BondRenderContext
+from oasa.render_lib.data_types import make_attach_constraints
+from oasa.render_lib.data_types import make_box_target
+from oasa.render_lib.bond_ops import build_bond_ops
+from oasa.render_lib.bond_ops import haworth_front_edge_geometry
 from oasa import wedge_geometry
 
 from bkchem import bkchem_utils
@@ -67,7 +71,7 @@ class BondRenderOpsMixin:
       if atom.show:
         shown_vertices.add(atom)
         bbox = bkchem_utils.normalize_coords(atom.bbox(substract_font_descent=True))
-        label_targets[atom] = render_geometry.make_box_target(tuple(bbox))
+        label_targets[atom] = make_box_target(tuple(bbox))
     bond_width_value = self.bond_width
     if bond_width_value is None and self.paper and self.paper.standard:
       bond_width_value = self.paper.standard.bond_width
@@ -78,8 +82,8 @@ class BondRenderOpsMixin:
     bond_width = abs(float(self.paper.real_to_canvas(bond_width_value or line_width)))
     wedge_width = abs(float(self.paper.real_to_canvas(wedge_width_value or line_width)))
     bold_multiplier = wedge_width / max(line_width, 1e-6)
-    constraints = render_geometry.make_attach_constraints(line_width=line_width)
-    context = render_geometry.BondRenderContext(
+    constraints = make_attach_constraints(line_width=line_width)
+    context = BondRenderContext(
       molecule=self.molecule,
       line_width=line_width,
       bond_width=bond_width,
@@ -93,7 +97,7 @@ class BondRenderOpsMixin:
       point_for_atom=lambda atom: atom.get_xy_on_paper(),
       attach_constraints=constraints,
     )
-    return render_geometry.build_bond_ops(self, start, end, context)
+    return build_bond_ops(self, start, end, context)
 
   def _set_rendered_items(self, item_ids):
     ids = [item_id for item_id in item_ids if item_id is not None]
@@ -256,7 +260,7 @@ class BondRenderOpsMixin:
       return None
     x1, y1, x2, y2 = coords
     thickness = self.paper.real_to_canvas(self.wedge_width)
-    geometry_info = render_geometry.haworth_front_edge_geometry((x1, y1), (x2, y2), thickness)
+    geometry_info = haworth_front_edge_geometry((x1, y1), (x2, y2), thickness)
     if not geometry_info:
       return None
     start, end, _normal, _cap_radius = geometry_info

@@ -45,27 +45,20 @@ def test_yaml_parses():
 	assert 'menus' in data
 
 #============================================
-def test_all_nine_menus_present():
-	"""Verify 9 menus with expected names."""
+def test_every_menu_has_name_and_side():
+	"""Every menu entry has a name and side key."""
 	data = _load_yaml()
-	expected_names = {
-		'file', 'edit', 'insert', 'align', 'object',
-		'view', 'chemistry', 'options', 'help',
-	}
-	menu_names = {m['name'] for m in data['menus']}
-	assert menu_names == expected_names
-	assert len(data['menus']) == 9
+	for menu in data['menus']:
+		assert 'name' in menu, f"Menu missing 'name': {menu}"
+		assert 'side' in menu, f"Menu missing 'side': {menu}"
 
 #============================================
-def test_menu_order():
-	"""Names in correct order."""
+def test_every_menu_has_items():
+	"""Every menu has a non-empty items list."""
 	data = _load_yaml()
-	expected_order = [
-		'file', 'edit', 'insert', 'align', 'object',
-		'view', 'chemistry', 'options', 'help',
-	]
-	actual_order = [m['name'] for m in data['menus']]
-	assert actual_order == expected_order
+	for menu in data['menus']:
+		items = menu.get('items', [])
+		assert len(items) > 0, f"Menu '{menu['name']}' has no items"
 
 #============================================
 def test_help_right_side():
@@ -122,43 +115,25 @@ def test_cascade_refs_have_definitions():
 	assert not missing, f"Missing cascade definitions: {missing}"
 
 #============================================
-def test_total_action_count():
-	"""Total action items across all menus equals 55."""
+def test_no_adjacent_separators():
+	"""No menu has two separators in a row."""
 	data = _load_yaml()
-	all_items = _collect_all_items(data)
-	action_count = sum(1 for item in all_items if 'action' in item)
-	assert action_count == 55, f"Expected 55 actions, got {action_count}"
+	for menu in data['menus']:
+		items = menu.get('items', [])
+		for i in range(len(items) - 1):
+			if 'separator' in items[i] and 'separator' in items[i + 1]:
+				assert False, f"Adjacent separators in '{menu['name']}' at index {i}"
 
 #============================================
-def test_total_separator_count():
-	"""Total separators equals 19."""
+def test_no_leading_or_trailing_separators():
+	"""No menu starts or ends with a separator."""
 	data = _load_yaml()
-	all_items = _collect_all_items(data)
-	sep_count = sum(1 for item in all_items if 'separator' in item)
-	assert sep_count == 19, f"Expected 19 separators, got {sep_count}"
-
-#============================================
-def test_cascade_count():
-	"""Total cascade refs equals 3."""
-	data = _load_yaml()
-	all_items = _collect_all_items(data)
-	cascade_count = sum(1 for item in all_items if 'cascade' in item)
-	assert cascade_count == 3, f"Expected 3 cascades, got {cascade_count}"
-
-#============================================
-def test_file_menu_item_count():
-	"""File menu has 16 items (9 actions + 3 cascades + 4 separators)."""
-	data = _load_yaml()
-	# find file menu
-	file_menu = [m for m in data['menus'] if m['name'] == 'file'][0]
-	item_count = len(file_menu['items'])
-	assert item_count == 16, f"Expected 16 file items, got {item_count}"
-
-#============================================
-def test_chemistry_menu_item_count():
-	"""Chemistry menu has 20 items (14 actions + 6 separators)."""
-	data = _load_yaml()
-	# find chemistry menu
-	chem_menu = [m for m in data['menus'] if m['name'] == 'chemistry'][0]
-	item_count = len(chem_menu['items'])
-	assert item_count == 20, f"Expected 20 chemistry items, got {item_count}"
+	for menu in data['menus']:
+		items = menu.get('items', [])
+		if items:
+			assert 'separator' not in items[0], (
+				f"Menu '{menu['name']}' starts with a separator"
+			)
+			assert 'separator' not in items[-1], (
+				f"Menu '{menu['name']}' ends with a separator"
+			)

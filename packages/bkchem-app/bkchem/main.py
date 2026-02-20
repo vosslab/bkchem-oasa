@@ -29,17 +29,13 @@ import sys
 import oasa
 import collections
 
-from tkinter import Button, Frame, Label, Scrollbar, StringVar, Tk
-from tkinter import HORIZONTAL, LEFT, RAISED, SUNKEN, VERTICAL
-from tkinter.filedialog import asksaveasfilename, askopenfilename
-import tkinter.messagebox
+from tkinter import Frame, Label, StringVar, Tk
+from tkinter import LEFT, RAISED, SUNKEN
 
 import Pmw
-from bkchem import data
 from bkchem import bkchem_utils
 from bkchem import modes
 from bkchem import bkchem_config
-from bkchem import export
 from bkchem import logger
 from bkchem import dialogs
 from bkchem import pixmaps
@@ -48,19 +44,27 @@ from bkchem import messages
 from bkchem import molecule_lib
 from bkchem import os_support
 from bkchem import interactors
-from bkchem import oasa_bridge
-from bkchem import safe_xml
-from bkchem.paper import chem_paper
 from bkchem.edit_pool import editPool
 from bkchem.id_manager import id_manager
 from bkchem.temp_manager import template_manager
 from bkchem.singleton_store import Store, Screen
 
+from bkchem.main_lib.main_file_io import MainFileIOMixin
+from bkchem.main_lib.main_chemistry_io import MainChemistryIOMixin
+from bkchem.main_lib.main_modes import MainModesMixin
+from bkchem.main_lib.main_tabs import MainTabsMixin
+
 _ = builtins.__dict__.get( '_', lambda m: m)
 
 
 
-class BKChem( Tk):
+class BKChem(
+  MainTabsMixin,
+  MainModesMixin,
+  MainChemistryIOMixin,
+  MainFileIOMixin,
+  Tk,
+):
 
   def __init__( self):
     Tk.__init__( self)
@@ -360,8 +364,8 @@ class BKChem( Tk):
     self._clipboard_pos = None
 
     self._untitled_counter = 0
-    self.__tab_name_2_paper = {}
-    self.__last_tab = 0
+    self._tab_name_2_paper = {}
+    self._last_tab = 0
 
     self._after = None
 
@@ -506,236 +510,6 @@ class BKChem( Tk):
     dialog.activate()
 
 
-  def change_mode( self, tag):
-    old_mode = self.mode
-    self.mode = self.modes[ tag]
-    if not bkchem_utils.myisstr(old_mode):
-      old_mode.cleanup()
-      self.mode.copy_settings( old_mode)
-
-    # tear down previous submode widgets (buttons, labels, separators)
-    # destroy edit pool buttons before destroying the ribbon frame they live in
-    self.editPool.destroy_buttons()
-    if self.subbuttons:
-      for butts in self.subbuttons:
-        if hasattr( butts, 'deleteall()'):
-          butts.deleteall()
-        butts.destroy()
-    self.subbuttons = []
-    for widget in getattr(self, '_sub_extra_widgets', []):
-      widget.destroy()
-    self._sub_extra_widgets = []
-
-    m = self.mode
-    # YAML-driven ribbon fields
-    mode_icon_map = getattr(m, 'icon_map', {})
-    group_labels = getattr(m, 'group_labels', [])
-    tooltip_map = getattr(m, 'tooltip_map', {})
-
-    for i in range( len( m.submodes)):
-      # render group label before button row (ribbon-style separator)
-      label_text = group_labels[i] if i < len(group_labels) else ''
-      if label_text:
-        # vertical separator line between groups (skip before first group)
-        if i > 0:
-          sep = Frame(self.subFrame, width=1, bg='#b0b0b0')
-          sep.pack(side=LEFT, fill='y', padx=2, pady=1)
-          self._sub_extra_widgets.append(sep)
-        # compact group label
-        lbl = Label(self.subFrame, text=label_text, font=('sans-serif', 8),
-                    fg='#666666', anchor='w', padx=1, pady=0)
-        lbl.pack(side=LEFT, padx=(2, 0))
-        self._sub_extra_widgets.append(lbl)
-
-      # determine layout for this submode group
-      layout = 'row'
-      if hasattr(m, 'group_layouts') and i < len(m.group_layouts):
-        layout = m.group_layouts[i]
-
-      if layout == 'grid':
-        # button grid layout (e.g. biomolecule templates with short labels)
-        grid_frame = self._build_submode_grid(m, i, tooltip_map)
-        self.subbuttons.append(grid_frame)
-        grid_frame.pack(side=LEFT, padx=(0, 2))
-      elif layout == 'row':
-        # normal horizontal button row
-        self.subbuttons.append( Pmw.RadioSelect( self.subFrame,
-                                                 buttontype = 'button',
-                                                 selectmode = 'single',
-                                                 orient = 'horizontal',
-                                                 command = self.change_submode,
-                                                 hull_borderwidth = 0,
-                                                 padx = 0,
-                                                 pady = 0,
-                                                 hull_relief = 'ridge',
-                                                 ))
-        self.subbuttons[i].pack(side=LEFT, padx=(0, 2))
-        for sub in m.submodes[i]:
-          # use icon_map for YAML default cascade (key->icon override)
-          icon_name = mode_icon_map.get(sub, sub)
-          img_name = m.__class__.__name__.replace("_mode","") + "-" + icon_name
-          if img_name in pixmaps.images:
-            img = pixmaps.images[img_name]
-          elif icon_name in pixmaps.images:
-            img = pixmaps.images[icon_name]
-          else:
-            img = None
-          # tooltip: prefer YAML tooltip_map, fall back to display name
-          sub_idx = m.submodes[i].index(sub)
-          display_name = m.submodes_names[i][sub_idx]
-          tip_text = tooltip_map.get(sub, display_name)
-          if img:
-            recent = self.subbuttons[i].add( sub, image=img, activebackground='grey', borderwidth=bkchem_config.border_width)
-            self.balloon.bind(recent, tip_text)
-          else:
-            self.subbuttons[i].add( sub, text=display_name, borderwidth=bkchem_config.border_width)
-        # select the default submode
-        j = m.submodes[i][ m.submode[i]]
-        self.subbuttons[i].invoke( j)
-      else:
-        # fallback: dropdown menu
-        self.subbuttons.append( Pmw.OptionMenu( self.subFrame,
-                                                items = m.submodes_names[i],
-                                                command = self.change_submode))
-        self.subbuttons[i].pack(side=LEFT, padx=(0, 2))
-
-    # add edit pool buttons to ribbon for text-entry modes (YAML show_edit_pool)
-    if getattr(m, 'show_edit_pool', False):
-      # vertical separator before the button group if submodes already exist
-      if self.subbuttons:
-        sep = Frame(self.subFrame, width=1, bg='#b0b0b0')
-        sep.pack(side=LEFT, fill='y', padx=2, pady=1)
-        self._sub_extra_widgets.append(sep)
-      bf = self.editPool.create_buttons(self.subFrame)
-      bf.pack(side=LEFT)
-      self._sub_extra_widgets.append(bf)
-      # show the Entry bar
-      self.editPool.grid(row=3, sticky="wens")
-    else:
-      # hide the Entry bar for non-editing modes
-      self.editPool.grid_remove()
-
-    # highlight the selected mode button with a thick colored border
-    for btn_name in self.modes_sort:
-      btn = self.radiobuttons.button(btn_name)
-      if btn_name == tag:
-        btn.configure(relief='sunken', borderwidth=3,
-          highlightbackground='#4a90d9',
-          highlightcolor='#4a90d9',
-          highlightthickness=2)
-      else:
-        btn.configure(relief='flat', borderwidth=1,
-          highlightthickness=0)
-
-    self.paper.mode = self.mode
-    #Store.log( _('mode changed to ')+self.modes[ tag].name)
-    self.mode.startup()
-
-
-  def change_submode( self, tag):
-    self.mode.set_submode( tag)
-
-
-  def _build_submode_grid(self, m, group_index, tooltip_map):
-    """Build a Tk Frame with buttons arranged in a grid layout.
-
-    Args:
-      m: The current mode object.
-      group_index: Index of the submode group.
-      tooltip_map: Dict mapping submode keys to tooltip text.
-
-    Returns:
-      Frame: A Tk Frame containing the grid of buttons.
-    """
-    # get column count from YAML config
-    yaml_key = type(m).__name__.replace('_mode', '')
-    cfg = modes.get_modes_config()['modes'].get(yaml_key, {})
-    columns = 4
-    submode_groups = cfg.get('submodes', [])
-    if group_index < len(submode_groups):
-      columns = submode_groups[group_index].get('columns', 4)
-
-    grid_frame = Frame(self.subFrame, relief='ridge', borderwidth=0)
-    # track the selected button for this grid
-    grid_frame._grid_buttons = {}
-    grid_frame._grid_selected = None
-
-    def on_grid_click(name, btn):
-      """Handle grid button click -- highlight and set submode."""
-      # un-highlight previous selection
-      if grid_frame._grid_selected and grid_frame._grid_selected.winfo_exists():
-        grid_frame._grid_selected.configure(relief='raised', bg='#d9d9d9')
-      # highlight new selection
-      btn.configure(relief='sunken', bg='#b0c4de')
-      grid_frame._grid_selected = btn
-      self.change_submode(name)
-
-    submodes_list = m.submodes[group_index]
-    names_list = m.submodes_names[group_index]
-    for idx, sub in enumerate(submodes_list):
-      row = idx // columns
-      col = idx % columns
-      display_name = names_list[idx] if idx < len(names_list) else sub
-      tip_text = tooltip_map.get(sub, display_name)
-      btn = Button(
-        grid_frame, text=display_name,
-        width=4, padx=1, pady=1,
-        relief='raised', borderwidth=bkchem_config.border_width,
-        font=('sans-serif', 9),
-        command=lambda n=sub, b_idx=idx: on_grid_click(n, grid_frame._grid_buttons[b_idx]),
-      )
-      btn.grid(row=row, column=col, padx=1, pady=1)
-      grid_frame._grid_buttons[idx] = btn
-      self.balloon.bind(btn, tip_text)
-
-    # auto-select first button
-    if submodes_list and 0 in grid_frame._grid_buttons:
-      first_btn = grid_frame._grid_buttons[0]
-      first_btn.configure(relief='sunken', bg='#b0c4de')
-      grid_frame._grid_selected = first_btn
-      self.change_submode(submodes_list[0])
-
-    return grid_frame
-
-
-  def refresh_submode_buttons(self, group_index):
-    """Rebuild the submode widget at the given group index.
-
-    Used when the template list changes (e.g. category switch
-    in biomolecule mode).
-
-    Args:
-      group_index: Index of the submode group to rebuild.
-    """
-    if group_index >= len(self.subbuttons):
-      return
-    m = self.mode
-    tooltip_map = getattr(m, 'tooltip_map', {})
-    # destroy existing widget
-    old_widget = self.subbuttons[group_index]
-    old_widget.destroy()
-    # determine layout
-    layout = 'row'
-    if hasattr(m, 'group_layouts') and group_index < len(m.group_layouts):
-      layout = m.group_layouts[group_index]
-    if layout == 'grid':
-      new_widget = self._build_submode_grid(m, group_index, tooltip_map)
-    else:
-      # rebuild as horizontal row
-      new_widget = Pmw.RadioSelect(self.subFrame,
-        buttontype='button', selectmode='single',
-        orient='horizontal', command=self.change_submode,
-        hull_borderwidth=0, padx=0, pady=0, hull_relief='ridge')
-      for sub in m.submodes[group_index]:
-        sub_idx = m.submodes[group_index].index(sub)
-        display_name = m.submodes_names[group_index][sub_idx]
-        new_widget.add(sub, text=display_name, borderwidth=bkchem_config.border_width)
-      if m.submodes[group_index]:
-        new_widget.invoke(m.submodes[group_index][0])
-    new_widget.pack(side=LEFT, padx=(0, 2))
-    self.subbuttons[group_index] = new_widget
-
-
   def update_status( self, signal, time=None):
     """if time is none it is calculated based on the string length"""
     if time is None and signal:
@@ -747,325 +521,8 @@ class BKChem( Tk):
       self._after = self.after( int( time*1000), func=self.clear_status)
 
 
-  def change_paper(self, name):
-    if self.papers:
-      old_paper = self.paper
-      # de-highlighting of current tab
-      if old_paper in self.papers:
-        i = self.papers.index(old_paper)
-        self.notebook.tab(i).configure(background=bkchem_config.background_color, fg="black")
-      i = self.notebook.index( name)
-      # highlighting of current tab
-      self.notebook.tab( i).configure( background="#777777", fg="white")
-      # the rest
-      self.paper = self.papers[i]
-      if (hasattr(self, 'mode') and
-          not bkchem_utils.myisstr(self.mode) and
-          old_paper in self.papers and
-          self.paper != old_paper):
-        # this is not true on startup and tab closing
-        self.mode.on_paper_switch( old_paper, self.paper)
-
-
-  def add_new_paper( self, name=''):
-    # check if the same file is opened
-    p = self.check_if_the_file_is_opened( name)
-    if p:
-      Store.log( _("Sorry but I cannot open the same file twice: ")+"\n"+name, message_type="error")
-      return False
-    name_dic = self.get_name_dic( name=name)
-    # create the tab
-    _tab_name = self.get_new_tab_name()
-    page = self.notebook.add( _tab_name, tab_text = chem_paper.create_window_name( name_dic))
-    paper = chem_paper( page,
-                        scrollregion=(-100,-100,'300m','400m'),
-                        background="grey",
-                        closeenough=3,
-                        file_name=name_dic)
-    self.__tab_name_2_paper[ _tab_name] = paper
-    # the scrolling
-    scroll_y = Scrollbar( page, orient = VERTICAL, command = paper.yview, bd=bkchem_config.border_width)
-    scroll_x = Scrollbar( page, orient = HORIZONTAL, command = paper.xview, bd=bkchem_config.border_width)
-    paper.grid( row=0, column=0, sticky="news")
-    page.grid_rowconfigure( 0, weight=1, minsize = 0)
-    page.grid_columnconfigure( 0, weight=1, minsize = 0)
-    scroll_x.grid( row=1, column=0, sticky='we')
-    scroll_y.grid( row=0, column=1, sticky='ns')
-    paper['yscrollcommand'] = scroll_y.set
-    paper['xscrollcommand'] = scroll_x.set
-
-    # Zoom controls at bottom of each tab page
-    zoom_frame = Frame(page)
-    zoom_frame.grid(row=2, column=0, columnspan=2, sticky='e')
-
-    zoom_out_btn = Button(zoom_frame, text="\u2212", width=2, command=paper.zoom_out)
-    zoom_out_btn.pack(side='left', padx=1)
-
-    zoom_label = Label(zoom_frame, text="100%", width=5, relief=SUNKEN)
-    zoom_label.pack(side='left', padx=1)
-
-    zoom_in_btn = Button(zoom_frame, text="+", width=2, command=paper.zoom_in)
-    zoom_in_btn.pack(side='left', padx=1)
-
-    zoom_reset_btn = Button(zoom_frame, text="100%", width=4, command=paper.zoom_reset)
-    zoom_reset_btn.pack(side='left', padx=2)
-
-    zoom_fit_btn = Button(zoom_frame, text="Fit", width=3, command=paper.zoom_to_fit)
-    zoom_fit_btn.pack(side='left', padx=2)
-
-    zoom_content_btn = Button(zoom_frame, text="Content", width=6, command=paper.zoom_to_content)
-    zoom_content_btn.pack(side='left', padx=2)
-
-    def update_zoom_label(event=None, lbl=zoom_label, p=paper):
-      lbl.config(text="%d%%" % int(p._scale * 100))
-    paper.bind('<<zoom-changed>>', update_zoom_label)
-
-    self.papers.append( paper)
-    self.change_paper( _tab_name)
-    self.notebook.selectpage( Pmw.END)
-    paper.bind( "<<selection-changed>>", self.update_menu_after_selection_change)
-    paper.bind( "<<clipboard-changed>>", self.update_menu_after_selection_change)
-    paper.bind( "<<undo>>", self.update_menu_after_selection_change)
-    paper.bind( "<<redo>>", self.update_menu_after_selection_change)
-    if not self.paper:
-      self.paper = paper  # this is needed for the batch mode, normaly its done in change_paper
-    else:
-      self.paper.focus_set()
-    return True
-
-
-  def close_current_paper( self, call_quit_if_no_remains=True):
-    ret = self.close_paper()
-    if self.papers == [] and call_quit_if_no_remains:
-      self._quit()
-    return ret
-
-
-  def close_paper( self, paper=None):
-    p = paper or self.paper
-    if hasattr( self, "editPool") and self.editPool.active:
-      self.editPool._cancel(None)
-
-    if p.changes_made and not self.in_batch_mode:
-      name = p.file_name['name']
-      dialog = Pmw.MessageDialog( self,
-                                  title= _("Really close?"),
-                                  message_text = _("There are unsaved changes in file %s, what should I do?") % name,
-                                  buttons = (_('Close'),_('Save'),_('Cancel')),
-                                  defaultbutton = _('Close'))
-      result = dialog.activate()
-      if result == _('Save'):
-        self.save_CDML()
-      elif result == _('Cancel'):
-        return 0 # we skip away
-    self.papers.remove( p)
-
-    # cleanup
-    # find the name of the tab
-    name = self.get_paper_tab_name( p)
-    del self.__tab_name_2_paper[ name]
-    p.mrproper()
-    self.notebook.delete( name or Pmw.SELECT)
-    return 1
-
-
   def clear_status( self):
     self.stat.set( '')
-
-
-  def save_CDML( self, name=None, update_default_dir=1):
-    """saves content of self.paper (recent paper) under its filename,
-    if the filename was automaticaly given by bkchem it will call save_as_CDML
-    in order to ask for the name"""
-    if not name:
-      if self.paper.file_name['auto']:
-        self.save_as_CDML()
-        return
-      else:
-        a = os.path.join( self.paper.file_name['dir'], self.paper.file_name['name'])
-        return self._save_according_to_extension( a, update_default_dir=update_default_dir)
-    else:
-      return self._save_according_to_extension( name, update_default_dir=update_default_dir)
-
-
-  def save_as_CDML( self):
-    """asks the user the name for a file and saves the current paper there,
-    dir and name should be given as starting values"""
-    d = self.paper.file_name['dir']
-    name = self.paper.file_name['name']
-    a = asksaveasfilename( defaultextension = ".svg", initialdir = d, initialfile = name,
-                           title = _("Save As..."), parent = self,
-                           filetypes=((_("CD-SVG file"),".svg"),
-                                      (_("Gzipped CD-SVG file"),".svgz"),
-                                      (_("CDML file"),".cdml"),
-                                      (_("Gzipped CDML file"),".cdgz")))
-    if a != '' and a!=():
-      if self._save_according_to_extension( a):
-        name = self.get_name_dic( a)
-        if self.check_if_the_file_is_opened( name['name'], check_current=0):
-          tkinter.messagebox.showerror( _("File already opened!"), _("Sorry but you are already editing a file with this name (%s), please choose a different name or close the other file.") % name['name'])
-          return None
-        self.paper.file_name = self.get_name_dic( a)
-        self.notebook.tab( self.get_paper_tab_name( self.paper)).configure( text = self.paper.file_name['name'])
-        return self.paper.file_name
-      else:
-        return None
-    else:
-      return None
-
-
-  def _save_according_to_extension( self, filename, update_default_dir=1):
-    """decides the format from the file extension and saves self.paper in it"""
-    save_dir, save_file = os.path.split( filename)
-    if update_default_dir:
-      self.save_dir = save_dir
-    ext = os.path.splitext( filename)[1]
-    if ext == '.cdgz':
-      type = _('gzipped CDML')
-      success = export.export_CDML( self.paper, filename, gzipped=1)
-    elif ext == '.cdml':
-      type = _('CDML')
-      success = export.export_CDML( self.paper, filename, gzipped=0)
-    elif ext == '.svgz':
-      type = _('gzipped CD-SVG')
-      success = export.export_CD_SVG( self.paper, filename, gzipped=1)
-    else:
-      type = _('CD-SVG')
-      success = export.export_CD_SVG( self.paper, filename, gzipped=0)
-    if success:
-      Store.log( _("saved to %s file: %s") % (type, os.path.abspath( os.path.join( save_dir, save_file))))
-      self._record_recent_file( os.path.abspath( os.path.join( save_dir, save_file)))
-      self.paper.changes_made = 0
-      return 1
-    else:
-      Store.log( _("failed to save to %s file: %s") % (type, save_file))
-      return 0
-
-
-  def set_file_name( self, name, check_ext=0):
-    """if check_ext is true append a .svg extension if no is present"""
-    if check_ext and not os.path.splitext( name)[1]:
-      self.paper.file_name = self.get_name_dic( name + ".svg", local_file=1)
-    else:
-      self.paper.file_name = self.get_name_dic( name, local_file=1)
-    self.notebook.tab( self.get_paper_tab_name( self.paper)).configure( text = self.paper.file_name['name'])
-
-
-  def load_CDML( self, file=None, replace=0):
-    """loads a file into a new paper or the current one (depending on replace value),
-    file is the name of the file to load (if not supplied dialog is fired),
-    if replace == 0 the content of the file is added to the current content of the file"""
-    if not file:
-      if self.paper.changes_made and replace:
-        if tkinter.messagebox.askokcancel( _("Forget changes?"),_("Forget changes in currently visiting file?"), default='ok', parent=self) == 0:
-          return 0
-      a = askopenfilename( defaultextension = "",
-                           initialdir = self.save_dir,
-                           title = _("Load"),
-                           parent = self,
-                           filetypes=((_("All native formats"), (".svg", ".svgz", ".cdml", ".cdgz")),
-                                      (_("CD-SVG file"), ".svg"),
-                                      (_("Gzipped CD-SVG file"), ".svgz"),
-                                      (_("CDML file"),".cdml"),
-                                      (_("CDGZ file"),".cdgz"),
-                                      (_("Gzipped files"), ".gz"),
-                                      (_("All files"),"*")))
-    else:
-      a = file
-    if not a:
-      return None
-    if self.papers and (replace or (self.paper.file_name['auto'] and not self.paper.changes_made)):
-      self.close_paper()
-    p = self.add_new_paper( name=a)
-    if p != 0:
-      self.paper.mode = self.mode # somehow the raise event does not work here
-      return self._load_CDML_file( a)
-    return 0
-
-
-  def _load_CDML_file( self, a, draw=True):
-    if a != '':
-      self.save_dir, save_file = os.path.split( a)
-      ## try if the file is gzipped
-      # try to open the file
-      try:
-        import gzip
-        inp = gzip.open( a, "rb")
-      except IOError:
-        # can't read the file
-        Store.log( _("cannot open file ") + a)
-        return None
-      # is it a gzip file?
-      it_is_gzip = 1
-      try:
-        s = inp.read()
-      except IOError:
-        # not a gzip file
-        it_is_gzip = 0
-      # if it's gzip file parse it
-      if it_is_gzip:
-        try:
-          doc = safe_xml.parse_dom_from_string( s)
-        except:
-          Store.log( _("error reading file"))
-          inp.close()
-          return None
-        inp.close()
-        del gzip
-        doc = [n for n in doc.childNodes if n.nodeType == doc.ELEMENT_NODE][0]
-      else:
-      ## otherwise it should be normal xml file
-        ## try to parse it
-        try:
-          doc = safe_xml.parse_dom_from_file( a)
-        except IndexError:
-          Store.log( _("error reading file"))
-          return None
-        ## if it works check if its CDML of CD-SVG file
-        doc = [n for n in doc.childNodes if n.nodeType == doc.ELEMENT_NODE][0]
-      ## check if its CD-SVG or CDML
-      if doc.nodeName != 'cdml':
-        ## first try if there is the right namespace
-        if hasattr( doc, 'getElementsByTagNameNS'):
-          docs = doc.getElementsByTagNameNS( data.cdml_namespace, 'cdml')
-        else:
-          Store.log( _("File was not loaded"), message_type="error")
-          return None  # I don't know why this happens, but we simply ignore the document
-        if docs:
-          doc = docs[0]
-        else:
-          # if not, try it without it
-          docs = doc.getElementsByTagName( 'cdml')
-          if docs:
-            # ask if we should proceed with incorrect namespace
-            proceed = tkinter.messagebox.askokcancel(_("Proceed?"),
-                                               _("CDML data seem present in SVG but have wrong namespace. Proceed?"),
-                                               default='ok',
-                                               parent=self)
-            if proceed:
-              doc = docs[0]
-            else:
-              Store.log(_("file not loaded"))
-              return None
-          else:
-            ## sorry but there is no cdml in the svg file
-            Store.log(_("cdml data are not present in SVG or are corrupted!"))
-            return None
-      self.paper.clean_paper()
-      self.paper.read_package( doc, draw=draw)
-      if not bkchem_utils.myisstr(self.mode):
-        self.mode.startup()
-      Store.log( _("loaded file: ")+self.paper.full_path)
-      self._record_recent_file( os.path.abspath( self.paper.full_path))
-      return 1
-
-
-  def save_SVG( self, file_name=None):
-    return self.format_export( "svg", filename=file_name)
-
-
-  def _update_geometry( self, e):
-    pass
 
 
   def scale( self):
@@ -1120,116 +577,6 @@ class BKChem( Tk):
       sys.exit(0)
 
 
-  def _format_filetypes( self, format_name, extensions):
-    types = []
-    for ext in extensions:
-      types.append( (format_name+" "+_("file"), ext))
-    types.append( (_("All files"), "*"))
-    return types
-
-
-  def format_import( self, codec_name, filename=None):
-    entry = self.format_entries.get( codec_name)
-    if not entry:
-      return 0
-    if not filename:
-      if self.paper.changes_made:
-        if tkinter.messagebox.askokcancel(
-            _("Forget changes?"),
-            _("Forget changes in currently visiting file?"),
-            default='ok',
-            parent=self) == 0:
-          return 0
-      types = self._format_filetypes( entry["display_name"], entry.get("extensions", []))
-      a = askopenfilename( defaultextension = "",
-                           initialdir = self.save_dir,
-                           initialfile = self.save_file,
-                           title = _("Load")+" "+entry["display_name"],
-                           parent = self,
-                           filetypes=types)
-      if a:
-        filename = a
-      else:
-        return 0
-    try:
-      mols = format_loader.import_format( codec_name, self.paper, filename)
-    except Exception as detail:
-      tkinter.messagebox.showerror(
-        _("Import error"),
-        _("Format import failed with following error:\n %s") % detail)
-      return 0
-    self.paper.clean_paper()
-    self.paper.create_background()
-    for m in mols:
-      self.paper.stack.append( m)
-      m.draw()
-    self.paper.add_bindings()
-    self.paper.start_new_undo_record()
-    Store.log( _("loaded file: ")+filename)
-    return 1
-
-
-  def format_export( self, codec_name, filename=None, interactive=True, on_begin_attrs=None):
-    _ = interactive
-    _ = on_begin_attrs
-    entry = self.format_entries.get( codec_name)
-    if not entry:
-      return False
-    if not filename:
-      file_name = self.paper.get_base_name()
-      extensions = entry.get("extensions", [])
-      if extensions:
-        file_name += extensions[0]
-      types = self._format_filetypes( entry["display_name"], extensions)
-      defaultextension = ""
-      if len( types) > 1:
-        defaultextension = types[0][1]
-      a = asksaveasfilename( defaultextension = defaultextension,
-                             initialdir = self.save_dir,
-                             initialfile = file_name,
-                             title = _("Export")+" "+entry["display_name"],
-                             parent = self,
-                             filetypes=types)
-    else:
-      a = filename
-    if not a:
-      return False
-    try:
-      format_loader.export_format(
-        codec_name,
-        self.paper,
-        a,
-        entry.get("scope", "paper"),
-        entry.get("gui_options", []),
-      )
-    except ValueError as error:
-      text = str( error)
-      if text == "No molecule selected.":
-        tkinter.messagebox.showerror(
-          _("No molecule selected."),
-          _('You have to select exactly one molecule (any atom or bond will do).'))
-      elif text.endswith("molecules selected."):
-        tkinter.messagebox.showerror(
-          text,
-          _('You have to select exactly one molecule (any atom or bond will do).'))
-      elif text.startswith("Missing required option 'program_path'"):
-        tkinter.messagebox.showerror(
-          _("InChI program path"),
-          _("To use InChI in BKChem you must first give it a path to the InChI program here"))
-      else:
-        tkinter.messagebox.showerror(
-          _("Export error"),
-          _("Format export failed with following error:\n %s") % error)
-      return False
-    except Exception as error:
-      tkinter.messagebox.showerror(
-        _("Export error"),
-        _("Format export failed with following error:\n %s") % error)
-      return False
-    Store.log( _("exported file: ")+a)
-    return True
-
-
   def change_properties( self):
     dialogs.file_properties_dialog( self, self.paper)
 
@@ -1264,174 +611,6 @@ class BKChem( Tk):
       return None
 
 
-  def read_smiles( self, smiles=None):
-    if not oasa_bridge.oasa_available:
-      return
-    lt = _("Enter a SMILES or IsoSMILES string:")
-    if not smiles:
-      dial = Pmw.PromptDialog( self,
-                               title='SMILES',
-                               label_text=lt,
-                               entryfield_labelpos = 'n',
-                               buttons=(_('OK'),_('Cancel')))
-      res = dial.activate()
-      if res == _('OK'):
-        text = dial.get()
-      else:
-        return
-    else:
-      text = smiles
-
-    if text:
-      # route through CDML: SMILES -> OASA -> CDML element -> BKChem import
-      self.paper.onread_id_sandbox_activate()
-      elements = oasa_bridge.smiles_to_cdml_elements( text, self.paper)
-      imported = []
-      for element in elements:
-        mol = self.paper.add_object_from_package( element)
-        imported.append( mol)
-        mol.draw()
-      self.paper.onread_id_sandbox_finish( apply_to=imported)
-      self.paper.add_bindings()
-      self.paper.start_new_undo_record()
-      if len( imported) == 1:
-        return imported[0]
-      return imported
-
-
-  def read_peptide_sequence( self):
-    if not oasa_bridge.oasa_available:
-      return
-    # get supported amino acid letters from OASA for the dialog prompt
-    from oasa.peptide_utils import AMINO_ACID_SMILES
-    supported = sorted(AMINO_ACID_SMILES.keys())
-    supported_str = ', '.join(supported)
-    lt = _("Enter a single-letter amino acid sequence (e.g. ANKLE):\n"
-           "Supported: %s") % supported_str
-    dial = Pmw.PromptDialog( self,
-                             title=_('Peptide Sequence'),
-                             label_text=lt,
-                             entryfield_labelpos = 'n',
-                             buttons=(_('OK'),_('Cancel')))
-    res = dial.activate()
-    if res != _('OK'):
-      return
-    text = dial.get()
-    if not text or not text.strip():
-      return
-    # validate input letters before sending to OASA
-    sequence = text.strip().upper()
-    bad_letters = [aa for aa in sequence if aa not in AMINO_ACID_SMILES]
-    if bad_letters:
-      tkinter.messagebox.showerror(
-        _("Peptide Sequence Error"),
-        _("Unrecognized amino acid code(s): %s\n"
-          "Supported: %s") % (', '.join(sorted(set(bad_letters))), supported_str))
-      return
-    # delegate to OASA via bridge: peptide -> SMILES -> CDML
-    try:
-      elements = oasa_bridge.peptide_to_cdml_elements( sequence, self.paper)
-    except ValueError as err:
-      tkinter.messagebox.showerror(
-        _("Peptide Sequence Error"), str(err))
-      return
-    # import the CDML elements onto the canvas
-    self.paper.onread_id_sandbox_activate()
-    imported = []
-    for element in elements:
-      mol = self.paper.add_object_from_package( element)
-      imported.append( mol)
-      mol.draw()
-    self.paper.onread_id_sandbox_finish( apply_to=imported)
-    self.paper.add_bindings()
-    self.paper.start_new_undo_record()
-    if len( imported) == 1:
-      return imported[0]
-    return imported
-
-
-  def read_inchi( self, inchi=None):
-    if not oasa_bridge.oasa_available:
-      return
-    lt = _("""Before you use his tool, be warned that not all features of InChI are currently supported.
-There is no support for stereo-related information, isotopes and a few more things.
-The InChI should be entered in the plain text form, e.g.- 1/C7H8/1-7-5-3-2-4-6-7/1H3,2-6H
-
-Enter InChI:""")
-    text = None
-    if not inchi:
-      dial = Pmw.PromptDialog( self,
-                               title='InChI',
-                               label_text=lt,
-                               entryfield_labelpos = 'n',
-                               buttons=(_('OK'),_('Cancel')))
-      res = dial.activate()
-      if res == _('OK'):
-        text = dial.get()
-    else:
-      text = inchi
-
-    if text:
-      if bkchem_config.devel:
-        # in development mode we do not want to catch the exceptions
-        mol = oasa_bridge.read_inchi( text, self.paper)
-      else:
-        try:
-          mol = oasa_bridge.read_inchi( text, self.paper)
-        except oasa.oasa_exceptions.oasa_not_implemented_error as error:
-          if not inchi:
-            tkinter.messagebox.showerror(_("Error processing %s") % 'InChI',
-                                   _("Some feature of the submitted InChI is not supported.\n\nYou have most probaly submitted a multicomponent structure (having a . in the sumary layer"))
-            return
-          else:
-            raise ValueError("the processing of inchi failed with following error %s" % error)
-        except oasa.oasa_exceptions.oasa_inchi_error as error:
-          if not inchi:
-            tkinter.messagebox.showerror(_("Error processing %s") % 'InChI',
-                                   _("There was an error reading the submitted InChI.\n\nIf you are sure it is a valid InChI, please send me a bug report."))
-            return
-          else:
-            raise ValueError("the processing of inchi failed with following error %s" % error)
-        except oasa.oasa_exceptions.oasa_unsupported_inchi_version_error as e:
-          if not inchi:
-            tkinter.messagebox.showerror(_("Error processing %s") % 'InChI',
-                                   _("The submitted InChI has unsupported version '%s'.\n\nYou migth try resubmitting with the version string (the first part of InChI) changed to '1'.") % e.version)
-            return
-          else:
-            raise ValueError("the processing of inchi failed with following error %s" % sys.exc_info()[1])
-        except:
-
-          if not inchi:
-            tkinter.messagebox.showerror(_("Error processing %s") % 'InChI',
-                                   _("The reading of InChI failed with following error:\n\n'%s'\n\nIf you are sure you have submitted a valid InChI, please send me a bug report.") % sys.exc_info()[1])
-            return
-          else:
-            raise ValueError("the processing of inchi failed with following error %s" % sys.exc_info()[1])
-
-      self.paper.stack.append( mol)
-      mol.draw()
-      self.paper.add_bindings()
-      self.paper.start_new_undo_record()
-
-
-  def gen_smiles(self):
-    if not oasa_bridge.oasa_available:
-      return
-    u, i = self.paper.selected_to_unique_top_levels()
-    if not interactors.check_validity(u):
-      return
-    sms = []
-    for m in u:
-      if m.object_type == 'molecule':
-        sms.append(oasa_bridge.mol_to_smiles(m))
-    text = '\n\n'.join(sms)
-    dial = Pmw.TextDialog(self,
-                          title=_('Generated SMILES'),
-                          buttons=(_('OK'),))
-    dial.insert('end', text)
-    dial.activate()
-
-
   def put_to_clipboard( self, xml, pos):
     self._clipboard = xml
     self._clipboard_pos = pos
@@ -1445,38 +624,6 @@ Enter InChI:""")
     return self._clipboard_pos
 
 
-  def check_if_the_file_is_opened( self, name, check_current=1):
-    """check_current says if the self.paper should be also included into the check,
-    this is usefull to make it 0 for renames"""
-    for p in self.papers:
-      if not check_current and p == self.paper:
-        continue
-      if p.full_path == os.path.abspath( name):
-        return p
-    return None
-
-
-  def check_number_of_opened_same_names( self, name):
-    """checks if there are papers with same name and returns the highest value"""
-    ps = [p.file_name['ord'] for p in self.papers if p.file_name['name'] == name['name']]
-    if not ps:
-      return 0
-    else:
-      return max( ps)+1
-
-
-  def get_new_tab_name( self):
-    self.__last_tab += 1
-    return "tab"+str(self.__last_tab)
-
-
-  def get_paper_tab_name( self, paper):
-    for k in self.__tab_name_2_paper:
-      if self.__tab_name_2_paper[ k] == paper:
-        return k
-    return None
-
-
   def read_user_templates( self):
     [Store.utm.add_template_from_CDML( n) for n in os_support.get_local_templates()]
 
@@ -1488,37 +635,6 @@ Enter InChI:""")
       Store.btm.register_smiles_template(
         entry['smiles'], name_override=entry['name']
       )
-
-
-  def gen_inchi( self):
-    program = Store.pm.get_preference( "inchi_program_path")
-    self.paper.swap_sides_of_selected("horizontal")
-    if not oasa_bridge.oasa_available:
-      return
-    u, i = self.paper.selected_to_unique_top_levels()
-    sms = []
-    if not interactors.check_validity( u):
-      return
-
-    try:
-      for m in u:
-        if m.object_type == 'molecule':
-            inchi, key, warning = oasa_bridge.mol_to_inchi( m, program)
-            sms = sms + warning
-            sms.append(inchi)
-            sms.append("InChIKey="+key)
-            sms.append("")
-    except oasa.oasa_exceptions.oasa_inchi_error as e:
-      sms = [_("InChI generation failed,"),_("make sure the path to the InChI program is correct in 'Options/InChI program path'"), "", str( e)]
-    except:
-      sms = [_("Unknown error occured during InChI generation, sorry."), _("Please, try to make sure the path to the InChI program is correct in 'Options/InChI program path'")]
-    self.paper.swap_sides_of_selected("horizontal")
-    text = '\n'.join( sms)
-    dial = Pmw.TextDialog( self,
-                           title=_('Generated InChIs'),
-                           buttons=(_('OK'),))
-    dial.insert( 'end', text)
-    dial.activate()
 
 
   def save_configuration( self):
@@ -1555,10 +671,6 @@ Enter InChI:""")
       self.change_mode( 'biotemplate')
 
 
-  def clean( self):
-    self.paper.clean_selected()
-
-
   def update_cursor_position( self, x, y):
     self.cursor_position.set( "(%d, %d)" % (x,y))
 
@@ -1582,14 +694,6 @@ Enter InChI:""")
         elif state not in  ('normal', 'disabled'):
           state = getattr( self.paper, temp[6]) and 'normal' or 'disabled'
         self._get_menu_component( temp[0]).entryconfigure( temp[2], state=state)
-
-
-  def _record_recent_file( self, name):
-    if name in self._recent_files:
-      self._recent_files.remove( name)
-    self._recent_files.insert( 0, name)
-    if len( self._recent_files) > 5:
-      self._recent_files = self._recent_files[0:5]
 
 
   def ask_preferences( self):

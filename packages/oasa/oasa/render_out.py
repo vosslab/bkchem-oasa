@@ -12,8 +12,8 @@ import xml.dom.minidom as dom
 # local repo modules
 from oasa import dom_extensions
 from oasa import molecule_utils
-from oasa import render_geometry
 from oasa import render_ops
+from oasa.render_lib.molecule_ops import molecule_to_ops
 from oasa import svg_out
 
 
@@ -84,7 +84,7 @@ def _render_ops_for_mol(mol, *, margin, scaling, options):
 		return ((x - x1 + margin) * scaling, (y - y1 + margin) * scaling)
 
 	style = _extract_style(options, scaling)
-	ops = render_geometry.molecule_to_ops(mol, style=style, transform_xy=_transform_xy)
+	ops = molecule_to_ops(mol, style=style, transform_xy=_transform_xy)
 	width = int(round(((_molecule_bounds(mol)[2] - x1) + 2 * margin) * scaling))
 	height = int(round(((_molecule_bounds(mol)[3] - y1) + 2 * margin) * scaling))
 	return ops, max(1, width), max(1, height)

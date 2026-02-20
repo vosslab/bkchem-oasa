@@ -7,20 +7,21 @@ import math
 import pytest
 
 # local repo modules
-from oasa import render_geometry
+from oasa.render_lib.data_types import VALID_ATTACH_SITES
+from oasa.render_lib.glyph_model import glyph_attach_primitive
 import glyph_primitive_calibration as glyph_calibration
 
 
 #============================================
 def test_attach_site_contract_includes_closed_center():
-	assert "core_center" in render_geometry.VALID_ATTACH_SITES
-	assert "stem_centerline" in render_geometry.VALID_ATTACH_SITES
-	assert "closed_center" in render_geometry.VALID_ATTACH_SITES
+	assert "core_center" in VALID_ATTACH_SITES
+	assert "stem_centerline" in VALID_ATTACH_SITES
+	assert "closed_center" in VALID_ATTACH_SITES
 
 
 #============================================
 def test_glyph_primitive_p_uses_explicit_special_contract():
-	primitive = render_geometry.glyph_attach_primitive(
+	primitive = glyph_attach_primitive(
 		symbol="P",
 		span_x1=0.0,
 		span_x2=1.0,
