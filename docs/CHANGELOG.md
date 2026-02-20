@@ -1,6 +1,23 @@
 # Changelog
 
 ## 2026-02-20
+- Remove redundant `sys.path.insert` calls from 8 test files. The conftest
+  files and `source_me.sh` already set PYTHONPATH correctly. Remove
+  `_ensure_sys_path()` helper functions from 4 GUI test files. Add missing
+  `import oasa.smiles_lib` to `graph_test_fixtures.py` exposed by the cleanup.
+- Strip all 12 `__init__.py` files to zero-length (empty) per PYTHON_STYLE.md
+  policy. Remove GPL headers, docstrings, and MIN_PYTHON guards from init
+  files that previously had only boilerplate.
+- Strip `oasa/__init__.py`: remove `__version__`, auto-import loop (pkgutil),
+  CamelCase re-exports (`Atom`, `Bond`, `Molecule`, `QueryAtom`, `ChemVertex`),
+  and `CAIRO_AVAILABLE`/`PYBEL_AVAILABLE` flags. Switch `pyproject.toml` from
+  dynamic version to static `version = "26.02"`. Update `chemical_convert.py`
+  version string. Replace `oasa.CAIRO_AVAILABLE` checks in 3 test files with
+  direct import.
+- Strip `oasa/graph/__init__.py`: remove re-exports of `Graph`, `Vertex`,
+  `Edge`, `Digraph`. Update consumers in `chem_compat.py`, `context_menu.py`
+  to import from `oasa.graph.vertex_lib`, `oasa.graph.edge_lib`,
+  `oasa.graph.graph_lib` directly.
 - Fix mixed indentation (tabs vs spaces) in 10 Python files to use tabs
   exclusively per PYTHON_STYLE.md: `ftext_lib.py`, `group_lib.py`,
   `arrow_mode.py`, `bracket_mode.py`, `draw_mode.py`, `edit_mode.py`,
