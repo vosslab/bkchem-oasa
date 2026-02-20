@@ -1,6 +1,0 @@
-
-coder #2
-(1) did you take on the manager's side plan documented here: ./soft-swinging-reef.md
-
-manager
-what to do about the gap and perp stats and how to improve them, without adding hacks to the code
