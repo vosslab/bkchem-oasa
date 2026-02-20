@@ -71,20 +71,6 @@ class Digraph(base_graph):
     return e
 
 
-  def get_diameter( self):
-    diameter = 0
-    best_path = None
-    for v in self.vertices:
-      dist = self.mark_vertices_with_distance_from( v)
-      if dist > diameter:
-        diameter = dist
-        end = [x for x in self.vertices if 'd' in x.properties_ and x.properties_['d'] == dist][0]
-        best_path = self.get_random_longest_path_numbered( v, end)
-
-    best_path.reverse()
-    return diameter
-
-
   def get_connected_components( self):
     """returns the connected components of graph in a form o list of lists of vertices"""
     comp = set() # just processed component
@@ -115,35 +101,4 @@ class Digraph(base_graph):
     yield comp
 
 
-  def get_random_longest_path_numbered( self, start, end):
-    """vertices have to be freshly marked with distance"""
-    now = end
-    path = []
-    d = end.properties_['d']
-    while now:
-      d -= 1
-      path.append( now)
-      ns = [v for v in self.vertices if 'd' in v.properties_ and v.properties_['d'] == d and now in v.neighbors]
-      if ns:
-        now = ns[0]
-      else:
-        now = None
-    return path
-
-
-  def get_graphviz_text_dump( self):
-    ret = '''digraph "dump" {
-    fontpath="/usr/share/fonts/corefonts";
-    ratio=compress
-    nodesep=0.1;
-    ranksep=0.3;
-    rankdir=LR;
-    node [shape=box,fontsize=10,fontname=Arial,height=0.3];
-    '''
-    for v in self.vertices:
-      for n in v.neighbors:
-        ret += '"%s" -> "%s";\n' % (v,n);
-      ret += '"%s" [label="%s"];\n' % (v,v.value)
-    ret += "}"
-    return ret
 

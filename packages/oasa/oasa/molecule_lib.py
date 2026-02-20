@@ -579,23 +579,6 @@ class Molecule(base_graph):
     return ret
 
 
-  def _read_file( self, name="/home/beda/oasa/oasa/mol.graph"):
-    self.vertices = []
-    self.edges = set()
-    with open(name, 'r') as f:
-      vs = f.readline()
-      for i in vs.split(' '):
-        if i != '\n':
-          v = self.create_vertex()
-          v.symbol = i
-          self.add_vertex( v)
-      for l in f.readlines():
-        o, a, b = l.split(' ')
-        e = self.create_edge()
-        e.order = int(o)
-        self.add_edge(self.vertices[int(a)], self.vertices[int(b)], e=e)
-
-
   def find_longest_mostly_carbon_chain( self):
     if len( self.vertices) < 2:
       return copy.copy( self.vertices)
@@ -1003,47 +986,4 @@ def equals( mol1, mol2, level=0):
 #import psyco
 #psyco.profile()
 
-##################################################
-# DEMO
-
-if __name__ == '__main__':
-
-  def main():
-    g = Molecule()
-    g._read_file()
-
-    for b in g.edges:
-      print(g.is_edge_a_bridge( b), end='')
-
-##     g.add_missing_hydrogens()
-
-##     for v in g.vertices:
-##   #    print(v.symbol, v.is_chiral())
-##       if v.symbol:
-##         ## for a in v.get_neighbors_CIP_sorted():
-##         ##   print(a, [na.symbol for na in a.neighbors])
-##         if v.is_chiral():
-##           print(v.symbol, [na.symbol for na in v.get_neighbors_CIP_sorted()])
-
-
-
-  import time
-  t = time.time()
-  main()
-  print(round( 1000*(time.time()-t), 2), 'ms')
-
-# DEMO END
-##################################################
-
-
-
-##################################################
-# TODO
-
-# azulene is wrongly localized
-# 0,2 must alternate in aromatic compound
-# radical has 1 el in _get_atoms_possible_aromatic_electrons
-# test the equals function
-
-##################################################
 

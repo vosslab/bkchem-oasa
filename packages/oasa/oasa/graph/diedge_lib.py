@@ -40,20 +40,4 @@ class Diedge(object):
     return self.vertices
 
 
-  @property
-  def neighbor_edges(self):
-    v1, v2 = self.vertices
-    out1 = [e for e in v1.neighbor_edges if e != self]
-    out2 = [e for e in v2.neighbor_edges if e != self]
-    return out1 + out2
-
-
-  def get_neighbor_edges2(self):
-    """Return 2 lists of neighbor edges (one for one side, one for the other).
-
-    """
-    v1, v2 = self.vertices
-    out1 = [e for e in v1.neighbor_edges if e != self]
-    out2 = [e for e in v2.neighbor_edges if e != self]
-    return out1, out2
 

@@ -1,6 +1,43 @@
 # Changelog
 
 ## 2026-02-20
+- Remove 10 dead methods from
+  [graph_lib.py](packages/oasa/oasa/graph/graph_lib.py) (720 to 630 lines):
+  connect_a_graph, is_cycle, is_euler, get_size_of_pieces_after_edge_removal,
+  get_neighbors, get_neighbors_indexes, get_degrees, dump_simple_text_file,
+  read_simple_text_file, _read_file.
+- Remove dead `_read_file` method and dead `main()` demo block from
+  [molecule_lib.py](packages/oasa/oasa/molecule_lib.py) (1033 to 989 lines).
+- Remove dead code from graph package satellite files:
+  [digraph_lib.py](packages/oasa/oasa/graph/digraph_lib.py) (149 to 104 lines):
+  get_diameter, get_random_longest_path_numbered, get_graphviz_text_dump.
+  [diedge_lib.py](packages/oasa/oasa/graph/diedge_lib.py) (59 to 43 lines):
+  neighbor_edges, get_neighbor_edges2.
+  Delete [basic.py](packages/oasa/oasa/graph/basic.py) entirely (42 lines,
+  attribute_flexible_class had zero subclasses or callers).
+- Phase C: Swap 2 more algorithms to rustworkx and remove 609 lines of dead
+  code from [graph_lib.py](packages/oasa/oasa/graph/graph_lib.py) (1329 to 720
+  lines, 46% reduction).
+  - Swap `get_maximum_matching` to `rustworkx.max_weight_matching()`: removes 80
+    lines of pure-Python Edmonds blossom algorithm (get_initial_matching,
+    find_augmenting_path_from, update_matching_using_augmenting_path). All 4
+    matching tests pass with identical results.
+  - Swap `get_smallest_independent_cycles_e` to `cycle_basis_edges()`: replaces
+    113 lines of BFS-based edge cycle detection with a 5-line delegate that
+    converts rustworkx vertex cycles to edge subgraphs.
+  - Remove 23 dead methods and functions: get_almost_all_cycles_e,
+    get_all_cycles_e_old, get_all_cycles_e_oldest, _get_cycles_for_vertex,
+    _get_smallest_cycle_for_vertex, _get_smallest_cycles_for_vertex,
+    get_all_cycles_old, _get_some_cycles, _get_all_ring_end_points,
+    _get_all_ring_start_points, is_ring_end_vertex, is_ring_start_vertex,
+    get_first_closer_by_one, is_there_a_ring_between, get_paths_down_to,
+    get_path_down_to, filter_off_dependent_cycles, gen_variations,
+    get_initial_matching, get_initial_matching_old, _print_mate, and MyThread
+    class.
+  - Remove all commented-out code blocks and dead threading import.
+- Add `max_matching()` and `cycle_basis_edges()` delegates to `RxBackend`
+  ([rx_backend.py](packages/oasa/oasa/graph/rx_backend.py)). Total adapter
+  methods: 11 algorithm delegates plus mirror ops and index helpers.
 - Phase B: Remove 188 lines of legacy algorithm code from
   [graph_lib.py](packages/oasa/oasa/graph/graph_lib.py): 8 `_*_legacy` methods,
   `_gen_diameter_progress`, `_get_width_from_vertex`, private

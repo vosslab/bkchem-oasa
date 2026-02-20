@@ -458,6 +458,61 @@ class RxBackend:
 			path_vertices.reverse()
 			return path_vertices
 
+
+	#============================================
+	def max_matching(self, graph) -> tuple:
+		"""Compute maximum cardinality matching using rustworkx.
+
+		Returns the result in OASA's (mate, nrex) format where mate is a
+		dict mapping each vertex to its matched partner (or 0 if exposed)
+		and nrex is the count of exposed (unmatched) vertices.
+
+		Args:
+			graph: An OASA Graph instance.
+
+		Returns:
+			Tuple of (mate_dict, exposed_count).
+		"""
+		self.ensure_synced(graph)
+		# rustworkx returns set of (u, v) index tuples
+		rx_matching = rustworkx.max_weight_matching(
+			self.rx, max_cardinality=True, default_weight=1
+		)
+		# convert to OASA mate dict: {vertex: partner_or_0}
+		mate = {}.fromkeys(graph.vertices, 0)
+		for i1, i2 in rx_matching:
+			v1 = self.i_to_v[i1]
+			v2 = self.i_to_v[i2]
+			mate[v1] = v2
+			mate[v2] = v1
+		nrex = sum(1 for v in mate.values() if v == 0)
+		return mate, nrex
+
+	#============================================
+	def cycle_basis_edges(self, graph) -> set:
+		"""Return smallest independent cycles as frozensets of OASA Edge objects.
+
+		Computes vertex-based cycle basis via rustworkx, then converts
+		each vertex cycle to its corresponding edge subgraph.
+
+		Args:
+			graph: An OASA Graph instance.
+
+		Returns:
+			Set of frozensets, each containing OASA Edge objects
+			forming one independent cycle.
+		"""
+		vertex_cycles = self.cycle_basis(graph)
+		result = set()
+		for v_cycle in vertex_cycles:
+			edge_set = set()
+			for v1 in v_cycle:
+				for e, n in v1.get_neighbor_edge_pairs():
+					if n in v_cycle:
+						edge_set.add(e)
+			result.add(frozenset(edge_set))
+		return result
+
 	#============================================
 	def dijkstra_shortest_paths(self, graph, source, target=None) -> dict:
 		"""Compute shortest paths from source to all (or one) target.
