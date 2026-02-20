@@ -126,6 +126,10 @@ class MainModesMixin:
       self.editPool.grid_remove()
 
     # highlight the selected mode button with a thick colored border
+    # capture default highlight color once so we can fully reset inactive buttons
+    if not hasattr(self, '_btn_default_hlbg'):
+      first_btn = self.radiobuttons.button(self.modes_sort[0])
+      self._btn_default_hlbg = str(first_btn.cget('highlightbackground'))
     for btn_name in self.modes_sort:
       btn = self.radiobuttons.button(btn_name)
       if btn_name == tag:
@@ -135,6 +139,8 @@ class MainModesMixin:
           highlightthickness=2)
       else:
         btn.configure(relief='flat', borderwidth=1,
+          highlightbackground=self._btn_default_hlbg,
+          highlightcolor=self._btn_default_hlbg,
           highlightthickness=0)
 
     self.paper.mode = self.mode

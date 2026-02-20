@@ -84,6 +84,19 @@ def _verify_mode_borders(app, current_mode):
 					"Inactive mode '%s' has highlightthickness %d, expected 0."
 					% (btn_name, ht)
 				)
+			# verify blue accent color is fully cleared from inactive buttons
+			hlbg = str(btn.cget('highlightbackground'))
+			if hlbg == '#4a90d9':
+				raise AssertionError(
+					"Inactive mode '%s' retains highlightbackground '#4a90d9'."
+					% btn_name
+				)
+			hlc = str(btn.cget('highlightcolor'))
+			if hlc == '#4a90d9':
+				raise AssertionError(
+					"Inactive mode '%s' retains highlightcolor '#4a90d9'."
+					% btn_name
+				)
 
 
 #============================================

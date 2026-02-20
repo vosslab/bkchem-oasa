@@ -1,6 +1,11 @@
 # Changelog
 
 ## 2026-02-20
+- Fix mode button border color residue after cycling through toolbar modes.
+  Reset `highlightbackground` and `highlightcolor` to their default values when
+  deselecting buttons in `change_mode()`, preventing blue-tinted border artifacts
+  on macOS Tk/Aqua. Strengthen `test_gui_modes.py` border checks to verify
+  inactive buttons do not retain the `#4a90d9` accent color.
 - Standardize gettext i18n fallback pattern across 27 production files. Replace
   verbose `getattr(builtins, "_", None)` multi-line fallback with standard
   one-liner `builtins.__dict__.get('_', lambda m: m)` in 5 files (`checks.py`,
