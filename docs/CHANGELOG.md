@@ -1,6 +1,166 @@
 # Changelog
 
 ## 2026-02-20
+- Update
+  [`docs/OASA_MOLECULE_COORDINATE_GENERATION_METHODS.md`](docs/OASA_MOLECULE_COORDINATE_GENERATION_METHODS.md):
+  fix stale file references so all "Our implementation" sections and the file
+  map point to the refactored phase modules (`phase1_rings.py`,
+  `phase2_chains.py`, `phase3_collisions.py`, `phase4_refinement.py`) instead
+  of the legacy `coords_generator2.py`. Strengthen contract language clarifying
+  OASA implements RDKit's gold standard algorithms directly in Python.
+- Add Weisfeiler-Leman color pruning to graph isomorphism in
+  [`packages/oasa/oasa/coords_gen/ring_templates.py`](packages/oasa/oasa/coords_gen/ring_templates.py).
+  The `_find_isomorphism` backtracker now pre-computes WL node colors and
+  only considers structurally compatible candidates, reducing template
+  matching from 38.6s (5 timeouts) to 3.9s (0 timeouts) on 75 templates.
+- Fix cubane test expected angles in
+  [`packages/oasa/tests/test_cubane_coordinates.py`](packages/oasa/tests/test_cubane_coordinates.py):
+  restore `EXPECTED_ANGLES` to `{0.0, 48.0, 90.0}`. The TemplateSmiles.h
+  coordinates are perspective 3D projections matching PubChem's cubane
+  depiction; the 48-degree angles are diagonal cross-braces connecting
+  front and back rectangles of the perspective cube.
+- Replace YAML template storage with direct `.smi` loading in
+  [`packages/oasa/oasa/coords_gen/ring_templates.py`](packages/oasa/oasa/coords_gen/ring_templates.py).
+  Templates are now read from
+  [`packages/oasa/oasa/coords_gen/templates.smi`](packages/oasa/oasa/coords_gen/templates.smi)
+  (one CXSMILES per line), the upstream format from
+  [rdkit/molecular_templates](https://github.com/rdkit/molecular_templates).
+  Drops the `yaml` dependency and removes
+  `tools/generate_ring_templates_yaml.py`. Also removes the old
+  `tools/parse_rdkit_templates.py` generator and stale
+  `packages/oasa/oasa/ring_templates.py` copy.
+- Fix cubane SMILES typo in `tools/coords_comparison.py` and
+  `packages/oasa/tests/test_coords_generator2.py`: the old SMILES
+  `C12C3C4C1C5C3C4C25` encoded a non-bipartite graph (not cubane);
+  corrected to `C12C3C4C1C5C4C3C25` (PubChem CID 19137, Q3 hypercube).
+- Add `packages/oasa/tests/test_cubane_coordinates.py` with 5 focused
+  tests: atom/bond count, template match, bond angles against raw
+  template coords ({0, 48, 90} degrees), bond length ratio, and
+  bipartite graph verification.
+- Skip Phases 3-5 (collision, refinement, PCA) when a CXSMILES template
+  was used for ring placement in `coords_generator2`. The template
+  coordinates are the final layout; later phases were distorting them
+  (PCA rotated cubane's clean rectangular template ~24 degrees).
+- Add `cxsmiles_to_mol()` to `oasa.smiles_lib` for proper CXSMILES import:
+  parses SMILES, applies coordinate block to atom vertices in one step,
+  keeping atom indices consistent with the coordinate block.
+- Switch ring templates to use `cxsmiles_to_mol()` for CXSMILES parsing in
+  `packages/oasa/oasa/coords_gen/ring_templates.py`. Templates are stored as
+  CXSMILES strings and parsed at import time, eliminating atom-index
+  mismatches. Fixes broken template matching for cubane, adamantane, and
+  other cage molecules. Adds adamantane as a hand-crafted template (76
+  total, up from 75).
+- Add PCA major-axis alignment (Phase 5) to `coords_generator2`. After
+  force-field refinement, all coordinates are rotated so the molecule's
+  principal axis aligns with the x-axis, matching RDKit's
+  `canonicalizeOrientation()` behavior. Fixes rectangular molecules like
+  terphenyl rendering vertically instead of horizontally.
+- Update `tools/coords_comparison.py`: remove duplicate "cholesterol
+  skeleton" entry, add biological molecules (cholesterol, testosterone,
+  GTP, ATP, NAD+, sucrose, raffinose, tetraglycine, tryptophan), and add
+  all 76 ring templates as a separate gallery section for visual validation.
+- Update `tools/parse_rdkit_templates.py` to validate CXSMILES with both
+  RDKit and OASA parsers instead of generating pre-computed adjacency data.
+- Refactor `tools/assess_gpl_coverage.py` to two-pass classification: pass 1
+  uses cheap commit-date checks to classify pure GPL/LGPL files, pass 2 runs
+  expensive git blame only on files whose commits span the cutoff date. Also
+  add histogram breakdown of Mixed files in summary output (>90%, 50-90%,
+  10-50%, <10% GPL buckets). Blank lines are now excluded from blame
+  line counts so they do not inflate GPL/LGPL percentages.
+- Speed up pass 1 in `tools/assess_gpl_coverage.py` by replacing five per-file
+  `git log` calls with one `git log --follow --format=%ct|%aI` scan that
+  computes first/last commit dates and before/after cutoff counts in-memory.
+- Add `--force-blame` to `tools/assess_gpl_coverage.py` to force pass 2
+  `git blame` on all files (ignoring pass-1 commit-only classification) so
+  outputs can be compared directly against the optimized two-pass mode.
+- Make pass 1 in `tools/assess_gpl_coverage.py` conservative for files that
+  look post-cutoff by `git log`: run a small top-of-file blame sample and send
+  the file to pass 2 when pre-cutoff lines are detected. This reduces false
+  negatives on moved/renamed legacy files (notably under `packages/oasa`).
+- Fix pass-1 false `Untracked` results for some imported OASA files where
+  `git log --follow` returns no rows despite path history existing. The tool
+  now falls back to plain `git log` when `--follow` is empty.
+- Unify edit_mode snap-to-grid into a single move during drag. Previously, snap
+  happened as a separate `move_to()` correction on mouse release, causing no
+  visual feedback during drag and a disorienting jump on drop. Now the anchor
+  atom's target is snapped to the hex grid each frame during `mouse_drag`, and
+  the same delta is applied to all selected objects, matching draw_mode's
+  real-time snap behavior. Removes the post-drag snap block from `mouse_up`.
+- Fix overly aggressive snap-to-grid in edit mode. Previously, dropping a
+  selection snapped every atom independently to the nearest hex grid point,
+  distorting molecular geometry (especially 5-member rings). Now only the
+  grabbed atom snaps and the rest of the selection translates by the same
+  offset, preserving bond lengths and angles.
+- Fix hex grid dots to only appear on the white paper area, not the full
+  canvas background. Uses paper rectangle bounds (`_paper_properties` size)
+  instead of viewport bounds. Also fixes the partial-fill bug where dots only
+  covered the upper-left corner when `winfo_width`/`winfo_height` returned 1
+  before the widget was mapped, and prevents the MAX_GRID_POINTS cutoff from
+  silently hiding all dots when zoomed far out.
+- Fix circular mean bug in `phase1_rings.py` `_compute_away_angle()` and
+  `_place_spiro_ring()`: naive arithmetic average of angles failed when neighbor
+  angles straddled the 0/2pi boundary (e.g., averaging 0 and 240 degrees gave
+  120 instead of correct 300), causing second ring system to overlap the first.
+  Replaced with proper circular mean using `atan2(sum_sin, sum_cos)`.
+- Fix `_place_polygon_anchored()` in `phase1_rings.py`: polygon center was
+  positioned using edge-rotation logic that sometimes placed it between the two
+  ring systems instead of on the far side. Rewritten to always place the center
+  at `radius` distance from the junction vertex in the away direction.
+- Extend force-refinement repulsion exclusion in `phase4_refinement.py` from
+  2-bond to 3-bond neighbors. Hexagonal para-position atoms are 3 bonds apart
+  at distance sqrt(3), which fell within the 1.8x repulsion cutoff and created
+  spurious inter-ring forces that distorted ring geometry.
+- Tighten biphenyl bond length tolerance in `test_coords_generator2.py` from
+  35% to 10% now that ring placement is deterministic and correct.
+- Modularize `coords_generator2.py` into `coords_gen/` sub-package with one file
+  per phase: `calculate.py` (orchestrator), `phase1_rings.py` (ring placement),
+  `phase2_chains.py` (chain layout), `phase3_collisions.py` (collision resolution),
+  `phase4_refinement.py` (force-field refinement), and `helpers.py` (shared
+  geometry + `Transform2D` class). The original file becomes a thin re-export shim.
+- Fix edge-fused ring placement in `phase1_rings.py`: `Transform2D` was mapping
+  wrong polygon vertices when the second shared atom was not at index 1 in the
+  sorted ring. Now correctly finds `v2`'s actual index for the polygon mapping.
+- Fix spiro ring placement in `phase1_rings.py`: generate polygon vertices
+  starting from the angle that points from center to spiro atom, guaranteeing
+  vertex 0 coincides exactly with the shared atom. Previously used
+  `regular_polygon_coords` with a fixed start angle that produced misaligned geometry.
+- Fix separate ring system positioning: add `_find_external_anchor()` to detect
+  when a ring atom has an already-placed neighbor outside its ring system, and
+  position the new ring system relative to that neighbor. Fixes biphenyl and other
+  multi-ring-system molecules that were placing all ring systems at the origin.
+- Protect ring atoms in collision resolution (`phase3_collisions.py`): skip nudging
+  when both atoms are ring members; move only the non-ring atom when one is a ring
+  member. Prevents ring geometry from being destroyed by collision resolution.
+- Add ring-aware force refinement (`phase4_refinement.py`): compute ideal angles
+  from ring size using `pi*(n-2)/n` formula instead of hardcoded 120 degrees; pin
+  ring atoms with 0.05 force factor; clamp maximum gradient step to prevent
+  divergence.
+- Add 13 new tests to `test_coords_generator2.py` (44 total): biphenyl ring
+  separation, spiro bond quality, ring angle preservation, cholesterol skeleton
+  vs RDKit, template count, and cubane template matching.
+- Import all 75 RDKit polycyclic templates into `ring_templates.py` via
+  `tools/parse_rdkit_templates.py`. The tool parses `TemplateSmiles.h`, uses
+  RDKit to extract molecular graphs and 2D coordinates, and generates a
+  standalone module with zero RDKit dependency. Replaces 3 hand-coded templates
+  (cubane, adamantane, norbornane) with the full set. Steroid core is excluded
+  by design (test case for ring-fusion algorithm, not present in templates).
+- Add light gray outline (`#BBBBBB`, 0.5pt) to hex grid dots in `grid_overlay.py`
+  for better contrast of teal dots against white paper and gray background.
+- Enhance `tools/coords_comparison.py` with 11 new test molecules (cholesterol
+  skeleton, caffeine, aspirin, ibuprofen, indole, purine, azulene, fluorene,
+  terphenyl, adamantane, norbornane). Add per-molecule quality metrics: bond
+  length variance (std/mean), ring regularity (max angle deviation from ideal
+  N-gon), and overlap count (non-bonded pairs closer than 0.4x mean bond
+  length). Output now includes a color-coded summary table above the SVG
+  gallery with green/red cells based on quality thresholds.
+- Add [docs/OASA_MOLECULE_COORDINATE_GENERATION_METHODS.md](OASA_MOLECULE_COORDINATE_GENERATION_METHODS.md)
+  documenting the four-phase 2D coordinate generation pipeline: ring system
+  placement (SSSR, BFS fusion, template lookup), chain placement (BFS outward,
+  zigzag, stereo), collision resolution (flip subtrees, nudge), and force-field
+  refinement (bond stretch, angle bend, non-bonded repulsion). Includes a file
+  map comparing our modules to the corresponding RDKit Depictor source files and
+  a testing strategy section covering the pytest suite and the visual comparison
+  tool.
 - Add `test_repair_ops.py` (112 tests) exercising all 5 pure-geometry repair
   operations against 4 real biomolecules parsed from SMILES: cholesterol (fused
   5+6+6+6 rings), GDP (fused purine + sugar), histidine (imidazole), and sucrose

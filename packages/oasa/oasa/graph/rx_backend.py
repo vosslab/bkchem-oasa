@@ -272,6 +272,11 @@ class RxBackend:
 	def cycle_basis(self, graph) -> list:
 		"""Return a set of independent cycles as sets of OASA Vertex objects.
 
+		Uses root=0 for deterministic results. Without a fixed root,
+		rustworkx.cycle_basis() picks different starting nodes on each
+		call, producing different valid cycle bases for cage molecules
+		(adamantane, cubane). Pinning root=0 ensures consistent output.
+
 		Args:
 			graph: An OASA Graph instance.
 
@@ -280,8 +285,8 @@ class RxBackend:
 			forming one independent cycle.
 		"""
 		self.ensure_synced(graph)
-		# rustworkx returns list of lists of node indices
-		rx_cycles = rustworkx.cycle_basis(self.rx)
+		# pin root=0 for deterministic cycle basis on cage molecules
+		rx_cycles = rustworkx.cycle_basis(self.rx, root=0)
 		result = []
 		for index_list in rx_cycles:
 			vertex_set = set()

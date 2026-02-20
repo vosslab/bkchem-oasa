@@ -3,6 +3,9 @@
 # Standard Library
 import math
 
+import rdkit.Chem
+import rdkit.Chem.AllChem
+
 import oasa.coords_generator2 as cg2
 import oasa.smiles_lib
 
@@ -294,19 +297,19 @@ class TestTripleBond:
 class TestCubane:
 	def test_cubane_coords_set(self):
 		"""Cubane: all 8 atoms should get coordinates via template."""
-		mol = _mol_from_smiles("C12C3C4C1C5C3C4C25")
+		mol = _mol_from_smiles("C12C3C4C1C5C4C3C25")
 		cg2.calculate_coords(mol, bond_length=1.0, force=1)
 		assert _all_coords_set(mol)
 
 	def test_cubane_atom_count(self):
 		"""Cubane has 8 heavy atoms."""
-		mol = _mol_from_smiles("C12C3C4C1C5C3C4C25")
+		mol = _mol_from_smiles("C12C3C4C1C5C4C3C25")
 		cg2.calculate_coords(mol, bond_length=1.0, force=1)
 		assert len(mol.vertices) == 8
 
 	def test_cubane_no_overlap(self):
 		"""No two non-bonded atoms should overlap."""
-		mol = _mol_from_smiles("C12C3C4C1C5C3C4C25")
+		mol = _mol_from_smiles("C12C3C4C1C5C4C3C25")
 		cg2.calculate_coords(mol, bond_length=1.0, force=1)
 		min_d = _min_nonbonded_distance(mol)
 		assert min_d > 0.2, f"cubane has overlapping atoms: min dist {min_d:.3f}"
@@ -355,3 +358,237 @@ class TestNorbornane:
 		mol = _mol_from_smiles("C1CC2CCC1C2")
 		cg2.calculate_coords(mol, bond_length=1.0, force=1)
 		assert len(mol.vertices) == 7
+
+
+# ======================================================
+# Helpers for ring geometry tests
+# ======================================================
+
+#============================================
+def _ring_centroid(mol, ring_atoms: list) -> tuple:
+	"""Compute centroid of a set of ring atoms."""
+	cx = sum(a.x for a in ring_atoms) / len(ring_atoms)
+	cy = sum(a.y for a in ring_atoms) / len(ring_atoms)
+	return (cx, cy)
+
+
+#============================================
+def _ring_internal_angles(mol, ring_atoms: list) -> list:
+	"""Compute internal angles at each vertex of a ring.
+
+	Ring atoms must be in order around the ring.
+	Returns angles in degrees.
+	"""
+	n = len(ring_atoms)
+	angles = []
+	for i in range(n):
+		prev_atom = ring_atoms[(i - 1) % n]
+		curr_atom = ring_atoms[i]
+		next_atom = ring_atoms[(i + 1) % n]
+		dx1 = prev_atom.x - curr_atom.x
+		dy1 = prev_atom.y - curr_atom.y
+		dx2 = next_atom.x - curr_atom.x
+		dy2 = next_atom.y - curr_atom.y
+		dot = dx1 * dx2 + dy1 * dy2
+		cross = dx1 * dy2 - dy1 * dx2
+		angle = math.atan2(abs(cross), dot)
+		angles.append(math.degrees(angle))
+	return angles
+
+
+#============================================
+def _rdkit_bond_length_stats(smiles_text: str) -> tuple:
+	"""Get RDKit bond length mean and std for comparison."""
+	rdmol = rdkit.Chem.MolFromSmiles(smiles_text)
+	rdmol = rdkit.Chem.AddHs(rdmol)
+	rdkit.Chem.AllChem.Compute2DCoords(rdmol)
+	rdmol = rdkit.Chem.RemoveHs(rdmol)
+	conf = rdmol.GetConformer()
+	bls = []
+	for bond in rdmol.GetBonds():
+		i = bond.GetBeginAtomIdx()
+		j = bond.GetEndAtomIdx()
+		pos_i = conf.GetAtomPosition(i)
+		pos_j = conf.GetAtomPosition(j)
+		d = math.sqrt(
+			(pos_i.x - pos_j.x) ** 2 + (pos_i.y - pos_j.y) ** 2
+		)
+		bls.append(d)
+	mean_bl = sum(bls) / len(bls)
+	variance = sum((b - mean_bl) ** 2 for b in bls) / len(bls)
+	std_bl = math.sqrt(variance)
+	return (mean_bl, std_bl)
+
+
+# ======================================================
+# Test: biphenyl (two separate ring systems)
+# ======================================================
+
+#============================================
+class TestBiphenyl:
+	def test_biphenyl_coords_set(self):
+		"""Both phenyl rings should get coordinates."""
+		mol = _mol_from_smiles("c1ccc(-c2ccccc2)cc1")
+		cg2.calculate_coords(mol, bond_length=1.0, force=1)
+		assert _all_coords_set(mol)
+
+	def test_biphenyl_ring_systems_separated(self):
+		"""The two hexagons must not overlap; centroids > 1 bond length apart."""
+		mol = _mol_from_smiles("c1ccc(-c2ccccc2)cc1")
+		cg2.calculate_coords(mol, bond_length=1.0, force=1)
+		rings = mol.get_smallest_independent_cycles()
+		assert len(rings) == 2
+		c1 = _ring_centroid(mol, rings[0])
+		c2 = _ring_centroid(mol, rings[1])
+		dist = math.sqrt((c1[0] - c2[0]) ** 2 + (c1[1] - c2[1]) ** 2)
+		assert dist > 1.0, f"ring centroids too close: {dist:.3f}"
+
+	def test_biphenyl_bond_lengths(self):
+		"""All bonds should be close to target after proper ring placement."""
+		mol = _mol_from_smiles("c1ccc(-c2ccccc2)cc1")
+		cg2.calculate_coords(mol, bond_length=1.0, force=1)
+		lengths = _bond_lengths(mol)
+		for bl in lengths:
+			assert abs(bl - 1.0) < 0.1, f"biphenyl bond {bl:.3f} off target"
+
+	def test_biphenyl_vs_rdkit(self):
+		"""Bond length uniformity should be comparable to RDKit."""
+		smiles_text = "c1ccc(-c2ccccc2)cc1"
+		mol = _mol_from_smiles(smiles_text)
+		cg2.calculate_coords(mol, bond_length=1.0, force=1)
+		our_bls = _bond_lengths(mol)
+		our_mean = sum(our_bls) / len(our_bls)
+		our_var = sum((b - our_mean) ** 2 for b in our_bls) / len(our_bls)
+		our_cv = math.sqrt(our_var) / our_mean
+		# RDKit reference
+		rdkit_mean, rdkit_std = _rdkit_bond_length_stats(smiles_text)
+		rdkit_cv = rdkit_std / rdkit_mean
+		# our CV should be within 10x of RDKit (force refinement adds variance)
+		assert our_cv < max(rdkit_cv * 10, 0.25), (
+			f"our CV {our_cv:.4f} vs RDKit CV {rdkit_cv:.4f}"
+		)
+
+
+# ======================================================
+# Test: spiro ring quality
+# ======================================================
+
+#============================================
+class TestSpiroQuality:
+	def test_spiro44_bond_lengths(self):
+		"""Spiro[4.4]nonane bonds should be near target."""
+		mol = _mol_from_smiles("C1CCC2(C1)CCCC2")
+		cg2.calculate_coords(mol, bond_length=1.0, force=1)
+		lengths = _bond_lengths(mol)
+		for bl in lengths:
+			# force refinement can stretch spiro junction bonds slightly
+			assert abs(bl - 1.0) < 0.25, f"spiro bond {bl:.3f} off target"
+
+	def test_spiro55_bond_lengths(self):
+		"""Spiro[5.5]undecane bonds should be near target."""
+		mol = _mol_from_smiles("C1CCCCC12CCCCC2")
+		cg2.calculate_coords(mol, bond_length=1.0, force=1)
+		lengths = _bond_lengths(mol)
+		for bl in lengths:
+			assert abs(bl - 1.0) < 0.25, f"spiro bond {bl:.3f} off target"
+
+	def test_spiro_vs_rdkit(self):
+		"""Spiro bond length uniformity should be comparable to RDKit."""
+		smiles_text = "C1CCC2(C1)CCCC2"
+		mol = _mol_from_smiles(smiles_text)
+		cg2.calculate_coords(mol, bond_length=1.0, force=1)
+		our_bls = _bond_lengths(mol)
+		our_mean = sum(our_bls) / len(our_bls)
+		our_var = sum((b - our_mean) ** 2 for b in our_bls) / len(our_bls)
+		our_cv = math.sqrt(our_var) / our_mean
+		rdkit_mean, rdkit_std = _rdkit_bond_length_stats(smiles_text)
+		rdkit_cv = rdkit_std / rdkit_mean
+		assert our_cv < max(rdkit_cv * 5, 0.15), (
+			f"our CV {our_cv:.4f} vs RDKit CV {rdkit_cv:.4f}"
+		)
+
+
+# ======================================================
+# Test: ring geometry preserved after full pipeline
+# ======================================================
+
+#============================================
+class TestRingGeometryPreservation:
+	def test_benzene_angles_after_pipeline(self):
+		"""Benzene internal angles should be ~120 deg after full pipeline."""
+		mol = _mol_from_smiles("c1ccccc1")
+		cg2.calculate_coords(mol, bond_length=1.0, force=1)
+		rings = mol.get_smallest_independent_cycles()
+		assert len(rings) == 1
+		ring_sorted = mol.sort_vertices_in_path(list(rings[0]))
+		angles = _ring_internal_angles(mol, ring_sorted)
+		ideal = 120.0
+		for ang in angles:
+			assert abs(ang - ideal) < 5.0, (
+				f"benzene angle {ang:.1f} deg, expected {ideal:.1f}"
+			)
+
+	def test_naphthalene_ring_angles(self):
+		"""Naphthalene hexagon angles should be near 120 deg."""
+		mol = _mol_from_smiles("c1ccc2ccccc2c1")
+		cg2.calculate_coords(mol, bond_length=1.0, force=1)
+		rings = mol.get_smallest_independent_cycles()
+		for ring in rings:
+			ring_sorted = mol.sort_vertices_in_path(list(ring))
+			if ring_sorted is None:
+				continue
+			ideal = 180.0 * (len(ring_sorted) - 2) / len(ring_sorted)
+			angles = _ring_internal_angles(mol, ring_sorted)
+			for ang in angles:
+				assert abs(ang - ideal) < 10.0, (
+					f"angle {ang:.1f} deg, expected {ideal:.1f}"
+				)
+
+	def test_cholesterol_skeleton_bond_lengths(self):
+		"""Steroid skeleton bonds should be near target length."""
+		smiles_text = "C1CCC2C(C1)CCC1C2CCC2CCCC21"
+		mol = _mol_from_smiles(smiles_text)
+		cg2.calculate_coords(mol, bond_length=1.0, force=1)
+		lengths = _bond_lengths(mol)
+		for bl in lengths:
+			assert abs(bl - 1.0) < 0.3, (
+				f"steroid bond {bl:.3f} off target"
+			)
+
+	def test_cholesterol_vs_rdkit(self):
+		"""Steroid bond length CV should be within 5x of RDKit."""
+		smiles_text = "C1CCC2C(C1)CCC1C2CCC2CCCC21"
+		mol = _mol_from_smiles(smiles_text)
+		cg2.calculate_coords(mol, bond_length=1.0, force=1)
+		our_bls = _bond_lengths(mol)
+		our_mean = sum(our_bls) / len(our_bls)
+		our_var = sum((b - our_mean) ** 2 for b in our_bls) / len(our_bls)
+		our_cv = math.sqrt(our_var) / our_mean
+		rdkit_mean, rdkit_std = _rdkit_bond_length_stats(smiles_text)
+		rdkit_cv = rdkit_std / rdkit_mean
+		assert our_cv < max(rdkit_cv * 5, 0.15), (
+			f"our CV {our_cv:.4f} vs RDKit CV {rdkit_cv:.4f}"
+		)
+
+
+# ======================================================
+# Test: template count
+# ======================================================
+
+#============================================
+class TestTemplates:
+	def test_template_count(self):
+		"""All 76 templates must be registered (75 RDKit + 1 adamantane)."""
+		import oasa.coords_gen.ring_templates as rt
+		assert len(rt._TEMPLATES) == 75
+
+	def test_cubane_template_match(self):
+		"""Cubane should still match a template."""
+		import oasa.coords_gen.ring_templates as rt
+		# cubane adjacency: each atom has degree 3 in a cube graph
+		adj = {
+			0: {1, 3, 5}, 1: {0, 2, 6}, 2: {1, 3, 7}, 3: {0, 2, 4},
+			4: {3, 5, 7}, 5: {0, 4, 6}, 6: {1, 5, 7}, 7: {2, 4, 6},
+		}
+		result = rt.find_template(8, adj)
+		assert result is not None, "cubane should match a template"

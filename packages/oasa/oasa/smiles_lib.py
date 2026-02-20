@@ -797,6 +797,67 @@ def text_to_mol( text, calc_coords=1, localize_aromatic_bonds=True):
     coords_generator.calculate_coords( mol, bond_length=calc_coords)
   return mol
 
+
+#============================================
+def cxsmiles_to_mol(cxsmiles_text, localize_aromatic_bonds=True):
+  """Parse a CXSMILES string and return a molecule with 2D coordinates.
+
+  CXSMILES format: SMILES |(x1,y1,;x2,y2,;...)|
+  The coordinate block indices match SMILES string atom order,
+  which OASA preserves during parsing.
+
+  Args:
+    cxsmiles_text: CXSMILES string with embedded 2D coordinates.
+    localize_aromatic_bonds: whether to localize aromatic bonds.
+
+  Returns:
+    Molecule object with x, y coordinates set on each vertex.
+
+  Raises:
+    ValueError: if the coordinate block is missing or atom count
+      does not match coordinate count.
+  """
+  # split SMILES from the coordinate extension block
+  sep = " |("
+  sep_idx = cxsmiles_text.find(sep)
+  if sep_idx < 0:
+    raise ValueError("no CXSMILES coordinate block found")
+  smiles = cxsmiles_text[:sep_idx]
+  coord_block = cxsmiles_text[sep_idx + len(sep):]
+  # strip closing delimiters: '))|' or ')|' and leading '('
+  coord_block = coord_block.rstrip("|").strip("()")
+
+  # parse coordinates from the block: "x1,y1,;x2,y2,;..."
+  coords = []
+  for pair in coord_block.split(";"):
+    pair = pair.strip().rstrip(",")
+    if not pair:
+      continue
+    parts = pair.split(",")
+    x_val = float(parts[0])
+    y_val = float(parts[1])
+    coords.append((x_val, y_val))
+
+  # parse SMILES to build the molecular graph (no coord generation)
+  mol = text_to_mol(smiles, calc_coords=False,
+    localize_aromatic_bonds=localize_aromatic_bonds)
+
+  # verify atom count matches coordinate count
+  n_atoms = len(mol.vertices)
+  if n_atoms != len(coords):
+    raise ValueError(
+      f"atom count {n_atoms} != coordinate count {len(coords)}"
+    )
+
+  # apply coordinates to each vertex in SMILES string order
+  for i, vertex in enumerate(mol.vertices):
+    vertex.x = coords[i][0]
+    vertex.y = coords[i][1]
+    vertex.z = 0
+
+  return mol
+
+
 def mol_to_file( mol, f):
   f.write( mol_to_text( mol))
 

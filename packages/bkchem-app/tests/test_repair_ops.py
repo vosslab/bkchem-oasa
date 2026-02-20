@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Tests for repair operations on real biomolecule SMILES structures.
 
 Exercises the 5 pure-geometry operations in oasa.repair_ops against

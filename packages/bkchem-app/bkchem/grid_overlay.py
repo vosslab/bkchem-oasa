@@ -108,29 +108,32 @@ class HexGridOverlay:
 
 	#============================================
 	def _draw_dots(self) -> None:
-		"""Draw hex grid dots covering the visible canvas area.
+		"""Draw hex grid dots covering the white paper area.
 
-		Computes the visible region in model coordinates, generates
-		hex grid points with oasa.hex_grid, then draws each point
-		as a small oval on the canvas.
+		Uses the paper rectangle bounds (not the viewport) so dots
+		only appear on the white paper, not on the gray canvas
+		background.  This also avoids the MAX_GRID_POINTS cutoff
+		when zoomed far out and prevents the partial-fill bug when
+		winfo_width/Height return 1 before the widget is mapped.
 		"""
 		canvas = self._canvas
 		scale = canvas._scale
 
-		# visible region in canvas coordinates (account for zoom/scroll)
-		cx0 = canvas.canvasx(0)
-		cy0 = canvas.canvasy(0)
-		cx1 = canvas.canvasx(canvas.winfo_width())
-		cy1 = canvas.canvasy(canvas.winfo_height())
+		# paper size in mm stored in _paper_properties
+		paper_props = canvas._paper_properties
+		size_x_mm = paper_props.get('size_x', 0)
+		size_y_mm = paper_props.get('size_y', 0)
+		if size_x_mm <= 0 or size_y_mm <= 0:
+			return
 
-		# convert to model coordinates by dividing by scale
-		model_x_min = cx0 / scale
-		model_y_min = cy0 / scale
-		model_x_max = cx1 / scale
-		model_y_max = cy1 / scale
+		# paper bounds in model coordinates (px) -- origin is (0,0)
+		model_x_min = 0.0
+		model_y_min = 0.0
+		model_x_max = Screen.mm_to_px(size_x_mm)
+		model_y_max = Screen.mm_to_px(size_y_mm)
 
 		# generate hex grid points in model space;
-		# returns None if the visible area would produce too many dots
+		# returns None if the paper would produce too many dots
 		points = oasa.hex_grid.generate_hex_grid_points(
 			model_x_min, model_y_min,
 			model_x_max, model_y_max,
@@ -149,7 +152,7 @@ class HexGridOverlay:
 			sy = my * scale
 			canvas.create_oval(
 				sx - r, sy - r, sx + r, sy + r,
-				fill="#AADDCC", outline="",
+				fill="#AADDCC", outline="#BBBBBB", width=0.5,
 				tags=("no_export", "hex_grid"),
 			)
 

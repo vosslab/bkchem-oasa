@@ -14,6 +14,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 
@@ -123,6 +124,57 @@ def count_lines_added(repo_root, rel_path, before=None, since=None):
 	return total
 
 
+def commit_history_stats(repo_root, rel_path, cutoff_ts):
+	"""Collect commit dates/counts for one file with a single git invocation."""
+	output = run_git(
+		["git", "log", "--follow", "--format=%ct|%aI", "--", rel_path],
+		repo_root,
+	)
+	entries = []
+	for line in output.splitlines():
+		if "|" not in line:
+			continue
+		ts_text, iso_text = line.split("|", 1)
+		if not ts_text.isdigit():
+			continue
+		entries.append((int(ts_text), iso_text.strip()))
+	# Some imported/copied paths produce no output with --follow even though
+	# path-limited plain git log has commits. Fall back to plain log so pass 1
+	# does not misclassify these as untracked.
+	if not entries:
+		fallback_output = run_git(
+			["git", "log", "--format=%ct|%aI", "--", rel_path],
+			repo_root,
+		)
+		for line in fallback_output.splitlines():
+			if "|" not in line:
+				continue
+			ts_text, iso_text = line.split("|", 1)
+			if not ts_text.isdigit():
+				continue
+			entries.append((int(ts_text), iso_text.strip()))
+	if not entries:
+		return {
+			"first_date": "",
+			"last_date": "",
+			"total_commits": 0,
+			"commits_before": 0,
+			"commits_after": 0,
+		}
+	# git log is newest first; reverse to get stable oldest/newest positions
+	entries.reverse()
+	total_commits = len(entries)
+	commits_before = sum(1 for ts, _iso in entries if ts < cutoff_ts)
+	commits_after = total_commits - commits_before
+	return {
+		"first_date": entries[0][1],
+		"last_date": entries[-1][1],
+		"total_commits": total_commits,
+		"commits_before": commits_before,
+		"commits_after": commits_after,
+	}
+
+
 def line_commit_times(repo_root, rel_path):
 	try:
 		output = run_git(
@@ -132,11 +184,18 @@ def line_commit_times(repo_root, rel_path):
 	except GitError:
 		return None
 	times = []
+	# track committer-time for each entry, only keep if content is non-blank
+	current_time = None
 	for line in output.splitlines():
 		if line.startswith("committer-time "):
 			parts = line.split()
 			if len(parts) == 2 and parts[1].isdigit():
-				times.append(int(parts[1]))
+				current_time = int(parts[1])
+		elif line.startswith("\t"):
+			# content line: skip blank lines (whitespace-only after the tab)
+			if current_time is not None and line[1:].strip():
+				times.append(current_time)
+			current_time = None
 	return times
 
 
@@ -173,6 +232,9 @@ def blame_line_samples(repo_root, rel_path, cutoff, sample_size):
 			continue
 		if line.startswith("\t"):
 			if current.get("committer_time") is None:
+				continue
+			# skip blank lines (whitespace-only content)
+			if not line[1:].strip():
 				continue
 			entries.append({
 				"hash": current.get("hash", ""),
@@ -221,6 +283,42 @@ def line_date_stats(repo_root, rel_path, cutoff):
 	}
 
 
+def has_pre_cutoff_blame_sample(repo_root, rel_path, cutoff_ts, sample_lines=120):
+	"""Fast conservative check: does top-of-file blame include pre-cutoff lines?"""
+	try:
+		output = run_git(
+			[
+				"git",
+				"blame",
+				"--line-porcelain",
+				"--date=unix",
+				"-L",
+				f"1,{sample_lines}",
+				"--",
+				rel_path,
+			],
+			repo_root,
+		)
+	except GitError:
+		return False
+	current_time = None
+	for line in output.splitlines():
+		if line.startswith("committer-time "):
+			parts = line.split()
+			if len(parts) == 2 and parts[1].isdigit():
+				current_time = int(parts[1])
+		elif line.startswith("\t"):
+			if current_time is None:
+				continue
+			if not line[1:].strip():
+				current_time = None
+				continue
+			if current_time < cutoff_ts:
+				return True
+			current_time = None
+	return False
+
+
 def gpl_time_percentage(first_date, last_date, cutoff):
 	first_dt = parse_iso_date(first_date)
 	last_dt = parse_iso_date(last_date)
@@ -263,8 +361,24 @@ def expected_spdx(classification):
 	return ""
 
 
-def build_records(repo_root, cutoff, include_lines, files=None, show_progress=None):
-	records = []
+def progress_bar(index, total, bar_width, label=""):
+	"""Write a progress bar to stderr."""
+	done = int((index / total) * bar_width) if total else bar_width
+	bar = "#" * done + "-" * (bar_width - done)
+	suffix = f" {label}" if label else ""
+	sys.stderr.write(f"\r[{bar}] {index}/{total}{suffix}")
+	sys.stderr.flush()
+
+
+#============================================
+def build_records(
+	repo_root,
+	cutoff,
+	include_lines,
+	files=None,
+	show_progress=None,
+	force_blame=False,
+):
 	if files is None:
 		files = iter_python_files(repo_root)
 	else:
@@ -272,50 +386,51 @@ def build_records(repo_root, cutoff, include_lines, files=None, show_progress=No
 	total = len(files)
 	if show_progress is None:
 		show_progress = sys.stderr.isatty() and total > 1
+	cutoff_ts = cutoff_timestamp(cutoff)
 	bar_width = 30
+	# pass 1: classify files using commit dates (cheap git log, no blame)
+	records = []
+	needs_blame = []
+	if show_progress:
+		sys.stderr.write("Pass 1: commit history scan\n")
+	pass1_start = time.monotonic()
 	for index, path in enumerate(files, start=1):
 		rel_path = os.path.relpath(path, repo_root)
-		first_date = first_commit_date(repo_root, rel_path)
-		last_date = last_commit_date(repo_root, rel_path)
-		total_commits = count_commits(repo_root, rel_path)
-		commits_before = count_commits(repo_root, rel_path, before=cutoff)
-		commits_after = count_commits(repo_root, rel_path, since=cutoff)
-		line_stats = line_date_stats(repo_root, rel_path, cutoff)
-		if line_stats == "Untracked":
-			classification = "Untracked"
-			classification_source = "blame"
-			line_total = 0
-			line_before = 0
-			line_after = 0
-			line_min_date = ""
-			line_max_date = ""
-		else:
-			line_total = line_stats["total"]
-			line_before = line_stats["before"]
-			line_after = line_stats["after"]
-			line_min_date = line_stats["min"]
-			line_max_date = line_stats["max"]
-			if line_total == 0:
-				classification = "Untracked"
-			elif line_before == 0:
-				classification = "Pure LGPL-3.0-or-later"
-			elif line_after == 0:
-				classification = "Pure GPL-2.0"
-			else:
-				classification = "Mixed"
-			classification_source = "blame"
+		commit_stats = commit_history_stats(repo_root, rel_path, cutoff_ts)
+		first_date = commit_stats["first_date"]
+		last_date = commit_stats["last_date"]
+		total_commits = commit_stats["total_commits"]
+		commits_before = commit_stats["commits_before"]
+		commits_after = commit_stats["commits_after"]
 		gpl_commit_pct = (commits_before / total_commits) * 100.0 if total_commits else None
-		line_add_before = None
-		line_add_after = None
-		gpl_line_pct = None
-		if line_total:
-			gpl_line_pct = (line_before / line_total) * 100.0
-		if include_lines:
-			line_add_before = count_lines_added(repo_root, rel_path, before=cutoff)
-			line_add_after = count_lines_added(repo_root, rel_path, since=cutoff)
 		gpl_time_pct = gpl_time_percentage(first_date, last_date, cutoff)
 		spdx = get_spdx_identifier(path)
-		records.append({
+		# classify from commit dates alone unless force-blame is requested
+		if force_blame:
+			classification = None
+			classification_source = None
+		elif total_commits == 0:
+			classification = "Untracked"
+			classification_source = "commits"
+		elif commits_before == 0:
+			# all commits are after cutoff -- purely LGPL
+			# but path-history heuristics can miss legacy ancestry on moved files:
+			# sample top-of-file blame before committing to skip pass 2.
+			if has_pre_cutoff_blame_sample(repo_root, rel_path, cutoff_ts):
+				classification = None
+				classification_source = None
+			else:
+				classification = "Pure LGPL-3.0-or-later"
+				classification_source = "commits"
+		elif commits_after == 0:
+			# all commits are before cutoff -- purely GPL
+			classification = "Pure GPL-2.0"
+			classification_source = "commits"
+		else:
+			# commits span the cutoff -- need blame to count lines
+			classification = None
+			classification_source = None
+		record = {
 			"path": rel_path,
 			"first_date": first_date,
 			"last_date": last_date,
@@ -325,25 +440,70 @@ def build_records(repo_root, cutoff, include_lines, files=None, show_progress=No
 			"classification": classification,
 			"classification_source": classification_source,
 			"gpl_commit_pct": gpl_commit_pct,
-			"line_total": line_total,
-			"line_before": line_before,
-			"line_after": line_after,
-			"line_min_date": line_min_date,
-			"line_max_date": line_max_date,
-			"line_add_before": line_add_before,
-			"line_add_after": line_add_after,
-			"gpl_line_pct": gpl_line_pct,
+			"line_total": 0,
+			"line_before": 0,
+			"line_after": 0,
+			"line_min_date": "",
+			"line_max_date": "",
+			"line_add_before": None,
+			"line_add_after": None,
+			"gpl_line_pct": None,
 			"gpl_time_pct": gpl_time_pct,
 			"spdx": spdx,
-		})
+		}
+		records.append(record)
+		if classification is None:
+			needs_blame.append(record)
 		if show_progress:
-			done = int((index / total) * bar_width) if total else bar_width
-			bar = "#" * done + "-" * (bar_width - done)
-			sys.stderr.write(f"\r[{bar}] {index}/{total}")
-			sys.stderr.flush()
+			progress_bar(index, total, bar_width)
 	if show_progress and total:
 		sys.stderr.write("\n")
-		sys.stderr.flush()
+	# report pass 1 results
+	pass1_elapsed = time.monotonic() - pass1_start
+	skip_count = total - len(needs_blame)
+	if show_progress:
+		sys.stderr.write(
+			f"Pass 1 classified {skip_count}/{total} files, "
+			f"{len(needs_blame)} need blame ({pass1_elapsed:.1f}s)\n"
+		)
+	# pass 2: run git blame only on files that span the cutoff
+	blame_total = len(needs_blame)
+	if blame_total > 0 and show_progress:
+		sys.stderr.write("Pass 2: git blame analysis\n")
+	pass2_start = time.monotonic()
+	for index, record in enumerate(needs_blame, start=1):
+		rel_path = record["path"]
+		line_stats = line_date_stats(repo_root, rel_path, cutoff)
+		if line_stats == "Untracked":
+			record["classification"] = "Untracked"
+			record["classification_source"] = "blame"
+		else:
+			record["line_total"] = line_stats["total"]
+			record["line_before"] = line_stats["before"]
+			record["line_after"] = line_stats["after"]
+			record["line_min_date"] = line_stats["min"]
+			record["line_max_date"] = line_stats["max"]
+			if line_stats["total"] == 0:
+				record["classification"] = "Untracked"
+			elif line_stats["before"] == 0:
+				record["classification"] = "Pure LGPL-3.0-or-later"
+			elif line_stats["after"] == 0:
+				record["classification"] = "Pure GPL-2.0"
+			else:
+				record["classification"] = "Mixed"
+			record["classification_source"] = "blame"
+			if record["line_total"]:
+				record["gpl_line_pct"] = (record["line_before"] / record["line_total"]) * 100.0
+		if include_lines:
+			line_add_before = count_lines_added(repo_root, rel_path, before=cutoff)
+			line_add_after = count_lines_added(repo_root, rel_path, since=cutoff)
+			record["line_add_before"] = line_add_before
+			record["line_add_after"] = line_add_after
+		if show_progress:
+			progress_bar(index, blame_total, bar_width)
+	if show_progress and blame_total:
+		pass2_elapsed = time.monotonic() - pass2_start
+		sys.stderr.write(f"\nPass 2 completed ({pass2_elapsed:.1f}s)\n")
 	return records
 
 
@@ -368,6 +528,21 @@ def print_summary(records):
 		count = counts[key]
 		pct = (count / total * 100.0) if total else 0.0
 		print(f"{label}: {count} ({pct:.1f}%)")
+	# histogram breakdown of Mixed files by GPL line percentage
+	mixed = [r for r in records if r["classification"] == "Mixed"]
+	if mixed:
+		buckets = [
+			("> 90% GPL", lambda p: p > 90.0),
+			("50-90% GPL", lambda p: 50.0 <= p <= 90.0),
+			("10-50% GPL", lambda p: 10.0 <= p < 50.0),
+			("< 10% GPL", lambda p: p < 10.0),
+		]
+		print("  mixed breakdown:")
+		for bucket_label, test_func in buckets:
+			bucket_count = sum(1 for r in mixed if r["gpl_line_pct"] is not None and test_func(r["gpl_line_pct"]))
+			if bucket_count > 0:
+				bucket_pct = bucket_count / len(mixed) * 100.0
+				print(f"    {bucket_label}: {bucket_count} ({bucket_pct:.0f}%)")
 
 
 def print_mixed(records):
@@ -375,13 +550,13 @@ def print_mixed(records):
 	if not mixed:
 		return
 	print("\nMixed files (reporting only):")
-	print("Path\tTotal\tGPLv2\tLGPLv3\tGPLv2% (lines)")
+	print("Total\tGPLv2\tLGPLv3\tGPLv2%\tPath")
 	for record in mixed:
 		gpl_pct = record["gpl_line_pct"]
 		gpl_text = f"{gpl_pct:.1f}" if gpl_pct is not None else ""
 		print(
-			f"{record['path']}\t{record['line_total']}\t"
-			f"{record['line_before']}\t{record['line_after']}\t{gpl_text}"
+			f"{record['line_total']}\t{record['line_before']}\t"
+			f"{record['line_after']}\t{gpl_text}\t{record['path']}"
 		)
 
 
@@ -552,6 +727,11 @@ def parse_args():
 		action="store_true",
 		help="Include line-add metrics in the report",
 	)
+	parser.add_argument(
+		"--force-blame",
+		action="store_true",
+		help="Force git blame for all files in pass 2 (ignore pass 1 commit classification)",
+	)
 	return parser.parse_args()
 
 
@@ -569,9 +749,15 @@ def main():
 				args.include_lines,
 				files=[file_path],
 				show_progress=False,
+				force_blame=args.force_blame,
 			)
 		else:
-			records = build_records(repo_root, args.cutoff, args.include_lines)
+			records = build_records(
+				repo_root,
+				args.cutoff,
+				args.include_lines,
+				force_blame=args.force_blame,
+			)
 	except GitError as exc:
 		print(f"ERROR: {exc}", file=sys.stderr)
 		return 2

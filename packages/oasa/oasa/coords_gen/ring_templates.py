@@ -1,13 +1,22 @@
 """Pre-computed 2D coordinate templates for common polycyclic ring systems.
 
-Provides template matching for cage molecules (cubane, adamantane, norbornane)
-that algorithmic ring-fusion approaches handle poorly. Templates give correct
-2D layouts without algorithmic complexity.
+Provides template matching for polycyclic molecules that algorithmic
+ring-fusion approaches handle poorly. Templates give correct 2D layouts
+without algorithmic complexity.
 
-Inspired by RDKit's TemplateSmiles.h (96 templates for common ring systems).
-Cubane coordinates extracted from RDKit; others hand-tuned for clean layout.
+Templates are loaded from templates.smi (one CXSMILES per line) and
+parsed at import time using oasa.smiles_lib.cxsmiles_to_mol(). This
+builds the molecular graph and applies coordinates in one step, keeping
+atom indices consistent with the coordinate block.
+
+Template data comes from the RDKit molecular_templates repository:
+  https://github.com/rdkit/molecular_templates
+The templates.smi file is the upstream source format (one CXSMILES per
+line, no blank lines). Do not edit by hand.
 """
 
+# Standard Library
+import os
 from math import sqrt
 
 
@@ -16,7 +25,7 @@ from math import sqrt
 # ============================================
 
 # list of registered template dicts, each with:
-#   name: str -- human-readable name
+#   name: str -- human-readable name (SMILES string)
 #   n_atoms: int -- number of atoms in template
 #   n_edges: int -- number of edges in template
 #   degrees: tuple -- sorted degree sequence
@@ -83,46 +92,60 @@ def _register(name: str, adj: dict, raw_coords: list) -> None:
 
 
 # ============================================
-# Template definitions
+# Load CXSMILES templates from .smi file
 # ============================================
 
-# Cubane: C12C3C4C1C5C3C4C25
-# 8 atoms, 12 edges, all degree 3
-# Coordinates from RDKit TemplateSmiles.h line 90
-_register("cubane", {
-	0: {1, 4, 6}, 1: {0, 2, 5}, 2: {1, 3, 7}, 3: {2, 5, 6},
-	4: {0, 5, 7}, 5: {1, 3, 4}, 6: {0, 3, 7}, 7: {2, 4, 6},
-}, [
-	(-4.87, 2.71), (-4.87, 4.42), (-3.16, 4.42), (-3.16, 2.71),
-	(-3.89, 1.90), (-5.60, 1.90), (-5.60, 3.61), (-3.89, 3.61),
-])
+_smi_path = os.path.join(os.path.dirname(__file__), "templates.smi")
+with open(_smi_path) as _f:
+	# one CXSMILES per line, skip blank lines
+	_CXSMILES_TEMPLATES = [line.strip() for line in _f if line.strip()]
 
-# Adamantane: C1C2CC3CC1CC(C2)C3
-# 10 atoms, 12 edges: 4 bridgeheads (degree 3) + 6 bridges (degree 2)
-# Outer hexagon ring with 3 interior spokes meeting at center
-# Hand-tuned 2D projection for non-overlapping layout
-_register("adamantane", {
-	0: {1, 5}, 1: {0, 2, 8}, 2: {1, 3}, 3: {2, 4, 9},
-	4: {3, 5}, 5: {0, 4, 6}, 6: {5, 7}, 7: {6, 8, 9},
-	8: {1, 7}, 9: {3, 7},
-}, [
-	(-0.50, 0.87), (-1.00, 0.00), (-0.50, -0.87),
-	(0.50, -0.87), (1.00, 0.00), (0.50, 0.87),
-	(0.25, 0.43), (0.00, 0.00), (-0.50, 0.00),
-	(0.25, -0.43),
-])
 
-# Norbornane (bicyclo[2.2.1]heptane): C1CC2CCC1C2
-# 7 atoms, 8 edges: 2 bridgeheads (degree 3) + 5 bridges (degree 2)
-# Two fused 5-rings sharing 3 atoms with a bridge
-_register("norbornane", {
-	0: {1, 5}, 1: {0, 2}, 2: {1, 3, 6}, 3: {2, 4},
-	4: {3, 5}, 5: {0, 4, 6}, 6: {2, 5},
-}, [
-	(0.00, 1.20), (0.80, 0.40), (0.80, -0.50),
-	(0.00, -1.20), (-0.80, -0.50), (-0.80, 0.40),
-	(0.00, -0.10),
-])
+# ============================================
+# Parse CXSMILES at module load
+# ============================================
+
+def _mol_to_template_data(mol) -> tuple:
+	"""Extract adjacency dict and coordinates from an OASA molecule.
+
+	Args:
+		mol: OASA molecule with x, y coordinates set on vertices.
+
+	Returns:
+		Tuple of (adj_dict, coords_list).
+	"""
+	n_atoms = len(mol.vertices)
+	# build adjacency dict from molecule edges
+	adj = {}
+	for i in range(n_atoms):
+		adj[i] = set()
+	# map vertex objects to integer indices
+	vtx_to_idx = {}
+	for i, v in enumerate(mol.vertices):
+		vtx_to_idx[v] = i
+	for edge in mol.edges:
+		a, b = edge.vertices
+		i = vtx_to_idx[a]
+		j = vtx_to_idx[b]
+		adj[i].add(j)
+		adj[j].add(i)
+	# extract coordinates in vertex order
+	coords = [(v.x, v.y) for v in mol.vertices]
+	return (adj, coords)
+
+
+# register all CXSMILES templates using proper CXSMILES parser
+import oasa.smiles_lib
+for _cxsmi in _CXSMILES_TEMPLATES:
+	try:
+		# parse CXSMILES: builds molecule graph and applies coordinates
+		_mol = oasa.smiles_lib.cxsmiles_to_mol(_cxsmi)
+		_smiles = _cxsmi[:_cxsmi.index(" |(")]
+		_adj, _coords = _mol_to_template_data(_mol)
+		_register(_smiles, _adj, _coords)
+	except Exception:
+		# skip templates OASA cannot parse
+		pass
 
 
 # ============================================
@@ -130,11 +153,40 @@ _register("norbornane", {
 # ============================================
 
 #============================================
+def _wl_colors(adj: dict, n: int, rounds: int = 4) -> dict:
+	"""Compute Weisfeiler-Leman node colors for pruning isomorphism search.
+
+	Each node gets a color based on its local neighborhood structure.
+	Nodes with different colors cannot be mapped to each other.
+
+	Args:
+		adj: adjacency dict for the graph (node indices 0..n-1).
+		n: number of nodes.
+		rounds: number of WL refinement rounds.
+
+	Returns:
+		Dict mapping node index to its WL color (a hashable value).
+	"""
+	# initial color = node degree
+	color = {i: len(adj[i]) for i in range(n)}
+	for _ in range(rounds):
+		new_color = {}
+		for i in range(n):
+			# hash of (own color, sorted neighbor colors)
+			nb_colors = tuple(sorted(color[nb] for nb in adj[i]))
+			new_color[i] = hash((color[i], nb_colors))
+		color = new_color
+	return color
+
+
+#============================================
 def _find_isomorphism(adj1: dict, adj2: dict, n: int) -> dict:
 	"""Find a node mapping from adj1 to adj2 preserving adjacency.
 
-	Uses backtracking with degree-based pruning. Efficient for small
-	graphs (n <= ~15 atoms).
+	Uses backtracking with Weisfeiler-Leman color pruning. WL colors
+	encode local neighborhood structure so only structurally compatible
+	nodes are considered as mapping candidates, avoiding O(n!) explosion
+	on large macrocyclic graphs.
 
 	Args:
 		adj1: adjacency dict for graph 1 (node indices 0..n-1).
@@ -144,10 +196,18 @@ def _find_isomorphism(adj1: dict, adj2: dict, n: int) -> dict:
 	Returns:
 		Dict mapping graph1 node -> graph2 node, or None if not isomorphic.
 	"""
-	deg1 = {i: len(adj1[i]) for i in range(n)}
-	deg2 = {i: len(adj2[i]) for i in range(n)}
-	# process most constrained nodes first (highest degree)
-	order = sorted(range(n), key=lambda i: -deg1[i])
+	# compute WL colors for both graphs
+	wl1 = _wl_colors(adj1, n)
+	wl2 = _wl_colors(adj2, n)
+	# quick rejection: color multisets must match
+	if sorted(wl1.values()) != sorted(wl2.values()):
+		return None
+	# for each g1 node, precompute which g2 nodes have matching WL color
+	candidates = {}
+	for i in range(n):
+		candidates[i] = [j for j in range(n) if wl2[j] == wl1[i]]
+	# process most constrained nodes first (fewest candidates)
+	order = sorted(range(n), key=lambda i: len(candidates[i]))
 	mapping = {}
 	used = set()
 
@@ -155,11 +215,8 @@ def _find_isomorphism(adj1: dict, adj2: dict, n: int) -> dict:
 		if pos == n:
 			return True
 		g1 = order[pos]
-		g1_deg = deg1[g1]
-		for g2 in range(n):
+		for g2 in candidates[g1]:
 			if g2 in used:
-				continue
-			if deg2[g2] != g1_deg:
 				continue
 			# verify consistency with already-mapped neighbors
 			ok = True

@@ -143,14 +143,7 @@ class edit_mode(basic_mode):
 				Store.app.paper.delete( self._selection_rect)
 			elif self._dragging == 1:
 				### move all selected
-				# snap selected atoms to hex grid on drop if enabled
-				if getattr(Store.app.paper, 'hex_grid_snap_enabled', False):
-					spacing_px = Screen.any_to_px(Store.app.paper.standard.bond_length)
-					for o in Store.app.paper.selected:
-						if bkchem.chem_compat.is_chemistry_vertex(o):
-							ax, ay = o.get_xy()
-							sx, sy = oasa.hex_grid.snap_to_hex_grid(ax, ay, spacing_px)
-							o.move_to(sx, sy, use_paper_coords=False)
+				# snap already happened during drag (mouse_drag), no post-snap needed
 				# repositioning of atoms and double bonds
 				atoms = [j for i in [o.neighbors for o in Store.app.paper.selected
 																if (bkchem.chem_compat.is_chemistry_vertex(o) and
@@ -246,6 +239,16 @@ class edit_mode(basic_mode):
 				Store.app.paper.select( Store.app.paper.atoms_to_update())
 				self._bonds_to_update = Store.app.paper.bonds_to_update()
 				self._arrows_to_update = Store.app.paper.arrows_to_update()
+				# record anchor vertex for hex grid snap during drag
+				self._snap_anchor = None
+				self._snap_anchor_start_xy = None
+				self._drag_origin_x = self._startx
+				self._drag_origin_y = self._starty
+				for o in Store.app.paper.selected:
+					if bkchem.chem_compat.is_chemistry_vertex(o):
+						self._snap_anchor = o
+						self._snap_anchor_start_xy = o.get_xy()
+						break
 				self.focused.unfocus()
 				self.focused = None
 			elif self.focused:
@@ -268,9 +271,35 @@ class edit_mode(basic_mode):
 				self._dragging = 10  # just a placeholder to know that click should not be called
 		if self._dragging == 1:
 			### move all selected
-			[o.move( dx, dy, use_paper_coords=True) for o in Store.app.paper.selected]
-			if self._moving_selected_arrow:
-				self._moving_selected_arrow.move( dx, dy, use_paper_coords=True)
+			if (getattr(Store.app.paper, 'hex_grid_snap_enabled', False)
+					and self._snap_anchor is not None):
+				# compute where anchor WOULD be from total mouse displacement
+				total_canvas_dx = event.x - self._drag_origin_x
+				total_canvas_dy = event.y - self._drag_origin_y
+				# apply ctrl/shift constraints to total displacement
+				if self._ctrl:
+					total_canvas_dx = 0
+				if self._shift:
+					total_canvas_dy = 0
+				ax0, ay0 = self._snap_anchor_start_xy
+				target_x = ax0 + Store.app.paper.canvas_to_real(total_canvas_dx)
+				target_y = ay0 + Store.app.paper.canvas_to_real(total_canvas_dy)
+				# snap the anchor target to grid
+				spacing_px = Screen.any_to_px(Store.app.paper.standard.bond_length)
+				sx, sy = oasa.hex_grid.snap_to_hex_grid(target_x, target_y, spacing_px)
+				# delta from anchor's current position to snapped target
+				cur_x, cur_y = self._snap_anchor.get_xy()
+				snap_dx = Store.app.paper.real_to_canvas(sx - cur_x)
+				snap_dy = Store.app.paper.real_to_canvas(sy - cur_y)
+				# apply snapped delta to all selected (canvas coords)
+				[o.move(snap_dx, snap_dy, use_paper_coords=True) for o in Store.app.paper.selected]
+				if self._moving_selected_arrow:
+					self._moving_selected_arrow.move(snap_dx, snap_dy, use_paper_coords=True)
+			else:
+				# no snap: move by raw mouse delta (original behavior)
+				[o.move( dx, dy, use_paper_coords=True) for o in Store.app.paper.selected]
+				if self._moving_selected_arrow:
+					self._moving_selected_arrow.move( dx, dy, use_paper_coords=True)
 			[o.redraw() for o in self._bonds_to_update]
 			[o.redraw() for o in self._arrows_to_update]
 			self._startx, self._starty = event.x, event.y
