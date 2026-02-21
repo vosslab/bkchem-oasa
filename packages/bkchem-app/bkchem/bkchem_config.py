@@ -51,3 +51,15 @@ current_BKChem_version = _read_repo_version( "bkchem", "26.02")
 border_width = 1
 
 background_color = "#eaeaea"
+
+# toolbar band background (slightly darker than main background)
+toolbar_color = "#e0e0e0"
+
+# separator line color between UI regions
+separator_color = "#c8c8c8"
+
+# hover highlight color for toolbar and submode buttons
+hover_color = "#d8d8d8"
+
+# active mode button fill color (light blue tint)
+active_mode_color = "#cde4f7"

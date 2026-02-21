@@ -58,10 +58,10 @@ from bkchem.main_lib.main_tabs import MainTabsMixin
 # gettext i18n translation fallback
 _ = builtins.__dict__.get( '_', lambda m: m)
 
-# hover color for toolbar buttons (slightly darker than background)
-_HOVER_BG = '#d8d8d8'
-# active mode button fill color (light blue tint)
-_ACTIVE_BG = '#cde4f7'
+# hover color for toolbar buttons
+_HOVER_BG = bkchem_config.hover_color
+# active mode button fill color
+_ACTIVE_BG = bkchem_config.active_mode_color
 
 
 #============================================
@@ -137,11 +137,11 @@ class BKChem(
     # edit pool (Entry only; buttons are created per-mode in change_mode)
     self.editPool = editPool( self.main_frame, width=60)
     # hidden until an edit_mode-derived mode activates it
-    self.editPool.grid( row=3, sticky="wens")
+    self.editPool.grid( row=4, sticky="wens")
     self.editPool.grid_remove()
 
     # main drawing part packing
-    self.notebook.grid( row=4, sticky="wens")
+    self.notebook.grid( row=5, sticky="wens")
     self.notebook.setnaturalsize()
 
 
@@ -180,7 +180,7 @@ class BKChem(
     Store.logger.handling = logger.batch_mode
 
     # main drawing part packing
-    self.notebook.grid( row=4, sticky="wens")
+    self.notebook.grid( row=5, sticky="wens")
 
     # protocol bindings
     self.protocol("WM_DELETE_WINDOW", self._quit)
@@ -377,7 +377,10 @@ class BKChem(
     self.title( "BKChem")
     self.stat= StringVar()
     self.cursor_position = StringVar()
+    self.mode_name_var = StringVar()
+    self.zoom_var = StringVar()
     self.stat.set( "Idle")
+    self.zoom_var.set( "100%")
     self.save_dir = '.'
     self.save_file = None
     self.svg_dir = '.'
@@ -397,7 +400,7 @@ class BKChem(
     self.menu_balloon = Pmw.Balloon( self, statuscommand=self.update_status)
     self.main_frame = Frame( self)
     self.main_frame.pack( fill='both', expand=1)
-    self.main_frame.rowconfigure( 4, weight=1)
+    self.main_frame.rowconfigure( 5, weight=1)
     self.main_frame.columnconfigure( 0, weight=1)
 
     self.format_entries = {}
@@ -484,8 +487,8 @@ class BKChem(
 
 
   def init_mode_buttons( self):
-    # mode selection panel
-    radioFrame = Frame( self.main_frame)
+    # mode selection panel with slightly darker background for visual hierarchy
+    radioFrame = Frame( self.main_frame, bg=bkchem_config.toolbar_color)
     radioFrame.grid( row=1, sticky='we')
     # build toolbar as separate RadioSelect widgets per group with
     # separator frames between them; Pmw.RadioSelect uses grid internally
@@ -501,6 +504,8 @@ class BKChem(
       current_group.append(m)
     if current_group:
       groups.append(current_group)
+    # toolbar background for buttons (matches radioFrame bg)
+    _toolbar_bg = bkchem_config.toolbar_color
     # shared command that dispatches to change_mode and selects across groups
     self._radio_groups = []
     for gi, group in enumerate(groups):
@@ -514,25 +519,28 @@ class BKChem(
                                orient='horizontal',
                                command=self.change_mode,
                                hull_borderwidth=0,
-                               padx=0,
-                               pady=0,
+                               padx=1,
+                               pady=1,
                                hull_relief='flat')
       radio.pack(side=LEFT)
+      # match hull background to toolbar band
+      radio.configure(hull_background=_toolbar_bg)
       self._radio_groups.append(radio)
       for m in group:
         if m in pixmaps.images:
           recent = radio.add(m, image=pixmaps.images[m], text=self.modes[m].label,
                              compound='top', activebackground='#d0d8e8',
+                             background=_toolbar_bg,
                              relief='flat', borderwidth=bkchem_config.border_width)
           self.balloon.bind(recent, self.modes[m].name)
         else:
           recent = radio.add(m, text=self.modes[m].label,
                              activebackground='#d0d8e8',
+                             background=_toolbar_bg,
                              borderwidth=bkchem_config.border_width)
         # hover effect: lighten background on mouse enter, restore on leave
-        default_bg = str(recent.cget('background'))
-        recent.bind('<Enter>', lambda e, btn=recent, bg=default_bg: _on_btn_enter(btn, bg))
-        recent.bind('<Leave>', lambda e, btn=recent, bg=default_bg: _on_btn_leave(btn, bg))
+        recent.bind('<Enter>', lambda e, btn=recent, bg=_toolbar_bg: _on_btn_enter(btn, bg))
+        recent.bind('<Leave>', lambda e, btn=recent, bg=_toolbar_bg: _on_btn_leave(btn, bg))
     # build mode-name-to-group lookup for cross-group button access
     self._mode_to_group = {}
     for radio in self._radio_groups:
@@ -544,7 +552,7 @@ class BKChem(
     # undo button
     undo_kwargs = {'text': _('Undo'), 'command': lambda: self.paper.undo(),
                    'relief': 'flat', 'borderwidth': bkchem_config.border_width,
-                   'activebackground': '#d0d8e8'}
+                   'activebackground': '#d0d8e8', 'background': _toolbar_bg}
     if 'undo' in pixmaps.images:
       undo_kwargs['image'] = pixmaps.images['undo']
       undo_kwargs['compound'] = 'top'
@@ -554,7 +562,7 @@ class BKChem(
     # redo button
     redo_kwargs = {'text': _('Redo'), 'command': lambda: self.paper.redo(),
                    'relief': 'flat', 'borderwidth': bkchem_config.border_width,
-                   'activebackground': '#d0d8e8'}
+                   'activebackground': '#d0d8e8', 'background': _toolbar_bg}
     if 'redo' in pixmaps.images:
       redo_kwargs['image'] = pixmaps.images['redo']
       redo_kwargs['compound'] = 'top'
@@ -562,9 +570,13 @@ class BKChem(
     self._redo_btn.pack(side=LEFT, padx=1)
     self.balloon.bind(self._redo_btn, _('Redo (C-S-z)'))
 
+    # horizontal separator between toolbar and submode ribbon
+    sep_top = Frame( self.main_frame, height=1, bg=bkchem_config.separator_color)
+    sep_top.grid( row=2, sticky='we')
+
     # sub-mode support
     self.subFrame = Frame( self.main_frame)
-    self.subFrame.grid( row=2, sticky='we')
+    self.subFrame.grid( row=3, sticky='we')
     self.subbuttons = []
     # the remaining of sub modes support is now in self.change_mode
 
@@ -607,9 +619,17 @@ class BKChem(
 
   def init_status_bar( self):
     status_frame = Frame( self.main_frame)
-    status_frame.grid( row=5, sticky="we")
+    status_frame.grid( row=6, sticky="we")
+    # status message (expanding)
     status = Label( status_frame, relief=SUNKEN, bd=bkchem_config.border_width, textvariable=self.stat, anchor='w', height=2, justify='l')
     status.pack( side="left", expand=1, fill="both")
+    # active mode name
+    mode_label = Label( status_frame, relief=SUNKEN, bd=bkchem_config.border_width, textvariable=self.mode_name_var, anchor='center', width=20, height=2)
+    mode_label.pack( side="left")
+    # zoom percentage
+    zoom_label = Label( status_frame, relief=SUNKEN, bd=bkchem_config.border_width, textvariable=self.zoom_var, anchor='center', width=6, height=2)
+    zoom_label.pack( side="left")
+    # cursor position
     position = Label( status_frame, relief=SUNKEN, bd=bkchem_config.border_width, textvariable=self.cursor_position, anchor='w', height=2, justify='l')
     position.pack( side="right")
 

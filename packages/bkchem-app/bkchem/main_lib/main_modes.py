@@ -12,6 +12,30 @@ import builtins
 # gettext i18n translation fallback
 _ = builtins.__dict__.get( '_', lambda m: m)
 
+# hover color for submode ribbon buttons
+_SUB_HOVER_BG = bkchem_config.hover_color
+# grid button selected color
+_GRID_SELECTED_BG = '#b0c4de'
+
+
+#============================================
+def _on_sub_enter(btn, default_bg):
+	"""Highlight a submode button on mouse hover."""
+	# skip hover tint when the button is the active selection
+	current_bg = str(btn.cget('background'))
+	if current_bg == _GRID_SELECTED_BG:
+		return
+	btn.configure(background=_SUB_HOVER_BG)
+
+
+#============================================
+def _on_sub_leave(btn, default_bg):
+	"""Restore a submode button background when mouse leaves."""
+	current_bg = str(btn.cget('background'))
+	if current_bg == _GRID_SELECTED_BG:
+		return
+	btn.configure(background=default_bg)
+
 
 class MainModesMixin:
   """Mode and submode switching helpers extracted from main.py."""
@@ -98,7 +122,11 @@ class MainModesMixin:
             recent = self.subbuttons[i].add( sub, image=img, activebackground='grey', borderwidth=bkchem_config.border_width)
             self.balloon.bind(recent, tip_text)
           else:
-            self.subbuttons[i].add( sub, text=display_name, borderwidth=bkchem_config.border_width)
+            recent = self.subbuttons[i].add( sub, text=display_name, borderwidth=bkchem_config.border_width)
+          # hover effect on submode buttons
+          sub_bg = str(recent.cget('background'))
+          recent.bind('<Enter>', lambda e, b=recent, bg=sub_bg: _on_sub_enter(b, bg))
+          recent.bind('<Leave>', lambda e, b=recent, bg=sub_bg: _on_sub_leave(b, bg))
         # select the default submode
         j = m.submodes[i][ m.submode[i]]
         self.subbuttons[i].invoke( j)
@@ -120,7 +148,7 @@ class MainModesMixin:
       bf.pack(side=LEFT)
       self._sub_extra_widgets.append(bf)
       # show the Entry bar
-      self.editPool.grid(row=3, sticky="wens")
+      self.editPool.grid(row=4, sticky="wens")
     else:
       # hide the Entry bar for non-editing modes
       self.editPool.grid_remove()
@@ -130,7 +158,8 @@ class MainModesMixin:
     if not hasattr(self, '_btn_default_hlbg'):
       first_btn = self.get_mode_button(self.modes_sort[0])
       self._btn_default_hlbg = str(first_btn.cget('highlightbackground'))
-      self._btn_default_bg = str(first_btn.cget('background'))
+      # toolbar buttons use the toolbar band bg
+      self._btn_default_bg = bkchem_config.toolbar_color
     for btn_name in self.modes_sort:
       btn = self.get_mode_button(btn_name)
       if not btn:
@@ -138,7 +167,7 @@ class MainModesMixin:
       if btn_name == tag:
         # active: light blue fill + subtle blue border
         btn.configure(relief='groove', borderwidth=2,
-          background='#cde4f7',
+          background=bkchem_config.active_mode_color,
           highlightbackground='#4a90d9',
           highlightcolor='#4a90d9',
           highlightthickness=1)
@@ -151,7 +180,8 @@ class MainModesMixin:
           highlightthickness=0)
 
     self.paper.mode = self.mode
-    #Store.log( _('mode changed to ')+self.modes[ tag].name)
+    # update status bar mode name
+    self.mode_name_var.set(self.modes[tag].name)
     self.mode.startup()
 
 
@@ -210,6 +240,10 @@ class MainModesMixin:
       btn.grid(row=row, column=col, padx=1, pady=1)
       grid_frame._grid_buttons[idx] = btn
       self.balloon.bind(btn, tip_text)
+      # hover effect on grid submode buttons
+      grid_bg = str(btn.cget('background'))
+      btn.bind('<Enter>', lambda e, b=btn, bg=grid_bg: _on_sub_enter(b, bg))
+      btn.bind('<Leave>', lambda e, b=btn, bg=grid_bg: _on_sub_leave(b, bg))
 
     # auto-select first button
     if submodes_list and 0 in grid_frame._grid_buttons:

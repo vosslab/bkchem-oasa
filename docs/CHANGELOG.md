@@ -1,6 +1,30 @@
 # Changelog
 
 ## 2026-02-21
+- Add mode name and zoom percentage labels to the status bar. The active mode
+  name updates on mode switch; zoom percentage updates on zoom changes, mirroring
+  the per-tab zoom label. Changes in
+  [`packages/bkchem-app/bkchem/main.py`](packages/bkchem-app/bkchem/main.py),
+  [`packages/bkchem-app/bkchem/main_lib/main_modes.py`](packages/bkchem-app/bkchem/main_lib/main_modes.py),
+  and
+  [`packages/bkchem-app/bkchem/main_lib/main_tabs.py`](packages/bkchem-app/bkchem/main_lib/main_tabs.py).
+- Add 1px horizontal separator line between the toolbar and submode ribbon for
+  visual hierarchy. Toolbar background darkened to `toolbar_color` (from
+  `background_color`) to distinguish it from the canvas surround. Toolbar
+  buttons and undo/redo buttons updated to match the new background. Changes in
+  [`packages/bkchem-app/bkchem/main.py`](packages/bkchem-app/bkchem/main.py).
+- Add hover highlight effects to submode ribbon buttons (both row-layout and
+  grid-layout). Hovering shows `hover_color` background; active/selected buttons
+  retain their selection styling. Changes in
+  [`packages/bkchem-app/bkchem/main_lib/main_modes.py`](packages/bkchem-app/bkchem/main_lib/main_modes.py).
+- Add `padx=1, pady=1` breathing room to toolbar mode buttons via
+  `Pmw.RadioSelect` padding. Edit pool row follows standard ribbon show/hide
+  (no reserved whitespace). Changes in
+  [`packages/bkchem-app/bkchem/main.py`](packages/bkchem-app/bkchem/main.py).
+- Consolidate UI color constants (`toolbar_color`, `separator_color`,
+  `hover_color`, `active_mode_color`) into
+  [`packages/bkchem-app/bkchem/bkchem_config.py`](packages/bkchem-app/bkchem/bkchem_config.py)
+  instead of scattering inline hex values across `main.py` and `main_modes.py`.
 - Add toolbar group separators between logical mode groups (general, templates,
   chemistry, annotation, geometry, graphics, maintenance). Separator positions
   are data-driven via `---` entries in

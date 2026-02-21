@@ -89,7 +89,10 @@ class MainTabsMixin:
     zoom_content_btn.pack(side='left', padx=2)
 
     def update_zoom_label(event=None, lbl=zoom_label, p=paper):
-      lbl.config(text="%d%%" % int(p._scale * 100))
+      zoom_text = "%d%%" % int(p._scale * 100)
+      lbl.config(text=zoom_text)
+      # also update the status bar zoom indicator
+      self.zoom_var.set(zoom_text)
     paper.bind('<<zoom-changed>>', update_zoom_label)
 
     self.papers.append( paper)
