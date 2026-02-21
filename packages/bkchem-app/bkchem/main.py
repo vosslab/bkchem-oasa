@@ -29,13 +29,13 @@ import sys
 import oasa
 import collections
 
-from tkinter import Frame, Label, StringVar, Tk
+from tkinter import Button, Frame, Label, StringVar, Tk
 from tkinter import LEFT, RAISED, SUNKEN
 
 import Pmw
 from bkchem import bkchem_utils
 from bkchem.modes.mode_loader import build_all_modes
-from bkchem.modes.config import get_toolbar_order
+from bkchem.modes.config import get_toolbar_order, get_toolbar_separator_positions
 from bkchem import bkchem_config
 from bkchem import logger
 from bkchem import dialogs
@@ -58,6 +58,28 @@ from bkchem.main_lib.main_tabs import MainTabsMixin
 # gettext i18n translation fallback
 _ = builtins.__dict__.get( '_', lambda m: m)
 
+# hover color for toolbar buttons (slightly darker than background)
+_HOVER_BG = '#d8d8d8'
+# active mode button fill color (light blue tint)
+_ACTIVE_BG = '#cde4f7'
+
+
+#============================================
+def _on_btn_enter(btn, default_bg):
+	"""Highlight a toolbar button on mouse hover."""
+	# skip hover tint if button is the active (selected) mode
+	if str(btn.cget('background')) == _ACTIVE_BG:
+		return
+	btn.configure(background=_HOVER_BG)
+
+
+#============================================
+def _on_btn_leave(btn, default_bg):
+	"""Restore a toolbar button background when mouse leaves."""
+	# keep active mode fill when leaving
+	if str(btn.cget('background')) == _ACTIVE_BG:
+		return
+	btn.configure(background=default_bg)
 
 
 class BKChem(
@@ -130,7 +152,7 @@ class BKChem(
     self.init_status_bar()
 
     #
-    self.radiobuttons.invoke( self.mode)
+    self.invoke_mode( self.mode)
 
     # protocol bindings
     self.protocol("WM_DELETE_WINDOW", self._quit)
@@ -465,32 +487,122 @@ class BKChem(
     # mode selection panel
     radioFrame = Frame( self.main_frame)
     radioFrame.grid( row=1, sticky='we')
-    self.radiobuttons = Pmw.RadioSelect(radioFrame,
-                                        buttontype = 'button',
-                                        selectmode = 'single',
-                                        orient = 'horizontal',
-                                        command = self.change_mode,
-                                        hull_borderwidth = 0,
-                                        padx = 0,
-                                        pady = 0,
-                                        hull_relief = 'flat',
+    # build toolbar as separate RadioSelect widgets per group with
+    # separator frames between them; Pmw.RadioSelect uses grid internally
+    # so we cannot pack separator frames inside it
+    sep_positions = set(get_toolbar_separator_positions())
+    # split mode list into groups at separator positions
+    groups = []
+    current_group = []
+    for idx, m in enumerate(self.modes_sort):
+      if idx in sep_positions and current_group:
+        groups.append(current_group)
+        current_group = []
+      current_group.append(m)
+    if current_group:
+      groups.append(current_group)
+    # shared command that dispatches to change_mode and selects across groups
+    self._radio_groups = []
+    for gi, group in enumerate(groups):
+      # thin separator line between groups
+      if gi > 0:
+        sep = Frame(radioFrame, width=1, bg='#b0b0b0')
+        sep.pack(side=LEFT, fill='y', padx=3, pady=2)
+      radio = Pmw.RadioSelect(radioFrame,
+                               buttontype='button',
+                               selectmode='single',
+                               orient='horizontal',
+                               command=self.change_mode,
+                               hull_borderwidth=0,
+                               padx=0,
+                               pady=0,
+                               hull_relief='flat')
+      radio.pack(side=LEFT)
+      self._radio_groups.append(radio)
+      for m in group:
+        if m in pixmaps.images:
+          recent = radio.add(m, image=pixmaps.images[m], text=self.modes[m].label,
+                             compound='top', activebackground='#d0d8e8',
+                             relief='flat', borderwidth=bkchem_config.border_width)
+          self.balloon.bind(recent, self.modes[m].name)
+        else:
+          recent = radio.add(m, text=self.modes[m].label,
+                             activebackground='#d0d8e8',
+                             borderwidth=bkchem_config.border_width)
+        # hover effect: lighten background on mouse enter, restore on leave
+        default_bg = str(recent.cget('background'))
+        recent.bind('<Enter>', lambda e, btn=recent, bg=default_bg: _on_btn_enter(btn, bg))
+        recent.bind('<Leave>', lambda e, btn=recent, bg=default_bg: _on_btn_leave(btn, bg))
+    # build mode-name-to-group lookup for cross-group button access
+    self._mode_to_group = {}
+    for radio in self._radio_groups:
+      for btn_name in radio._buttonList:
+        self._mode_to_group[btn_name] = radio
+    # undo/redo buttons on the right side of the toolbar
+    sep = Frame(radioFrame, width=1, bg='#b0b0b0')
+    sep.pack(side=LEFT, fill='y', padx=4, pady=2)
+    # undo button
+    undo_kwargs = {'text': _('Undo'), 'command': lambda: self.paper.undo(),
+                   'relief': 'flat', 'borderwidth': bkchem_config.border_width,
+                   'activebackground': '#d0d8e8'}
+    if 'undo' in pixmaps.images:
+      undo_kwargs['image'] = pixmaps.images['undo']
+      undo_kwargs['compound'] = 'top'
+    self._undo_btn = Button(radioFrame, **undo_kwargs)
+    self._undo_btn.pack(side=LEFT, padx=1)
+    self.balloon.bind(self._undo_btn, _('Undo (C-z)'))
+    # redo button
+    redo_kwargs = {'text': _('Redo'), 'command': lambda: self.paper.redo(),
+                   'relief': 'flat', 'borderwidth': bkchem_config.border_width,
+                   'activebackground': '#d0d8e8'}
+    if 'redo' in pixmaps.images:
+      redo_kwargs['image'] = pixmaps.images['redo']
+      redo_kwargs['compound'] = 'top'
+    self._redo_btn = Button(radioFrame, **redo_kwargs)
+    self._redo_btn.pack(side=LEFT, padx=1)
+    self.balloon.bind(self._redo_btn, _('Redo (C-S-z)'))
 
-             )
-    self.radiobuttons.pack( side=LEFT)
-    # Add some buttons to the radiobutton RadioSelect.
-    for m in self.modes_sort:
-      if m in pixmaps.images:
-        recent = self.radiobuttons.add( m, image=pixmaps.images[m], text=self.modes[m].label,
-                                        compound='top', activebackground='grey',
-                                        relief='flat', borderwidth=bkchem_config.border_width)
-        self.balloon.bind( recent, self.modes[ m].name)
-      else:
-        self.radiobuttons.add( m, text=self.modes[ m].label, borderwidth=bkchem_config.border_width)
     # sub-mode support
     self.subFrame = Frame( self.main_frame)
     self.subFrame.grid( row=2, sticky='we')
     self.subbuttons = []
     # the remaining of sub modes support is now in self.change_mode
+
+
+  def invoke_mode( self, mode_name_or_index):
+    """Invoke a toolbar mode button by name or global index.
+
+    Looks up the correct RadioSelect group and invokes the button
+    within that group.
+
+    Args:
+      mode_name_or_index: mode name string or integer index into modes_sort
+    """
+    if isinstance(mode_name_or_index, int):
+      # convert global index to mode name
+      if mode_name_or_index < len(self.modes_sort):
+        mode_name_or_index = self.modes_sort[mode_name_or_index]
+      else:
+        return
+    name = str(mode_name_or_index)
+    group = self._mode_to_group.get(name)
+    if group:
+      group.invoke(name)
+
+
+  def get_mode_button( self, mode_name):
+    """Return the Tk Button widget for the given mode name.
+
+    Args:
+      mode_name: mode name string
+
+    Returns:
+      Tk Button widget
+    """
+    group = self._mode_to_group.get(mode_name)
+    if group:
+      return group.button(mode_name)
+    return None
 
 
   def init_status_bar( self):
@@ -667,8 +779,8 @@ class BKChem(
     if not Store.btm or not Store.btm.get_template_names():
       Store.log( _("No biomolecule templates are available"))
       return
-    if hasattr( self, 'radiobuttons') and 'biotemplate' in self.modes_sort:
-      self.radiobuttons.invoke( 'biotemplate')
+    if hasattr( self, '_mode_to_group') and 'biotemplate' in self.modes_sort:
+      self.invoke_mode( 'biotemplate')
     else:
       self.change_mode( 'biotemplate')
 

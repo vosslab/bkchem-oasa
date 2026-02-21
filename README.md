@@ -45,9 +45,7 @@ OASA
 - Python library for chemical structure graphs and conversions.
 - Used by BKChem but available as a standalone library.
 
-## Screenshots (legacy)
-The screenshots below are from the archived site (Python 2 era) but still show
-core workflows that BKChem supports today.
+## Screenshots
 
 ![BKChem drawing example](docs/assets/bkchem_drawing.png)
 ![BKChem PDF export example](docs/assets/bkchem_pdf_export.png)

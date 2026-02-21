@@ -7,18 +7,24 @@
 toolbar_order:
   - edit
   - draw
+  - ---
   - template
   - biotemplate
   - usertemplate
+  - ---
   - atom
   - mark
+  - ---
   - arrow
   - plus
   - text
   - bracket
+  - ---
   - rotate
   - bondalign
+  - ---
   - vector
+  - ---
   - repair
   - misc
 

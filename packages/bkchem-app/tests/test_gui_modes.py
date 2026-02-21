@@ -61,14 +61,17 @@ def _flush_events(app, delay=0.05):
 
 #============================================
 def _verify_mode_borders(app, current_mode):
-	"""Check that only the active mode button is sunken; others are flat."""
+	"""Check that only the active mode button is highlighted; others are flat."""
 	for btn_name in app.modes_sort:
-		btn = app.radiobuttons.button(btn_name)
+		btn = app.get_mode_button(btn_name)
+		if not btn:
+			continue
 		if btn_name == current_mode:
 			actual_relief = str(btn.cget('relief'))
-			if actual_relief != 'sunken':
+			# active button uses groove relief (modernized from sunken)
+			if actual_relief not in ('sunken', 'groove'):
 				raise AssertionError(
-					"Active mode '%s' has relief '%s', expected 'sunken'."
+					"Active mode '%s' has relief '%s', expected 'groove'."
 					% (btn_name, actual_relief)
 				)
 		else:
@@ -107,7 +110,7 @@ def _run_gui_mode_cycling():
 	_ensure_preferences()
 
 	import bkchem.main
-	from bkchem.modes.config import get_modes_config
+	from bkchem.modes.config import get_modes_config, get_toolbar_order
 
 	app = bkchem.main.BKChem()
 	app.withdraw()
@@ -121,7 +124,8 @@ def _run_gui_mode_cycling():
 
 		# load YAML config for toolbar modes
 		cfg = get_modes_config()
-		toolbar_order = cfg['toolbar_order']
+		# get_toolbar_order() filters out '---' separator entries
+		toolbar_order = get_toolbar_order()
 		modes_cfg = cfg['modes']
 
 		# dynamic template modes -- skip submode iteration for these

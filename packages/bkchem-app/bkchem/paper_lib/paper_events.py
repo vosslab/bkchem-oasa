@@ -47,6 +47,15 @@ class PaperEventsMixin:
 			# hex grid: Ctrl+G toggles dots, Shift+Ctrl+G toggles snap
 			self.bind('<Control-g>', lambda e: self.toggle_hex_grid())
 			self.bind('<Shift-Control-G>', lambda e: self.toggle_hex_grid_snap())
+			# macOS Command key equivalents for zoom and grid
+			if sys.platform == 'darwin':
+				self.bind('<Command-plus>', lambda e: self.zoom_in())
+				self.bind('<Command-equal>', lambda e: self.zoom_in())
+				self.bind('<Command-minus>', lambda e: self.zoom_out())
+				self.bind('<Command-Key-0>', lambda e: self.zoom_reset())
+				self.bind('<Command-g>', lambda e: self.toggle_hex_grid())
+				self.bind('<Shift-Command-G>', lambda e: self.toggle_hex_grid_snap())
+				self.bind('<Command-MouseWheel>', lambda e: self.zoom_in() if e.delta > 0 else self.zoom_out())
 
 
 	def add_bindings( self, active_names=()):

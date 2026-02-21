@@ -1,6 +1,41 @@
 # Changelog
 
 ## 2026-02-21
+- Add toolbar group separators between logical mode groups (general, templates,
+  chemistry, annotation, geometry, graphics, maintenance). Separator positions
+  are data-driven via `---` entries in
+  [`packages/bkchem-app/bkchem_data/modes.yaml`](packages/bkchem-app/bkchem_data/modes.yaml)
+  and parsed by `get_toolbar_separator_positions()` in
+  [`packages/bkchem-app/bkchem/modes/config.py`](packages/bkchem-app/bkchem/modes/config.py).
+- Add hover highlight effects to toolbar mode buttons (`<Enter>`/`<Leave>`
+  bindings lighten to `#d8d8d8`). Active mode uses light blue fill (`#cde4f7`)
+  with groove relief instead of plain sunken relief. Changes in
+  [`packages/bkchem-app/bkchem/main.py`](packages/bkchem-app/bkchem/main.py)
+  and
+  [`packages/bkchem-app/bkchem/main_lib/main_modes.py`](packages/bkchem-app/bkchem/main_lib/main_modes.py).
+- Add low-hanging fruit modernization section to
+  [`docs/GUI_UX_REVIEW.md`](docs/GUI_UX_REVIEW.md) documenting implemented and
+  future Tkinter button improvements.
+- Add undo/redo toolbar buttons to the mode button bar with icon support and
+  Pmw.Balloon tooltips in
+  [`packages/bkchem-app/bkchem/main.py`](packages/bkchem-app/bkchem/main.py).
+- Add macOS Command key (Cmd) equivalents for common keyboard shortcuts:
+  Cmd+Z undo, Cmd+Shift+Z redo, Cmd+S save, Cmd+Shift+A select all in
+  [`packages/bkchem-app/bkchem/modes/modes_lib.py`](packages/bkchem-app/bkchem/modes/modes_lib.py).
+  Add Cmd+plus/minus/0 zoom and Cmd+G hex grid toggle in
+  [`packages/bkchem-app/bkchem/paper_lib/paper_events.py`](packages/bkchem-app/bkchem/paper_lib/paper_events.py).
+- Add [`tools/convert_svg_icons.py`](tools/convert_svg_icons.py) script to
+  convert SVG icon sources to PNG. Defaults to 32x32; accepts `-s` for custom
+  size, `-n` for dry run, `-v` for verbose output.
+- Add 5 new SVG icon sources (undo, redo, repair, biotemplate, rplus) in
+  [`packages/bkchem-app/bkchem_data/pixmaps/src/`](packages/bkchem-app/bkchem_data/pixmaps/src/)
+  and regenerate all 92 SVG-to-PNG icons at 32x32 with 32-bit RGBA color in
+  [`packages/bkchem-app/bkchem_data/pixmaps/`](packages/bkchem-app/bkchem_data/pixmaps/).
+  The `pixmaps.py` loader already prefers PNG over GIF so icons upgrade
+  automatically.
+- Add [`docs/GUI_UX_REVIEW.md`](docs/GUI_UX_REVIEW.md) with a comprehensive
+  visual quality and usability audit of the v26.02 GUI, including severity
+  ratings and prioritized recommendations.
 - Rotate hex grid from flat-top to pointy-top orientation so bond directions
   align with organic chemistry convention (30, 90, 150, 210, 270, 330 degrees).
   - Basis vectors rotated from (0, 60) degrees to (30, 90) degrees in

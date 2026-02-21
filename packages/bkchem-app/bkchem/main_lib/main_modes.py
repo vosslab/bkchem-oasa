@@ -43,19 +43,19 @@ class MainModesMixin:
     tooltip_map = getattr(m, 'tooltip_map', {})
 
     for i in range( len( m.submodes)):
-      # render group label before button row (ribbon-style separator)
+      # render group separator or label before button row
       label_text = group_labels[i] if i < len(group_labels) else ''
       if label_text:
-        # vertical separator line between groups (skip before first group)
-        if i > 0:
-          sep = Frame(self.subFrame, width=1, bg='#b0b0b0')
-          sep.pack(side=LEFT, fill='y', padx=2, pady=1)
-          self._sub_extra_widgets.append(sep)
-        # compact group label
+        # group label replaces separator line (they are redundant together)
         lbl = Label(self.subFrame, text=label_text, font=('sans-serif', 8),
                     fg='#666666', anchor='w', padx=1, pady=0)
         lbl.pack(side=LEFT, padx=(2, 0))
         self._sub_extra_widgets.append(lbl)
+      elif i > 0:
+        # no label: show a vertical separator line between groups
+        sep = Frame(self.subFrame, width=1, bg='#b0b0b0')
+        sep.pack(side=LEFT, fill='y', padx=2, pady=1)
+        self._sub_extra_widgets.append(sep)
 
       # determine layout for this submode group
       layout = 'row'
@@ -125,20 +125,27 @@ class MainModesMixin:
       # hide the Entry bar for non-editing modes
       self.editPool.grid_remove()
 
-    # highlight the selected mode button with a thick colored border
-    # capture default highlight color once so we can fully reset inactive buttons
+    # highlight the active mode button with a colored fill and subtle border
+    # capture default colors once so we can fully reset inactive buttons
     if not hasattr(self, '_btn_default_hlbg'):
-      first_btn = self.radiobuttons.button(self.modes_sort[0])
+      first_btn = self.get_mode_button(self.modes_sort[0])
       self._btn_default_hlbg = str(first_btn.cget('highlightbackground'))
+      self._btn_default_bg = str(first_btn.cget('background'))
     for btn_name in self.modes_sort:
-      btn = self.radiobuttons.button(btn_name)
+      btn = self.get_mode_button(btn_name)
+      if not btn:
+        continue
       if btn_name == tag:
-        btn.configure(relief='sunken', borderwidth=3,
+        # active: light blue fill + subtle blue border
+        btn.configure(relief='groove', borderwidth=2,
+          background='#cde4f7',
           highlightbackground='#4a90d9',
           highlightcolor='#4a90d9',
-          highlightthickness=2)
+          highlightthickness=1)
       else:
+        # inactive: flat, default background
         btn.configure(relief='flat', borderwidth=1,
+          background=self._btn_default_bg,
           highlightbackground=self._btn_default_hlbg,
           highlightcolor=self._btn_default_hlbg,
           highlightthickness=0)

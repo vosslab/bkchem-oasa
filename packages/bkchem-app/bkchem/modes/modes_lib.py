@@ -363,6 +363,14 @@ class basic_mode( simple_mode):
 		self.register_key_sequence_ending_with_number_range( 'C-', self.switch_mode, numbers=list(range(1,10)))
 		self.register_key_sequence_ending_with_number_range( 'C-A-', self.switch_mode, numbers=list(range(1,10)), attrs={"add":9})
 
+		# macOS Command key equivalents (Command maps to Meta = 'M')
+		import sys
+		if sys.platform == 'darwin':
+			self.register_key_sequence( 'M-z', self.undo, use_warning=0)
+			self.register_key_sequence( 'M-S-z', self.redo, use_warning=0)
+			self.register_key_sequence( 'M-s', Store.app.save_CDML, use_warning=0)
+			self.register_key_sequence( 'M-S-a', lambda : Store.app.paper.select_all(), use_warning=0)
+
 		# debug, simo
 		self.register_key_sequence( 'C-p', lambda : Store.app.paper.print_all_coords())
 		self.register_key_sequence( 'C-r', lambda : Store.app.paper.redraw_all())
@@ -385,4 +393,4 @@ class basic_mode( simple_mode):
 		index = n+add-1
 		if index < len( Store.app.modes_sort):
 			self.cleanup()
-			Store.app.radiobuttons.invoke( index) #change_mode( Store.app.modes_sort[n-1])
+			Store.app.invoke_mode( index) #change_mode( Store.app.modes_sort[n-1])

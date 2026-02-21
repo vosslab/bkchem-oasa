@@ -55,8 +55,36 @@ def get_modes_config() -> dict:
 
 #============================================
 def get_toolbar_order() -> list:
-	"""Return the toolbar mode ordering from YAML."""
-	return list(get_modes_config()['toolbar_order'])
+	"""Return the toolbar mode ordering from YAML.
+
+	Separator entries ('---') are filtered out; use
+	get_toolbar_separator_positions() for group boundary indices.
+	"""
+	raw = get_modes_config()['toolbar_order']
+	return [m for m in raw if m != '---']
+
+
+#============================================
+def get_toolbar_separator_positions() -> list:
+	"""Return indices where toolbar group separators should appear.
+
+	Each index marks a position before which a visual separator is
+	inserted. For example, [2, 5] means separators appear before the
+	3rd and 6th mode buttons.
+
+	Returns:
+		list of int: separator positions in the filtered toolbar order
+	"""
+	raw = get_modes_config()['toolbar_order']
+	positions = []
+	# count of real mode entries seen so far
+	count = 0
+	for entry in raw:
+		if entry == '---':
+			positions.append(count)
+		else:
+			count += 1
+	return positions
 
 
 #============================================
