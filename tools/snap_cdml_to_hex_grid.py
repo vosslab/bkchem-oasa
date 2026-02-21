@@ -154,10 +154,20 @@ def process_molecule(mol_element: object, spacing_pts: float,
 	# find the best grid origin to minimize total displacement
 	ox, oy = oasa.hex_grid.find_best_grid_origin(atom_coords, spacing_pts)
 
-	# snap all atoms to the hex grid
+	# snap all atoms to the best-fit grid
 	snapped_coords = oasa.hex_grid.snap_molecule_to_hex_grid(
 		atom_coords, spacing_pts, origin_x=ox, origin_y=oy
 	)
+
+	# translate so snapped coords align with the displayed (0,0) grid
+	aligned_ox, aligned_oy = oasa.hex_grid.snap_to_hex_grid(
+		ox, oy, spacing_pts
+	)
+	shift_x = aligned_ox - ox
+	shift_y = aligned_oy - oy
+	snapped_coords = [
+		(x + shift_x, y + shift_y) for x, y in snapped_coords
+	]
 
 	# update DOM or build report
 	total_dist = 0.0

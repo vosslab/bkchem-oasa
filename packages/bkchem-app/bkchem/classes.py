@@ -52,7 +52,7 @@ class standard(object):
 
   def __init__( self):
     # common
-    self.line_width = '1px'
+    self.line_width = '1.5px'
     self.font_size = 12
     self.font_family = 'helvetica'
     self.line_color = "#000"

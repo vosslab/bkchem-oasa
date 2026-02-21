@@ -1,6 +1,32 @@
 # Changelog
 
 ## 2026-02-21
+- Rotate hex grid from flat-top to pointy-top orientation so bond directions
+  align with organic chemistry convention (30, 90, 150, 210, 270, 330 degrees).
+  - Basis vectors rotated from (0, 60) degrees to (30, 90) degrees in
+    [`packages/oasa/oasa/hex_grid.py`](packages/oasa/oasa/hex_grid.py).
+  - Add `generate_hex_honeycomb_edges()` to produce honeycomb line segments.
+  - [`packages/bkchem-app/bkchem/grid_overlay.py`](packages/bkchem-app/bkchem/grid_overlay.py)
+    now draws faint honeycomb lines behind grid dots.
+  - Update all hex grid tests for new pointy-top geometry and add honeycomb
+    edge tests.
+- Make hex grid overlay less visually prominent: lighten honeycomb lines from
+  `#DDDDDD`/0.5 to `#E8E8E8`/0.375 and dots from `#AADDCC` to `#BFE5D9` in
+  [`packages/bkchem-app/bkchem/grid_overlay.py`](packages/bkchem-app/bkchem/grid_overlay.py).
+  Increase default bond line_width from `1px` to `1.5px` in
+  [`packages/bkchem-app/bkchem/classes.py`](packages/bkchem-app/bkchem/classes.py).
+- Clip honeycomb edges to the paper: require both endpoints inside the bounding
+  box instead of just one, so lines no longer bleed onto the gray canvas area.
+- Fix snap-to-hex-grid alignment: after snapping atoms to the best-fit grid
+  origin, translate the molecule so snapped coordinates align with the displayed
+  (0,0) grid. Previously, snapped atoms landed on an offset grid invisible to
+  the user.  Fixed in
+  [`packages/oasa/oasa/repair_ops.py`](packages/oasa/oasa/repair_ops.py) and
+  [`tools/snap_cdml_to_hex_grid.py`](tools/snap_cdml_to_hex_grid.py).
+- Fix hex grid disappearing on the paper: replace `tag_lower("hex_grid")` with
+  `tag_raise("hex_grid", background)` in
+  [`packages/bkchem-app/bkchem/grid_overlay.py`](packages/bkchem-app/bkchem/grid_overlay.py)
+  so the grid draws above the white paper rectangle instead of below it.
 - Add [`docs/GUI_MODULE_USAGE_AUDIT.md`](docs/GUI_MODULE_USAGE_AUDIT.md) with a
   per-file audit of 47 `packages/bkchem-app/bkchem/*.py` GUI modules, including
   purpose summaries, importer evidence, and GUI active-use status.

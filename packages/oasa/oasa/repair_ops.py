@@ -420,7 +420,8 @@ def snap_to_hex_grid(mol, bond_length: float) -> None:
 	"""Move every atom to the nearest hex grid point.
 
 	Uses oasa.hex_grid.find_best_grid_origin to choose the optimal
-	grid alignment, then snaps each atom.
+	grid alignment, then snaps each atom.  After snapping, translates
+	the molecule so the result aligns with the displayed (0,0) grid.
 
 	Args:
 		mol: An OASA-compatible molecule object.
@@ -433,10 +434,18 @@ def snap_to_hex_grid(mol, bond_length: float) -> None:
 	origin_x, origin_y = oasa.hex_grid.find_best_grid_origin(
 		atom_coords, bond_length
 	)
-	# snap all atoms to the hex grid
+	# snap all atoms to the best-fit grid
 	snapped = oasa.hex_grid.snap_molecule_to_hex_grid(
 		atom_coords, bond_length, origin_x, origin_y
 	)
+	# translate so snapped coords align with the displayed (0,0) grid;
+	# find nearest (0,0) grid point to the best-fit origin and shift
+	# the molecule by the difference
+	aligned_ox, aligned_oy = oasa.hex_grid.snap_to_hex_grid(
+		origin_x, origin_y, bond_length
+	)
+	shift_x = aligned_ox - origin_x
+	shift_y = aligned_oy - origin_y
 	for atom, (new_x, new_y) in zip(mol.atoms, snapped):
-		atom.x = new_x
-		atom.y = new_y
+		atom.x = new_x + shift_x
+		atom.y = new_y + shift_y

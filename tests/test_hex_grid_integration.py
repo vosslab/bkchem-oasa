@@ -29,7 +29,7 @@ TOL = 1e-6
 #============================================
 def _benzene_coords(spacing: float, center_x: float = 0.0,
 		center_y: float = 0.0) -> list:
-	"""Build a perfect flat-top benzene hexagon with given spacing.
+	"""Build a perfect pointy-top benzene hexagon with given spacing.
 
 	Args:
 		spacing: Side length (bond length).
@@ -41,7 +41,7 @@ def _benzene_coords(spacing: float, center_x: float = 0.0,
 	"""
 	coords = []
 	for i in range(6):
-		angle = math.radians(60 * i)
+		angle = math.radians(30 + 60 * i)
 		x = center_x + spacing * math.cos(angle)
 		y = center_y + spacing * math.sin(angle)
 		coords.append((x, y))
@@ -136,19 +136,23 @@ def test_snap_benzene_cdml_roundtrip():
 def test_zigzag_chain_on_hex_grid():
 	"""A zigzag chain of atoms on hex grid points should pass grid check."""
 	spacing = 1.0
-	# build a zigzag: alternating between e1 and e2 directions
+	# build a zigzag: alternating between e1 and e2-e1 directions
+	# pointy-top e1 = (s*sqrt(3)/2, s/2), e2 = (0, s)
+	# e2-e1 = (-s*sqrt(3)/2, s/2)
+	e1x = spacing * math.sqrt(3) / 2.0
+	e1y = spacing / 2.0
 	coords = []
 	x, y = 0.0, 0.0
 	coords.append((x, y))
-	e2y = spacing * math.sqrt(3) / 2.0
 	for i in range(5):
 		if i % 2 == 0:
 			# step along e1
-			x += spacing
+			x += e1x
+			y += e1y
 		else:
-			# step along e2-e1 direction: (-s/2, s*sqrt(3)/2)
-			x += spacing / 2.0
-			y += e2y
+			# step along e2-e1 direction: (-s*sqrt(3)/2, s/2)
+			x -= e1x
+			y += e1y
 		coords.append((x, y))
 	# all points should already be on the grid at default origin
 	result = oasa.hex_grid.all_atoms_on_hex_grid(

@@ -17,23 +17,25 @@
 
 #--------------------------------------------------------------------------
 
-"""Pure geometry functions for a flat-top hexagonal grid.
+"""Pure geometry functions for a pointy-top hexagonal grid.
 
-Flat-top hex grid with spacing s (= bond_length) uses two basis vectors:
-  e1 = (s, 0)                      -- horizontal
-  e2 = (s/2, s * sqrt(3)/2)        -- 60 degrees from horizontal
+Pointy-top hex grid with spacing s (= bond_length) uses two basis vectors:
+  e1 = (s * sqrt(3)/2, s/2)   -- 30 degrees from horizontal
+  e2 = (0, s)                 -- vertical (90 degrees)
 
 Every grid point is n * e1 + m * e2 for integer n, m.
+Bond directions align with organic chemistry convention:
+  30, 90, 150, 210, 270, 330 degrees.
 Snapping is O(1) per point: invert the basis matrix, round to nearest
 integers, convert back.
 """
 
-from math import sqrt
+from math import cos, pi, sqrt, sin
 
 
 #============================================
 def hex_basis_vectors(spacing: float) -> tuple:
-	"""Return the two basis vectors for a flat-top hex grid.
+	"""Return the two basis vectors for a pointy-top hex grid.
 
 	Args:
 		spacing: Distance between adjacent grid points (bond length).
@@ -41,10 +43,10 @@ def hex_basis_vectors(spacing: float) -> tuple:
 	Returns:
 		Tuple (e1x, e1y, e2x, e2y) for the two basis vectors.
 	"""
-	e1x = spacing
-	e1y = 0.0
-	e2x = spacing / 2.0
-	e2y = spacing * sqrt(3.0) / 2.0
+	e1x = spacing * sqrt(3.0) / 2.0
+	e1y = spacing / 2.0
+	e2x = 0.0
+	e2y = spacing
 	return (e1x, e1y, e2x, e2y)
 
 
@@ -69,17 +71,17 @@ def hex_grid_index(x: float, y: float, spacing: float,
 	# shift to origin-relative coordinates
 	dx = x - origin_x
 	dy = y - origin_y
-	# invert the 2x2 basis matrix [[s, s/2], [0, s*sqrt(3)/2]]
-	# determinant = s * s * sqrt(3) / 2
-	# inverse = (1/det) * [[s*sqrt(3)/2, -s/2], [0, s]]
+	# invert the 2x2 basis matrix [[s*sqrt(3)/2, 0], [s/2, s]]
+	# determinant = s*sqrt(3)/2 * s = s^2 * sqrt(3)/2
+	# inverse = (1/det) * [[s, 0], [-s/2, s*sqrt(3)/2]]
 	# simplifies to:
-	#   m = dy / (s * sqrt(3) / 2)
-	#   n = (dx - m * s / 2) / s
+	#   n = dx / (s * sqrt(3)/2)
+	#   m = (dy - n_frac * s/2) / s
 	half_sqrt3 = sqrt(3.0) / 2.0
-	# solve for fractional m first
-	m_frac = dy / (spacing * half_sqrt3)
-	# solve for fractional n
-	n_frac = (dx - m_frac * spacing / 2.0) / spacing
+	# solve for fractional n first (from x component)
+	n_frac = dx / (spacing * half_sqrt3)
+	# solve for fractional m (subtract n contribution to y)
+	m_frac = (dy - n_frac * spacing / 2.0) / spacing
 	# round to nearest integers
 	n = round(n_frac)
 	m = round(m_frac)
@@ -92,8 +94,8 @@ def hex_grid_point(n: int, m: int, spacing: float,
 	"""Convert hex grid indices to pixel coordinates.
 
 	Args:
-		n: Index along the e1 (horizontal) basis vector.
-		m: Index along the e2 (60-degree) basis vector.
+		n: Index along the e1 (30-degree) basis vector.
+		m: Index along the e2 (vertical) basis vector.
 		spacing: Distance between adjacent grid points.
 		origin_x: X coordinate of the grid origin.
 		origin_y: Y coordinate of the grid origin.
@@ -102,8 +104,8 @@ def hex_grid_point(n: int, m: int, spacing: float,
 		Tuple (x, y) of pixel coordinates.
 	"""
 	half_sqrt3 = sqrt(3.0) / 2.0
-	px = origin_x + n * spacing + m * spacing / 2.0
-	py = origin_y + m * spacing * half_sqrt3
+	px = origin_x + n * spacing * half_sqrt3
+	py = origin_y + n * spacing / 2.0 + m * spacing
 	return (px, py)
 
 
@@ -154,28 +156,118 @@ def generate_hex_grid_points(x_min: float, y_min: float,
 	MAX_GRID_POINTS = 5000
 
 	half_sqrt3 = sqrt(3.0) / 2.0
-	# estimate range of m values from y bounds
-	m_min_est = int((y_min - origin_y) / (spacing * half_sqrt3)) - 1
-	m_max_est = int((y_max - origin_y) / (spacing * half_sqrt3)) + 1
+	# e1 step in x is spacing * sqrt(3)/2
+	e1_dx = spacing * half_sqrt3
+
+	# estimate range of n values from x bounds
+	n_min_est = int((x_min - origin_x) / e1_dx) - 1
+	n_max_est = int((x_max - origin_x) / e1_dx) + 1
 
 	# quick estimate of total points; bail out early if too many
-	n_rows = m_max_est - m_min_est + 1
-	avg_cols = int((x_max - x_min) / spacing) + 2
-	if n_rows * avg_cols > MAX_GRID_POINTS:
+	n_cols = n_max_est - n_min_est + 1
+	avg_rows = int((y_max - y_min) / spacing) + 2
+	if n_cols * avg_rows > MAX_GRID_POINTS:
 		return None
 
 	points = []
-	for m in range(m_min_est, m_max_est + 1):
-		# for this m, estimate range of n values from x bounds
-		x_offset = m * spacing / 2.0
-		n_min_est = int((x_min - origin_x - x_offset) / spacing) - 1
-		n_max_est = int((x_max - origin_x - x_offset) / spacing) + 1
-		for n in range(n_min_est, n_max_est + 1):
+	for n in range(n_min_est, n_max_est + 1):
+		# for this n, estimate range of m values from y bounds
+		# y = origin_y + n * spacing/2 + m * spacing
+		y_offset = n * spacing / 2.0
+		m_min_est = int((y_min - origin_y - y_offset) / spacing) - 1
+		m_max_est = int((y_max - origin_y - y_offset) / spacing) + 1
+		for m in range(m_min_est, m_max_est + 1):
 			px, py = hex_grid_point(n, m, spacing, origin_x, origin_y)
 			# only include points inside the bounding box
 			if x_min <= px <= x_max and y_min <= py <= y_max:
 				points.append((px, py))
 	return points
+
+
+#============================================
+def generate_hex_honeycomb_edges(x_min: float, y_min: float,
+		x_max: float, y_max: float, spacing: float,
+		origin_x: float = 0.0, origin_y: float = 0.0) -> list:
+	"""Generate honeycomb line segments for a pointy-top hex grid.
+
+	Each edge connects two adjacent grid points. The honeycomb pattern
+	is produced by iterating over hexagon centers and drawing the top 3
+	edges of each hexagon to avoid duplicates.
+
+	Args:
+		x_min: Left boundary of the rectangle.
+		y_min: Top boundary of the rectangle.
+		x_max: Right boundary of the rectangle.
+		y_max: Bottom boundary of the rectangle.
+		spacing: Distance between adjacent grid points.
+		origin_x: X coordinate of the grid origin.
+		origin_y: Y coordinate of the grid origin.
+
+	Returns:
+		List of ((x1, y1), (x2, y2)) tuples for each edge segment,
+		or None if the estimated edge count exceeds the internal
+		MAX_GRID_EDGES cutoff.
+	"""
+	MAX_GRID_EDGES = 8000
+
+	# hexagon centers form a coarser lattice;
+	# for pointy-top hexagons, centers are spaced:
+	#   dx_center = spacing * sqrt(3) horizontally
+	#   dy_center = spacing * 1.5 vertically
+	# with odd rows offset by spacing * sqrt(3)/2
+	dx_center = spacing * sqrt(3.0)
+	dy_center = spacing * 1.5
+
+	# expand bounding box by one spacing to catch border hexagons
+	margin = spacing * 2.0
+	x_lo = x_min - margin
+	x_hi = x_max + margin
+	y_lo = y_min - margin
+	y_hi = y_max + margin
+
+	# estimate row/col counts for cutoff check
+	n_rows_est = int((y_hi - y_lo) / dy_center) + 2
+	n_cols_est = int((x_hi - x_lo) / dx_center) + 2
+	# each center produces 3 edges
+	if n_rows_est * n_cols_est * 3 > MAX_GRID_EDGES:
+		return None
+
+	# pointy-top hexagon vertex angles: 30, 90, 150, 210, 270, 330 deg
+	# vertices at distance = spacing from center
+	vertex_angles = [pi / 6.0 + k * pi / 3.0 for k in range(6)]
+	# precompute unit offsets for each vertex
+	vertex_dx = [spacing * cos(a) for a in vertex_angles]
+	vertex_dy = [spacing * sin(a) for a in vertex_angles]
+
+	edges = []
+	# iterate over hex center rows
+	row_start = int((y_lo - origin_y) / dy_center) - 1
+	row_end = int((y_hi - origin_y) / dy_center) + 1
+
+	for row_idx in range(row_start, row_end + 1):
+		cy = origin_y + row_idx * dy_center
+		# odd rows are offset horizontally
+		x_offset = (row_idx % 2) * dx_center / 2.0
+		col_start = int((x_lo - origin_x - x_offset) / dx_center) - 1
+		col_end = int((x_hi - origin_x - x_offset) / dx_center) + 1
+
+		for col_idx in range(col_start, col_end + 1):
+			cx = origin_x + x_offset + col_idx * dx_center
+			# draw only top 3 edges (k=0,1,2) to avoid duplicates
+			# edge k connects vertex k to vertex (k+1)%6
+			for k in range(3):
+				x1 = cx + vertex_dx[k]
+				y1 = cy + vertex_dy[k]
+				k2 = (k + 1) % 6
+				x2 = cx + vertex_dx[k2]
+				y2 = cy + vertex_dy[k2]
+				# include edge only if both endpoints are in bounding box
+				in1 = x_min <= x1 <= x_max and y_min <= y1 <= y_max
+				in2 = x_min <= x2 <= x_max and y_min <= y2 <= y_max
+				if in1 and in2:
+					edges.append(((x1, y1), (x2, y2)))
+
+	return edges
 
 
 #============================================
@@ -309,17 +401,21 @@ def find_best_grid_origin(atom_coords: list, spacing: float) -> tuple:
 result = hex_grid_point(0, 0, 1.0)
 assert result == (0.0, 0.0), f"expected (0.0, 0.0), got {result}"
 
-# hex_grid_point: (1,0) should be one spacing to the right
+# hex_grid_point: (1,0) should be at (sqrt(3)/2, 0.5) -- 30 degrees
+_e1x = sqrt(3.0) / 2.0
+_e1y = 0.5
 result = hex_grid_point(1, 0, 1.0)
-assert result == (1.0, 0.0), f"expected (1.0, 0.0), got {result}"
+assert abs(result[0] - _e1x) < 1e-12, f"expected x={_e1x}, got {result[0]}"
+assert abs(result[1] - _e1y) < 1e-12, f"expected y={_e1y}, got {result[1]}"
 
 # snap_to_hex_grid: a point at the origin should snap to (0,0)
 result = snap_to_hex_grid(0.0, 0.0, 1.0)
 assert result == (0.0, 0.0), f"expected (0.0, 0.0), got {result}"
 
-# snap_to_hex_grid: a point near (1,0) should snap to (1,0)
-result = snap_to_hex_grid(1.01, 0.01, 1.0)
-assert result == (1.0, 0.0), f"expected (1.0, 0.0), got {result}"
+# snap_to_hex_grid: a point near e1 should snap to e1
+result = snap_to_hex_grid(_e1x + 0.01, _e1y + 0.01, 1.0)
+assert abs(result[0] - _e1x) < 1e-9, f"expected x={_e1x}, got {result[0]}"
+assert abs(result[1] - _e1y) < 1e-9, f"expected y={_e1y}, got {result[1]}"
 
 # hex_grid_point with custom origin
 result = hex_grid_point(0, 0, 1.0, origin_x=5.0, origin_y=10.0)

@@ -51,14 +51,16 @@ def test_snap_to_grid_exact_point():
 	assert abs(sx - 0.0) < TOL
 	assert abs(sy - 0.0) < TOL
 
-	# e1 direction: (spacing, 0) is a grid point
-	sx, sy = oasa.hex_grid.snap_to_hex_grid(SPACING, 0.0, SPACING)
-	assert abs(sx - SPACING) < TOL
-	assert abs(sy - 0.0) < TOL
+	# e1 direction: (spacing*sqrt(3)/2, spacing/2) is a grid point
+	e1x = SPACING * math.sqrt(3) / 2.0
+	e1y = SPACING / 2.0
+	sx, sy = oasa.hex_grid.snap_to_hex_grid(e1x, e1y, SPACING)
+	assert abs(sx - e1x) < TOL
+	assert abs(sy - e1y) < TOL
 
-	# e2 direction: (spacing/2, spacing*sqrt(3)/2) is a grid point
-	e2x = SPACING / 2.0
-	e2y = SPACING * math.sqrt(3) / 2.0
+	# e2 direction: (0, spacing) is a grid point
+	e2x = 0.0
+	e2y = SPACING
 	sx, sy = oasa.hex_grid.snap_to_hex_grid(e2x, e2y, SPACING)
 	assert abs(sx - e2x) < TOL
 	assert abs(sy - e2y) < TOL
@@ -73,22 +75,26 @@ def test_snap_to_grid_near_point():
 	assert abs(sx - 0.0) < TOL
 	assert abs(sy - 0.0) < TOL
 
-	# slightly offset from (spacing, 0)
-	sx, sy = oasa.hex_grid.snap_to_hex_grid(SPACING + offset, offset, SPACING)
-	assert abs(sx - SPACING) < TOL
-	assert abs(sy - 0.0) < TOL
+	# slightly offset from e1 grid point
+	e1x = SPACING * math.sqrt(3) / 2.0
+	e1y = SPACING / 2.0
+	sx, sy = oasa.hex_grid.snap_to_hex_grid(e1x + offset, e1y + offset, SPACING)
+	assert abs(sx - e1x) < TOL
+	assert abs(sy - e1y) < TOL
 
 
 #============================================
 def test_hex_grid_index_roundtrip():
 	"""hex_grid_point(hex_grid_index(x, y)) should equal snap_to_hex_grid(x, y)."""
-	# test several grid points
+	# test several grid points using new pointy-top basis
+	e1x = SPACING * math.sqrt(3) / 2.0
+	e1y = SPACING / 2.0
 	test_coords = [
 		(0.0, 0.0),
-		(SPACING, 0.0),
-		(SPACING / 2.0, SPACING * math.sqrt(3) / 2.0),
-		(SPACING * 1.5, SPACING * math.sqrt(3) / 2.0),
-		(2.0 * SPACING, 0.0),
+		(e1x, e1y),                     # n=1, m=0
+		(0.0, SPACING),                  # n=0, m=1
+		(e1x, e1y + SPACING),            # n=1, m=1
+		(2.0 * e1x, 2.0 * e1y),         # n=2, m=0
 	]
 	for x, y in test_coords:
 		n, m = oasa.hex_grid.hex_grid_index(x, y, SPACING)
@@ -143,12 +149,12 @@ def test_generate_points_neighbor_spacing():
 def test_all_atoms_on_grid_benzene():
 	"""A perfect benzene hexagon with side = spacing should pass grid check."""
 	spacing = 1.0
-	# benzene vertices: 6 points on a circle of radius = spacing
-	# at angles 0, 60, 120, 180, 240, 300 degrees from center
+	# pointy-top benzene vertices: 6 points on a circle of radius = spacing
+	# at angles 30, 90, 150, 210, 270, 330 degrees from center
 	center_x, center_y = 0.0, 0.0
 	atom_coords = []
 	for i in range(6):
-		angle = math.radians(60 * i)
+		angle = math.radians(30 + 60 * i)
 		x = center_x + spacing * math.cos(angle)
 		y = center_y + spacing * math.sin(angle)
 		atom_coords.append((x, y))
@@ -165,10 +171,10 @@ def test_all_atoms_on_grid_benzene():
 def test_all_atoms_on_grid_shifted():
 	"""A hexagon shifted by half spacing should fail grid check at default origin."""
 	spacing = 1.0
-	# benzene at origin
+	# pointy-top benzene at origin
 	atom_coords = []
 	for i in range(6):
-		angle = math.radians(60 * i)
+		angle = math.radians(30 + 60 * i)
 		x = spacing * math.cos(angle)
 		y = spacing * math.sin(angle)
 		atom_coords.append((x, y))
@@ -206,14 +212,14 @@ def test_distance_to_grid_zero_on_grid():
 	d = oasa.hex_grid.distance_to_hex_grid(0.0, 0.0, SPACING)
 	assert abs(d) < TOL
 
-	# (spacing, 0) is on grid
-	d = oasa.hex_grid.distance_to_hex_grid(SPACING, 0.0, SPACING)
+	# e1 grid point: (spacing*sqrt(3)/2, spacing/2)
+	e1x = SPACING * math.sqrt(3) / 2.0
+	e1y = SPACING / 2.0
+	d = oasa.hex_grid.distance_to_hex_grid(e1x, e1y, SPACING)
 	assert abs(d) < TOL
 
-	# e2 grid point
-	e2x = SPACING / 2.0
-	e2y = SPACING * math.sqrt(3) / 2.0
-	d = oasa.hex_grid.distance_to_hex_grid(e2x, e2y, SPACING)
+	# e2 grid point: (0, spacing)
+	d = oasa.hex_grid.distance_to_hex_grid(0.0, SPACING, SPACING)
 	assert abs(d) < TOL
 
 
@@ -221,11 +227,13 @@ def test_distance_to_grid_zero_on_grid():
 def test_find_best_origin_trivial():
 	"""When atoms are already on the default grid, best origin is near (0,0)."""
 	spacing = 1.0
-	# use grid points as atom positions
+	# use grid points as atom positions (pointy-top basis)
+	e1x = spacing * math.sqrt(3) / 2.0
+	e1y = spacing / 2.0
 	atom_coords = [
 		(0.0, 0.0),
-		(spacing, 0.0),
-		(spacing / 2.0, spacing * math.sqrt(3) / 2.0),
+		(e1x, e1y),
+		(0.0, spacing),
 	]
 	ox, oy = oasa.hex_grid.find_best_grid_origin(atom_coords, spacing)
 	# all atoms should be on grid with this origin
@@ -256,3 +264,55 @@ def test_bond_length_spacing():
 	x3, y3 = oasa.hex_grid.hex_grid_point(1, -1, spacing)
 	d3 = math.sqrt((x3 - x0) ** 2 + (y3 - y0) ** 2)
 	assert abs(d3 - spacing) < TOL
+
+
+#============================================
+def test_honeycomb_edge_count():
+	"""Verify reasonable edge count for a known bounding box."""
+	spacing = 1.0
+	edges = oasa.hex_grid.generate_hex_honeycomb_edges(0, 0, 5, 5, spacing)
+	assert edges is not None
+	# a 5x5 box with spacing=1 should have a reasonable number of edges
+	assert len(edges) > 10
+	assert len(edges) < 500
+
+
+#============================================
+def test_honeycomb_edge_length():
+	"""All honeycomb edges should have length equal to spacing."""
+	spacing = 1.0
+	edges = oasa.hex_grid.generate_hex_honeycomb_edges(0, 0, 5, 5, spacing)
+	assert edges is not None
+	for (x1, y1), (x2, y2) in edges:
+		edge_len = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+		assert abs(edge_len - spacing) < 0.01, (
+			f"Edge ({x1:.3f},{y1:.3f})->({x2:.3f},{y2:.3f}) "
+			f"length {edge_len:.4f} != spacing {spacing}"
+		)
+
+
+#============================================
+def test_honeycomb_no_duplicate_edges():
+	"""No duplicate edges in honeycomb output."""
+	spacing = 1.0
+	edges = oasa.hex_grid.generate_hex_honeycomb_edges(0, 0, 5, 5, spacing)
+	assert edges is not None
+	# normalize each edge so (a,b) and (b,a) are treated the same
+	seen = set()
+	for (x1, y1), (x2, y2) in edges:
+		# round to avoid floating point key issues
+		p1 = (round(x1, 6), round(y1, 6))
+		p2 = (round(x2, 6), round(y2, 6))
+		key = (min(p1, p2), max(p1, p2))
+		assert key not in seen, f"Duplicate edge: {key}"
+		seen.add(key)
+
+
+#============================================
+def test_honeycomb_cutoff():
+	"""Huge bounding box should trigger cutoff and return None."""
+	spacing = 1.0
+	result = oasa.hex_grid.generate_hex_honeycomb_edges(
+		0, 0, 100000, 100000, spacing
+	)
+	assert result is None
