@@ -26,6 +26,7 @@ from warnings import warn
 
 from bkchem import bkchem_utils
 from bkchem import marks
+from bkchem import theme_manager
 
 from bkchem.ftext_lib import BkFtext
 from bkchem.singleton_store import Store, Screen
@@ -616,7 +617,9 @@ class drawable_chem_vertex(GraphVertexMixin,
     if not self.pos:
       self.decide_pos()
     # we use self.text to force undo when it is changed (e.g. when atom is added to OH so it changes to O)
-    self.ftext = BkFtext( self.paper, (x, y), self.xml_ftext, font=self.on_screen_font(), pos=self.pos, fill=self.line_color)
+    # use theme-mapped color for display while preserving stored color for CDML
+    display_color = theme_manager.map_chemistry_color(self.line_color)
+    self.ftext = BkFtext( self.paper, (x, y), self.xml_ftext, font=self.on_screen_font(), pos=self.pos, fill=display_color)
     self.ftext.draw()
     # should we want a complete bbox? (yes only for atoms in linear form)
     if len( [x for x in self.molecule.get_fragments_with_vertex( self) if x.type=="linear_form" and x.properties.get('bond_length',0)>20]):
@@ -629,7 +632,9 @@ class drawable_chem_vertex(GraphVertexMixin,
     self.update_font()
     ## shrink the selector according to the font size and properties
     hack_y = self.font.metrics()['descent'] - 1
-    self.selector = self.paper.create_rectangle( x1, y1, x2, y2-hack_y, fill=self.area_color, outline='',tags=('helper_a','no_export'))
+    # use theme-mapped area color for display
+    display_area = theme_manager.map_chemistry_color(self.area_color, color_type='area')
+    self.selector = self.paper.create_rectangle( x1, y1, x2, y2-hack_y, fill=display_area, outline='',tags=('helper_a','no_export'))
     if not redraw:
       [m.draw() for m in self.marks]
 

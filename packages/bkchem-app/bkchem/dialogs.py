@@ -1163,3 +1163,54 @@ class progress_dialog( tkinter.Toplevel):
   def close( self):
     self.parent.focus_set()
     self.destroy()
+
+
+## THEME DIALOG
+
+class theme_dialog(object):
+  """Dialog for selecting the application color theme.
+
+  After activation, ``result`` holds the chosen theme name string
+  (e.g. 'light' or 'dark') or ``None`` if cancelled.
+  """
+
+  def __init__(self, parent):
+    from bkchem import theme_manager
+    self.result = None
+    names = theme_manager.get_theme_names()
+    current = theme_manager.get_active_theme_name()
+    # build display labels from theme definitions
+    display_names = []
+    for n in names:
+      t = theme_manager.get_theme(n)
+      display_names.append(t.get('name', n))
+
+    self.dialog = Pmw.Dialog(
+      parent,
+      title=_('Theme'),
+      buttons=(_('OK'), _('Cancel')),
+      defaultbutton=_('OK'),
+      command=self._button_pressed,
+    )
+    interior = self.dialog.interior()
+    self.radio = Pmw.RadioSelect(
+      interior,
+      buttontype='radiobutton',
+      orient='vertical',
+      labelpos='nw',
+      label_text=_('Select a color theme:'),
+    )
+    self.radio.pack(fill='both', expand=1, padx=10, pady=10)
+    for i, name in enumerate(names):
+      self.radio.add(name, text=display_names[i])
+    # select the current theme
+    self.radio.invoke(current)
+    self._names = names
+    self.dialog.activate()
+
+  def _button_pressed(self, btn_name):
+    if btn_name == _('OK'):
+      self.result = self.radio.getvalue()
+    else:
+      self.result = None
+    self.dialog.deactivate()

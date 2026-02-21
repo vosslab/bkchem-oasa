@@ -8,6 +8,7 @@ from tkinter import HORIZONTAL, SUNKEN, VERTICAL
 import Pmw
 from bkchem import bkchem_config
 from bkchem import bkchem_utils
+from bkchem import theme_manager
 from bkchem.paper import chem_paper
 from bkchem.singleton_store import Store
 
@@ -25,10 +26,14 @@ class MainTabsMixin:
       # de-highlighting of current tab
       if old_paper in self.papers:
         i = self.papers.index(old_paper)
-        self.notebook.tab(i).configure(background=bkchem_config.background_color, fg="black")
+        self.notebook.tab(i).configure(
+          background=theme_manager.get_color('background'),
+          fg=theme_manager.get_color('inactive_tab_fg'))
       i = self.notebook.index( name)
       # highlighting of current tab
-      self.notebook.tab( i).configure( background="#777777", fg="white")
+      self.notebook.tab( i).configure(
+        background=theme_manager.get_color('active_tab_bg'),
+        fg=theme_manager.get_color('active_tab_fg'))
       # the rest
       self.paper = self.papers[i]
       if (hasattr(self, 'mode') and
@@ -51,7 +56,7 @@ class MainTabsMixin:
     page = self.notebook.add( _tab_name, tab_text = chem_paper.create_window_name( name_dic))
     paper = chem_paper( page,
                         scrollregion=(-100,-100,'300m','400m'),
-                        background="grey",
+                        background=theme_manager.get_color('canvas_surround'),
                         closeenough=3,
                         file_name=name_dic)
     self._tab_name_2_paper[ _tab_name] = paper

@@ -1,0 +1,42 @@
+# Light theme for BKChem (default)
+#
+# Each theme file defines colors for four layers:
+#   gui:       toolbar, buttons, tabs, status bar, edit pool
+#   chemistry: default colors for bonds and atom labels
+#   paper:     paper rectangle fill and outline
+#   grid:      hex grid overlay lines and dots
+#
+# The filename (without .yaml) is the theme key used internally.
+# The 'name' field is the human-readable label shown in the UI.
+
+name: "Light"
+gui:
+  background: "#eaeaea"
+  toolbar: "#e0e0e0"
+  separator: "#c8c8c8"
+  hover: "#d8d8d8"
+  active_mode: "#cde4f7"
+  active_mode_highlight: "#4a90d9"
+  active_tab_bg: "#777777"
+  active_tab_fg: "white"
+  inactive_tab_fg: "black"
+  button_active_bg: "#d0d8e8"
+  group_separator: "#b0b0b0"
+  grid_selected: "#b0c4de"
+  grid_deselected: "#d9d9d9"
+  group_label_fg: "#666666"
+  entry_bg: "white"
+  entry_fg: "#000000"
+  entry_disabled_fg: "#555555"
+  entry_insert_bg: "#ffffff"
+  canvas_surround: "grey"
+chemistry:
+  default_line: "#000"
+  default_area: "#ffffff"
+paper:
+  fill: "white"
+  outline: "black"
+grid:
+  line: "#E8E8E8"
+  dot_fill: "#BFE5D9"
+  dot_outline: "#CCCCCC"

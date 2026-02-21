@@ -15,6 +15,7 @@ from oasa.render_lib.bond_ops import haworth_front_edge_geometry
 from oasa import wedge_geometry
 
 from bkchem import bkchem_utils
+from bkchem import theme_manager
 
 
 class BondRenderOpsMixin:
@@ -118,7 +119,7 @@ class BondRenderOpsMixin:
     created = []
     for op in render_ops.sort_ops(ops):
       if isinstance(op, render_ops.LineOp):
-        color = op.color or self.line_color
+        color = op.color or theme_manager.map_chemistry_color(self.line_color)
         item = self._create_line_with_transform(
           (op.p1[0], op.p1[1], op.p2[0], op.p2[1]),
           tags=("bond",),
@@ -267,7 +268,7 @@ class BondRenderOpsMixin:
     self.item = self._create_line_with_transform(
       (start[0], start[1], end[0], end[1]),
       width=thickness,
-      fill=self.line_color,
+      fill=theme_manager.map_chemistry_color(self.line_color),
       capstyle="round",
       joinstyle="round",
     )

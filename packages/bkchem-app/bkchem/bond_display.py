@@ -1,5 +1,6 @@
 """Display/interaction mixin methods for BKChem bonds."""
 
+from bkchem import theme_manager
 from oasa import geometry
 
 
@@ -41,7 +42,9 @@ class BondDisplayMixin:
       self.paper.register_id(self.item, self)
     else:
       self.paper.coords(self.item, x1, y1, x2, y2)
-    self.paper.itemconfig(self.item, width=self.line_width, fill=self.line_color)
+    # use theme-mapped color for display while preserving stored color for CDML
+    display_color = theme_manager.map_chemistry_color(self.line_color)
+    self.paper.itemconfig(self.item, width=self.line_width, fill=display_color)
 
   def visible_items(self):
     """Return a list of canvas items displayed by this bond."""
@@ -76,13 +79,15 @@ class BondDisplayMixin:
 
   def unfocus(self):
     items = self.visible_items()
+    # use theme-mapped color when restoring from highlight
+    display_color = theme_manager.map_chemistry_color(self.line_color)
 
     if self.type in "nahds":
-      [self.paper.itemconfig(item, fill=self.line_color, width=self.line_width) for item in items]
+      [self.paper.itemconfig(item, fill=display_color, width=self.line_width) for item in items]
     elif self.type == "o":
-      [self.paper.itemconfig(item, fill=self.line_color, outline=self.line_color) for item in items]
+      [self.paper.itemconfig(item, fill=display_color, outline=display_color) for item in items]
     elif self.type in "wb":
-      [self.paper.itemconfigure(item, fill=self.line_color) for item in items]
+      [self.paper.itemconfigure(item, fill=display_color) for item in items]
 
   def select(self):
     x1, y1 = self.atom1.get_xy_on_paper()

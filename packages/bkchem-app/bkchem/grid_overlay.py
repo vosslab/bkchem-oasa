@@ -24,6 +24,7 @@ so the user can visually align atoms and bonds to the grid.
 """
 
 import oasa.hex_grid
+from bkchem import theme_manager
 from bkchem.singleton_store import Screen
 
 
@@ -148,7 +149,7 @@ class HexGridOverlay:
 				sy2 = y2 * scale
 				canvas.create_line(
 					sx1, sy1, sx2, sy2,
-					fill="#E8E8E8", width=0.375,
+					fill=theme_manager.get_grid_color('line'), width=0.375,
 					tags=("no_export", "hex_grid"),
 				)
 
@@ -170,7 +171,9 @@ class HexGridOverlay:
 				sy = my * scale
 				canvas.create_oval(
 					sx - r, sy - r, sx + r, sy + r,
-					fill="#BFE5D9", outline="#CCCCCC", width=0.375,
+					fill=theme_manager.get_grid_color('dot_fill'),
+					outline=theme_manager.get_grid_color('dot_outline'),
+					width=0.375,
 					tags=("no_export", "hex_grid"),
 				)
 

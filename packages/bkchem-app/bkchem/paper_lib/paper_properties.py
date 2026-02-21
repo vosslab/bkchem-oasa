@@ -12,6 +12,7 @@ from bkchem import bkchem_config
 from bkchem import dom_extensions
 from bkchem import os_support
 from bkchem import safe_xml
+from bkchem import theme_manager
 from bkchem.arrow_lib import BkArrow
 from bkchem.molecule_lib import BkMolecule
 from bkchem import graphics
@@ -86,10 +87,14 @@ class PaperPropertiesMixin:
 															'size_x': sx,
 															'size_y': sy}
 
+		# use theme colors for paper background (display-only, not saved to CDML)
+		paper_fill = theme_manager.get_paper_color('fill')
+		paper_outline = theme_manager.get_paper_color('outline')
 		if not 'background' in self.__dict__ or not self.background:
-			self.background = self.create_rectangle( 0, 0, '%dm'%sx, '%dm'%sy, fill='white', outline='black', tags="no_export")
+			self.background = self.create_rectangle( 0, 0, '%dm'%sx, '%dm'%sy, fill=paper_fill, outline=paper_outline, tags="no_export")
 		else:
 			self.coords( self.background, 0, 0, '%dm'%sx, '%dm'%sy)
+			self.itemconfig( self.background, fill=paper_fill, outline=paper_outline)
 
 		# crop svg
 		self._paper_properties['crop_svg'] = self.standard.paper_crop_svg
@@ -103,11 +108,15 @@ class PaperPropertiesMixin:
 	def create_background( self):
 		sx = self._paper_properties['size_x']
 		sy = self._paper_properties['size_y']
+		# use theme colors for paper background (display-only, not saved to CDML)
+		paper_fill = theme_manager.get_paper_color('fill')
+		paper_outline = theme_manager.get_paper_color('outline')
 
 		if not 'background' in self.__dict__ or not self.background:
-			self.background = self.create_rectangle( 0, 0, '%dm'%sx, '%dm'%sy, fill='white', outline='black', tags="no_export")
+			self.background = self.create_rectangle( 0, 0, '%dm'%sx, '%dm'%sy, fill=paper_fill, outline=paper_outline, tags="no_export")
 		else:
 			self.coords( self.background, 0, 0, '%dm'%sx, '%dm'%sy)
+			self.itemconfig( self.background, fill=paper_fill, outline=paper_outline)
 
 
 	def set_paper_properties( self, type=None, orientation=None, x=None, y=None, crop_svg=None, all=None, crop_margin=None, use_real_minus=None, replace_minus=None):

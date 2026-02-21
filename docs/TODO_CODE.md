@@ -2,8 +2,8 @@
 
 - Implement the PubChem lookup work in
   [docs/active_plans/PUBCHEM_API_PLAN.md](docs/active_plans/PUBCHEM_API_PLAN.md).
-- I would like to see the undo functions in BKChem stick to the CDML contract. 
-  Basically UNDO becomes a CDML becomes a CDML history. When you make a change in 
+- I would like to see the undo functions in BKChem stick to the CDML contract.
+  Basically UNDO becomes a CDML becomes a CDML history. When you make a change in
   BKChem the old version is saved as temporary CDML file. We could keep a history
   of N=20 of these backward files. Any changes to interface that do not affect the
   molecule (i.e. no CDML change) cannot be UNDOne. Am I thinking of this correctly?

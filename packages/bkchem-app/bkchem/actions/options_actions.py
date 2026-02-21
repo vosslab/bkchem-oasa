@@ -5,10 +5,31 @@ from bkchem.actions.action_registry import MenuAction
 
 try:
 	from bkchem import interactors
+	from bkchem import theme_manager
 	from bkchem.singleton_store import Store
 except ImportError:
 	interactors = None
+	theme_manager = None
 	Store = None
+
+
+#============================================
+def _show_theme_dialog(app) -> None:
+	"""Open theme selector dialog and apply the chosen theme.
+
+	Args:
+		app: The BKChem application instance.
+	"""
+	from bkchem import dialogs
+	dialog = dialogs.theme_dialog(app)
+	if dialog.result:
+		chosen = dialog.result
+		# persist the preference
+		theme_manager.set_active_theme(chosen)
+		if Store.pm is not None:
+			Store.pm.add_preference('theme', chosen)
+		# apply to running application
+		theme_manager.apply_gui_theme(app)
 
 
 #============================================
@@ -53,6 +74,15 @@ def register_options_actions(registry, app) -> None:
 		help_key='To use InChI in BKChem you must first give it a path to the InChI program here',
 		accelerator=None,
 		handler=interactors.ask_inchi_program_path,
+		enabled_when=None,
+	))
+	# theme selector dialog
+	registry.register(MenuAction(
+		id='options.theme',
+		label_key='Theme',
+		help_key='Switch between light and dark color themes',
+		accelerator=None,
+		handler=lambda: _show_theme_dialog(app),
 		enabled_when=None,
 	))
 	# open preferences dialog

@@ -1,0 +1,42 @@
+# Dark theme for BKChem
+#
+# Each theme file defines colors for four layers:
+#   gui:       toolbar, buttons, tabs, status bar, edit pool
+#   chemistry: default colors for bonds and atom labels
+#   paper:     paper rectangle fill and outline
+#   grid:      hex grid overlay lines and dots
+#
+# The filename (without .yaml) is the theme key used internally.
+# The 'name' field is the human-readable label shown in the UI.
+
+name: "Dark"
+gui:
+  background: "#2b2b2b"
+  toolbar: "#333333"
+  separator: "#444444"
+  hover: "#484848"
+  active_mode: "#1a3a5c"
+  active_mode_highlight: "#5a9fd4"
+  active_tab_bg: "#555555"
+  active_tab_fg: "white"
+  inactive_tab_fg: "#cccccc"
+  button_active_bg: "#3a4a5a"
+  group_separator: "#555555"
+  grid_selected: "#3a5a7a"
+  grid_deselected: "#404040"
+  group_label_fg: "#999999"
+  entry_bg: "#3c3c3c"
+  entry_fg: "#e0e0e0"
+  entry_disabled_fg: "#888888"
+  entry_insert_bg: "#e0e0e0"
+  canvas_surround: "#1e1e1e"
+chemistry:
+  default_line: "#e0e0e0"
+  default_area: "#2b2b2b"
+paper:
+  fill: "#2b2b2b"
+  outline: "#555555"
+grid:
+  line: "#3a3a3a"
+  dot_fill: "#2a4a3a"
+  dot_outline: "#444444"

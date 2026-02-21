@@ -34,6 +34,7 @@ from xml.sax import saxutils
 
 from bkchem import bkchem_utils
 from bkchem import bkchem_config
+from bkchem import theme_manager
 
 from bkchem.keysym_loader import get_keysyms
 from bkchem.singleton_store import Store
@@ -69,8 +70,8 @@ class editPool( Frame):
 			width=50,
 			state='disabled',
 			font="Helvetica 12",
-			disabledbackground=bkchem_config.background_color,
-			disabledforeground="#555555",
+			disabledbackground=theme_manager.get_color('background'),
+			disabledforeground=theme_manager.get_color('entry_disabled_fg'),
 		)
 		self.editPool.pack( side='left')
 
@@ -122,7 +123,7 @@ class editPool( Frame):
 		for group_idx, group in enumerate(groups):
 			# vertical separator between groups (skip before first)
 			if group_idx > 0:
-				sep = Frame(self._button_frame, width=1, bg='#b0b0b0')
+				sep = Frame(self._button_frame, width=1, bg=theme_manager.get_color('group_separator'))
 				sep.pack(side='left', fill='y', padx=2, pady=1)
 
 			for opt in group['options']:

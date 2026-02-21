@@ -50,16 +50,44 @@ current_BKChem_version = _read_repo_version( "bkchem", "26.02")
 # border width for all components of interface
 border_width = 1
 
+# static fallbacks for early init / batch mode (before theme_manager loads)
 background_color = "#eaeaea"
-
-# toolbar band background (slightly darker than main background)
 toolbar_color = "#e0e0e0"
-
-# separator line color between UI regions
 separator_color = "#c8c8c8"
-
-# hover highlight color for toolbar and submode buttons
 hover_color = "#d8d8d8"
-
-# active mode button fill color (light blue tint)
 active_mode_color = "#cde4f7"
+
+
+#============================================
+def get_background_color() -> str:
+	"""Return the active theme's background color."""
+	from bkchem import theme_manager
+	return theme_manager.get_color('background')
+
+
+#============================================
+def get_toolbar_color() -> str:
+	"""Return the active theme's toolbar color."""
+	from bkchem import theme_manager
+	return theme_manager.get_color('toolbar')
+
+
+#============================================
+def get_separator_color() -> str:
+	"""Return the active theme's separator color."""
+	from bkchem import theme_manager
+	return theme_manager.get_color('separator')
+
+
+#============================================
+def get_hover_color() -> str:
+	"""Return the active theme's hover color."""
+	from bkchem import theme_manager
+	return theme_manager.get_color('hover')
+
+
+#============================================
+def get_active_mode_color() -> str:
+	"""Return the active theme's active mode button color."""
+	from bkchem import theme_manager
+	return theme_manager.get_color('active_mode')

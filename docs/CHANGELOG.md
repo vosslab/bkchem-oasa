@@ -1,6 +1,30 @@
 # Changelog
 
 ## 2026-02-21
+- Add YAML-based light/dark theme system. Each theme is a separate file in
+  [`packages/bkchem-app/bkchem_data/themes/`](packages/bkchem-app/bkchem_data/themes/)
+  (e.g. `light.yaml`, `dark.yaml`) for easy install, removal, and customization.
+  Themes are managed by new module
+  [`packages/bkchem-app/bkchem/theme_manager.py`](packages/bkchem-app/bkchem/theme_manager.py).
+  All GUI chrome colors (toolbar, buttons, tabs, status bar, edit pool, canvas
+  surround) are now theme-driven. Chemistry content with default colors
+  (bonds, atom labels) follows the active theme via `map_chemistry_color()`,
+  while explicitly colored objects stay unchanged. Paper background and hex grid
+  overlay also respect the theme. Theme selector available under Options > Theme;
+  preference persists across restarts. Files changed:
+  [`bkchem_config.py`](packages/bkchem-app/bkchem/bkchem_config.py),
+  [`main.py`](packages/bkchem-app/bkchem/main.py),
+  [`main_modes.py`](packages/bkchem-app/bkchem/main_lib/main_modes.py),
+  [`main_tabs.py`](packages/bkchem-app/bkchem/main_lib/main_tabs.py),
+  [`edit_pool.py`](packages/bkchem-app/bkchem/edit_pool.py),
+  [`options_actions.py`](packages/bkchem-app/bkchem/actions/options_actions.py),
+  [`dialogs.py`](packages/bkchem-app/bkchem/dialogs.py),
+  [`menus.yaml`](packages/bkchem-app/bkchem_data/menus.yaml),
+  [`bond_display.py`](packages/bkchem-app/bkchem/bond_display.py),
+  [`bond_render_ops.py`](packages/bkchem-app/bkchem/bond_render_ops.py),
+  [`special_parents.py`](packages/bkchem-app/bkchem/special_parents.py),
+  [`paper_properties.py`](packages/bkchem-app/bkchem/paper_lib/paper_properties.py),
+  [`grid_overlay.py`](packages/bkchem-app/bkchem/grid_overlay.py).
 - Add mode name and zoom percentage labels to the status bar. The active mode
   name updates on mode switch; zoom percentage updates on zoom changes, mirroring
   the per-tab zoom label. Changes in
