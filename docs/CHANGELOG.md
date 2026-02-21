@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-02-21
+- Add [`docs/GUI_MODULE_USAGE_AUDIT.md`](docs/GUI_MODULE_USAGE_AUDIT.md) with a
+  per-file audit of 47 `packages/bkchem-app/bkchem/*.py` GUI modules, including
+  purpose summaries, importer evidence, and GUI active-use status.
+- Audit result: 46 of 47 listed modules are in active GUI/runtime use; only
+  [`packages/bkchem-app/bkchem/debug.py`](packages/bkchem-app/bkchem/debug.py)
+  appears unused (no imports found in package code or tests).
+
 ## 2026-02-20
 - Replace custom coordinate generation pipeline with RDKit.
   - RDKit is now a required dependency for OASA (added to
