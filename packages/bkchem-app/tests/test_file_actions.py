@@ -24,13 +24,13 @@ EXPECTED_IDS = [
 EXPECTED_LABELS = {
 	'file.new': 'New',
 	'file.save': 'Save',
-	'file.save_as': 'Save As..',
+	'file.save_as': 'Save As...',
 	'file.save_as_template': 'Save As Template',
-	'file.load': 'Load',
-	'file.load_same_tab': 'Load to the same tab',
-	'file.properties': 'File properties',
+	'file.load': 'Open',
+	'file.load_same_tab': 'Open in same tab',
+	'file.properties': 'Document Properties...',
 	'file.close_tab': 'Close tab',
-	'file.exit': 'Exit',
+	'file.exit': 'Quit',
 }
 
 

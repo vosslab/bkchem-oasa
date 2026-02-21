@@ -391,7 +391,7 @@ msgid "Common"
 msgstr "共通"
 
 #: ../../bkchem/dialogs.py:530 ../../bkchem/main.py:198
-msgid "File properties"
+msgid "Document Properties..."
 msgstr "ファイルのプロパティ"
 
 #: ../../bkchem/dialogs.py:545 ../../bkchem/dialogs.py:626
@@ -758,7 +758,7 @@ msgid "Executable files"
 msgstr "実行ファイル"
 
 #: ../../bkchem/interactors.py:159 ../../bkchem/main.py:257
-msgid "Generate InChI"
+msgid "Export InChI"
 msgstr "InChI生成"
 
 #: ../../bkchem/interactors.py:174
@@ -1003,11 +1003,11 @@ msgid "Save the file"
 msgstr "ファイルを保存"
 
 #: ../../bkchem/main.py:187
-msgid "Save As.."
+msgid "Save As..."
 msgstr "名前を付けて保存"
 
 #: ../../bkchem/main.py:187
-msgid "Save the file under different name"
+msgid "Save the file under a different name"
 msgstr "別名でファイルを保存"
 
 #: ../../bkchem/main.py:188
@@ -1020,19 +1020,19 @@ msgid ""
 msgstr ""
 
 #: ../../bkchem/main.py:189 ../../bkchem/main.py:863 ../../bkchem/main.py:1069
-msgid "Load"
+msgid "Open"
 msgstr "開く"
 
 #: ../../bkchem/main.py:189
-msgid "Load (open) a file in a new tab"
+msgid "Open a file in a new tab"
 msgstr "新規タブで開く"
 
 #: ../../bkchem/main.py:190
-msgid "Load to the same tab"
+msgid "Open in same tab"
 msgstr "同じタブで開く"
 
 #: ../../bkchem/main.py:190
-msgid "Load a file replacing the current one"
+msgid "Open a file replacing the current one"
 msgstr ""
 
 #: ../../bkchem/main.py:191 ../../bkchem/main.py:470
@@ -1071,7 +1071,7 @@ msgid "Import a non-native file format"
 msgstr "その他の形式でインポート"
 
 #: ../../bkchem/main.py:198
-msgid "Set the papers size and other properties of the document"
+msgid "Set the paper size and other properties of the document"
 msgstr ""
 
 #: ../../bkchem/main.py:200
@@ -1083,12 +1083,12 @@ msgid "Close the current tab, exit when there is only one tab"
 msgstr "最後のタブを閉じるとき終了"
 
 #: ../../bkchem/main.py:202
-msgid "Exit"
+msgid "Quit"
 msgstr "終了"
 
 #: ../../bkchem/main.py:202
 #, fuzzy
-msgid "Exit BKChem"
+msgid "Quit BKChem"
 msgstr "BKChemを終了"
 
 #: ../../bkchem/main.py:205 ../../bkchem/main.py:206 ../../bkchem/main.py:207
@@ -1143,16 +1143,16 @@ msgid "Paste the content of clipboard to current paper"
 msgstr "現在のタブにクリップボードの内容を貼り付け"
 
 #: ../../bkchem/main.py:213
-msgid "Selected to clipboard as SVG"
+msgid "Copy as SVG"
 msgstr "SVGとしてクリップボードにコピー"
 
 #: ../../bkchem/main.py:213
 msgid ""
-"Create SVG for the selected objects and place it to clipboard in text form"
+"Create SVG for the selected objects and place it to the system clipboard"
 msgstr "選択したオブジェクトのSVGを作成し、クリップボードにテキスト形式に配置"
 
 #: ../../bkchem/main.py:215
-msgid "Select all"
+msgid "Select All"
 msgstr "すべて選択"
 
 #: ../../bkchem/main.py:215
@@ -1315,32 +1315,32 @@ msgid "Compute and display the oxidation number of selected atoms"
 msgstr "選択した原子の酸化数を計算して表示"
 
 #: ../../bkchem/main.py:253
-msgid "Read SMILES"
+msgid "Import SMILES"
 msgstr "SMILES 読み込み"
 
 #: ../../bkchem/main.py:253
-msgid "Read a SMILES string and convert it to structure"
+msgid "Import a SMILES string and convert it to structure"
 msgstr ""
 
 #: ../../bkchem/main.py:254
-msgid "Read InChI"
+msgid "Import InChI"
 msgstr "InCh I読み込み"
 
 #: ../../bkchem/main.py:254
-msgid "Read an InChI string and convert it to structure"
+msgid "Import an InChI string and convert it to structure"
 msgstr ""
 
 #: ../../bkchem/main.py:256
-msgid "Generate SMILES"
+msgid "Export SMILES"
 msgstr "SMILES 生成"
 
 #: ../../bkchem/main.py:256
-msgid "Generate SMILES for the selected structure"
+msgid "Export SMILES for the selected structure"
 msgstr ""
 
 #: ../../bkchem/main.py:257
 msgid ""
-"Generate an InChI for the selected structure by calling the InChI program"
+"Export an InChI for the selected structure by calling the InChI program"
 msgstr ""
 
 #: ../../bkchem/main.py:263
@@ -2844,3 +2844,9 @@ msgstr "SVG (汎用形式)"
 
 #~ msgid "Fragment: %s"
 #~ msgstr "フラグメント: %s"
+
+msgid "Keyboard Shortcuts"
+msgstr ""
+
+msgid "Show keyboard shortcut reference"
+msgstr ""

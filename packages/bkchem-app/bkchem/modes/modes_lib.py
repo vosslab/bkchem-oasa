@@ -25,7 +25,6 @@ from warnings import warn
 
 from bkchem import bkchem_utils
 from bkchem import messages
-from bkchem import interactors
 from bkchem.singleton_store import Store
 from bkchem.modes.config import get_modes_config, _load_submodes_from_yaml
 
@@ -320,45 +319,20 @@ class basic_mode( simple_mode):
 	def __init__( self):
 		simple_mode.__init__( self)
 		# name loaded from YAML via base class (no override needed)
-		# align
-		self.register_key_sequence( 'C-a C-t', lambda : Store.app.paper.align_selected( 't'))
-		self.register_key_sequence( 'C-a C-b', lambda : Store.app.paper.align_selected( 'b'))
-		self.register_key_sequence( 'C-a C-l', lambda : Store.app.paper.align_selected( 'l'))
-		self.register_key_sequence( 'C-a C-r', lambda : Store.app.paper.align_selected( 'r'))
-		self.register_key_sequence( 'C-a C-h', lambda : Store.app.paper.align_selected( 'h'))
-		self.register_key_sequence( 'C-a C-v', lambda : Store.app.paper.align_selected( 'v'))
-		# other
-		self.register_key_sequence( 'C-d C-c', lambda : Store.app.paper.toggle_center_for_selected())
-		self.register_key_sequence( 'C-d C-w', lambda : Store.app.paper.display_weight_of_selected())
-		self.register_key_sequence( 'C-d C-i', lambda : Store.app.paper.display_info_on_selected())
-		# object related key bindings
-		self.register_key_sequence( 'C-o C-i', lambda : Store.app.paper.display_info_on_selected())
-		self.register_key_sequence( 'C-o C-c', lambda : Store.app.paper.check_chemistry_of_selected())
-		self.register_key_sequence( 'C-o C-d', lambda : interactors.ask_display_form_for_selected( Store.app.paper))
-		# emacs like key bindings
-		self.register_key_sequence( 'C-x C-s', Store.app.save_CDML)
-		self.register_key_sequence( 'C-x C-w', Store.app.save_as_CDML)
-		self.register_key_sequence( 'C-x C-f', Store.app.load_CDML)
-		self.register_key_sequence( 'C-x C-c', Store.app._quit)
-		self.register_key_sequence( 'C-x C-t', Store.app.close_current_paper)
-		self.register_key_sequence( 'C-x C-n', Store.app.add_new_paper)
-		self.register_key_sequence( 'C-/', lambda : Store.app.paper.undo())
-		self.register_key_sequence( 'C-S-?', lambda : Store.app.paper.redo()) #note that 'S-/' => 'S-?'  !!!
-		# windows style key bindings
+		# standard cross-platform shortcuts (Ctrl)
 		self.register_key_sequence( 'C-s', Store.app.save_CDML)
+		self.register_key_sequence( 'C-n', Store.app.add_new_paper)
+		self.register_key_sequence( 'C-o', Store.app.load_CDML)
+		self.register_key_sequence( 'C-q', Store.app._quit)
 		self.register_key_sequence( 'C-z', self.undo)
 		self.register_key_sequence( 'C-S-z', self.redo)
-		# 'C-a' from windoze is in use - 'C-S-a' instead
+		# 'C-a' is in use for alignment prefix -- use 'C-S-a' instead
 		self.register_key_sequence( 'C-S-a', lambda : Store.app.paper.select_all())
 		# arrow moving
 		self.register_key_sequence( 'Up', lambda : self._move_selected( 0, -1))
 		self.register_key_sequence( 'Down', lambda : self._move_selected( 0, 1))
 		self.register_key_sequence( 'Left', lambda : self._move_selected( -1, 0))
 		self.register_key_sequence( 'Right', lambda : self._move_selected( 1, 0))
-		# manipulation of the paper.stack
-		self.register_key_sequence( 'C-o C-f', lambda : Store.app.paper.lift_selected_to_top())
-		self.register_key_sequence( 'C-o C-b', lambda : Store.app.paper.lower_selected_to_bottom())
-		self.register_key_sequence( 'C-o C-s', lambda : Store.app.paper.swap_selected_on_stack())
 		# mode switching
 		self.register_key_sequence_ending_with_number_range( 'C-', self.switch_mode, numbers=list(range(1,10)))
 		self.register_key_sequence_ending_with_number_range( 'C-A-', self.switch_mode, numbers=list(range(1,10)), attrs={"add":9})
@@ -370,6 +344,10 @@ class basic_mode( simple_mode):
 			self.register_key_sequence( 'M-S-z', self.redo, use_warning=0)
 			self.register_key_sequence( 'M-s', Store.app.save_CDML, use_warning=0)
 			self.register_key_sequence( 'M-S-a', lambda : Store.app.paper.select_all(), use_warning=0)
+			self.register_key_sequence( 'M-n', Store.app.add_new_paper, use_warning=0)
+			self.register_key_sequence( 'M-o', Store.app.load_CDML, use_warning=0)
+			self.register_key_sequence( 'M-q', Store.app._quit, use_warning=0)
+			self.register_key_sequence( 'M-w', Store.app.close_current_paper, use_warning=0)
 
 		# debug, simo
 		self.register_key_sequence( 'C-p', lambda : Store.app.paper.print_all_coords())

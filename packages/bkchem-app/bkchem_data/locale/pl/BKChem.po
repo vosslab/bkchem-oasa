@@ -402,7 +402,7 @@ msgid "Common"
 msgstr "Podstawowe"
 
 #: ../../bkchem/dialogs.py:530 ../../bkchem/main.py:198
-msgid "File properties"
+msgid "Document Properties..."
 msgstr "Właściwości dokumentu..."
 
 #: ../../bkchem/dialogs.py:545 ../../bkchem/dialogs.py:626
@@ -786,7 +786,7 @@ msgstr "Plik wykonywalny"
 
 #: ../../bkchem/interactors.py:159 ../../bkchem/main.py:257
 #, fuzzy
-msgid "Generate InChI"
+msgid "Export InChI"
 msgstr "Generuj INChI"
 
 #: ../../bkchem/interactors.py:174
@@ -1042,11 +1042,11 @@ msgid "Save the file"
 msgstr "Zapisz plik"
 
 #: ../../bkchem/main.py:187
-msgid "Save As.."
+msgid "Save As..."
 msgstr "Zapisz jako..."
 
 #: ../../bkchem/main.py:187
-msgid "Save the file under different name"
+msgid "Save the file under a different name"
 msgstr "Zapisz plik pod inną nazwą"
 
 #: ../../bkchem/main.py:188
@@ -1059,19 +1059,19 @@ msgid ""
 msgstr "Zapis pliku jako szablon, grafika musi spełniać pewne kryteria"
 
 #: ../../bkchem/main.py:189 ../../bkchem/main.py:863 ../../bkchem/main.py:1069
-msgid "Load"
+msgid "Open"
 msgstr "Otwórz..."
 
 #: ../../bkchem/main.py:189
-msgid "Load (open) a file in a new tab"
+msgid "Open a file in a new tab"
 msgstr "Otwarcie (ładowanie) pliku w nowej karcie"
 
 #: ../../bkchem/main.py:190
-msgid "Load to the same tab"
+msgid "Open in same tab"
 msgstr "Otwórz do tej samej karty..."
 
 #: ../../bkchem/main.py:190
-msgid "Load a file replacing the current one"
+msgid "Open a file replacing the current one"
 msgstr "Otwarcie pliku z zastępieniem aktualnie otwartego"
 
 #: ../../bkchem/main.py:191 ../../bkchem/main.py:470
@@ -1114,7 +1114,7 @@ msgid "Import a non-native file format"
 msgstr "Importuj plik z innego formatu"
 
 #: ../../bkchem/main.py:198
-msgid "Set the papers size and other properties of the document"
+msgid "Set the paper size and other properties of the document"
 msgstr "Ustawianie rozmiaru papieru i innych właściwości dokumentu"
 
 #: ../../bkchem/main.py:200
@@ -1127,12 +1127,12 @@ msgstr ""
 "Zamykanie aktualnej karty i zakończenie programu jeśli to jest jedyna karta"
 
 #: ../../bkchem/main.py:202
-msgid "Exit"
+msgid "Quit"
 msgstr "Zakończ"
 
 #: ../../bkchem/main.py:202
 #, fuzzy
-msgid "Exit BKChem"
+msgid "Quit BKChem"
 msgstr "Zakończenie działania programu"
 
 #: ../../bkchem/main.py:205 ../../bkchem/main.py:206 ../../bkchem/main.py:207
@@ -1189,18 +1189,18 @@ msgid "Paste the content of clipboard to current paper"
 msgstr "Wklejenie zawartości schowka na obszar rysowania"
 
 #: ../../bkchem/main.py:213
-msgid "Selected to clipboard as SVG"
+msgid "Copy as SVG"
 msgstr "Skopiuj zaznaczone jako SVG"
 
 #: ../../bkchem/main.py:213
 msgid ""
-"Create SVG for the selected objects and place it to clipboard in text form"
+"Create SVG for the selected objects and place it to the system clipboard"
 msgstr ""
 "Utworzenie SVG zaznaczonych obiektów i umieszczenie ich w schowku w formie "
 "tekstowej"
 
 #: ../../bkchem/main.py:215
-msgid "Select all"
+msgid "Select All"
 msgstr "Zaznacz wszystko"
 
 #: ../../bkchem/main.py:215
@@ -1371,35 +1371,35 @@ msgid "Compute and display the oxidation number of selected atoms"
 msgstr ""
 
 #: ../../bkchem/main.py:253
-msgid "Read SMILES"
+msgid "Import SMILES"
 msgstr "Wczytaj SMILES"
 
 #: ../../bkchem/main.py:253
-msgid "Read a SMILES string and convert it to structure"
+msgid "Import a SMILES string and convert it to structure"
 msgstr "Wczytanie łańcucha SMILES i wygenerowanie struktury na jego podstawie"
 
 #: ../../bkchem/main.py:254
 #, fuzzy
-msgid "Read InChI"
+msgid "Import InChI"
 msgstr "Wczytaj INChI"
 
 #: ../../bkchem/main.py:254
 #, fuzzy
-msgid "Read an InChI string and convert it to structure"
+msgid "Import an InChI string and convert it to structure"
 msgstr "Wczytanie łańcucha INChI i wygenerowanie struktury na jego podstawie"
 
 #: ../../bkchem/main.py:256
-msgid "Generate SMILES"
+msgid "Export SMILES"
 msgstr "Generuj SMILES"
 
 #: ../../bkchem/main.py:256
-msgid "Generate SMILES for the selected structure"
+msgid "Export SMILES for the selected structure"
 msgstr "Generowanie SMILES dla zaznaczonej cząsteczki"
 
 #: ../../bkchem/main.py:257
 #, fuzzy
 msgid ""
-"Generate an InChI for the selected structure by calling the InChI program"
+"Export an InChI for the selected structure by calling the InChI program"
 msgstr ""
 "Generowanie INChI dla zaznaczonej cząsteczki przez przywołanie programu INChI"
 
@@ -3003,3 +3003,9 @@ msgstr ""
 
 #~ msgid "Nomenclature"
 #~ msgstr "Nomenklatura"
+
+msgid "Keyboard Shortcuts"
+msgstr ""
+
+msgid "Show keyboard shortcut reference"
+msgstr ""

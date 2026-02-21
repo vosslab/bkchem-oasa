@@ -115,7 +115,7 @@ def _build_cdml_string(name, mol, anchor, neighbor, template_atom):
 	author.text = "BKchem"
 	# paper and viewport
 	ElementTree.SubElement(root, "paper", {
-		"crop_svg": "0", "orientation": "portrait", "type": "A4",
+		"crop_svg": "0", "orientation": "landscape", "type": "Letter",
 	})
 	ElementTree.SubElement(root, "viewport", {
 		"viewport": "0.000000 0.000000 640.000000 480.000000",
@@ -125,7 +125,7 @@ def _build_cdml_string(name, mol, anchor, neighbor, template_atom):
 		"area_color": "#ffffff", "font_family": "helvetica",
 		"font_size": "14", "line_color": "#000",
 		"line_width": "2.0px", "paper_crop_svg": "0",
-		"paper_orientation": "portrait", "paper_type": "A4",
+		"paper_orientation": "landscape", "paper_type": "Letter",
 	})
 	ElementTree.SubElement(standard, "bond", {
 		"double-ratio": "0.75", "length": "1.0cm",

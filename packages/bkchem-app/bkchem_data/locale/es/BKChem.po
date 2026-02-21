@@ -397,7 +397,7 @@ msgid "Common"
 msgstr "Común"
 
 #: ../../bkchem/dialogs.py:530 ../../bkchem/main.py:198
-msgid "File properties"
+msgid "Document Properties..."
 msgstr "Propiedades del archivo"
 
 #: ../../bkchem/dialogs.py:545 ../../bkchem/dialogs.py:626
@@ -776,7 +776,7 @@ msgid "Executable files"
 msgstr "Archivos ejecutables"
 
 #: ../../bkchem/interactors.py:159 ../../bkchem/main.py:257
-msgid "Generate InChI"
+msgid "Export InChI"
 msgstr "Generar InChI"
 
 #: ../../bkchem/interactors.py:174
@@ -1035,11 +1035,11 @@ msgid "Save the file"
 msgstr "Guardar el archivo"
 
 #: ../../bkchem/main.py:187
-msgid "Save As.."
+msgid "Save As..."
 msgstr "Guardar como..."
 
 #: ../../bkchem/main.py:187
-msgid "Save the file under different name"
+msgid "Save the file under a different name"
 msgstr "Guardar el archivo con otro nombre"
 
 #: ../../bkchem/main.py:188
@@ -1052,19 +1052,19 @@ msgid ""
 msgstr "Guardar el archivo como plantilla (si cumple ciertos requisitos)"
 
 #: ../../bkchem/main.py:189 ../../bkchem/main.py:863 ../../bkchem/main.py:1069
-msgid "Load"
+msgid "Open"
 msgstr "Abrir"
 
 #: ../../bkchem/main.py:189
-msgid "Load (open) a file in a new tab"
+msgid "Open a file in a new tab"
 msgstr "Abrir un archivo en una pestaña nueva"
 
 #: ../../bkchem/main.py:190
-msgid "Load to the same tab"
+msgid "Open in same tab"
 msgstr "Abrir en la misma pestaña"
 
 #: ../../bkchem/main.py:190
-msgid "Load a file replacing the current one"
+msgid "Open a file replacing the current one"
 msgstr "Abrir un archivo reemplazando al actual"
 
 #: ../../bkchem/main.py:191 ../../bkchem/main.py:470
@@ -1104,7 +1104,7 @@ msgid "Import a non-native file format"
 msgstr "Importar un formato no nativo"
 
 #: ../../bkchem/main.py:198
-msgid "Set the papers size and other properties of the document"
+msgid "Set the paper size and other properties of the document"
 msgstr "Definir el tamaño del papel y otras propiedades del documento"
 
 #: ../../bkchem/main.py:200
@@ -1116,11 +1116,11 @@ msgid "Close the current tab, exit when there is only one tab"
 msgstr "Cerrar la pestaña actual o, si sólo hay una, salir del programa."
 
 #: ../../bkchem/main.py:202
-msgid "Exit"
+msgid "Quit"
 msgstr "Salir"
 
 #: ../../bkchem/main.py:202
-msgid "Exit BKChem"
+msgid "Quit BKChem"
 msgstr "Salir de BKChem"
 
 #: ../../bkchem/main.py:205 ../../bkchem/main.py:206 ../../bkchem/main.py:207
@@ -1177,18 +1177,18 @@ msgid "Paste the content of clipboard to current paper"
 msgstr "Pegar en el documento los objetos existentes en el portapapapeles"
 
 #: ../../bkchem/main.py:213
-msgid "Selected to clipboard as SVG"
+msgid "Copy as SVG"
 msgstr "Copiar selección como SVG"
 
 #: ../../bkchem/main.py:213
 msgid ""
-"Create SVG for the selected objects and place it to clipboard in text form"
+"Create SVG for the selected objects and place it to the system clipboard"
 msgstr ""
 "Generar SVG para los objetos seleccionados y ponerlos en el portapapeles en "
 "formato de texto"
 
 #: ../../bkchem/main.py:215
-msgid "Select all"
+msgid "Select All"
 msgstr "Seleccionar todo"
 
 #: ../../bkchem/main.py:215
@@ -1358,32 +1358,32 @@ msgid "Compute and display the oxidation number of selected atoms"
 msgstr "Calcula y muestra el número de oxidación de los átomos seleccionados"
 
 #: ../../bkchem/main.py:253
-msgid "Read SMILES"
+msgid "Import SMILES"
 msgstr "Leer SMILES"
 
 #: ../../bkchem/main.py:253
-msgid "Read a SMILES string and convert it to structure"
+msgid "Import a SMILES string and convert it to structure"
 msgstr "Leer un texto SMILES y convertirlo en una estructura"
 
 #: ../../bkchem/main.py:254
-msgid "Read InChI"
+msgid "Import InChI"
 msgstr "Leer InChI"
 
 #: ../../bkchem/main.py:254
-msgid "Read an InChI string and convert it to structure"
+msgid "Import an InChI string and convert it to structure"
 msgstr "Leer un cóodigo InChI y convertirlo en una estructura"
 
 #: ../../bkchem/main.py:256
-msgid "Generate SMILES"
+msgid "Export SMILES"
 msgstr "Generar SMILES"
 
 #: ../../bkchem/main.py:256
-msgid "Generate SMILES for the selected structure"
+msgid "Export SMILES for the selected structure"
 msgstr "Generar SMILES para la estructura seleccionada"
 
 #: ../../bkchem/main.py:257
 msgid ""
-"Generate an InChI for the selected structure by calling the InChI program"
+"Export an InChI for the selected structure by calling the InChI program"
 msgstr ""
 "Generar un código InChI para la estructura seleccionada llamando al programa "
 "InChI"
@@ -3098,3 +3098,9 @@ msgstr "SVG (Cairo)"
 
 #~ msgid "%d textatoms were converted to groups"
 #~ msgstr "%d átomos-texto se han convertido en grupos"
+
+msgid "Keyboard Shortcuts"
+msgstr ""
+
+msgid "Show keyboard shortcut reference"
+msgstr ""

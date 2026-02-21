@@ -148,6 +148,8 @@ menus:
     help_key: "Help and information about the program"
     side: "right"
     items:
+      - action: help.keyboard_shortcuts
+      - separator: true
       - action: help.about
 
 cascades:

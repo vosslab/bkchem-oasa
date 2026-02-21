@@ -1,6 +1,57 @@
 # Changelog
 
 ## 2026-02-21
+- Replace Emacs-style multi-key sequences with standard single-modifier
+  keyboard shortcuts. File operations (New, Open, Save, Quit) now use Ctrl+N,
+  Ctrl+O, Ctrl+S, Ctrl+Q cross-platform. macOS adds Cmd equivalents (Cmd+N,
+  Cmd+O, Cmd+S, Cmd+Q, Cmd+W for close tab). Clipboard operations use standard
+  Ctrl+C/V (macOS Cmd+C/V/X). Removed all `C-x C-*`, `C-a C-*`, `C-d C-*`,
+  `C-o C-*` Emacs chord sequences and legacy `A-w`, `M-w`, `C-w`, `C-y`
+  clipboard bindings. Files changed:
+  [`modes_lib.py`](packages/bkchem-app/bkchem/modes/modes_lib.py),
+  [`edit_mode.py`](packages/bkchem-app/bkchem/modes/edit_mode.py).
+- Add platform-aware accelerator display in menus. New `format_accelerator()`
+  function in
+  [`platform_menu.py`](packages/bkchem-app/bkchem/platform_menu.py)
+  converts internal key notation to Unicode modifier symbols on macOS and
+  `Ctrl+Key` text on Linux/Windows. Menu accelerator columns now show
+  platform-native notation instead of Emacs-style strings.
+- Standardize menu label names to common desktop conventions: Load -> Open,
+  Exit -> Quit, Save As.. -> Save As..., File properties -> Document
+  Properties..., Select all -> Select All, Selected to clipboard as SVG ->
+  Copy as SVG. Chemistry menu: Read -> Import, Generate -> Export for SMILES
+  and InChI operations. Updated accelerator strings to match new single-key
+  shortcuts in both the legacy menu template in
+  [`main.py`](packages/bkchem-app/bkchem/main.py) and the action registry
+  files:
+  [`file_actions.py`](packages/bkchem-app/bkchem/actions/file_actions.py),
+  [`edit_actions.py`](packages/bkchem-app/bkchem/actions/edit_actions.py),
+  [`chemistry_actions.py`](packages/bkchem-app/bkchem/actions/chemistry_actions.py).
+  Also updated
+  [`test_file_actions.py`](packages/bkchem-app/tests/test_file_actions.py)
+  to match new label_key values.
+- Add Help > Keyboard Shortcuts dialog showing all shortcuts with
+  platform-native modifier notation. Files changed:
+  [`dialogs.py`](packages/bkchem-app/bkchem/dialogs.py),
+  [`help_actions.py`](packages/bkchem-app/bkchem/actions/help_actions.py),
+  [`menus.yaml`](packages/bkchem-app/bkchem_data/menus.yaml).
+- Update i18n translation files (`.pot` template and all 11 `.po` locale files)
+  with new msgid values matching the updated label and help text strings.
+- Update About dialog with current maintainer info (Neil R. Voss) and social
+  links, replacing the previous fork maintainer credit. File changed:
+  [`messages.py`](packages/bkchem-app/bkchem/messages.py).
+- Reduce paper sizes from 33 entries to 11 common sizes: A-series (A0-A5) for
+  international users, plus US sizes (Letter, Legal, ANSI B, ANSI C, ANSI D).
+  Default paper size changed from A4 to Letter, default orientation changed
+  from portrait to landscape. Fix landscape/portrait orientation swap bug
+  caused by inconsistent dimension ordering in paper_types dict -- all entries
+  now use `[longer_side, shorter_side]` format. Fix hex grid overlay not
+  redrawing when paper size or orientation changes via Document Properties
+  dialog. Files changed:
+  [`data.py`](packages/bkchem-app/bkchem/data.py),
+  [`classes.py`](packages/bkchem-app/bkchem/classes.py),
+  [`temp_manager.py`](packages/bkchem-app/bkchem/temp_manager.py),
+  [`paper_properties.py`](packages/bkchem-app/bkchem/paper_lib/paper_properties.py).
 - Add YAML-based light/dark theme system. Each theme is a separate file in
   [`packages/bkchem-app/bkchem_data/themes/`](packages/bkchem-app/bkchem_data/themes/)
   (e.g. `light.yaml`, `dark.yaml`) for easy install, removal, and customization.

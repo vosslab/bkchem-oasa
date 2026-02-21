@@ -26,7 +26,7 @@ def register_chemistry_actions(registry, app) -> None:
 		id='chemistry.info',
 		label_key='Info',
 		help_key='Display summary formula and other info on all selected molecules',
-		accelerator='(C-o C-i)',
+		accelerator=None,
 		handler=lambda: app.paper.display_info_on_selected(),
 		enabled_when='selected_mols',
 	))
@@ -35,7 +35,7 @@ def register_chemistry_actions(registry, app) -> None:
 		id='chemistry.check',
 		label_key='Check chemistry',
 		help_key='Check if the selected objects have chemical meaning',
-		accelerator='(C-o C-c)',
+		accelerator=None,
 		handler=lambda: app.paper.check_chemistry_of_selected(),
 		enabled_when='selected_mols',
 	))
@@ -44,7 +44,7 @@ def register_chemistry_actions(registry, app) -> None:
 		id='chemistry.expand_groups',
 		label_key='Expand groups',
 		help_key='Expand all selected groups to their structures',
-		accelerator='(C-o C-e)',
+		accelerator=None,
 		handler=lambda: app.paper.expand_groups(),
 		enabled_when='groups_selected',
 	))
@@ -57,48 +57,48 @@ def register_chemistry_actions(registry, app) -> None:
 		handler=lambda: interactors.compute_oxidation_number(app.paper),
 		enabled_when='selected_atoms',
 	))
-	# read a SMILES string and convert to structure
+	# import a SMILES string and convert to structure
 	registry.register(MenuAction(
 		id='chemistry.read_smiles',
-		label_key='Read SMILES',
-		help_key='Read a SMILES string and convert it to structure',
+		label_key='Import SMILES',
+		help_key='Import a SMILES string and convert it to structure',
 		accelerator=None,
 		handler=app.read_smiles,
 		enabled_when=None,
 	))
-	# read an InChI string and convert to structure
+	# import an InChI string and convert to structure
 	registry.register(MenuAction(
 		id='chemistry.read_inchi',
-		label_key='Read InChI',
-		help_key='Read an InChI string and convert it to structure',
+		label_key='Import InChI',
+		help_key='Import an InChI string and convert it to structure',
 		accelerator=None,
 		handler=app.read_inchi,
 		enabled_when=None,
 	))
-	# read a peptide amino acid sequence and convert to structure
+	# import a peptide amino acid sequence and convert to structure
 	registry.register(MenuAction(
 		id='chemistry.read_peptide',
-		label_key='Read Peptide Sequence',
-		help_key='Read a peptide amino acid sequence and convert it to structure',
+		label_key='Import Peptide Sequence',
+		help_key='Import a peptide amino acid sequence and convert it to structure',
 		accelerator=None,
 		handler=app.read_peptide_sequence,
 		enabled_when=None,
 	))
-	# generate SMILES for selected structure
+	# export SMILES for selected structure
 	registry.register(MenuAction(
 		id='chemistry.gen_smiles',
-		label_key='Generate SMILES',
-		help_key='Generate SMILES for the selected structure',
+		label_key='Export SMILES',
+		help_key='Export SMILES for the selected structure',
 		accelerator=None,
 		handler=app.gen_smiles,
 		enabled_when='selected_mols',
 	))
-	# generate InChI for selected structure using external program
+	# export InChI for selected structure using external program
 	registry.register(MenuAction(
 		id='chemistry.gen_inchi',
-		label_key='Generate InChI',
+		label_key='Export InChI',
 		help_key=(
-			'Generate an InChI for the selected structure by calling '
+			'Export an InChI for the selected structure by calling '
 			'the InChI program'
 		),
 		accelerator=None,

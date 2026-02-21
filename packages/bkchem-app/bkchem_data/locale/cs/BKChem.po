@@ -400,7 +400,7 @@ msgid "Common"
 msgstr "Obecné"
 
 #: ../../bkchem/dialogs.py:530 ../../bkchem/main.py:198
-msgid "File properties"
+msgid "Document Properties..."
 msgstr "Vlastnosti"
 
 #: ../../bkchem/dialogs.py:545 ../../bkchem/dialogs.py:626
@@ -779,7 +779,7 @@ msgid "Executable files"
 msgstr "Spustitelné soubory"
 
 #: ../../bkchem/interactors.py:159 ../../bkchem/main.py:257
-msgid "Generate InChI"
+msgid "Export InChI"
 msgstr "Generuj InChI"
 
 #: ../../bkchem/interactors.py:174
@@ -1029,11 +1029,11 @@ msgid "Save the file"
 msgstr "Uložit soubor"
 
 #: ../../bkchem/main.py:187
-msgid "Save As.."
+msgid "Save As..."
 msgstr "Uložit jako..."
 
 #: ../../bkchem/main.py:187
-msgid "Save the file under different name"
+msgid "Save the file under a different name"
 msgstr "Uloží soubor pod jiným názvem"
 
 #: ../../bkchem/main.py:188
@@ -1048,19 +1048,19 @@ msgstr ""
 "kriteria"
 
 #: ../../bkchem/main.py:189 ../../bkchem/main.py:863 ../../bkchem/main.py:1069
-msgid "Load"
+msgid "Open"
 msgstr "Otevřít"
 
 #: ../../bkchem/main.py:189
-msgid "Load (open) a file in a new tab"
+msgid "Open a file in a new tab"
 msgstr "Načte (otevře) soubor do nového tabu"
 
 #: ../../bkchem/main.py:190
-msgid "Load to the same tab"
+msgid "Open in same tab"
 msgstr "Načíst soubor do aktivního tabu"
 
 #: ../../bkchem/main.py:190
-msgid "Load a file replacing the current one"
+msgid "Open a file replacing the current one"
 msgstr "Nahrát soubor a nahradit jím právě otevřený"
 
 #: ../../bkchem/main.py:191 ../../bkchem/main.py:470
@@ -1101,7 +1101,7 @@ msgid "Import a non-native file format"
 msgstr "Importovat nenativní formát souboru"
 
 #: ../../bkchem/main.py:198
-msgid "Set the papers size and other properties of the document"
+msgid "Set the paper size and other properties of the document"
 msgstr "Nastaví velikost papíru a další vlastnosti dokumentu"
 
 #: ../../bkchem/main.py:200
@@ -1114,11 +1114,11 @@ msgstr ""
 "Zavře právě otevřený tab, ukončí program pokud byl zavřený tab poslední"
 
 #: ../../bkchem/main.py:202
-msgid "Exit"
+msgid "Quit"
 msgstr "Konec"
 
 #: ../../bkchem/main.py:202
-msgid "Exit BKChem"
+msgid "Quit BKChem"
 msgstr "Ukončit BKChem"
 
 #: ../../bkchem/main.py:205 ../../bkchem/main.py:206 ../../bkchem/main.py:207
@@ -1173,16 +1173,16 @@ msgid "Paste the content of clipboard to current paper"
 msgstr "Vložit obsah schránky do aktuálního dokumentu"
 
 #: ../../bkchem/main.py:213
-msgid "Selected to clipboard as SVG"
+msgid "Copy as SVG"
 msgstr "Vybrané do schránky jako SVG"
 
 #: ../../bkchem/main.py:213
 msgid ""
-"Create SVG for the selected objects and place it to clipboard in text form"
+"Create SVG for the selected objects and place it to the system clipboard"
 msgstr "Vytvoří SVG pro vybrané objekty a vložit ho do schránky jako text"
 
 #: ../../bkchem/main.py:215
-msgid "Select all"
+msgid "Select All"
 msgstr "Vybrat vše"
 
 #: ../../bkchem/main.py:215
@@ -1347,32 +1347,32 @@ msgid "Compute and display the oxidation number of selected atoms"
 msgstr "Spočítá a zobrazí oxidační čísla vybraných atomů"
 
 #: ../../bkchem/main.py:253
-msgid "Read SMILES"
+msgid "Import SMILES"
 msgstr "Čti SMILES"
 
 #: ../../bkchem/main.py:253
-msgid "Read a SMILES string and convert it to structure"
+msgid "Import a SMILES string and convert it to structure"
 msgstr "Načte SMILES řetězec a převede jej na strukturu"
 
 #: ../../bkchem/main.py:254
-msgid "Read InChI"
+msgid "Import InChI"
 msgstr "Načíst InChI"
 
 #: ../../bkchem/main.py:254
-msgid "Read an InChI string and convert it to structure"
+msgid "Import an InChI string and convert it to structure"
 msgstr "Načte InChI řetězec a převede jej na strukturu"
 
 #: ../../bkchem/main.py:256
-msgid "Generate SMILES"
+msgid "Export SMILES"
 msgstr "Generuj SMILES"
 
 #: ../../bkchem/main.py:256
-msgid "Generate SMILES for the selected structure"
+msgid "Export SMILES for the selected structure"
 msgstr "Vygeneruje SMILES pro vybranou strukturu"
 
 #: ../../bkchem/main.py:257
 msgid ""
-"Generate an InChI for the selected structure by calling the InChI program"
+"Export an InChI for the selected structure by calling the InChI program"
 msgstr "Vygeneruje InChI pro zvolenou strukturu pomocí programu InChI"
 
 #: ../../bkchem/main.py:263
@@ -3131,3 +3131,9 @@ msgstr "SVG (Cairo)"
 
 #~ msgid "Preserve centers of containeers?"
 #~ msgstr "Zachovat střed objektů?"
+
+msgid "Keyboard Shortcuts"
+msgstr ""
+
+msgid "Show keyboard shortcut reference"
+msgstr ""

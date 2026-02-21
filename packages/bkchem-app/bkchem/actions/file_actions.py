@@ -17,7 +17,7 @@ def register_file_actions(registry, app) -> None:
 		id='file.new',
 		label_key='New',
 		help_key='Create a new file in a new tab',
-		accelerator='(C-x C-n)',
+		accelerator='(C-n)',
 		handler=app.add_new_paper,
 		enabled_when=None,
 	))
@@ -26,16 +26,16 @@ def register_file_actions(registry, app) -> None:
 		id='file.save',
 		label_key='Save',
 		help_key='Save the file',
-		accelerator='(C-x C-s)',
+		accelerator='(C-s)',
 		handler=app.save_CDML,
 		enabled_when=None,
 	))
 	# save under a different name
 	registry.register(MenuAction(
 		id='file.save_as',
-		label_key='Save As..',
-		help_key='Save the file under different name',
-		accelerator='(C-x C-w)',
+		label_key='Save As...',
+		help_key='Save the file under a different name',
+		accelerator=None,
 		handler=app.save_as_CDML,
 		enabled_when=None,
 	))
@@ -51,17 +51,17 @@ def register_file_actions(registry, app) -> None:
 	# open a file in a new tab
 	registry.register(MenuAction(
 		id='file.load',
-		label_key='Load',
-		help_key='Load (open) a file in a new tab',
-		accelerator='(C-x C-f)',
+		label_key='Open',
+		help_key='Open a file in a new tab',
+		accelerator='(C-o)',
 		handler=app.load_CDML,
 		enabled_when=None,
 	))
 	# open a file replacing the current tab
 	registry.register(MenuAction(
 		id='file.load_same_tab',
-		label_key='Load to the same tab',
-		help_key='Load a file replacing the current one',
+		label_key='Open in same tab',
+		help_key='Open a file replacing the current one',
 		accelerator=None,
 		handler=lambda: app.load_CDML(replace=1),
 		enabled_when=None,
@@ -69,8 +69,8 @@ def register_file_actions(registry, app) -> None:
 	# document properties dialog
 	registry.register(MenuAction(
 		id='file.properties',
-		label_key='File properties',
-		help_key='Set the papers size and other properties of the document',
+		label_key='Document Properties...',
+		help_key='Set the paper size and other properties of the document',
 		accelerator=None,
 		handler=app.change_properties,
 		enabled_when=None,
@@ -80,16 +80,16 @@ def register_file_actions(registry, app) -> None:
 		id='file.close_tab',
 		label_key='Close tab',
 		help_key='Close the current tab, exit when there is only one tab',
-		accelerator='(C-x C-t)',
+		accelerator=None,
 		handler=app.close_current_paper,
 		enabled_when=None,
 	))
 	# exit the application
 	registry.register(MenuAction(
 		id='file.exit',
-		label_key='Exit',
-		help_key='Exit BKChem',
-		accelerator='(C-x C-c)',
+		label_key='Quit',
+		help_key='Quit BKChem',
+		accelerator='(C-q)',
 		handler=app._quit,
 		enabled_when=None,
 	))

@@ -65,21 +65,17 @@ class edit_mode(basic_mode):
 		self.register_key_sequence( 'Return', self._set_old_name_to_selected)
 		self.register_key_sequence( 'Delete', self._delete_selected, use_warning=0)
 		self.register_key_sequence( 'BackSpace', self._delete_selected, use_warning=0)
-		# object related key bindings
-		self.register_key_sequence( 'C-o C-e', self._expand_groups)
-		# emacs like key bindings
-		self.register_key_sequence( 'A-w', lambda : Store.app.paper.selected_to_clipboard())
-		self.register_key_sequence( 'M-w', lambda : Store.app.paper.selected_to_clipboard())
-		self.register_key_sequence( 'C-w', lambda : Store.app.paper.selected_to_clipboard( delete_afterwards=1))
-		self.register_key_sequence( 'C-y', self._paste_clipboard)
-		# windows style key bindings
+		# standard clipboard shortcuts (Ctrl)
 		self.register_key_sequence( 'C-c', lambda : Store.app.paper.selected_to_clipboard())
 		self.register_key_sequence( 'C-v', self._paste_clipboard)
-		# 'C-x' from windoze is in use - 'C-k' instead
 		self.register_key_sequence( 'C-k', lambda : Store.app.paper.selected_to_clipboard( delete_afterwards=1))
-		# 'C-a' from windoze is in use - 'C-S-a' instead
-		# chains (C-d as draw)
-		self.register_key_sequence_ending_with_number_range( 'C-d', self.add_chain, numbers=list(range(2,10)))
+
+		# macOS Command key clipboard (Command maps to Meta = 'M')
+		import sys
+		if sys.platform == 'darwin':
+			self.register_key_sequence( 'M-c', lambda : Store.app.paper.selected_to_clipboard(), use_warning=0)
+			self.register_key_sequence( 'M-v', self._paste_clipboard, use_warning=0)
+			self.register_key_sequence( 'M-x', lambda : Store.app.paper.selected_to_clipboard( delete_afterwards=1), use_warning=0)
 		# config
 		self.rectangle_selection = True  # this can be overriden by children
 

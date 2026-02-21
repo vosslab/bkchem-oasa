@@ -205,36 +205,36 @@ class BKChem(
 			# file menu
 			( _('File'),  'menu',     _('Open, save, export, and import files'),   'left'),
 			#  menu         type        name            accelerator  status help                          command             state variable
-			( _('File'),  'command',  _('New'),       '(C-x C-n)', _("Create a new file in a new tab"), self.add_new_paper, None),
-			( _('File'),  'command',  _('Save'),      '(C-x C-s)', _("Save the file"),                  self.save_CDML,     None),
-			( _("File"),  'command',  _('Save As..'), '(C-x C-w)', _("Save the file under different name"), self.save_as_CDML, None),
+			( _('File'),  'command',  _('New'),       '(C-n)', _("Create a new file in a new tab"), self.add_new_paper, None),
+			( _('File'),  'command',  _('Save'),      '(C-s)', _("Save the file"),                  self.save_CDML,     None),
+			( _("File"),  'command',  _('Save As...'), None, _("Save the file under a different name"), self.save_as_CDML, None),
 			( _("File"),  'command',  _('Save As Template'), None, _("Save the file as template, certain criteria must be met for this to work"), self.save_as_template, None),
-			( _("File"),  'command',  _('Load'),      '(C-x C-f)', _("Load (open) a file in a new tab"), self.load_CDML,    None),
-			( _("File"),  'command',  _('Load to the same tab'), None, _("Load a file replacing the current one"), lambda : self.load_CDML( replace=1), None),
+			( _("File"),  'command',  _('Open'),      '(C-o)', _("Open a file in a new tab"), self.load_CDML,    None),
+			( _("File"),  'command',  _('Open in same tab'), None, _("Open a file replacing the current one"), lambda : self.load_CDML( replace=1), None),
 			( _("File"),  'cascade',  _("Recent files"), _("The most recently used files")),
 			( _("File"),  'separator'),
 			# export cascade
 			( _("File"),  'cascade',  _('Export'),     _("Export the current file")),
 			( _("File"),  'cascade',  _('Import'),     _("Import a non-native file format")),
 			( _("File"),  'separator'),
-			( _("File"),  'command',  _('File properties'), None, _("Set the papers size and other properties of the document"), self.change_properties, None),
+			( _("File"),  'command',  _('Document Properties...'), None, _("Set the paper size and other properties of the document"), self.change_properties, None),
 			( _("File"),  'separator'),
-			( _("File"),  'command',  _('Close tab'), '(C-x C-t)', _("Close the current tab, exit when there is only one tab"), self.close_current_paper, None),
+			( _("File"),  'command',  _('Close tab'), None, _("Close the current tab, exit when there is only one tab"), self.close_current_paper, None),
 			( _("File"),  'separator'),
-			( _("File"),  'command',  _('Exit'),      '(C-x C-c)', _("Exit BKChem"), self._quit, None),
+			( _("File"),  'command',  _('Quit'),      '(C-q)', _("Quit BKChem"), self._quit, None),
 
 			# edit menu
 			( _('Edit'),  'menu',     _("Undo, Copy, Paste etc."),   'left'),
 			( _("Edit"),  'command',  _('Undo'),      '(C-z)',     _("Revert the last change made"), lambda : self.paper.undo(), lambda : self.paper.um.can_undo()),
 			( _("Edit"),  'command',  _('Redo'),      '(C-S-z)',   _("Revert the last undo action"), lambda : self.paper.redo(), lambda : self.paper.um.can_redo()),
 			( _("Edit"),  'separator'),
-			( _("Edit"),  'command',  _('Cut'), '(C-w)', _("Copy the selected objects to clipboard and delete them"), lambda : self.paper.selected_to_clipboard( delete_afterwards=1),  'selected'),
-			( _("Edit"),  'command', _('Copy'), '(A-w)', _("Copy the selected objects to clipboard"), lambda : self.paper.selected_to_clipboard(),  'selected'),
-			( _("Edit"),  'command', _('Paste'), '(C-y)', _("Paste the content of clipboard to current paper"), lambda : self.paper.paste_clipboard( None), lambda : self._clipboard),
+			( _("Edit"),  'command',  _('Cut'), '(C-k)', _("Copy the selected objects to clipboard and delete them"), lambda : self.paper.selected_to_clipboard( delete_afterwards=1),  'selected'),
+			( _("Edit"),  'command', _('Copy'), '(C-c)', _("Copy the selected objects to clipboard"), lambda : self.paper.selected_to_clipboard(),  'selected'),
+			( _("Edit"),  'command', _('Paste'), '(C-v)', _("Paste the content of clipboard to current paper"), lambda : self.paper.paste_clipboard( None), lambda : self._clipboard),
 			( _("Edit"),  'separator'),
-			( _("Edit"),  'command', _('Selected to clipboard as SVG'), None, _("Create SVG for the selected objects and place it to clipboard in text form"), lambda : self.paper.selected_to_real_clipboard_as_SVG(),  'selected'),
+			( _("Edit"),  'command', _('Copy as SVG'), None, _("Create SVG for the selected objects and place it to the system clipboard"), lambda : self.paper.selected_to_real_clipboard_as_SVG(),  'selected'),
 			( _("Edit"),  'separator'),
-			( _("Edit"),  'command', _('Select all'), '(C-S-a)', _("Select everything on the paper"), lambda : self.paper.select_all(),  None),
+			( _("Edit"),  'command', _('Select All'), '(C-S-a)', _("Select everything on the paper"), lambda : self.paper.select_all(),  None),
 
 			# insert menu
 			( _('Insert'), 'menu', _("Insert templates and reusable structures"), 'left'),
@@ -242,21 +242,21 @@ class BKChem(
 
 			# align menu
 			( _('Align'), 'menu',    _("Aligning of selected objects"), 'left'),
-			( _("Align"), 'command', _('Top'), '(C-a C-t)', _("Align the tops of selected objects"), lambda : self.paper.align_selected( 't'), 'two_or_more_selected'),
-			( _("Align"), 'command', _('Bottom'), '(C-a C-b)', _("Align the bottoms of selected objects"), lambda : self.paper.align_selected( 'b'), 'two_or_more_selected'),
-			( _("Align"), 'command', _('Left'), '(C-a C-l)', _("Align the left sides of selected objects"), lambda : self.paper.align_selected( 'l'), 'two_or_more_selected'),
-			( _("Align"), 'command', _('Right'), '(C-a C-r)', _("Align the rights sides of selected objects"), lambda : self.paper.align_selected( 'r'), 'two_or_more_selected'),
+			( _("Align"), 'command', _('Top'), None, _("Align the tops of selected objects"), lambda : self.paper.align_selected( 't'), 'two_or_more_selected'),
+			( _("Align"), 'command', _('Bottom'), None, _("Align the bottoms of selected objects"), lambda : self.paper.align_selected( 'b'), 'two_or_more_selected'),
+			( _("Align"), 'command', _('Left'), None, _("Align the left sides of selected objects"), lambda : self.paper.align_selected( 'l'), 'two_or_more_selected'),
+			( _("Align"), 'command', _('Right'), None, _("Align the rights sides of selected objects"), lambda : self.paper.align_selected( 'r'), 'two_or_more_selected'),
 			( _("Align"), 'separator'),
-			( _("Align"), 'command', _('Center horizontally'), '(C-a C-h)', _("Align the horizontal centers of selected objects"), lambda : self.paper.align_selected( 'h'), 'two_or_more_selected'),
-			( _("Align"), 'command', _('Center vertically'), '(C-a C-v)', _("Align the vertical centers of selected objects"), lambda : self.paper.align_selected( 'v'), 'two_or_more_selected'),
+			( _("Align"), 'command', _('Center horizontally'), None, _("Align the horizontal centers of selected objects"), lambda : self.paper.align_selected( 'h'), 'two_or_more_selected'),
+			( _("Align"), 'command', _('Center vertically'), None, _("Align the vertical centers of selected objects"), lambda : self.paper.align_selected( 'v'), 'two_or_more_selected'),
 
 			# object menu
 			( _("Object"), 'menu',    _("Set properties of selected objects"), 'left'),
 			( _("Object"), 'command', _('Scale'), None, _("Scale selected objects"), self.scale, 'selected'),
 			( _("Object"), 'separator'),
-			( _("Object"), 'command', _('Bring to front'), '(C-o C-f)', _("Lift selected objects to the top of the stack"), lambda : self.paper.lift_selected_to_top(), 'selected'),
-			( _("Object"), 'command', _('Send back'), '(C-o C-b)', _("Lower the selected objects to the bottom of the stack"), lambda : self.paper.lower_selected_to_bottom(), 'selected'),
-			( _("Object"), 'command', _('Swap on stack'), '(C-o C-s)', _("Reverse the ordering of the selected objects on the stack"), lambda : self.paper.swap_selected_on_stack(), 'two_or_more_selected'),
+			( _("Object"), 'command', _('Bring to front'), None, _("Lift selected objects to the top of the stack"), lambda : self.paper.lift_selected_to_top(), 'selected'),
+			( _("Object"), 'command', _('Send back'), None, _("Lower the selected objects to the bottom of the stack"), lambda : self.paper.lower_selected_to_bottom(), 'selected'),
+			( _("Object"), 'command', _('Swap on stack'), None, _("Reverse the ordering of the selected objects on the stack"), lambda : self.paper.swap_selected_on_stack(), 'two_or_more_selected'),
 			( _("Object"), 'separator'),
 			( _("Object"), 'command', _('Vertical mirror'), None,
 				_("Creates a reflection of the selected objects, the reflection axis is the common vertical axis of all the selected objects"),
@@ -282,18 +282,18 @@ class BKChem(
 
 			# chemistry menu
 			( _('Chemistry'), 'menu', _("Information about molecules, group expansion and other chemistry related stuff"), 'left'),
-			( _("Chemistry"), 'command', _('Info'), '(C-o C-i)', _("Display summary formula and other info on all selected molecules"), lambda : self.paper.display_info_on_selected(), 'selected_mols'),
-			( _("Chemistry"), 'command', _('Check chemistry'), '(C-o C-c)', _("Check if the selected objects have chemical meaning"), lambda : self.paper.check_chemistry_of_selected(), 'selected_mols'),
-			( _("Chemistry"), 'command', _('Expand groups'), '(C-o C-e)', _("Expand all selected groups to their structures"), lambda : self.paper.expand_groups(), 'groups_selected'),
+			( _("Chemistry"), 'command', _('Info'), None, _("Display summary formula and other info on all selected molecules"), lambda : self.paper.display_info_on_selected(), 'selected_mols'),
+			( _("Chemistry"), 'command', _('Check chemistry'), None, _("Check if the selected objects have chemical meaning"), lambda : self.paper.check_chemistry_of_selected(), 'selected_mols'),
+			( _("Chemistry"), 'command', _('Expand groups'), None, _("Expand all selected groups to their structures"), lambda : self.paper.expand_groups(), 'groups_selected'),
 			( _("Chemistry"), 'separator'),
 			( _("Chemistry"), 'command', _('Compute oxidation number'), None, _("Compute and display the oxidation number of selected atoms"), lambda : interactors.compute_oxidation_number( self.paper), 'selected_atoms'),
 			( _("Chemistry"), 'separator'),
-			( _("Chemistry"), 'command', _('Read SMILES'), None, _("Read a SMILES string and convert it to structure"), self.read_smiles, None),
-			( _("Chemistry"), 'command', _('Read InChI'), None, _("Read an InChI string and convert it to structure"), self.read_inchi, None),
-			( _("Chemistry"), 'command', _('Read Peptide Sequence'), None, _("Read a peptide amino acid sequence and convert it to structure"), self.read_peptide_sequence, None),
+			( _("Chemistry"), 'command', _('Import SMILES'), None, _("Import a SMILES string and convert it to structure"), self.read_smiles, None),
+			( _("Chemistry"), 'command', _('Import InChI'), None, _("Import an InChI string and convert it to structure"), self.read_inchi, None),
+			( _("Chemistry"), 'command', _('Import Peptide Sequence'), None, _("Import a peptide amino acid sequence and convert it to structure"), self.read_peptide_sequence, None),
 			( _("Chemistry"), 'separator'),
-			( _("Chemistry"), 'command', _('Generate SMILES'), None, _("Generate SMILES for the selected structure"), self.gen_smiles, 'selected_mols'),
-			( _("Chemistry"), 'command', _('Generate InChI'), None, _("Generate an InChI for the selected structure by calling the InChI program"), self.gen_inchi,
+			( _("Chemistry"), 'command', _('Export SMILES'), None, _("Export SMILES for the selected structure"), self.gen_smiles, 'selected_mols'),
+			( _("Chemistry"), 'command', _('Export InChI'), None, _("Export an InChI for the selected structure by calling the InChI program"), self.gen_inchi,
 				lambda : Store.pm.has_preference("inchi_program_path") and self.paper.selected_mols),
 			( _("Chemistry"), 'separator'),
 			#( _("Chemistry"), 'command', _('Set display form'), "(C-o C-d)",
@@ -322,6 +322,8 @@ class BKChem(
 
 			# help menu
 			( _('Help'), 'menu', _("Help and information about the program"), "right"),
+			( _("Help"), 'command', _('Keyboard Shortcuts'), None, _("Show keyboard shortcut reference"), lambda: dialogs.keyboard_shortcuts_dialog(self), None),
+			( _("Help"), 'separator'),
 			( _("Help"), 'command', _('About'), None, _("General information about BKChem"), self.about, None),
 
 			]
@@ -338,6 +340,7 @@ class BKChem(
 
 
 		# CREATION OF THE MENU
+		from bkchem.platform_menu import format_accelerator
 
 		menus = set() # we use this later for plugin entries addition
 
@@ -350,7 +353,9 @@ class BKChem(
 				menus.add( temp[0])
 			elif temp[1] == "command":
 				menu, _ignore, label, accelerator, help, command, state_var = temp
-				self.menu.addmenuitem( menu, 'command', label=label, accelerator=accelerator, statusHelp=help, command=command)
+				# convert internal notation to platform-native display
+				display_accel = format_accelerator(accelerator)
+				self.menu.addmenuitem( menu, 'command', label=label, accelerator=display_accel, statusHelp=help, command=command)
 			elif temp[1] == "separator":
 				self.menu.addmenuitem( temp[0], 'separator')
 			elif temp[1] == "cascade":

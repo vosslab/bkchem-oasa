@@ -1214,3 +1214,101 @@ class theme_dialog(object):
     else:
       self.result = None
     self.dialog.deactivate()
+
+
+## KEYBOARD SHORTCUTS DIALOG
+
+class keyboard_shortcuts_dialog(object):
+  """Dialog showing all keyboard shortcuts with platform-native notation."""
+
+  def __init__(self, parent):
+    from bkchem.platform_menu import format_accelerator_display as format_accelerator
+    self.dialog = Pmw.Dialog(
+      parent,
+      buttons=(_('OK'),),
+      defaultbutton=_('OK'),
+      title=_('Keyboard Shortcuts'),
+      command=self._done,
+    )
+    interior = self.dialog.interior()
+    # scrollable text widget
+    text_frame = tkinter.Frame(interior)
+    text_frame.pack(fill='both', expand=1, padx=10, pady=10)
+    scrollbar = tkinter.Scrollbar(text_frame)
+    scrollbar.pack(side='right', fill='y')
+    self.text = tkinter.Text(
+      text_frame, wrap='word', width=52, height=28,
+      font=('Courier', 11), state='normal',
+      yscrollcommand=scrollbar.set,
+    )
+    self.text.pack(side='left', fill='both', expand=1)
+    scrollbar.config(command=self.text.yview)
+    # build shortcut content
+    content = self._build_content(format_accelerator)
+    self.text.insert('1.0', content)
+    self.text.config(state='disabled')
+    self.dialog.activate()
+
+  #============================================
+  def _build_content(self, fmt) -> str:
+    """Build the shortcut reference text.
+
+    Args:
+      fmt: format_accelerator function for platform display.
+
+    Returns:
+      Formatted shortcut reference string.
+    """
+    lines = ''
+    lines += '  FILE\n'
+    lines += '  ----\n'
+    lines += self._row(fmt, '(C-n)', 'New')
+    lines += self._row(fmt, '(C-o)', 'Open')
+    lines += self._row(fmt, '(C-s)', 'Save')
+    lines += self._row(fmt, '(C-q)', 'Quit')
+    lines += '\n'
+    lines += '  EDIT\n'
+    lines += '  ----\n'
+    lines += self._row(fmt, '(C-z)', 'Undo')
+    lines += self._row(fmt, '(C-S-z)', 'Redo')
+    lines += self._row(fmt, '(C-c)', 'Copy')
+    lines += self._row(fmt, '(C-v)', 'Paste')
+    lines += self._row(fmt, '(C-k)', 'Cut')
+    lines += self._row(fmt, '(C-S-a)', 'Select All')
+    lines += '\n'
+    lines += '  VIEW\n'
+    lines += '  ----\n'
+    lines += self._row(fmt, '(C-S-equal)', 'Zoom In')
+    lines += self._row(fmt, '(C-minus)', 'Zoom Out')
+    lines += '\n'
+    lines += '  MODE SWITCHING\n'
+    lines += '  ----\n'
+    lines += '  Ctrl+1..9          Switch mode 1-9\n'
+    lines += '  Ctrl+Alt+1..9      Switch mode 10-18\n'
+    lines += '\n'
+    lines += '  NAVIGATION\n'
+    lines += '  ----\n'
+    lines += '  Arrow keys          Move selected objects\n'
+    lines += '  Delete/Backspace    Delete selected\n'
+    return lines
+
+  #============================================
+  @staticmethod
+  def _row(fmt, accel: str, label: str) -> str:
+    """Format one shortcut row.
+
+    Args:
+      fmt: format_accelerator function.
+      accel: internal accelerator notation.
+      label: human-readable action label.
+
+    Returns:
+      Formatted row string.
+    """
+    display = fmt(accel) or ''
+    return f"  {display:<20s}{label}\n"
+
+  #============================================
+  def _done(self, button):
+    """Handle dialog close."""
+    self.dialog.deactivate()

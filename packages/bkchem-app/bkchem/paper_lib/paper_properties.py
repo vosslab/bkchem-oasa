@@ -103,6 +103,10 @@ class PaperPropertiesMixin:
 		self._paper_properties['use_real_minus'] = Store.pm.get_preference( "use_real_minus") or 0
 		self._paper_properties['replace_minus'] = Store.pm.get_preference( "replace_minus") or 0
 		self.update_scrollregion()
+		# redraw hex grid overlay to match paper dimensions
+		if hasattr(self, '_hex_grid_overlay') and self._hex_grid_overlay:
+			if self._hex_grid_overlay.visible:
+				self._hex_grid_overlay.redraw()
 
 
 	def create_background( self):
@@ -158,6 +162,10 @@ class PaperPropertiesMixin:
 
 		self.create_background()
 		self.update_scrollregion()
+		# redraw hex grid overlay to match new paper dimensions
+		if hasattr(self, '_hex_grid_overlay') and self._hex_grid_overlay:
+			if self._hex_grid_overlay.visible:
+				self._hex_grid_overlay.redraw()
 
 
 	def update_scrollregion( self):

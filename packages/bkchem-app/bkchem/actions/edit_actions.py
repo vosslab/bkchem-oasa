@@ -35,7 +35,7 @@ def register_edit_actions(registry, app) -> None:
 		id='edit.cut',
 		label_key='Cut',
 		help_key='Copy the selected objects to clipboard and delete them',
-		accelerator='(C-w)',
+		accelerator='(C-k)',
 		handler=lambda: app.paper.selected_to_clipboard(delete_afterwards=1),
 		enabled_when='selected',
 	))
@@ -44,7 +44,7 @@ def register_edit_actions(registry, app) -> None:
 		id='edit.copy',
 		label_key='Copy',
 		help_key='Copy the selected objects to clipboard',
-		accelerator='(A-w)',
+		accelerator='(C-c)',
 		handler=lambda: app.paper.selected_to_clipboard(),
 		enabled_when='selected',
 	))
@@ -53,15 +53,15 @@ def register_edit_actions(registry, app) -> None:
 		id='edit.paste',
 		label_key='Paste',
 		help_key='Paste the content of clipboard to current paper',
-		accelerator='(C-y)',
+		accelerator='(C-v)',
 		handler=lambda: app.paper.paste_clipboard(None),
 		enabled_when=lambda: app._clipboard,
 	))
 	# export selection as SVG to system clipboard
 	registry.register(MenuAction(
 		id='edit.selected_to_svg',
-		label_key='Selected to clipboard as SVG',
-		help_key='Create SVG for the selected objects and place it to clipboard in text form',
+		label_key='Copy as SVG',
+		help_key='Create SVG for the selected objects and place it to the system clipboard',
 		accelerator=None,
 		handler=lambda: app.paper.selected_to_real_clipboard_as_SVG(),
 		enabled_when='selected',
@@ -69,7 +69,7 @@ def register_edit_actions(registry, app) -> None:
 	# select everything on the paper
 	registry.register(MenuAction(
 		id='edit.select_all',
-		label_key='Select all',
+		label_key='Select All',
 		help_key='Select everything on the paper',
 		accelerator='(C-S-a)',
 		handler=lambda: app.paper.select_all(),

@@ -68,8 +68,8 @@ class standard(object):
     # arrow
     self.arrow_length = '1.6cm'
     # paper
-    self.paper_type = 'A4'
-    self.paper_orientation = 'portrait'
+    self.paper_type = 'Letter'
+    self.paper_orientation = 'landscape'
     self.paper_crop_svg = 0
     self.paper_crop_margin = 10
 
