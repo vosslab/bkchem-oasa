@@ -4,12 +4,12 @@
 
 """Bridge between substituent label strings and 2D-positioned atom groups.
 
-Uses coords_generator2 to compute atom positions for complex multi-atom
+Uses coords_generator to compute atom positions for complex multi-atom
 substituents (chain-like labels and two-carbon tails), then returns
 group-level layout data for the Haworth renderer.
 
 For the CH(OH)CH2OH two-carbon tail, visually-tuned branch angles are used
-instead of raw coords_generator2 output, matching the Haworth projection
+instead of raw coords_generator output, matching the Haworth projection
 conventions (120-degree lattice, side-aware "down" orientation).
 """
 
@@ -20,7 +20,7 @@ import dataclasses
 
 # local repo modules
 from oasa import smiles_lib as smiles_module
-from oasa import coords_generator2
+from oasa import coords_generator
 
 
 #============================================
@@ -91,7 +91,7 @@ def _terminal_carbon_label(atom_obj) -> str:
 def _build_molecule(smiles_text: str):
 	"""Parse SMILES into an OASA molecule with 2D coordinates."""
 	mol = smiles_module.text_to_mol(smiles_text, calc_coords=0)
-	coords_generator2.calculate_coords(mol, bond_length=1.0, force=1)
+	coords_generator.calculate_coords(mol, bond_length=1.0, force=1)
 	return mol
 
 
@@ -293,7 +293,7 @@ def layout_fragment(
 	ring vertex; the caller draws a connector from the vertex to group 0.
 
 	For CH(OH)CH2OH, uses visually-tuned branch angles matching the Haworth
-	projection conventions. For other complex labels, uses coords_generator2.
+	projection conventions. For other complex labels, uses coords_generator.
 
 	Args:
 		label: substituent label (e.g. "CH(OH)CH2OH", "CHAIN3").
@@ -326,7 +326,7 @@ def layout_fragment(
 			branch_length=branch_length,
 		)
 
-	# General case: use coords_generator2 for 2D layout
+	# General case: use coords_generator for 2D layout
 	mol = _build_molecule(smiles_text)
 	if len(mol.vertices) < 2:
 		return None
@@ -361,7 +361,7 @@ def layout_fragment(
 	cos_r = math.cos(rotation)
 	sin_r = math.sin(rotation)
 
-	# Scale: coords_generator2 uses bond_length=1.0
+	# Scale: coords_generator uses bond_length=1.0
 	scale = bond_length
 
 	# Root is offset by one bond_length from attachment_point (ring vertex)

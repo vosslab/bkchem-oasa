@@ -50,22 +50,21 @@ oasa_dir = os.path.join(repo_root, "packages", "oasa")
 if oasa_dir not in sys.path:
 	sys.path.insert(0, oasa_dir)
 
-# Import the oasa package - classes are exported directly
-import oasa
-atom = importlib.import_module("oasa.atom")
-bond_module = importlib.import_module("oasa.bond")
-molecule = importlib.import_module("oasa.molecule")
-atom_colors = oasa.atom_colors
-dom_extensions = oasa.dom_extensions
+# Import oasa submodules directly
+atom = importlib.import_module("oasa.atom_lib")
+bond_module = importlib.import_module("oasa.bond_lib")
+molecule = importlib.import_module("oasa.molecule_lib")
+atom_colors = importlib.import_module("oasa.atom_colors")
+dom_extensions = importlib.import_module("oasa.dom_extensions")
 from oasa.render_lib.data_types import BondRenderContext
 from oasa.render_lib.label_geometry import vertex_is_shown
 from oasa.render_lib.bond_ops import build_bond_ops
 from oasa.render_lib.molecule_ops import build_vertex_ops
-render_ops = oasa.render_ops
+render_ops = importlib.import_module("oasa.render_ops")
 from oasa.haworth import layout as haworth_layout
-sugar_code = oasa.sugar_code
-haworth_spec = oasa.haworth_spec
-haworth_renderer = oasa.haworth_renderer
+sugar_code = importlib.import_module("oasa.sugar_code")
+haworth_spec = importlib.import_module("oasa.haworth_spec")
+haworth_renderer = importlib.import_module("oasa.haworth_renderer")
 
 #============================================
 # Page dimensions at 72 DPI
@@ -399,8 +398,7 @@ def build_renderer_capabilities_sheet(page="letter", backend="svg", seed=0, outp
 		)
 		render_ops.ops_to_svg(svg, ops)
 		if __name__ == "__main__":
-			import oasa
-			svg_out = oasa.svg_out
+			svg_out = importlib.import_module("oasa.svg_out")
 		else:
 			import oasa.svg_out as svg_out
 		return svg_out.pretty_print_svg(doc.toxml("utf-8"))
@@ -559,17 +557,17 @@ def _build_bond_fragment(bond_type, color):
 		bond_type_code = bond_type
 
 	# Create minimal molecule
-	mol = molecule.molecule()
-	a1 = atom.atom(symbol='C')
+	mol = molecule.Molecule()
+	a1 = atom.Atom(symbol='C')
 	a1.x = 0
 	a1.y = 0
-	a2 = atom.atom(symbol='C')
+	a2 = atom.Atom(symbol='C')
 	a2.x = 30
 	a2.y = 0
 	mol.add_vertex(a1)
 	mol.add_vertex(a2)
 
-	bond = bond_module.bond(order=bond_order, type=bond_type_code)
+	bond = bond_module.Bond(order=bond_order, type=bond_type_code)
 	bond.vertices = (a1, a2)
 	bond.properties_['line_color'] = color
 	if wavy_style:
@@ -593,12 +591,16 @@ def _build_bond_fragment(bond_type, color):
 
 #============================================
 def _transform_ops(ops, dx, dy, scale=1.0):
-	"""Transform ops by translation and scaling.
+	"""Transform op coordinates by translation and scaling.
+
+	Scales coordinates, geometric sizes (radius), and font sizes.
+	Line widths and stroke widths are preserved so OASA rendering
+	weights come through unchanged.
 
 	Args:
 		ops: List of op objects
 		dx, dy: Translation offsets
-		scale: Scaling factor
+		scale: Scaling factor for coordinates and font sizes
 
 	Returns:
 		New list of transformed ops
@@ -606,24 +608,24 @@ def _transform_ops(ops, dx, dy, scale=1.0):
 	transformed = []
 	for op in ops:
 		if isinstance(op, render_ops.LineOp):
-			p1 = (_scale_point(op.p1, scale, dx, dy))
-			p2 = (_scale_point(op.p2, scale, dx, dy))
+			p1 = _scale_point(op.p1, scale, dx, dy)
+			p2 = _scale_point(op.p2, scale, dx, dy)
 			transformed.append(render_ops.LineOp(
-				p1=p1, p2=p2, width=op.width * scale,
+				p1=p1, p2=p2, width=op.width,
 				cap=op.cap, join=op.join, color=op.color, z=op.z
 			))
 		elif isinstance(op, render_ops.PolygonOp):
 			points = tuple(_scale_point(p, scale, dx, dy) for p in op.points)
 			transformed.append(render_ops.PolygonOp(
 				points=points, fill=op.fill, stroke=op.stroke,
-				stroke_width=op.stroke_width * scale, z=op.z
+				stroke_width=op.stroke_width, z=op.z
 			))
 		elif isinstance(op, render_ops.CircleOp):
 			center = _scale_point(op.center, scale, dx, dy)
 			transformed.append(render_ops.CircleOp(
 				center=center, radius=op.radius * scale,
 				fill=op.fill, stroke=op.stroke,
-				stroke_width=op.stroke_width * scale, z=op.z
+				stroke_width=op.stroke_width, z=op.z
 			))
 		elif isinstance(op, render_ops.PathOp):
 			commands = []
@@ -631,17 +633,15 @@ def _transform_ops(ops, dx, dy, scale=1.0):
 				if payload is None:
 					commands.append((cmd, None))
 				elif cmd == "ARC":
-					# ARC: (cx, cy, r, angle1, angle2)
 					cx, cy, r, a1, a2 = payload
 					new_center = _scale_point((cx, cy), scale, dx, dy)
 					commands.append((cmd, (new_center[0], new_center[1], r * scale, a1, a2)))
 				else:
-					# M, L: (x, y)
 					new_point = _scale_point((payload[0], payload[1]), scale, dx, dy)
 					commands.append((cmd, (new_point[0], new_point[1])))
 			transformed.append(render_ops.PathOp(
 				commands=tuple(commands), fill=op.fill, stroke=op.stroke,
-				stroke_width=op.stroke_width * scale,
+				stroke_width=op.stroke_width,
 				cap=op.cap, join=op.join, z=op.z
 			))
 		elif isinstance(op, render_ops.TextOp):
@@ -657,7 +657,6 @@ def _transform_ops(ops, dx, dy, scale=1.0):
 				z=op.z,
 			))
 		else:
-			# Unknown op type, skip
 			continue
 	return transformed
 
@@ -770,51 +769,10 @@ def _build_molecule_ops(mol, options):
 
 #============================================
 def _build_cholesterol_mol():
-	"""Build cholesterol molecule from CDML template."""
-
-	# Handle imports for both module and script usage
-	if __name__ == "__main__":
-		import oasa
-		cdml_module = oasa.cdml
-	else:
-		import oasa.cdml as cdml_module
-
-	# CDML file lives in bkchem templates
-	repo_root = get_repo_root()
-	path = os.path.join(
-		repo_root, "packages", "bkchem", "bkchem_data", "templates",
-		"biomolecules", "lipids", "steroids", "cholesterol.cdml"
-	)
-
-	if not os.path.exists(path):
-		raise FileNotFoundError(f"Cholesterol template not found: {path}")
-
-	with open(path, 'r') as f:
-		result = cdml_module.read_cdml(f.read())
-
-	# read_cdml returns a generator, get first molecule
-	try:
-		mol = next(iter(result))
-	except (StopIteration, TypeError):
-		raise ValueError("Cholesterol CDML did not yield any molecules.")
-
-	if mol is None:
-		raise ValueError("Cholesterol CDML returned an empty molecule.")
-
-	for atom_node in list(mol.vertices):
-		if atom_node.symbol != "O":
-			continue
-		for neighbor in list(atom_node.neighbors):
-			if neighbor.symbol != "C":
-				continue
-			if len(neighbor.neighbors) != 1:
-				continue
-			edge = mol.get_edge_between(atom_node, neighbor)
-			if edge:
-				mol.disconnect_edge(edge)
-			mol.remove_vertex(neighbor)
-			break
-
+	"""Build cholesterol molecule from SMILES."""
+	# Cholesterol SMILES from oasa_data/biomolecule_smiles.yaml
+	smiles = "CC(C)CCCC(C)C1CCC2C3CC=C4C[C@H](O)CC[C@]4(C)C3CC[C@]12C"
+	mol = _mol_from_smiles(smiles)
 	return mol
 
 
@@ -949,8 +907,7 @@ def _mol_from_smiles(smiles_str, calc_coords=True):
 	"""
 	# Handle imports for both module and script usage
 	if __name__ == "__main__":
-		import oasa
-		smiles_module = oasa.smiles_lib
+		smiles_module = importlib.import_module("oasa.smiles_lib")
 	else:
 		import oasa.smiles_lib as smiles_module
 
@@ -1093,12 +1050,12 @@ def _build_fischer_mol(show_explicit_hydrogens=False):
 				break
 		# Add explicit aldehyde H on the opposite side
 		angle = math.radians(30)
-		aldehyde_h = atom.atom(symbol="H")
+		aldehyde_h = atom.Atom(symbol="H")
 		aldehyde_h.x = aldehyde.x + bond_length * math.cos(angle)
 		aldehyde_h.y = aldehyde.y - bond_length * math.sin(angle)
 		aldehyde_h.properties_["fischer_role"] = "aldehyde_h"
 		mol.add_vertex(aldehyde_h)
-		aldehyde_bond = bond_module.bond(order=1, type="n")
+		aldehyde_bond = bond_module.Bond(order=1, type="n")
 		aldehyde_bond.vertices = (aldehyde, aldehyde_h)
 		mol.add_edge(aldehyde, aldehyde_h, aldehyde_bond)
 
@@ -1181,20 +1138,20 @@ def _build_fischer_mol(show_explicit_hydrogens=False):
 					left_sub = neighbor
 
 			if left_sub is None:
-				left_h = atom.atom(symbol="H")
+				left_h = atom.Atom(symbol="H")
 				left_h.x = carbon.x - sub_length
 				left_h.y = carbon.y
 				mol.add_vertex(left_h)
-				left_bond = bond_module.bond(order=1, type="n")
+				left_bond = bond_module.Bond(order=1, type="n")
 				left_bond.vertices = (carbon, left_h)
 				mol.add_edge(carbon, left_h, left_bond)
 
 			if right_sub is None:
-				right_h = atom.atom(symbol="H")
+				right_h = atom.Atom(symbol="H")
 				right_h.x = carbon.x + sub_length
 				right_h.y = carbon.y
 				mol.add_vertex(right_h)
-				right_bond = bond_module.bond(order=1, type="n")
+				right_bond = bond_module.Bond(order=1, type="n")
 				right_bond.vertices = (carbon, right_h)
 				mol.add_edge(carbon, right_h, right_bond)
 

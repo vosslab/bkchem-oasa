@@ -1333,7 +1333,7 @@ def _add_fragment_ops(
 		anchor: str,
 		line_color: str,
 		label_color: str) -> None:
-	"""Add render ops for a coords_generator2-based fragment layout.
+	"""Add render ops for a coords_generator-based fragment layout.
 
 	Draws connectors and text labels for each FragmentAtom in the fragment.
 	The first connector goes from the ring vertex to the root group (index 0).

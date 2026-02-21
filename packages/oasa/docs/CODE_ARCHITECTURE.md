@@ -29,8 +29,8 @@
 ## Geometry, stereochemistry, and layout
 - `oasa/geometry.py` provides geometric primitives and algorithms.
 - `oasa/transform.py` and `oasa/transform3d.py` handle coordinate transforms.
-- `oasa/coords_generator.py` creates 2D coordinates for drawing.
-- `oasa/coords_optimizer.py` improves or relaxes coordinates.
+- `oasa/coords_generator.py` creates 2D coordinates via RDKit.
+- `oasa/rdkit_bridge.py` converts between OASA and RDKit molecule objects.
 - `oasa/stereochemistry.py` handles limited stereochemical rules.
 
 ## Search and chemistry utilities

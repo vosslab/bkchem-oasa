@@ -92,7 +92,6 @@ geometry, stereochemistry, conversion bridges, and shared data/config utilities.
 - [packages/oasa/oasa/common.py](packages/oasa/oasa/common.py)
 - [packages/oasa/oasa/converter_base.py](packages/oasa/oasa/converter_base.py)
 - [packages/oasa/oasa/coords_generator.py](packages/oasa/oasa/coords_generator.py)
-- [packages/oasa/oasa/coords_optimizer.py](packages/oasa/oasa/coords_optimizer.py)
 - [packages/oasa/oasa/dom_extensions.py](packages/oasa/oasa/dom_extensions.py)
 - [packages/oasa/oasa/geometry.py](packages/oasa/oasa/geometry.py)
 - [packages/oasa/oasa/inchi_lib.py](packages/oasa/oasa/inchi_lib.py)

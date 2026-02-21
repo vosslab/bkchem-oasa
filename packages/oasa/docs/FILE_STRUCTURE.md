@@ -18,7 +18,7 @@
 - `oasa/graph/` graph primitives and core algorithms.
 - `oasa/atom.py`, `oasa/bond.py`, `oasa/molecule.py` core chemistry model.
 - `oasa/smiles.py`, `oasa/molfile.py`, `oasa/inchi.py`, `oasa/cdml.py` format I O.
-- `oasa/coords_generator.py`, `oasa/coords_optimizer.py` coordinate layout.
+- `oasa/coords_generator.py`, `oasa/rdkit_bridge.py` coordinate layout via RDKit.
 - `oasa/geometry.py`, `oasa/transform.py`, `oasa/transform3d.py` geometry tools.
 - `oasa/stereochemistry.py` stereochemistry helpers.
 - `oasa/svg_out.py`, `oasa/cairo_out.py` rendering backends.

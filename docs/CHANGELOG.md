@@ -1,6 +1,30 @@
 # Changelog
 
 ## 2026-02-20
+- Replace custom coordinate generation pipeline with RDKit.
+  - RDKit is now a required dependency for OASA (added to
+    [`packages/oasa/pyproject.toml`](packages/oasa/pyproject.toml)).
+  - New thin wrapper
+    [`packages/oasa/oasa/coords_generator.py`](packages/oasa/oasa/coords_generator.py)
+    delegates to `rdkit_bridge.calculate_coords_rdkit()` with full
+    `bond_length` and `force` parameter support.
+  - Delete the custom four-phase pipeline (`coords_gen/` package: ring
+    placement, chain placement, collision resolution, force-field refinement).
+  - Delete `coords_generator2.py` (shim to the deleted pipeline).
+  - Delete `coords_optimizer.py` (standalone demo, nothing imported it).
+  - Delete `graph/spatial_index.py` (KD-tree only used by deleted phases 3-4).
+  - Delete associated tests (`test_spatial_index.py`, `test_cubane_coordinates.py`)
+    and tools (`benchmark_spatial_index.py`, `coords_comparison.py`).
+  - Simplify `oasa_bridge.py` fallback chain to a single call path.
+  - Update `haworth/fragment_layout.py` to use `coords_generator` directly.
+  - Adapt `test_coords_generator2.py` to test the RDKit-backed generator
+    (44 tests, all passing).
+  - Rewrite
+    [`docs/OASA_MOLECULE_COORDINATE_GENERATION_METHODS.md`](docs/OASA_MOLECULE_COORDINATE_GENERATION_METHODS.md)
+    to document the RDKit delegation architecture.
+- Fix `tools/selftest_sheet.py` imports for renamed modules (`atom_lib`,
+  `bond_lib`, `molecule_lib`) and capitalized class names (`Atom`, `Bond`,
+  `Molecule`).
 - Add 2D spatial index (KD-tree) for OASA coordinate generation.
   - New file
     [`packages/oasa/oasa/graph/spatial_index.py`](packages/oasa/oasa/graph/spatial_index.py):

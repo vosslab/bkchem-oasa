@@ -5,8 +5,7 @@ the standard vertex/edge interface: .atoms, .neighbors, .degree, .x, .y,
 .get_smallest_independent_cycles()) and modify atom coordinates in-place.
 
 No BKChem, GUI, or canvas code lives here.  This module sits alongside
-coords_generator.py and coords_optimizer.py as pure graph-geometry
-operations.
+coords_generator.py as pure graph-geometry operations.
 """
 
 # Standard Library

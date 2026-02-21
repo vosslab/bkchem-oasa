@@ -95,19 +95,9 @@ def write_codec_file_from_selected_molecule( codec_name, paper, file_obj, **kwar
 
 
 def _calculate_coords( mol, bond_length=1.0, force=1):
-  """Generate 2D coordinates using RDKit if available, then coords_generator2, else old generator."""
-  try:
-    from oasa.rdkit_bridge import calculate_coords_rdkit
-    calculate_coords_rdkit( mol, bond_length=bond_length)
-    return
-  except ImportError:
-    pass
-  # prefer the improved 3-layer generator over the legacy one
-  try:
-    import oasa.coords_generator2
-    oasa.coords_generator2.calculate_coords( mol, bond_length=bond_length, force=force)
-  except ImportError:
-    oasa.coords_generator.calculate_coords( mol, bond_length=bond_length, force=force)
+  """Generate 2D coordinates using RDKit via coords_generator."""
+  from oasa import coords_generator
+  coords_generator.calculate_coords( mol, bond_length=bond_length, force=force)
 
 
 def smiles_to_cdml_elements( smiles_text, paper):
