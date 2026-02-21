@@ -1,26 +1,20 @@
 # Todo code
 
-- Mirror OASA modernization for BKChem (pyflakes cleanup and globals refactors).
+- Implement the PubChem lookup work in
+  [docs/active_plans/PUBCHEM_API_PLAN.md](docs/active_plans/PUBCHEM_API_PLAN.md).
+- I would like to see the undo functions in BKChem stick to the CDML contract. 
+  Basically UNDO becomes a CDML becomes a CDML history. When you make a change in 
+  BKChem the old version is saved as temporary CDML file. We could keep a history
+  of N=20 of these backward files. Any changes to interface that do not affect the
+  molecule (i.e. no CDML change) cannot be UNDOne. Am I thinking of this correctly?
 - Expand `packages/oasa/oasa_cli.py` beyond Haworth once the CLI surface is finalized
   (format conversion, batch reference output generation).
-- Decide whether to remove the legacy PostScript builtin exporter once Cairo is
-  required.
+- Remove the legacy PostScript builtin exporter now that Cairo is required.
 - Add a hash-based verification layer for newly generated CDML files, including
   a stable canonicalization step before digest calculation.
 - Add OASA CDML depiction metadata support needed for Phase C WYSIWYG parity:
   `<standard>` profile fields, explicit label-placement metadata, and stable
   aromatic depiction policy controls.
-- Reintroduce ODF export only as an OASA codec/renderer (no BKChem plugin
-  path), or formally retire ODF if there is no downstream requirement.
-- Define GTML import-loss mitigation for reaction semantics in CDML/OASA path:
-  preserve reactant/product grouping and arrow/plus objects when converting
-  legacy GTML content to CDML-backed workflows.
-- Clean up `packages/oasa/oasa/graph/graph.py` dead algorithm variants. The
-  file contains multiple generations of the same graph operations kept as
-  `_old` / `_oldest` suffixed methods (e.g., `get_all_cycles_e`,
-  `get_all_cycles_e_old`, `get_all_cycles_e_oldest`) plus commented-out
-  methods. Identify the current callers, delete the unused variants, and
-  remove commented-out code. Likely ~200-300 lines of dead code.
 - Evaluate optional RDKit/Open Babel integration for expanded import/export
   formats.
   - Target formats: SDF/SD, MOL2, PDB, CIF.
