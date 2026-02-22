@@ -1,0 +1,25 @@
+# Per-icon recoloring rules for generate_theme_icons.py
+#
+# Icons not listed in overrides use global defaults.
+#
+# mode options:
+#   ink_only  - (default) replace dark ink strokes/fills with theme foreground
+#   none      - skip recoloring; use original SVG colors for all themes
+#
+# Thresholds control what counts as "dark ink":
+#   luminance_threshold  - max luminance to treat as dark (0.0 to 1.0)
+#   saturation_threshold - max saturation to treat as unsaturated (0.0 to 1.0)
+#   Colors must be below BOTH thresholds to be recolored.
+
+defaults:
+  mode: ink_only
+  luminance_threshold: 0.35
+  saturation_threshold: 0.3
+
+overrides: {}
+  # example: icon with saturated dark outlines needs higher sat threshold
+  # some_icon:
+  #   saturation_threshold: 0.5
+  # example: icon that should not be recolored at all
+  # another_icon:
+  #   mode: none
