@@ -2,11 +2,9 @@
 
 import os
 
-from tkinter import Button, Frame, Label, Scrollbar
-from tkinter import HORIZONTAL, SUNKEN, VERTICAL
+import tkinter.messagebox
+import tkinter.ttk as ttk
 
-import Pmw
-from bkchem import bkchem_config
 from bkchem import bkchem_utils
 from bkchem import theme_manager
 from bkchem.paper import chem_paper
@@ -20,20 +18,34 @@ _ = builtins.__dict__.get( '_', lambda m: m)
 class MainTabsMixin:
   """Tab management helpers extracted from main.py."""
 
+  def _on_tab_changed(self, event=None):
+    """Handle <<NotebookTabChanged>> events from ttk.Notebook.
+
+    Maps the currently selected tab frame back to a paper and
+    calls change_paper().  Uses a guard flag to prevent re-entrant
+    calls when change_paper() itself selects a tab programmatically.
+    """
+    if getattr(self, '_programmatic_tab_select', False):
+      return
+    sel = self.notebook.select()
+    if not sel:
+      return
+    # find which paper lives on this frame
+    for tab_name, frame in self._tab_name_2_frame.items():
+      if str(frame) == str(sel):
+        self.change_paper(tab_name)
+        return
+
+
   def change_paper(self, name):
     if self.papers:
       old_paper = self.paper
-      # de-highlighting of current tab
-      if old_paper in self.papers:
-        i = self.papers.index(old_paper)
-        self.notebook.tab(i).configure(
-          background=theme_manager.get_color('background'),
-          fg=theme_manager.get_color('inactive_tab_fg'))
-      i = self.notebook.index( name)
-      # highlighting of current tab
-      self.notebook.tab( i).configure(
-        background=theme_manager.get_color('active_tab_bg'),
-        fg=theme_manager.get_color('active_tab_fg'))
+      # look up paper index from tab name
+      if name in self._tab_name_2_paper:
+        paper = self._tab_name_2_paper[name]
+        i = self.papers.index(paper)
+      else:
+        return
       # the rest
       self.paper = self.papers[i]
       if (hasattr(self, 'mode') and
@@ -51,18 +63,21 @@ class MainTabsMixin:
       Store.log( _("Sorry but I cannot open the same file twice: ")+"\n"+name, message_type="error")
       return False
     name_dic = self.get_name_dic( name=name)
-    # create the tab
+    # create the tab: ttk.Notebook requires us to create the Frame first
     _tab_name = self.get_new_tab_name()
-    page = self.notebook.add( _tab_name, tab_text = chem_paper.create_window_name( name_dic))
+    page = ttk.Frame(self.notebook)
+    tab_text = chem_paper.create_window_name(name_dic)
+    self.notebook.add(page, text=tab_text)
+    self._tab_name_2_frame[_tab_name] = page
     paper = chem_paper( page,
                         scrollregion=(-100,-100,'300m','400m'),
                         background=theme_manager.get_color('canvas_surround'),
                         closeenough=3,
                         file_name=name_dic)
     self._tab_name_2_paper[ _tab_name] = paper
-    # the scrolling
-    scroll_y = Scrollbar( page, orient = VERTICAL, command = paper.yview, bd=bkchem_config.border_width)
-    scroll_x = Scrollbar( page, orient = HORIZONTAL, command = paper.xview, bd=bkchem_config.border_width)
+    # the scrolling -- use ttk.Scrollbar for theme integration
+    scroll_y = ttk.Scrollbar( page, orient='vertical', command=paper.yview)
+    scroll_x = ttk.Scrollbar( page, orient='horizontal', command=paper.xview)
     paper.grid( row=0, column=0, sticky="news")
     page.grid_rowconfigure( 0, weight=1, minsize = 0)
     page.grid_columnconfigure( 0, weight=1, minsize = 0)
@@ -71,26 +86,26 @@ class MainTabsMixin:
     paper['yscrollcommand'] = scroll_y.set
     paper['xscrollcommand'] = scroll_x.set
 
-    # Zoom controls at bottom of each tab page
-    zoom_frame = Frame(page)
+    # Zoom controls at bottom of each tab page -- use ttk widgets
+    zoom_frame = ttk.Frame(page)
     zoom_frame.grid(row=2, column=0, columnspan=2, sticky='e')
 
-    zoom_out_btn = Button(zoom_frame, text="\u2212", width=2, command=paper.zoom_out)
+    zoom_out_btn = ttk.Button(zoom_frame, text="-", width=2, style='Zoom.TButton', command=paper.zoom_out)
     zoom_out_btn.pack(side='left', padx=1)
 
-    zoom_label = Label(zoom_frame, text="100%", width=5, relief=SUNKEN)
+    zoom_label = ttk.Label(zoom_frame, text="100%", width=5, style='Zoom.TLabel')
     zoom_label.pack(side='left', padx=1)
 
-    zoom_in_btn = Button(zoom_frame, text="+", width=2, command=paper.zoom_in)
+    zoom_in_btn = ttk.Button(zoom_frame, text="+", width=2, style='Zoom.TButton', command=paper.zoom_in)
     zoom_in_btn.pack(side='left', padx=1)
 
-    zoom_reset_btn = Button(zoom_frame, text="100%", width=4, command=paper.zoom_reset)
+    zoom_reset_btn = ttk.Button(zoom_frame, text="100%", width=4, style='Zoom.TButton', command=paper.zoom_reset)
     zoom_reset_btn.pack(side='left', padx=2)
 
-    zoom_fit_btn = Button(zoom_frame, text="Fit", width=3, command=paper.zoom_to_fit)
+    zoom_fit_btn = ttk.Button(zoom_frame, text="Fit", width=3, style='Zoom.TButton', command=paper.zoom_to_fit)
     zoom_fit_btn.pack(side='left', padx=2)
 
-    zoom_content_btn = Button(zoom_frame, text="Content", width=6, command=paper.zoom_to_content)
+    zoom_content_btn = ttk.Button(zoom_frame, text="Content", width=6, style='Zoom.TButton', command=paper.zoom_to_content)
     zoom_content_btn.pack(side='left', padx=2)
 
     def update_zoom_label(event=None, lbl=zoom_label, p=paper):
@@ -102,7 +117,10 @@ class MainTabsMixin:
 
     self.papers.append( paper)
     self.change_paper( _tab_name)
-    self.notebook.selectpage( Pmw.END)
+    # select the newly added tab
+    self._programmatic_tab_select = True
+    self.notebook.select(page)
+    self._programmatic_tab_select = False
     paper.bind( "<<selection-changed>>", self.update_menu_after_selection_change)
     paper.bind( "<<clipboard-changed>>", self.update_menu_after_selection_change)
     paper.bind( "<<undo>>", self.update_menu_after_selection_change)
@@ -128,24 +146,30 @@ class MainTabsMixin:
 
     if p.changes_made and not self.in_batch_mode:
       name = p.file_name['name']
-      dialog = Pmw.MessageDialog( self,
-                                  title= _("Really close?"),
-                                  message_text = _("There are unsaved changes in file %s, what should I do?") % name,
-                                  buttons = (_('Close'),_('Save'),_('Cancel')),
-                                  defaultbutton = _('Close'))
-      result = dialog.activate()
-      if result == _('Save'):
+      # 3-button dialog: Close / Save / Cancel
+      result = tkinter.messagebox._show(
+        _("Really close?"),
+        _("There are unsaved changes in file %s. Save before closing?") % name,
+        icon=tkinter.messagebox.QUESTION,
+        type=tkinter.messagebox.YESNOCANCEL,
+        master=self,
+      )
+      # Yes = Save, No = Close without saving, Cancel = abort
+      if result == 'yes':
         self.save_CDML()
-      elif result == _('Cancel'):
+      elif result == 'cancel':
         return 0 # we skip away
     self.papers.remove( p)
 
     # cleanup
-    # find the name of the tab
-    name = self.get_paper_tab_name( p)
-    del self._tab_name_2_paper[ name]
+    tab_name = self.get_paper_tab_name( p)
+    frame = self._tab_name_2_frame.get(tab_name)
+    del self._tab_name_2_paper[ tab_name]
+    if tab_name in self._tab_name_2_frame:
+      del self._tab_name_2_frame[ tab_name]
     p.mrproper()
-    self.notebook.delete( name or Pmw.SELECT)
+    if frame:
+      self.notebook.forget(frame)
     return 1
 
 

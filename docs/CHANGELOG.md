@@ -1,6 +1,197 @@
 # Changelog
 
 ## 2026-02-21
+- Fix unsaved-changes dialog grammar. The message "what should I do?" did not
+  match the Yes/No/Cancel buttons. Changed to "Save before closing?" so the
+  question has a clear yes/no answer.
+  File changed: [`main_tabs.py`](packages/bkchem-app/bkchem/main_lib/main_tabs.py).
+- Fix hex grid overlay colors not refreshing on theme change. The
+  `_apply_paper_theme()` function referenced `paper._hex_grid` but the actual
+  attribute is `paper._hex_grid_overlay`. Grid now redraws with correct theme
+  colors immediately on theme switch.
+  File changed: [`theme_manager.py`](packages/bkchem-app/bkchem/theme_manager.py).
+- Convert biomolecule template grid buttons from plain `tkinter.Button` to
+  `ttk.Button` with `Grid.TButton` / `Selected.Grid.TButton` styles. This fixes
+  rounded-corner macOS native buttons looking out of place alongside the themed
+  rectangular ttk buttons. Hover effects are now handled by ttk style maps.
+  Remove unused `_on_sub_enter`/`_on_sub_leave` hover helpers.
+  Files changed:
+  [`main_modes.py`](packages/bkchem-app/bkchem/main_lib/main_modes.py),
+  [`theme_manager.py`](packages/bkchem-app/bkchem/theme_manager.py).
+- Fix dark theme not applying to status bar and zoom controls at startup.
+  Add `foreground` to both startup and runtime `tk_setPalette` calls.
+  Call `apply_gui_theme()` at startup after `init_status_bar()` so full theme
+  (palette, toolbar, status bar, canvas) is applied on launch, not only when
+  the user changes themes. Add explicit status bar (row 7) recoloring in
+  `apply_gui_theme()`.
+  Files changed:
+  [`main.py`](packages/bkchem-app/bkchem/main.py),
+  [`theme_manager.py`](packages/bkchem-app/bkchem/theme_manager.py).
+- Complete Pmw removal (M10/M11). Replace `Pmw.MainMenuBar`/`Pmw.MenuBar` with
+  native `tkinter.Menu` in `PlatformMenuAdapter`. Replace `Pmw.Balloon` for
+  menu balloon with `BkBalloon`. Remove `Pmw.initialise()` call. Remove
+  `import Pmw` from `main.py` (the last file). Remove Pmw availability check
+  from `bkchem_app.py` and `import_checker.py`. Remove `no_pmw_text` message.
+  Update about text from "Pmw" to "tkinter". Rewrite
+  `test_platform_menu.py` for native tkinter.Menu API.
+  Files changed:
+  [`main.py`](packages/bkchem-app/bkchem/main.py),
+  [`platform_menu.py`](packages/bkchem-app/bkchem/platform_menu.py),
+  [`bkchem_app.py`](packages/bkchem-app/bkchem/bkchem_app.py),
+  [`import_checker.py`](packages/bkchem-app/bkchem/import_checker.py),
+  [`messages.py`](packages/bkchem-app/bkchem/messages.py),
+  [`menu_builder.py`](packages/bkchem-app/bkchem/menu_builder.py),
+  [`test_platform_menu.py`](packages/bkchem-app/tests/test_platform_menu.py).
+- Migrate `widgets.py` from Pmw (M7). Replace `FontSizeChooser(Pmw.Counter)` ->
+  `BkCounter`, `FontFamilyChooser(Pmw.ScrolledListBox)` -> `BkScrolledListBox`,
+  `WidthCounter`/`LengthCounter`/`RatioCounter(Pmw.Counter)` -> `BkCounter`,
+  `FileSelectionWithText(Pmw.Dialog)` -> `BkDialog`,
+  `GraphicalAngleChooser` `Pmw.Counter` -> `BkCounter`,
+  `ValueWithUnitParent` `Pmw.OptionMenu` -> `BkOptionMenu`,
+  `Pmw.OK/ERROR/PARTIAL` -> local constants. Removed `import Pmw`.
+  File changed: [`widgets.py`](packages/bkchem-app/bkchem/widgets.py).
+- Migrate `interactors.py`, `main_chemistry_io.py`, `paper.py` from Pmw (M8).
+  Replace 5 `Pmw.PromptDialog` -> `BkPromptDialog`, 1 `Pmw.Dialog` -> `BkDialog`,
+  1 `Pmw.TextDialog` -> `BkTextDialog` in interactors.py.
+  Replace 3 `Pmw.PromptDialog` -> `BkPromptDialog`, 2 `Pmw.TextDialog` ->
+  `BkTextDialog` in main_chemistry_io.py.
+  Replace 2 `Pmw.TextDialog` -> `BkTextDialog` in paper.py.
+  Files changed:
+  [`interactors.py`](packages/bkchem-app/bkchem/interactors.py),
+  [`main_chemistry_io.py`](packages/bkchem-app/bkchem/main_lib/main_chemistry_io.py),
+  [`paper.py`](packages/bkchem-app/bkchem/paper.py).
+- Migrate `external_data.py` from Pmw (M9). Replace
+  `ExternalDataList(Pmw.OptionMenu)` -> `BkOptionMenu`,
+  `ExternalDataListSelection(Pmw.RadioSelect)` -> `BkRadioSelect`.
+  File changed: [`external_data.py`](packages/bkchem-app/bkchem/external_data.py).
+- Migrate `dialogs.py` from Pmw to native tkinter/ttk (M6). Replaced all 40
+  Pmw usages: 7 `Pmw.Dialog` -> `BkDialog`, 3 `Pmw.Dialog` base classes ->
+  `BkDialog`, 3 `Pmw.NoteBook` -> `ttk.Notebook`, 5 `Pmw.Counter` ->
+  `BkCounter`, 5 `Pmw.OptionMenu` -> `BkOptionMenu`, 6 `Pmw.RadioSelect` ->
+  `BkRadioSelect`, 3 `Pmw.Group` -> `BkGroup`, 2 `Pmw.ScrolledListBox` ->
+  `BkScrolledListBox`, 3 `Pmw.SELECT` -> `'select'`. Removed `import Pmw`.
+  Added `index()`, integer `invoke()`, and `configure(Button_state=...)`
+  methods to `BkRadioSelect` for Pmw API compatibility.
+  Files changed:
+  [`dialogs.py`](packages/bkchem-app/bkchem/dialogs.py),
+  [`bk_widgets.py`](packages/bkchem-app/bkchem/bk_widgets.py).
+- Fix `UnboundLocalError` for `tab_bg` in `configure_ttk_styles()` by moving
+  variable definitions before their first use in zoom/scrollbar styles.
+  File changed:
+  [`theme_manager.py`](packages/bkchem-app/bkchem/theme_manager.py).
+- Replace `Pmw.NoteBook` with `ttk.Notebook` for document tabs. Notebook tabs
+  now use ttk style maps (`TNotebook.Tab`) for active/inactive coloring instead
+  of per-tab Pmw configure calls. Added `<<NotebookTabChanged>>` binding with
+  `_programmatic_tab_select` guard to prevent re-entrant paper switches.
+  Scrollbars upgraded to `ttk.Scrollbar`, zoom controls to `ttk.Button`/
+  `ttk.Label`/`ttk.Frame`. Tab rename API in file I/O updated from
+  `notebook.tab(name).configure()` to `notebook.tab(frame, text=...)`.
+  Files changed:
+  [`main.py`](packages/bkchem-app/bkchem/main.py),
+  [`main_tabs.py`](packages/bkchem-app/bkchem/main_lib/main_tabs.py),
+  [`main_file_io.py`](packages/bkchem-app/bkchem/main_lib/main_file_io.py),
+  [`theme_manager.py`](packages/bkchem-app/bkchem/theme_manager.py).
+- Replace `Pmw.Balloon` with `BkBalloon` for toolbar tooltips. Menu balloon
+  stays `Pmw.Balloon` until menu system migration.
+  File changed: [`main.py`](packages/bkchem-app/bkchem/main.py).
+- Replace `Pmw.MessageDialog` in `about()` with `tkinter.messagebox.showinfo()`.
+  Replace `Pmw.MessageDialog` in `close_paper()` with
+  `tkinter.messagebox._show()` using YESNOCANCEL for save/close/cancel.
+  Files changed:
+  [`main.py`](packages/bkchem-app/bkchem/main.py),
+  [`main_tabs.py`](packages/bkchem-app/bkchem/main_lib/main_tabs.py).
+- Replace `Pmw.OptionMenu` fallback in submode dropdown with `ttk.Combobox`
+  (readonly). File changed:
+  [`main_modes.py`](packages/bkchem-app/bkchem/main_lib/main_modes.py).
+- Fix dark-theme bond rendering: wrap all render-op colors through
+  `theme_manager.map_chemistry_color()` in `_render_ops_to_tk_canvas()`.
+  Previously `op.color` from oasa was truthy (`#000`), bypassing the theme
+  mapping fallback. Now all LineOp, PolygonOp, CircleOp, and PathOp colors
+  are mapped. File changed:
+  [`bond_render_ops.py`](packages/bkchem-app/bkchem/bond_render_ops.py).
+- Fix dark-theme arrow and vector graphics rendering: wrap `self.line_color`
+  and `self.area_color` in `theme_manager.map_chemistry_color()` for all
+  canvas create/itemconfig calls in arrow and graphics draw/redraw methods.
+  Files changed:
+  [`arrow_lib.py`](packages/bkchem-app/bkchem/arrow_lib.py),
+  [`graphics.py`](packages/bkchem-app/bkchem/graphics.py).
+- Add [`bk_dialogs.py`](packages/bkchem-app/bkchem/bk_dialogs.py) with pure
+  tkinter/ttk drop-in replacements for Pmw dialog and input widgets: `BkDialog`
+  (replaces `Pmw.Dialog`), `BkPromptDialog` (replaces `Pmw.PromptDialog`),
+  `BkTextDialog` (replaces `Pmw.TextDialog`), `BkCounter` (replaces
+  `Pmw.Counter`), and `BkScrolledListBox` (replaces `Pmw.ScrolledListBox`).
+  Also exports Pmw-compatible validation constants `OK`, `ERROR`, `PARTIAL`.
+- Add [`bk_widgets.py`](packages/bkchem-app/bkchem/bk_widgets.py) with drop-in
+  replacement wrappers for Pmw widget classes: `BkOptionMenu` (replaces
+  `Pmw.OptionMenu` with ttk.Combobox), `BkRadioSelect` (replaces
+  `Pmw.RadioSelect` with native tkinter Radiobutton/Checkbutton), and `BkGroup`
+  (replaces `Pmw.Group` with ttk.LabelFrame). Also defines `BK_OK`, `BK_ERROR`,
+  `BK_PARTIAL` constants replacing `Pmw.OK`/`Pmw.ERROR`/`Pmw.PARTIAL`.
+- Add `BkBalloon` tooltip class in
+  [`bk_tooltip.py`](packages/bkchem-app/bkchem/bk_tooltip.py) as a lightweight
+  replacement for `Pmw.Balloon`. Uses a borderless `Toplevel` with 500ms hover
+  delay, light-yellow background, and optional status-bar callback. No Pmw
+  dependency required.
+- Migrate submode ribbon row-layout buttons from Pmw.RadioSelect to
+  ttk.Button with named styles (`Submode.TButton`, `Selected.Submode.TButton`).
+  Buttons now inherit theme colors automatically via ttk style maps, fixing
+  white/light backgrounds in dark mode. Grid-layout buttons also gain
+  explicit theme colors (`grid_deselected`, `toolbar_fg`, `hover`).
+  Extracted shared row-building logic into `_build_submode_row()` method,
+  reused by both `change_mode()` and `refresh_submode_buttons()`.
+  Files changed:
+  [`main_modes.py`](packages/bkchem-app/bkchem/main_lib/main_modes.py),
+  [`theme_manager.py`](packages/bkchem-app/bkchem/theme_manager.py).
+- Add 1px separator line below submode ribbon, between ribbon and canvas area.
+  Uses theme-aware separator color. Grid layout shifted: edit pool now row 5,
+  notebook row 6, status bar row 7. Files changed:
+  [`main.py`](packages/bkchem-app/bkchem/main.py),
+  [`main_modes.py`](packages/bkchem-app/bkchem/main_lib/main_modes.py).
+- Increase toolbar mode button horizontal padding from `padx=1` to `padx=2`
+  for better visual breathing room between icons. File changed:
+  [`main.py`](packages/bkchem-app/bkchem/main.py).
+- Reserve fixed minimum height (28px) for edit pool row via
+  `grid_rowconfigure(minsize=28)` so showing/hiding the Entry widget when
+  switching modes does not cause the canvas to jump vertically. File changed:
+  [`main.py`](packages/bkchem-app/bkchem/main.py).
+- Update GUI UX review document to reflect all completed items: separator
+  lines, button padding, edit pool layout fix, theme system, ttk migration,
+  status bar enhancements, keyboard shortcuts. File changed:
+  [`GUI_UX_REVIEW.md`](docs/archive/GUI_UX_REVIEW.md).
+- Reorganize pixmaps directory: move 92 PNG icons into `pixmaps/png/`
+  subdirectory and remove 97 legacy GIF icons. Root pixmaps folder now
+  contains only `png/`, `src/`, and `icon.ico`. Files changed:
+  [`pixmaps.py`](packages/bkchem-app/bkchem/pixmaps.py),
+  [`os_support.py`](packages/bkchem-app/bkchem/os_support.py).
+- Add theme-aware toolbar icon recoloring. When the active theme has a
+  dark toolbar (luminance < 0.5), icons are automatically recolored at
+  load time using Pillow luminance inversion (HLS lightness flip). Icons
+  reload on theme switch so dark-on-transparent strokes become
+  light-on-transparent. No duplicate PNG files needed. Files changed:
+  [`pixmaps.py`](packages/bkchem-app/bkchem/pixmaps.py),
+  [`theme_manager.py`](packages/bkchem-app/bkchem/theme_manager.py).
+- Update SVG-to-PNG converter to output into `pixmaps/png/` subdirectory.
+  File changed:
+  [`convert_svg_icons.py`](tools/convert_svg_icons.py).
+- Replace toolbar `Button` widgets with `Label` widgets to fix macOS Aqua
+  Tk 9 ignoring `background` color on buttons with images. Labels correctly
+  honor background color, making dark theme toolbar icons render without
+  white squares. Click handling is via `<Button-1>` bindings on Labels.
+  Undo/redo also converted to Labels. Removed `Pmw.RadioSelect` from
+  toolbar construction. Files changed:
+  [`main.py`](packages/bkchem-app/bkchem/main.py),
+  [`main_modes.py`](packages/bkchem-app/bkchem/main_lib/main_modes.py),
+  [`theme_manager.py`](packages/bkchem-app/bkchem/theme_manager.py),
+  [`test_gui_modes.py`](packages/bkchem-app/tests/test_gui_modes.py).
+- Fix TclError on theme switch caused by garbage-collected PhotoImage
+  references. Old images are now kept alive until new themed images replace
+  them on toolbar buttons. Submode ribbon is rebuilt on theme switch to
+  avoid stale image references on hover. File changed:
+  [`theme_manager.py`](packages/bkchem-app/bkchem/theme_manager.py).
+- Add GUI theme switch smoke test that exercises light-to-dark-to-light
+  transitions, validates toolbar button images survive the switch, and
+  includes a rapid toggle stress test. File added:
+  [`test_gui_theme_change.py`](packages/bkchem-app/tests/test_gui_theme_change.py).
 - Replace Emacs-style multi-key sequences with standard single-modifier
   keyboard shortcuts. File operations (New, Open, Save, Quit) now use Ctrl+N,
   Ctrl+O, Ctrl+S, Ctrl+Q cross-platform. macOS adds Cmd equivalents (Cmd+N,

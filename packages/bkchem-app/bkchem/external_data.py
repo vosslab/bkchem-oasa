@@ -230,7 +230,7 @@ try:
   from tkinter import Entry
 except ImportError:
   from tkinter import Entry
-import Pmw
+from bkchem.bk_widgets import BkOptionMenu, BkRadioSelect
 
 
 class ExternalDataEntry( Entry, object):
@@ -266,10 +266,10 @@ class ExternalDataEntry( Entry, object):
 
 
 
-class ExternalDataList( Pmw.OptionMenu, object):
+class ExternalDataList( BkOptionMenu, object):
 
   def __init__( self, parent, type, **kw):
-    Pmw.OptionMenu.__init__( self, parent, **kw)
+    BkOptionMenu.__init__( self, parent, **kw)
     self.type_class = "reference"
     self.arrow = None
     self.type = type
@@ -298,10 +298,10 @@ class ExternalDataList( Pmw.OptionMenu, object):
 
 
 
-class ExternalDataListSelection( Pmw.RadioSelect, object):
+class ExternalDataListSelection( BkRadioSelect, object):
 
   def __init__( self, parent, type, **kw):
-    Pmw.RadioSelect.__init__( self, parent, **kw)
+    BkRadioSelect.__init__( self, parent, **kw)
     for t in type:
       self.add( t)
     self.type_class = "internal"

@@ -286,15 +286,15 @@ feel more responsive and polished without requiring a framework migration.
 
 ### Additional opportunities
 
-| Technique | Effect | Effort |
-| --- | --- | --- |
-| ttk themed widgets | `ttk.Button` with custom `ttk.Style` follows OS theme on macOS; gives native aqua look | Medium |
-| Icon-only toolbar | Remove text labels, rely on Pmw.Balloon tooltips; reduces toolbar height | Low |
-| Toolbar background band | Slightly darker toolbar frame (`#e0e0e0`) to separate from canvas surround | Low |
-| 1px top/bottom separator lines | Thin `#c8c8c8` lines between toolbar and submode ribbon, ribbon and canvas | Low |
-| Submode hover effects | Apply same `<Enter>`/`<Leave>` hover pattern to submode ribbon buttons | Low |
-| Padding adjustment | Add `padx=2, pady=1` to mode buttons for breathing room | Low |
-| Animated transitions | Use `after()` to fade hover color in/out over 100ms (limited by Tk redraw speed) | Medium |
+| Technique | Effect | Effort | Status |
+| --- | --- | --- | --- |
+| ttk themed widgets | `ttk.Button` with custom `ttk.Style` follows OS theme on macOS; gives native aqua look | Medium | DONE |
+| Icon-only toolbar | Remove text labels, rely on Pmw.Balloon tooltips; reduces toolbar height | Low | DONE |
+| Toolbar background band | Slightly darker toolbar frame (`#e0e0e0`) to separate from canvas surround | Low | DONE |
+| 1px top/bottom separator lines | Thin lines between toolbar and submode ribbon, ribbon and canvas | Low | DONE |
+| Submode hover effects | Apply same `<Enter>`/`<Leave>` hover pattern to submode ribbon buttons | Low | DONE |
+| Padding adjustment | Add `padx=2, pady=1` to mode buttons for breathing room | Low | DONE |
+| Animated transitions | Use `after()` to fade hover color in/out over 100ms (limited by Tk redraw speed) | Medium | deferred |
 
 ---
 
@@ -305,25 +305,35 @@ feel more responsive and polished without requiring a framework migration.
 - **V1 PNG icons:** Converted all 87 SVG source files to 32x32 PNG with
   32-bit RGBA and antialiased edges. Created 5 new SVG/PNG icons (undo, redo,
   repair, biotemplate, rplus). The `pixmaps.py` loader automatically prefers
-  PNG over GIF. Conversion pipeline in
+  PNG over GIF. Legacy GIF icons removed. Conversion pipeline in
   [`tools/convert_svg_icons.py`](../tools/convert_svg_icons.py).
-- **U3 Undo/redo toolbar buttons:** Added undo and redo buttons to the toolbar
-  frame, positioned after the mode buttons with a visual separator.
-- **U5 macOS Command key shortcuts:** Added macOS-specific Cmd+Z (undo),
-  Cmd+Shift+Z (redo), Cmd+S (save), Cmd+Shift+A (select all) key sequence
-  equivalents. Added Cmd+plus/minus/0 zoom and Cmd+G hex grid toggle to the
-  canvas event bindings.
+- **V2 Visual hierarchy:** Toolbar uses darker background (`#e0e0e0`) than
+  canvas surround. Two 1px separator lines: one between toolbar and submode
+  ribbon, one between submode ribbon and canvas. Theme-aware separator color.
 - **V4 Toolbar group separators:** Added data-driven separator positions in
   `modes.yaml` (`---` entries) with thin vertical lines between logical mode
   groups (general, templates, chemistry, annotation, geometry, graphics,
-  maintenance).
-- **Modern button feel:** Added hover highlight effects (`<Enter>`/`<Leave>`
-  bindings), active mode fill color (`#cde4f7`), groove relief for selected
-  mode, and `activebackground` tint for button press feedback.
+  maintenance). Increased button padding (`padx=2`) for breathing room.
+- **U1 Mode feedback:** Active mode name displayed in status bar. Active mode
+  button highlighted with groove relief via ttk.Radiobutton Toolbutton style.
+- **U3 Undo/redo toolbar buttons:** Added undo and redo buttons to the toolbar
+  frame, positioned after the mode buttons with a visual separator.
+- **U5 Keyboard shortcuts:** Replaced Emacs-style multi-key sequences with
+  standard Ctrl/Cmd single-modifier shortcuts. Added Help > Keyboard Shortcuts
+  dialog. Platform-aware accelerator display in menus.
+- **U6 Status bar info:** Mode name and zoom percentage displayed in status bar.
+- **YAML-driven theme system:** Light and dark themes with 17+ GUI color keys.
+  Theme-aware toolbar icon recoloring via luminance inversion. Icons reload on
+  theme switch.
+- **ttk themed widgets:** Toolbar mode buttons migrated from Pmw.RadioSelect to
+  ttk.Radiobutton with clam theme styling.
+- **Modern button feel:** Submode hover effects, Pmw.Balloon tooltips on all
+  toolbar and submode buttons, platform-aware menu accelerator display.
+- **Edit pool layout shift fix:** Reserved fixed minimum height for the edit
+  pool row so showing/hiding the Entry widget does not shift the canvas.
 
 ### Deferred
 
 - Template mode consolidation (architectural change, needs user testing)
-- Status bar enhancements (mode name, zoom level display)
 - Fresh screenshots (need manual GUI capture; legacy screenshots still in place)
-- ttk themed widget migration (medium effort, needs compatibility testing)
+- Animated transitions (limited by Tk redraw speed)

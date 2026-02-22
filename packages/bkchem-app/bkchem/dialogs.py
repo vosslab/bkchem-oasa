@@ -27,13 +27,15 @@ import tkinter
 import tkinter.font
 import tkinter.messagebox
 
-import Pmw
+import tkinter.ttk as ttk
 
 from bkchem import data
 from bkchem import bkchem_utils
 from bkchem import classes
 from bkchem import widgets
 from bkchem import os_support
+from bkchem.bk_dialogs import BkDialog, BkCounter, BkScrolledListBox
+from bkchem.bk_widgets import BkOptionMenu, BkRadioSelect, BkGroup
 from bkchem.singleton_store import Store, Screen
 
 # gettext i18n translation fallback
@@ -48,13 +50,13 @@ class scale_dialog(object):
 
   """
   def __init__( self, parent):
-    self.dialog = Pmw.Dialog( parent,
+    self.dialog = BkDialog( parent,
                               buttons=(_('OK'), _('Cancel')),
                               defaultbutton=_('OK'),
                               title=_('Scale'),
                               command=self.done)
     # X RATIO
-    self.entryx = Pmw.Counter( self.dialog.interior(),
+    self.entryx = BkCounter( self.dialog.interior(),
                                labelpos = 'w',
                                label_text=_("Scale X (in %):"),
                                entryfield_value = 100,
@@ -65,7 +67,7 @@ class scale_dialog(object):
                                datatype = 'integer')
     self.entryx.pack(pady=10, anchor='w', padx=10)
     # Y RATIO
-    self.entryy = Pmw.Counter( self.dialog.interior(),
+    self.entryy = BkCounter( self.dialog.interior(),
                                labelpos = 'w',
                                label_text=_("Scale Y (in %):"),
                                entryfield_value = 100,
@@ -146,14 +148,14 @@ class config_dialog(object):
     self.items = items
     self.changes_made = 0
     self.parent = parent
-    self.dialog = Pmw.Dialog( parent,
+    self.dialog = BkDialog( parent,
                               buttons=(_('OK'), _('Cancel')),
                               defaultbutton=_('OK'),
                               title=_('Configuration'),
                               command=self.done,
                               master='parent')
     #parent.bind_all( "<Button-1>", self.raise_me, add='+')
-    self.pages = Pmw.NoteBook( self.dialog.interior())
+    self.pages = ttk.Notebook( self.dialog.interior())
     self.pages.pack( anchor='w', pady=0, padx=0, fill='both', expand=1)
 
     # create pages for different item types
@@ -174,14 +176,15 @@ class config_dialog(object):
     types = bkchem_utils.filter_unique( [o.object_type for o in items])
 
     if 'atom' in types:
-      self.atom_page = self.pages.add(_('Atom'))
+      self.atom_page = ttk.Frame(self.pages)
+      self.pages.add(self.atom_page, text=_('Atom'))
       # charge
       charges = bkchem_utils.filter_unique( [o.charge for o in items if hasattr( o, 'charge')])
       if len( charges) == 1:
         charge = charges[0]
       else:
         charge = ''
-      self.atom_charge = Pmw.Counter( self.atom_page,
+      self.atom_charge = BkCounter( self.atom_page,
                                       labelpos = 'w',
                                       label_text = _('Charge'),
                                       entryfield_value = charge,
@@ -196,7 +199,7 @@ class config_dialog(object):
         show = int( shows[0])
       else:
         show = 2 # means the show should be preserved as is
-      self.atom_show = Pmw.OptionMenu( self.atom_page,
+      self.atom_show = BkOptionMenu( self.atom_page,
                                        labelpos = 'nw',
                                        label_text = _('Atom name'),
                                        items = (_("don't show"), _("show"), ""),
@@ -213,7 +216,7 @@ class config_dialog(object):
       if pos == None:
         self.atom_pos = None
       else:
-        self.atom_pos = Pmw.OptionMenu( self.atom_page,
+        self.atom_pos = BkOptionMenu( self.atom_page,
                                         labelpos = 'nw',
                                         label_text = _('Atom positioning'),
                                         items = (_("center first letter"), _("center last letter"), ""),
@@ -226,7 +229,7 @@ class config_dialog(object):
         show = shows[0]
       else:
         show = 2 # means the show should be preserved as is
-      self.atom_show_h = Pmw.OptionMenu( self.atom_page,
+      self.atom_show_h = BkOptionMenu( self.atom_page,
                                          labelpos = 'nw',
                                          label_text = _('Hydrogens'),
                                          items = (_("off"), _("on"), ""),
@@ -240,7 +243,8 @@ class config_dialog(object):
 
     # BOND
     if 'bond' in types:
-      self.bond_page = self.pages.add(_('Bond'))
+      self.bond_page = ttk.Frame(self.pages)
+      self.pages.add(self.bond_page, text=_('Bond'))
       # bond_widths (former distances)
       dists = bkchem_utils.filter_unique( list(map( abs, [o.bond_width for o in items if o.object_type == 'bond'])))
       if len( dists) == 1:
@@ -276,7 +280,8 @@ class config_dialog(object):
 
     # ARROW
     if 'arrow' in types:
-      self.arrow_page = self.pages.add(_('Arrow'))
+      self.arrow_page = ttk.Frame(self.pages)
+      self.pages.add(self.arrow_page, text=_('Arrow'))
       self.arrow_end_changed = 0
       self.arrow_start_changed = 0
       arrow_items = [o for o in items if o.object_type == 'arrow']
@@ -328,7 +333,8 @@ class config_dialog(object):
     # FONT
     font_items = [x for x in items if hasattr( x, 'font_family')]
     if font_items:
-      self.font_page = self.pages.add(_('Font'))
+      self.font_page = ttk.Frame(self.pages)
+      self.pages.add(self.font_page, text=_('Font'))
 
       sizes = bkchem_utils.filter_unique( [o.font_size for o in font_items])
       if len( sizes) == 1:
@@ -347,7 +353,8 @@ class config_dialog(object):
       self.font_family.pack( anchor="nw", side = 'bottom')
 
     # COMMON
-    self.common_page = self.pages.add(_('Common'))
+    self.common_page = ttk.Frame(self.pages)
+    self.pages.add(self.common_page, text=_('Common'))
     line_items = [x for x in items if hasattr( x, 'line_width')]
     if line_items:
       widths = bkchem_utils.filter_unique( [o.line_width for o in line_items])
@@ -382,8 +389,7 @@ class config_dialog(object):
 
 
     # RUN IT ALL
-    self.pages.setnaturalsize()
-    self.dialog.activate( globalMode=0)
+    self.dialog.activate()
 
 
   def done( self, button):
@@ -398,12 +404,12 @@ class config_dialog(object):
         change = 0
         # ATOM
         if o.object_type == 'atom':
-          a = self.atom_show.index( Pmw.SELECT)
+          a = self.atom_show.index( 'select')
           if a != 2:
             o.show = a
             change = 1
           # positionning
-          a = self.atom_pos.index( Pmw.SELECT)
+          a = self.atom_pos.index( 'select')
           if a != 2:
             o.pos = ('center-first', 'center-last')[ a]
             change = 1
@@ -413,7 +419,7 @@ class config_dialog(object):
               o.charge = a
             change = 1
           # hydrogens
-          a = int( self.atom_show_h.index( Pmw.SELECT))
+          a = int( self.atom_show_h.index( 'select'))
           if a != 2:
             o.show_hydrogens = a
             change = 1
@@ -522,7 +528,7 @@ class file_properties_dialog(object):
   def __init__( self, parent, paper):
     self.parent = parent
     self.paper = paper
-    self.dialog = Pmw.Dialog( parent,
+    self.dialog = BkDialog( parent,
                               buttons=(_('OK'), _('Cancel')),
                               defaultbutton=_('OK'),
                               title=_('File properties'),
@@ -544,7 +550,7 @@ class file_properties_dialog(object):
     else:
       t = self.paper._paper_properties['type']
     paper_types = sorted(data.paper_types.keys())
-    self.paper_type_chooser = Pmw.OptionMenu( paper_frame,
+    self.paper_type_chooser = BkOptionMenu( paper_frame,
                                               items=paper_types, #+[_('Custom')],
                                               initialitem = t,
                                               labelpos = 'w',
@@ -552,10 +558,9 @@ class file_properties_dialog(object):
                                               menubutton_width = 10)
     self.paper_type_chooser.pack( anchor='w', padx=5, pady=5)
     # paper orientation
-    self.paper_orientation_chooser = Pmw.RadioSelect( paper_frame,
+    self.paper_orientation_chooser = BkRadioSelect( paper_frame,
                                                       buttontype='radiobutton',
-                                                      orient='vertical',
-                                                      pady=0)
+                                                      orient='vertical')
     self.paper_orientation_chooser.add(_('Portrait'))
     self.paper_orientation_chooser.add(_('Landscape'))
     self.paper_orientation_chooser.pack( anchor='w', padx=5, pady=5)
@@ -581,7 +586,7 @@ class file_properties_dialog(object):
     crop.pack( anchor='w', padx=5, pady=5)
     # margin for cropping
     margin = self.paper.get_paper_property( 'crop_margin')
-    self.margin_entry = Pmw.Counter( crop_frame,
+    self.margin_entry = BkCounter( crop_frame,
                                      labelpos = 'w',
                                      label_text=_("Margin for cropped image (in pixels):"),
                                      entryfield_value = margin,
@@ -649,7 +654,7 @@ class standard_values_dialog(object):
   def __init__( self, parent, standard):
     self.parent = parent
     self.standard = standard
-    self.dialog = Pmw.Dialog( parent,
+    self.dialog = BkDialog( parent,
                               buttons=(_('OK'), _('Cancel'), _('Save')),
                               defaultbutton=_('OK'),
                               title=_('Standard values'),
@@ -662,18 +667,19 @@ class standard_values_dialog(object):
 
 
   def draw( self):
-    self.pages = Pmw.NoteBook( self.body)
+    self.pages = ttk.Notebook( self.body)
     self.pages.pack( anchor='w', pady=0, padx=0, fill='both', expand=1)
     # COMMON
-    common_page = self.pages.add( _('Common'))
+    common_page = ttk.Frame(self.pages)
+    self.pages.add(common_page, text=_('Common'))
     # LINE
-    line_group = Pmw.Group( common_page, tag_text=_('Line'))
+    line_group = BkGroup( common_page, tag_text=_('Line'))
     line_group.pack( fill='x')
     # line width
     self.line_width = widgets.WidthChooser( line_group.interior(), self.standard.line_width, label=_('Line width'))
     self.line_width.pack( anchor='nw', padx=10, pady=5)
     # COLORS
-    color_group = Pmw.Group( common_page, tag_text=_('Color'))
+    color_group = BkGroup( common_page, tag_text=_('Color'))
     color_group.pack( fill='x')
     # line color
     self.line_color = widgets.ColorButtonWithTransparencyChecker( color_group.interior(), color=self.standard.line_color, text=_("Line color"))
@@ -683,14 +689,16 @@ class standard_values_dialog(object):
     self.area_color.pack( side='right', padx=10, pady=5)
 
     # ATOM
-    atom_group = self.pages.add( _('Atom'))
+    atom_group = ttk.Frame(self.pages)
+    self.pages.add(atom_group, text=_('Atom'))
     self.show_hydrogens = tkinter.IntVar()
     self.show_hydrogens.set( int( self.standard.show_hydrogens))
     sh = tkinter.Checkbutton( atom_group, text=_('Show hydrogens on visible atoms'), variable=self.show_hydrogens)
     sh.pack( anchor='w', padx=10, pady=10)
 
     # BOND
-    bond_group = self.pages.add( _("Bond")) #Pmw.Group( self.body, tag_text=_('Bond'))
+    bond_group = ttk.Frame(self.pages)
+    self.pages.add(bond_group, text=_("Bond"))
     # bond width
     self.bond_width = widgets.WidthChooser( bond_group, self.standard.bond_width, label=_('Bond width'))
     self.bond_width.pack( anchor='ne', padx=10, pady=5)
@@ -707,7 +715,8 @@ class standard_values_dialog(object):
     self.double_length_ratio.pack( anchor='ne', padx=10, pady=5)
 
     # FONT
-    font_group = self.pages.add( _('Font'))
+    font_group = ttk.Frame(self.pages)
+    self.pages.add(font_group, text=_('Font'))
     # font size
     self.font_size = widgets.FontSizeChooser( font_group, self.standard.font_size)
     self.font_size.pack( anchor = 'nw')
@@ -718,13 +727,14 @@ class standard_values_dialog(object):
     # PAPER
     # paper type
     self.paper = self.parent.paper
-    paper_group = self.pages.add(_('Paper'))
+    paper_group = ttk.Frame(self.pages)
+    self.pages.add(paper_group, text=_('Paper'))
     if self.paper._paper_properties['type'] == 'custom':
       t = _('Custom')
     else:
       t = self.paper._paper_properties['type']
     paper_types = sorted(data.paper_types.keys())
-    self.paper_type_chooser = Pmw.OptionMenu( paper_group,
+    self.paper_type_chooser = BkOptionMenu( paper_group,
                                               items=paper_types, #+[_('Custom')],
                                               initialitem = t,
                                               labelpos = 'w',
@@ -732,10 +742,9 @@ class standard_values_dialog(object):
                                               menubutton_width = 10)
     self.paper_type_chooser.pack( anchor='w', padx=10, pady=10)
     # paper orientation
-    self.paper_orientation_chooser = Pmw.RadioSelect( paper_group,
+    self.paper_orientation_chooser = BkRadioSelect( paper_group,
                                                       buttontype='radiobutton',
-                                                      orient='vertical',
-                                                      pady=0)
+                                                      orient='vertical')
     self.paper_orientation_chooser.add(_('Portrait'))
     self.paper_orientation_chooser.add(_('Landscape'))
     self.paper_orientation_chooser.pack( anchor='w', padx=10, pady=10)
@@ -751,7 +760,7 @@ class standard_values_dialog(object):
     crop.pack( anchor='w', padx=10, pady=10)
     # crop margin
     margin = self.paper.get_paper_property( 'crop_margin')
-    self.margin_entry = Pmw.Counter( paper_group,
+    self.margin_entry = BkCounter( paper_group,
                                      labelpos = 'w',
                                      label_text=_("Margin for cropped image (in pixels):"),
                                      entryfield_value = margin,
@@ -764,23 +773,21 @@ class standard_values_dialog(object):
 
     # DIALOG WIDE PART
     # how to apply?
-    apply_group = Pmw.Group( self.body, tag_text=_('Apply'))
+    apply_group = BkGroup( self.body, tag_text=_('Apply'))
     apply_group.pack( fill='x', padx=5, pady=5)
     # apply all or only the changed ones? - it must be created before apply_button because
     # of the callback that operates on activity of apply_button2
-    self.apply_button2 = Pmw.RadioSelect( apply_group.interior(),
+    self.apply_button2 = BkRadioSelect( apply_group.interior(),
                                          buttontype = 'radiobutton',
-                                         orient = 'vertical',
-                                         pady = 0)
+                                         orient = 'vertical')
     self.apply_button2.add( _("changed values only"))
     self.apply_button2.add( _("all values"))
     self.apply_button2.invoke( 0)
     # apply to current drawing?
-    self.apply_button = Pmw.RadioSelect( apply_group.interior(),
+    self.apply_button = BkRadioSelect( apply_group.interior(),
                                          buttontype = 'radiobutton',
                                          command = self._apply_button_callback,
-                                         orient = 'vertical',
-                                         pady = 0)
+                                         orient = 'vertical')
     self.apply_button.add( _("to new drawings only"))
     self.apply_button.add( _("to selected and new drawings (no resize)"))
     self.apply_button.add( _("to the whole drawing (no resize)"))
@@ -789,7 +796,6 @@ class standard_values_dialog(object):
     # we pack the button2 here to get a better organization
     self.apply_button2.pack( padx=0, pady=10, anchor='w')
 
-    self.pages.setnaturalsize()
 
 
   def done( self, button):
@@ -860,7 +866,7 @@ class preferences_dialog(object):
   def __init__( self, parent, preferences):
     self.parent = parent
     self.preferences = preferences
-    self.dialog = Pmw.Dialog( parent,
+    self.dialog = BkDialog( parent,
                               buttons=(_('OK'), _('Cancel')),
                               defaultbutton=_('OK'),
                               title=_('Preferences'),
@@ -880,10 +886,11 @@ class preferences_dialog(object):
 
 
   def draw( self):
-    self.pages = Pmw.NoteBook( self.body)
+    self.pages = ttk.Notebook( self.body)
     self.pages.pack( anchor='w', pady=0, padx=0, fill='both', expand=1)
     # COMMON
-    common_page = self.pages.add( _('Common'))
+    common_page = ttk.Frame(self.pages)
+    self.pages.add(common_page, text=_('Common'))
     # use real minus ?
     replace_minus_button = tkinter.Checkbutton( common_page, text=_('Use real minus character (instead of hyphen)?'),
                                                 variable=self.use_real_minus)
@@ -895,7 +902,6 @@ class preferences_dialog(object):
     #                                            variable=self.replace_minus)
     #replace_minus_button.pack( anchor='w', padx=10, pady=10)
 
-    self.pages.setnaturalsize()
 
 
   def done( self, button):
@@ -912,7 +918,7 @@ class preferences_dialog(object):
 
 ## -------------------- fragment overwiev --------------------
 
-class fragment_dialog( Pmw.Dialog):
+class fragment_dialog( BkDialog):
 
   def __init__( self, paper, deletion=True):
     self.paper = paper
@@ -921,7 +927,7 @@ class fragment_dialog( Pmw.Dialog):
     else:
       butts = (_('OK'), _('Cancel'))
 
-    Pmw.Dialog.__init__( self,
+    BkDialog.__init__( self,
                          Store.app,
                          buttons=butts,
                          defaultbutton=_('OK'),
@@ -936,7 +942,7 @@ class fragment_dialog( Pmw.Dialog):
 
 
   def init_list( self):
-    self.list = Pmw.ScrolledListBox( self.interior(),
+    self.list = BkScrolledListBox( self.interior(),
                                      selectioncommand=self.select,
                                      labelpos = "n",
                                      label_text=_("Fragments"),
@@ -997,11 +1003,11 @@ class fragment_dialog( Pmw.Dialog):
 
 ## -------------------- logging dialog --------------------
 
-class logging_dialog( Pmw.Dialog):
+class logging_dialog( BkDialog):
 
   def __init__( self, paper, logger):
     self.logger = logger
-    Pmw.Dialog.__init__( self,
+    BkDialog.__init__( self,
                          Store.app,
                          buttons=(_('OK'), _('Cancel')),
                          defaultbutton=_('OK'),
@@ -1019,10 +1025,9 @@ class logging_dialog( Pmw.Dialog):
       f = tkinter.Frame( root)
       label = tkinter.Label( f, text=self.logger.type_to_text[message_type], font=("Helvetica", 12, "bold"))
       label.pack( side='left', anchor="w")
-      chooser = Pmw.RadioSelect( f,
+      chooser = BkRadioSelect( f,
                                  buttontype='radiobutton',
-                                 orient='horizontal',
-                                 pady=0)
+                                 orient='horizontal')
       self.choosers[message_type] = chooser
       for handle_type in self.logger.handle_order:
         chooser.add( self.logger.handle_to_text[handle_type])
@@ -1044,10 +1049,10 @@ class logging_dialog( Pmw.Dialog):
 
 ## -------------------- language dialog --------------------
 
-class language_dialog( Pmw.Dialog):
+class language_dialog( BkDialog):
 
   def __init__( self, paper):
-    Pmw.Dialog.__init__( self,
+    BkDialog.__init__( self,
                          Store.app,
                          buttons=(_('OK'), _('Cancel')),
                          defaultbutton=_('OK'),
@@ -1078,7 +1083,7 @@ class language_dialog( Pmw.Dialog):
     self.languages[default] = "default"
     langs.append( default)
 
-    self.list = Pmw.ScrolledListBox( self.interior(),
+    self.list = BkScrolledListBox( self.interior(),
                                      #selectioncommand=self.select,
                                      labelpos = "n",
                                      label_text=_("Available Languages"),
@@ -1185,7 +1190,7 @@ class theme_dialog(object):
       t = theme_manager.get_theme(n)
       display_names.append(t.get('name', n))
 
-    self.dialog = Pmw.Dialog(
+    self.dialog = BkDialog(
       parent,
       title=_('Theme'),
       buttons=(_('OK'), _('Cancel')),
@@ -1193,7 +1198,7 @@ class theme_dialog(object):
       command=self._button_pressed,
     )
     interior = self.dialog.interior()
-    self.radio = Pmw.RadioSelect(
+    self.radio = BkRadioSelect(
       interior,
       buttontype='radiobutton',
       orient='vertical',
@@ -1223,7 +1228,7 @@ class keyboard_shortcuts_dialog(object):
 
   def __init__(self, parent):
     from bkchem.platform_menu import format_accelerator_display as format_accelerator
-    self.dialog = Pmw.Dialog(
+    self.dialog = BkDialog(
       parent,
       buttons=(_('OK'),),
       defaultbutton=_('OK'),

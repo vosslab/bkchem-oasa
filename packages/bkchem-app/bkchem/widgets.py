@@ -34,11 +34,11 @@ import tkinter.filedialog
 
 from oasa import geometry
 
-import Pmw
-
 from bkchem import data
 from bkchem import bkchem_utils
 from bkchem import bkchem_config
+from bkchem.bk_dialogs import BkDialog, BkCounter, BkScrolledListBox, OK, ERROR, PARTIAL
+from bkchem.bk_widgets import BkOptionMenu
 from bkchem.keysym_loader import get_keysyms
 from bkchem.singleton_store import Store
 
@@ -142,7 +142,7 @@ class GraphicalAngleChooser(tkinter.Frame):
 		self.canvas.bind('<B1-Motion>', self._click)
 		self.canvas.pack()
 
-		self.counter = Pmw.Counter( self,
+		self.counter = BkCounter( self,
 																entryfield_value = angle,
 																entryfield_validate={ 'validator':'integer', 'min':0, 'max':360},
 																entry_width = 5,
@@ -183,10 +183,10 @@ class GraphicalAngleChooser(tkinter.Frame):
 
 
 
-class FontSizeChooser(Pmw.Counter):
+class FontSizeChooser(BkCounter):
 
 	def __init__(self, parent, value):
-		Pmw.Counter.__init__( self,
+		BkCounter.__init__( self,
 													parent,
 													labelpos = 'nw',
 													label_text = _('Font size'),
@@ -198,7 +198,7 @@ class FontSizeChooser(Pmw.Counter):
 
 
 
-class FontFamilyChooser(Pmw.ScrolledListBox):
+class FontFamilyChooser(BkScrolledListBox):
 
 	def __init__(self, parent, value):
 			available_families = sorted(list(tkinter.font.families()))
@@ -209,7 +209,7 @@ class FontFamilyChooser(Pmw.ScrolledListBox):
 				v = ''
 			else:
 				v = value
-			Pmw.ScrolledListBox.__init__( self,
+			BkScrolledListBox.__init__( self,
 																		parent,
 																		labelpos = 'nw',
 																		label_text = _('Font family'),
@@ -221,13 +221,13 @@ class FontFamilyChooser(Pmw.ScrolledListBox):
 
 
 
-class WidthCounter(Pmw.Counter):
+class WidthCounter(BkCounter):
 	"""Counter widget used to implement WidthChooser.
 
 	"""
 	def __init__(self, parent, value, label=None):
 		l = label or _('Width')
-		Pmw.Counter.__init__( self,
+		BkCounter.__init__( self,
 													parent,
 													labelpos = 'w',
 													label_text = l,
@@ -239,13 +239,13 @@ class WidthCounter(Pmw.Counter):
 
 
 
-class LengthCounter(Pmw.Counter):
+class LengthCounter(BkCounter):
 	"""Counter widget used to implement LengthChooser.
 
 	"""
 	def __init__(self, parent, value, label=None):
 		l = label or _('Length')
-		Pmw.Counter.__init__( self,
+		BkCounter.__init__( self,
 													parent,
 													labelpos = 'w',
 													label_text = l,
@@ -257,13 +257,13 @@ class LengthCounter(Pmw.Counter):
 
 
 
-class RatioCounter(Pmw.Counter):
+class RatioCounter(BkCounter):
 	"""Counter used to input ratio information.
 
 	"""
 	def __init__(self, parent, value, label=None):
 		l = label or _('Ratio')
-		Pmw.Counter.__init__( self,
+		BkCounter.__init__( self,
 													parent,
 													labelpos = 'w',
 													label_text = l,
@@ -281,7 +281,7 @@ class ValueWithUnitParent(tkinter.Frame):
 		"""Initialize ValueWithUnitParent object.
 
 		parent  - standard widget parent
-		counter - should be Pmw.Counter instance
+		counter - should be BkCounter instance
 		units   - dictionary of dictionaries keyed by unit name with ratio,
 							round and increment
 		"""
@@ -299,7 +299,7 @@ class ValueWithUnitParent(tkinter.Frame):
 		self.counter.pack( side='left')
 		# the unit selection widget
 		us = sorted(units.keys())
-		self.unit = Pmw.OptionMenu( self, items=us, initialitem=self._recent_unit, command=self.unit_changed)
+		self.unit = BkOptionMenu( self, items=us, initialitem=self._recent_unit, command=self.unit_changed)
 		self.unit.pack( side='left')
 
 
@@ -391,10 +391,10 @@ class FileSelectionEntry(tkinter.Frame):
 
 
 
-class FileSelectionWithText(Pmw.Dialog):
+class FileSelectionWithText(BkDialog):
 
 	def __init__(self, parent, title="", prompt="", value="", filetypes=()):
-		Pmw.Dialog.__init__( self,
+		BkDialog.__init__( self,
 													parent,
 													buttons = (_('OK'),_('Cancel')),
 													title = title)
@@ -518,13 +518,13 @@ def font_size_counter( text, factor, increment):
 
 def font_size_validator( input):
 	if input == '':
-		return Pmw.OK
+		return OK
 	if len( input) > 3:
-		return Pmw.ERROR
+		return ERROR
 	if re.match( r"^\d+$", input):
 		i = int( input)
 		if i >= 1 and i <= 64:
-			return Pmw.OK
+			return OK
 		else:
-			return Pmw.PARTIAL
-	return Pmw.ERROR
+			return PARTIAL
+	return ERROR

@@ -81,7 +81,7 @@ bond_align_mode_mirrorthrough = _("click a bond or two atoms to mirror the molec
 
 
 about_text = _("""BKChem was conceived and written by Beda Kosata
-and is performed by Python, Pmw & (optionally) Cairo.
+and is performed by Python, tkinter & (optionally) Cairo.
 
 Previously forked by Simone Pilon.
 Currently maintained by Neil R. Voss
@@ -94,12 +94,6 @@ BKChem is provided as is without warranty of any kind.
 
 Among other things GNU GPL allows you to study, modify
 and redistribute BKChem as long as you do it under GNU GPL.""")
-
-
-no_pmw_text = _("""UNABLE TO IMPORT PMW
-
-Sorry, but BKChem relies too heavily on Pmw to be usable without it. Please install Pmw and try again.
-(for more info on Pmw see documentation)""")
 
 
 no_oasa_text = _("""UNABLE TO IMPORT OASA

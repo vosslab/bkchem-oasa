@@ -30,6 +30,7 @@ from warnings import warn
 
 from bkchem import bkchem_utils
 from bkchem import dom_extensions
+from bkchem import theme_manager
 
 from bkchem.classes import point
 from bkchem.reaction_lib import BkReaction
@@ -293,12 +294,14 @@ class BkArrow( meta_enabled, drawable, with_line, line_colored, container, inter
       coords[-1] = geometry.elongate_line( x1,y1,x2,y2,self.paper.real_to_canvas(-8)) # shorten the line - looks better
 
     ps = tuple(j for i in coords for j in i)
+    # map line color through theme so default-colored arrows follow dark/light theme
+    _lc = theme_manager.map_chemistry_color(self.line_color)
     item1 = self.paper.create_line( ps, tags='arrow', width=self.line_width,
-                                    smooth=self.spline, fill=self.line_color)
+                                    smooth=self.spline, fill=_lc)
     items = [item1]
     for x1,y1,x2,y2 in pins:
       coords = double_sided_arrow_head(x1, y1, x2, y2, self.paper.real_to_canvas(8), self.paper.real_to_canvas(10), self.paper.real_to_canvas(3))
-      items.append( self.paper.create_polygon( coords, fill=self.line_color, outline=self.line_color,
+      items.append( self.paper.create_polygon( coords, fill=_lc, outline=_lc,
                                                width=1, tags="arrow_no_focus", joinstyle="miter"))
 
     return items
@@ -320,12 +323,14 @@ class BkArrow( meta_enabled, drawable, with_line, line_colored, container, inter
       coords[-1] = geometry.elongate_line( x1,y1,x2,y2,self.paper.real_to_canvas(-8)) # shorten the line - looks better
 
     ps = tuple(j for i in coords for j in i)
+    # map line color through theme so default-colored arrows follow dark/light theme
+    _lc = theme_manager.map_chemistry_color(self.line_color)
     item1 = self.paper.create_line( ps, tags='arrow', width=self.line_width,
-                                    smooth=self.spline, fill=self.line_color)
+                                    smooth=self.spline, fill=_lc)
     items = [item1]
     for x1,y1,x2,y2 in pins:
       coords = single_sided_arrow_head(x1, y1, x2, y2, self.paper.real_to_canvas(8), self.paper.real_to_canvas(10), self.paper.real_to_canvas(4), self.line_width)
-      items.append( self.paper.create_polygon( coords, fill=self.line_color, outline=self.line_color,
+      items.append( self.paper.create_polygon( coords, fill=_lc, outline=_lc,
                                                width=1, tags="arrow_no_focus", joinstyle="miter"))
 
     return items
@@ -335,22 +340,24 @@ class BkArrow( meta_enabled, drawable, with_line, line_colored, container, inter
     width = self.paper.real_to_canvas(3)
     head_param = self.paper.real_to_canvas(8) # just a placeholder for "8"
     coords = [p.get_xy_on_screen() for p in self.points]
+    # map line color through theme so default-colored arrows follow dark/light theme
+    _lc = theme_manager.map_chemistry_color(self.line_color)
     items = []
     # the pins
     if self.pin in (2,3):
       head = retro_arrow_head(coords[1][0],coords[1][1],coords[0][0],coords[0][1],head_param,head_param,width)
-      head_item = self.paper.create_line( head, width=self.line_width,fill=self.line_color,joinstyle="miter")
+      head_item = self.paper.create_line( head, width=self.line_width,fill=_lc,joinstyle="miter")
       items.append( head_item)
     if self.pin in (1,3):
       head = retro_arrow_head(coords[-2][0],coords[-2][1],coords[-1][0],coords[-1][1],head_param,head_param,width)
-      head_item = self.paper.create_line( head, width=self.line_width,fill=self.line_color,joinstyle="miter")
+      head_item = self.paper.create_line( head, width=self.line_width,fill=_lc,joinstyle="miter")
       items.append( head_item)
     # the lines
     for sig in (-1,1):
       cs = geometry.find_parallel_polyline( coords, sig*width)
       ps = tuple(j for i in cs for j in i)
       item1 = self.paper.create_line( ps, tags='arrow', width=self.line_width,
-                                      smooth=self.spline, fill=self.line_color)
+                                      smooth=self.spline, fill=_lc)
       items.append( item1)
     return items
 
@@ -358,6 +365,8 @@ class BkArrow( meta_enabled, drawable, with_line, line_colored, container, inter
   def _draw_equilibrium( self):
     width = self.paper.real_to_canvas(3)
     orig_coords = [p.get_xy_on_screen() for p in self.points]
+    # map line color through theme so default-colored arrows follow dark/light theme
+    _lc = theme_manager.map_chemistry_color(self.line_color)
     items = []
     for sig in (-1,1):
       coords = geometry.find_parallel_polyline( orig_coords, sig*width)
@@ -372,11 +381,11 @@ class BkArrow( meta_enabled, drawable, with_line, line_colored, container, inter
       # the line
       ps = tuple(j for i in coords for j in i)
       item1 = self.paper.create_line( ps, tags='arrow', width=self.line_width,
-                                      smooth=self.spline, fill=self.line_color)
+                                      smooth=self.spline, fill=_lc)
       items.append( item1)
       # the pin
       cs = single_sided_arrow_head(x1, y1, x2, y2, self.paper.real_to_canvas(8), self.paper.real_to_canvas(10), self.paper.real_to_canvas(3), self.line_width)
-      items.append( self.paper.create_polygon( cs, fill=self.line_color, outline=self.line_color,
+      items.append( self.paper.create_polygon( cs, fill=_lc, outline=_lc,
                                                width=1, tags="arrow_no_focus", joinstyle="miter"))
     return items
 
@@ -384,6 +393,8 @@ class BkArrow( meta_enabled, drawable, with_line, line_colored, container, inter
   def _draw_equilibrium2( self):
     width = 3
     orig_coords = [p.get_xy_on_screen() for p in self.points]
+    # map line color through theme so default-colored arrows follow dark/light theme
+    _lc = theme_manager.map_chemistry_color(self.line_color)
     items = []
     for sig in (-1,1):
       coords = geometry.find_parallel_polyline( orig_coords, sig*width)
@@ -413,12 +424,12 @@ class BkArrow( meta_enabled, drawable, with_line, line_colored, container, inter
         xp, yp = geometry.point_at_distance_from_line( x1,y1,xp,yp,self.paper.real_to_canvas(5))
         items.append( self.paper.create_line( (x2,y2,xp,yp),
                                               tags='arrow', width=self.line_width,
-                                              smooth=self.spline, fill=self.line_color,
+                                              smooth=self.spline, fill=_lc,
                                               joinstyle="miter"))
       # the line (with optional pin)
       ps = tuple(j for i in coords for j in i)
       item1 = self.paper.create_line( ps, tags='arrow', width=self.line_width,
-                                      smooth=self.spline, fill=self.line_color,
+                                      smooth=self.spline, fill=_lc,
                                       joinstyle="miter")
       items.append( item1)
     return items

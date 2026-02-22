@@ -1,9 +1,9 @@
 """Mode switching mixin methods for BKChem main application."""
 
-from tkinter import Button, Frame, Label, LEFT
+# Standard Library
+import tkinter.ttk as ttk
+from tkinter import Frame, Label, LEFT
 
-import Pmw
-from bkchem import bkchem_config
 from bkchem import bkchem_utils
 from bkchem import theme_manager
 from bkchem.modes.config import get_modes_config
@@ -12,25 +12,6 @@ from bkchem import pixmaps
 import builtins
 # gettext i18n translation fallback
 _ = builtins.__dict__.get( '_', lambda m: m)
-
-
-#============================================
-def _on_sub_enter(btn, default_bg):
-	"""Highlight a submode button on mouse hover."""
-	# skip hover tint when the button is the active selection
-	current_bg = str(btn.cget('background'))
-	if current_bg == theme_manager.get_color('grid_selected'):
-		return
-	btn.configure(background=theme_manager.get_color('hover'))
-
-
-#============================================
-def _on_sub_leave(btn, default_bg):
-	"""Restore a submode button background when mouse leaves."""
-	current_bg = str(btn.cget('background'))
-	if current_bg == theme_manager.get_color('grid_selected'):
-		return
-	btn.configure(background=default_bg)
 
 
 class MainModesMixin:
@@ -48,8 +29,6 @@ class MainModesMixin:
 		self.editPool.destroy_buttons()
 		if self.subbuttons:
 			for butts in self.subbuttons:
-				if hasattr( butts, 'deleteall()'):
-					butts.deleteall()
 				butts.destroy()
 		self.subbuttons = []
 		for widget in getattr(self, '_sub_extra_widgets', []):
@@ -88,50 +67,21 @@ class MainModesMixin:
 				self.subbuttons.append(grid_frame)
 				grid_frame.pack(side=LEFT, padx=(0, 2))
 			elif layout == 'row':
-				# normal horizontal button row
-				self.subbuttons.append( Pmw.RadioSelect( self.subFrame,
-																								buttontype = 'button',
-																								selectmode = 'single',
-																								orient = 'horizontal',
-																								command = self.change_submode,
-																								hull_borderwidth = 0,
-																								padx = 0,
-																								pady = 0,
-																								hull_relief = 'ridge',
-																								))
-				self.subbuttons[i].pack(side=LEFT, padx=(0, 2))
-				for sub in m.submodes[i]:
-					# use icon_map for YAML default cascade (key->icon override)
-					icon_name = mode_icon_map.get(sub, sub)
-					img_name = m.__class__.__name__.replace("_mode","") + "-" + icon_name
-					if img_name in pixmaps.images:
-						img = pixmaps.images[img_name]
-					elif icon_name in pixmaps.images:
-						img = pixmaps.images[icon_name]
-					else:
-						img = None
-					# tooltip: prefer YAML tooltip_map, fall back to display name
-					sub_idx = m.submodes[i].index(sub)
-					display_name = m.submodes_names[i][sub_idx]
-					tip_text = tooltip_map.get(sub, display_name)
-					if img:
-						recent = self.subbuttons[i].add( sub, image=img, activebackground='grey', borderwidth=bkchem_config.border_width)
-						self.balloon.bind(recent, tip_text)
-					else:
-						recent = self.subbuttons[i].add( sub, text=display_name, borderwidth=bkchem_config.border_width)
-					# hover effect on submode buttons
-					sub_bg = str(recent.cget('background'))
-					recent.bind('<Enter>', lambda e, b=recent, bg=sub_bg: _on_sub_enter(b, bg))
-					recent.bind('<Leave>', lambda e, b=recent, bg=sub_bg: _on_sub_leave(b, bg))
-				# select the default submode
-				j = m.submodes[i][ m.submode[i]]
-				self.subbuttons[i].invoke( j)
+				# normal horizontal button row using ttk.Button
+				row_frame = self._build_submode_row(m, i, mode_icon_map, tooltip_map)
+				self.subbuttons.append(row_frame)
+				row_frame.pack(side=LEFT, padx=(0, 2))
 			else:
-				# fallback: dropdown menu
-				self.subbuttons.append( Pmw.OptionMenu( self.subFrame,
-																								items = m.submodes_names[i],
-																								command = self.change_submode))
-				self.subbuttons[i].pack(side=LEFT, padx=(0, 2))
+				# fallback: dropdown menu using ttk.Combobox
+				import tkinter
+				combo_var = tkinter.StringVar()
+				combo = ttk.Combobox(self.subFrame, textvariable=combo_var,
+					values=m.submodes_names[i], state='readonly', width=16)
+				combo.bind('<<ComboboxSelected>>', lambda e, cv=combo_var: self.change_submode(cv.get()))
+				if m.submodes_names[i]:
+					combo.current(0)
+				self.subbuttons.append(combo)
+				combo.pack(side=LEFT, padx=(0, 2))
 
 		# add edit pool buttons to ribbon for text-entry modes (YAML show_edit_pool)
 		if getattr(m, 'show_edit_pool', False):
@@ -144,36 +94,15 @@ class MainModesMixin:
 			bf.pack(side=LEFT)
 			self._sub_extra_widgets.append(bf)
 			# show the Entry bar
-			self.editPool.grid(row=4, sticky="wens")
+			self.editPool.grid(row=5, sticky="wens")
 		else:
 			# hide the Entry bar for non-editing modes
 			self.editPool.grid_remove()
 
-		# highlight the active mode button with a colored fill and subtle border
-		# capture default colors once so we can fully reset inactive buttons
-		if not hasattr(self, '_btn_default_hlbg'):
-			first_btn = self.get_mode_button(self.modes_sort[0])
-			self._btn_default_hlbg = str(first_btn.cget('highlightbackground'))
-			# toolbar buttons use the toolbar band bg
-			self._btn_default_bg = theme_manager.get_color('toolbar')
-		for btn_name in self.modes_sort:
-			btn = self.get_mode_button(btn_name)
-			if not btn:
-				continue
-			if btn_name == tag:
-				# active: themed fill + subtle border
-				btn.configure(relief='groove', borderwidth=2,
-					background=theme_manager.get_color('active_mode'),
-					highlightbackground=theme_manager.get_color('active_mode_highlight'),
-					highlightcolor=theme_manager.get_color('active_mode_highlight'),
-					highlightthickness=1)
-			else:
-				# inactive: flat, default background
-				btn.configure(relief='flat', borderwidth=1,
-					background=self._btn_default_bg,
-					highlightbackground=self._btn_default_hlbg,
-					highlightcolor=self._btn_default_hlbg,
-					highlightthickness=0)
+		# set the active mode on the StringVar -- ttk Radiobutton selection
+		# styling follows automatically from the StringVar and state maps
+		if hasattr(self, '_mode_var'):
+			self._mode_var.set(tag)
 
 		self.paper.mode = self.mode
 		# update status bar mode name
@@ -185,8 +114,68 @@ class MainModesMixin:
 		self.mode.set_submode( tag)
 
 
+	def _build_submode_row(self, m, group_index, mode_icon_map, tooltip_map):
+		"""Build a ttk.Button row for a submode group.
+
+		Args:
+			m: The current mode object.
+			group_index: Index of the submode group.
+			mode_icon_map: Dict mapping submode keys to icon names.
+			tooltip_map: Dict mapping submode keys to tooltip text.
+
+		Returns:
+			Frame: A Tk Frame containing ttk.Button widgets.
+		"""
+		row_frame = Frame(self.subFrame, borderwidth=0)
+		row_frame._row_buttons = {}
+		row_frame._row_selected = None
+
+		def on_row_click(name, btn, frame=row_frame):
+			"""Handle row button click -- highlight and set submode."""
+			# deselect previous
+			if frame._row_selected and frame._row_selected.winfo_exists():
+				frame._row_selected.configure(style='Submode.TButton')
+			# select new
+			btn.configure(style='Selected.Submode.TButton')
+			frame._row_selected = btn
+			self.change_submode(name)
+
+		for sub in m.submodes[group_index]:
+			# use icon_map for YAML default cascade (key->icon override)
+			icon_name = mode_icon_map.get(sub, sub)
+			img_name = m.__class__.__name__.replace("_mode", "") + "-" + icon_name
+			if img_name in pixmaps.images:
+				img = pixmaps.images[img_name]
+			elif icon_name in pixmaps.images:
+				img = pixmaps.images[icon_name]
+			else:
+				img = None
+			# tooltip: prefer YAML tooltip_map, fall back to display name
+			sub_idx = m.submodes[group_index].index(sub)
+			display_name = m.submodes_names[group_index][sub_idx]
+			tip_text = tooltip_map.get(sub, display_name)
+			btn_kwargs = {'style': 'Submode.TButton'}
+			if img:
+				btn_kwargs['image'] = img
+			else:
+				btn_kwargs['text'] = display_name
+			btn = ttk.Button(row_frame,
+				command=lambda n=sub: on_row_click(n, row_frame._row_buttons[n]),
+				**btn_kwargs)
+			btn.pack(side=LEFT, padx=1)
+			row_frame._row_buttons[sub] = btn
+			self.balloon.bind(btn, tip_text)
+
+		# select the default submode
+		default_key = m.submodes[group_index][m.submode[group_index]]
+		if default_key in row_frame._row_buttons:
+			on_row_click(default_key, row_frame._row_buttons[default_key])
+
+		return row_frame
+
+
 	def _build_submode_grid(self, m, group_index, tooltip_map):
-		"""Build a Tk Frame with buttons arranged in a grid layout.
+		"""Build a ttk Frame with buttons arranged in a grid layout.
 
 		Args:
 			m: The current mode object.
@@ -194,7 +183,7 @@ class MainModesMixin:
 			tooltip_map: Dict mapping submode keys to tooltip text.
 
 		Returns:
-			Frame: A Tk Frame containing the grid of buttons.
+			Frame: A ttk Frame containing the grid of buttons.
 		"""
 		# get column count from YAML config
 		yaml_key = type(m).__name__.replace('_mode', '')
@@ -204,7 +193,7 @@ class MainModesMixin:
 		if group_index < len(submode_groups):
 			columns = submode_groups[group_index].get('columns', 4)
 
-		grid_frame = Frame(self.subFrame, relief='ridge', borderwidth=0)
+		grid_frame = ttk.Frame(self.subFrame)
 		# track the selected button for this grid
 		grid_frame._grid_buttons = {}
 		grid_frame._grid_selected = None
@@ -213,9 +202,9 @@ class MainModesMixin:
 			"""Handle grid button click -- highlight and set submode."""
 			# un-highlight previous selection
 			if grid_frame._grid_selected and grid_frame._grid_selected.winfo_exists():
-				grid_frame._grid_selected.configure(relief='raised', bg=theme_manager.get_color('grid_deselected'))
+				grid_frame._grid_selected.configure(style='Grid.TButton')
 			# highlight new selection
-			btn.configure(relief='sunken', bg=theme_manager.get_color('grid_selected'))
+			btn.configure(style='Selected.Grid.TButton')
 			grid_frame._grid_selected = btn
 			self.change_submode(name)
 
@@ -226,25 +215,19 @@ class MainModesMixin:
 			col = idx % columns
 			display_name = names_list[idx] if idx < len(names_list) else sub
 			tip_text = tooltip_map.get(sub, display_name)
-			btn = Button(
+			btn = ttk.Button(
 				grid_frame, text=display_name,
-				width=4, padx=1, pady=1,
-				relief='raised', borderwidth=bkchem_config.border_width,
-				font=('sans-serif', 9),
+				width=4, style='Grid.TButton',
 				command=lambda n=sub, b_idx=idx: on_grid_click(n, grid_frame._grid_buttons[b_idx]),
 			)
 			btn.grid(row=row, column=col, padx=1, pady=1)
 			grid_frame._grid_buttons[idx] = btn
 			self.balloon.bind(btn, tip_text)
-			# hover effect on grid submode buttons
-			grid_bg = str(btn.cget('background'))
-			btn.bind('<Enter>', lambda e, b=btn, bg=grid_bg: _on_sub_enter(b, bg))
-			btn.bind('<Leave>', lambda e, b=btn, bg=grid_bg: _on_sub_leave(b, bg))
 
 		# auto-select first button
 		if submodes_list and 0 in grid_frame._grid_buttons:
 			first_btn = grid_frame._grid_buttons[0]
-			first_btn.configure(relief='sunken', bg=theme_manager.get_color('grid_selected'))
+			first_btn.configure(style='Selected.Grid.TButton')
 			grid_frame._grid_selected = first_btn
 			self.change_submode(submodes_list[0])
 
@@ -264,6 +247,7 @@ class MainModesMixin:
 			return
 		m = self.mode
 		tooltip_map = getattr(m, 'tooltip_map', {})
+		mode_icon_map = getattr(m, 'icon_map', {})
 		# destroy existing widget
 		old_widget = self.subbuttons[group_index]
 		old_widget.destroy()
@@ -274,16 +258,7 @@ class MainModesMixin:
 		if layout == 'grid':
 			new_widget = self._build_submode_grid(m, group_index, tooltip_map)
 		else:
-			# rebuild as horizontal row
-			new_widget = Pmw.RadioSelect(self.subFrame,
-				buttontype='button', selectmode='single',
-				orient='horizontal', command=self.change_submode,
-				hull_borderwidth=0, padx=0, pady=0, hull_relief='ridge')
-			for sub in m.submodes[group_index]:
-				sub_idx = m.submodes[group_index].index(sub)
-				display_name = m.submodes_names[group_index][sub_idx]
-				new_widget.add(sub, text=display_name, borderwidth=bkchem_config.border_width)
-			if m.submodes[group_index]:
-				new_widget.invoke(m.submodes[group_index][0])
+			# rebuild as ttk button row
+			new_widget = self._build_submode_row(m, group_index, mode_icon_map, tooltip_map)
 		new_widget.pack(side=LEFT, padx=(0, 2))
 		self.subbuttons[group_index] = new_widget

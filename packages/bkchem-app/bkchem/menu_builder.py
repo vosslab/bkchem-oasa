@@ -2,7 +2,7 @@
 
 Reads the menu hierarchy from a YAML file, looks up action details
 from the ActionRegistry, and calls the PlatformMenuAdapter to
-construct the actual Pmw menus.
+construct the actual native tkinter menus.
 """
 
 # Standard Library

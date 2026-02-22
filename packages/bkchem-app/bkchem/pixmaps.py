@@ -19,7 +19,15 @@
 
 """Images for buttons all over BKChem.
 
+Loads toolbar icons from per-theme PNG subdirectories.  The active theme
+determines which directory is searched first (e.g. ``pixmaps/png-dark/``
+for the dark theme), falling back to ``pixmaps/png/`` for the light theme.
+PNGs are pre-generated build artifacts from SVG sources in ``pixmaps/src/``.
+Do not hand-edit PNGs; run ``tools/generate_theme_icons.py`` instead.
 """
+
+# Standard Library
+import os
 
 import tkinter
 
@@ -28,30 +36,84 @@ from bkchem import os_support
 __all__ = ['images']
 
 
+#============================================
+def _get_theme_icon_subdir() -> str:
+	"""Return the theme-specific PNG subdirectory name.
+
+	For the light theme (or when no theme is active), returns 'png'.
+	For other themes, returns 'png-{theme_name}' (e.g. 'png-dark').
+
+	Returns:
+		str: subdirectory name within the pixmaps directory
+	"""
+	try:
+		from bkchem import theme_manager
+		theme_name = theme_manager.get_active_theme_name()
+	except Exception:
+		theme_name = 'light'
+	if theme_name == 'light':
+		return 'png'
+	return f'png-{theme_name}'
+
 
 #============================================
-def _load_icon(name: str) -> tkinter.PhotoImage:
-	"""Load a pixmap icon by name, trying PNG first then GIF fallback.
+def _find_icon_path(name: str) -> str:
+	"""Locate the PNG icon file for the given name.
+
+	Searches the theme-specific PNG subdirectory first, then falls
+	back to the default png/ subdirectory across all pixmap directories
+	registered in os_support.
 
 	Args:
 		name: icon filename stem (without extension)
 
 	Returns:
-		tkinter.PhotoImage loaded from the found file
+		str: absolute path to the icon file
 
 	Raises:
-		KeyError: if no PNG or GIF file exists for the name
+		KeyError: if no PNG file exists for the name
 	"""
-	# try PNG first, then GIF fallback
-	png_path = os_support.get_path(name + '.png', 'pixmap')
-	if png_path:
-		icon = tkinter.PhotoImage(file=png_path)
-		return icon
-	gif_path = os_support.get_path(name + '.gif', 'pixmap')
-	if gif_path:
-		icon = tkinter.PhotoImage(file=gif_path)
-		return icon
+	dirs = os_support.get_dirs('pixmap')
+	theme_subdir = _get_theme_icon_subdir()
+	for base_dir in dirs:
+		# try theme-specific subdirectory first (e.g. png-dark/)
+		if theme_subdir != 'png':
+			theme_path = os.path.join(base_dir, theme_subdir, name + '.png')
+			if os.path.isfile(theme_path):
+				return theme_path
+		# fallback: default png/ subdirectory
+		png_path = os.path.join(base_dir, 'png', name + '.png')
+		if os.path.isfile(png_path):
+			return png_path
 	raise KeyError(name)
+
+
+#============================================
+def _load_icon(name: str) -> tkinter.PhotoImage:
+	"""Load a pixmap icon by name from the theme-appropriate directory.
+
+	Args:
+		name: icon filename stem (without extension)
+
+	Returns:
+		tkinter.PhotoImage with proper alpha transparency
+
+	Raises:
+		KeyError: if no PNG file exists for the name
+	"""
+	icon_path = _find_icon_path(name)
+	icon = tkinter.PhotoImage(file=icon_path)
+	return icon
+
+
+#============================================
+def reload_icons() -> None:
+	"""Clear the icon cache so icons are reloaded with current theme colors.
+
+	Call this after a theme switch to force reloading from the new
+	theme-specific PNG directory on next access.
+	"""
+	images.clear()
 
 
 #============================================

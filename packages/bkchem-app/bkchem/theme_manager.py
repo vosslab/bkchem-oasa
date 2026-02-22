@@ -228,6 +228,209 @@ def map_chemistry_color(stored_color: str, color_type: str = 'line') -> str:
 
 
 #============================================
+def _hex_to_luminance(hex_color: str) -> float:
+	"""Compute the relative luminance of a hex color string.
+
+	Uses the sRGB luminance formula: 0.2126*R + 0.7152*G + 0.0722*B.
+
+	Args:
+		hex_color: hex color string (e.g. '#333333', '#e0e0e0').
+
+	Returns:
+		float: luminance in 0.0 (black) to 1.0 (white) range.
+	"""
+	normalized = _normalize_hex(hex_color)
+	hex_part = normalized.lstrip('#')
+	r = int(hex_part[0:2], 16) / 255.0
+	g = int(hex_part[2:4], 16) / 255.0
+	b = int(hex_part[4:6], 16) / 255.0
+	luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
+	return luminance
+
+
+#============================================
+def needs_icon_inversion() -> bool:
+	"""Return True when toolbar icons need luminance inversion.
+
+	Checks the active theme's toolbar background color luminance.
+	If the luminance is below 0.5 (dark toolbar), icons should be
+	inverted so dark-on-transparent strokes become visible.
+
+	Returns:
+		bool: True if icon luminance inversion is needed.
+	"""
+	theme = get_active_theme()
+	toolbar_color = theme['gui']['toolbar']
+	luminance = _hex_to_luminance(toolbar_color)
+	return luminance < 0.5
+
+
+#============================================
+def configure_ttk_styles(style) -> None:
+	"""Configure named ttk styles from the active theme's YAML colors.
+
+	Sets up named styles for toolbar widgets so they inherit theme colors.
+	Never configures base TButton/TRadiobutton globally; only named styles
+	are modified.
+
+	Args:
+		style: ttk.Style instance (typically app._ttk_style)
+	"""
+	theme = get_active_theme()
+	gui = theme['gui']
+	toolbar_bg = gui['toolbar']
+	toolbar_fg = gui.get('toolbar_fg', '#333333')
+	active_bg = gui['active_mode']
+	active_fg = gui.get('active_mode_fg', '#000000')
+	hover_bg = gui['hover']
+	press_bg = gui.get('button_active_bg', hover_bg)
+	# toolbar toggle buttons (mode selection radiobuttons)
+	style.configure('Toolbar.Toolbutton',
+		background=toolbar_bg, foreground=toolbar_fg,
+		relief='flat', borderwidth=1, padding=2,
+	)
+	style.map('Toolbar.Toolbutton',
+		background=[
+			('selected', active_bg),
+			('active', hover_bg),
+		],
+		foreground=[
+			('selected', active_fg),
+		],
+		relief=[
+			('selected', 'groove'),
+			('!selected', 'flat'),
+		],
+	)
+	# toolbar action buttons (undo/redo)
+	style.configure('Toolbar.TButton',
+		background=toolbar_bg, foreground=toolbar_fg,
+		relief='flat', borderwidth=1, padding=2,
+	)
+	style.map('Toolbar.TButton',
+		background=[
+			('pressed', press_bg),
+			('active', hover_bg),
+		],
+	)
+	# submode ribbon buttons (row layout)
+	style.configure('Submode.TButton',
+		background=toolbar_bg, foreground=toolbar_fg,
+		relief='flat', borderwidth=1, padding=1,
+	)
+	style.map('Submode.TButton',
+		background=[
+			('pressed', press_bg),
+			('active', hover_bg),
+		],
+	)
+	# selected submode button
+	style.configure('Selected.Submode.TButton',
+		background=gui['grid_selected'], foreground=active_fg,
+		relief='groove', borderwidth=1, padding=1,
+	)
+	style.map('Selected.Submode.TButton',
+		background=[
+			('active', gui['grid_selected']),
+		],
+	)
+	# grid layout buttons (biomolecule template grid)
+	grid_bg = gui.get('grid_deselected', toolbar_bg)
+	grid_fg = gui.get('toolbar_fg', '#333333')
+	style.configure('Grid.TButton',
+		background=grid_bg, foreground=grid_fg,
+		relief='raised', borderwidth=1, padding=1,
+		font=('sans-serif', 9),
+	)
+	style.map('Grid.TButton',
+		background=[
+			('pressed', press_bg),
+			('active', hover_bg),
+		],
+	)
+	# selected grid button
+	style.configure('Selected.Grid.TButton',
+		background=gui['grid_selected'], foreground=active_fg,
+		relief='sunken', borderwidth=1, padding=1,
+		font=('sans-serif', 9),
+	)
+	style.map('Selected.Grid.TButton',
+		background=[
+			('active', gui['grid_selected']),
+		],
+	)
+	# base ttk widget styles so all ttk.Frame / ttk.Label pick up theme bg
+	style.configure('TFrame', background=gui['background'])
+	style.configure('TLabel', background=gui['background'], foreground=toolbar_fg)
+	# notebook and zoom variables
+	tab_bg = gui.get('background', '#d9d9d9')
+	tab_fg = gui.get('inactive_tab_fg', '#333333')
+	active_tab_bg = gui.get('active_tab_bg', '#ffffff')
+	active_tab_fg = gui.get('active_tab_fg', '#000000')
+	# zoom control buttons and label
+	style.configure('Zoom.TButton',
+		background=tab_bg, foreground=toolbar_fg,
+		relief='flat', borderwidth=1, padding=1,
+	)
+	style.map('Zoom.TButton',
+		background=[
+			('pressed', press_bg),
+			('active', hover_bg),
+		],
+	)
+	style.configure('Zoom.TLabel',
+		background=tab_bg, foreground=toolbar_fg,
+		relief='sunken', borderwidth=1, padding=1,
+	)
+	# scrollbar trough and slider
+	style.configure('TScrollbar',
+		background=tab_bg,
+		troughcolor=gui.get('canvas_surround', tab_bg),
+	)
+	style.configure('TNotebook',
+		background=tab_bg,
+		borderwidth=0,
+	)
+	style.configure('TNotebook.Tab',
+		background=tab_bg, foreground=tab_fg,
+		padding=(8, 4),
+	)
+	style.map('TNotebook.Tab',
+		background=[
+			('selected', active_tab_bg),
+			('active', hover_bg),
+		],
+		foreground=[
+			('selected', active_tab_fg),
+		],
+	)
+
+
+#============================================
+def _refresh_toolbar_icons(app) -> None:
+	"""Reconfigure all toolbar button images from the reloaded pixmap cache.
+
+	Iterates through mode buttons via the app's mode-to-group mapping
+	and the undo/redo buttons, reconfiguring each with the freshly
+	loaded (and possibly recolored) icon.
+
+	Args:
+		app: The BKChem application instance.
+	"""
+	from bkchem import pixmaps
+	# refresh mode buttons
+	for mode_name in getattr(app, 'modes_sort', []):
+		btn = app.get_mode_button(mode_name)
+		if btn and mode_name in pixmaps.images:
+			btn.configure(image=pixmaps.images[mode_name])
+	# refresh undo/redo buttons
+	if hasattr(app, '_undo_btn') and 'undo' in pixmaps.images:
+		app._undo_btn.configure(image=pixmaps.images['undo'])
+	if hasattr(app, '_redo_btn') and 'redo' in pixmaps.images:
+		app._redo_btn.configure(image=pixmaps.images['redo'])
+
+
+#============================================
 def apply_gui_theme(app) -> None:
 	"""Apply the active theme's GUI colors to the running application.
 
@@ -240,9 +443,15 @@ def apply_gui_theme(app) -> None:
 	theme = get_active_theme()
 	gui = theme['gui']
 
-	# global Tk palette
+	# update ttk named styles from theme colors
+	if hasattr(app, '_ttk_style'):
+		configure_ttk_styles(app._ttk_style)
+
+	# global Tk palette -- set both background and foreground so all plain
+	# tkinter widgets (Frame, Label, etc.) pick up the theme colors
 	app.tk_setPalette(
 		"background", gui['background'],
+		"foreground", gui.get('toolbar_fg', '#000000'),
 		"insertBackground", gui['entry_insert_bg'],
 	)
 	app.option_add("*Entry*Background", gui['entry_bg'])
@@ -258,6 +467,22 @@ def apply_gui_theme(app) -> None:
 			# reconfigure toolbar buttons
 			_recolor_toolbar_frame(child, gui)
 			break
+
+	# reload icons with correct theme coloring, then refresh button images.
+	# keep old images alive in _old until new ones replace them on buttons,
+	# otherwise Tk references to garbage-collected PhotoImages cause TclError.
+	from bkchem import pixmaps
+	_old_images = dict(pixmaps.images)
+	pixmaps.reload_icons()
+	_refresh_toolbar_icons(app)
+	# re-invoke current mode to rebuild submode ribbon with fresh images
+	current_mode = getattr(app, 'mode', None)
+	if current_mode and not isinstance(current_mode, str):
+		for tag, mode_obj in app.modes.items():
+			if mode_obj is current_mode:
+				app.change_mode(tag)
+				break
+	del _old_images
 
 	# separator between toolbar and submode ribbon (row 2)
 	for child in app.main_frame.winfo_children():
@@ -276,15 +501,22 @@ def apply_gui_theme(app) -> None:
 			disabledforeground=gui['entry_disabled_fg'],
 		)
 
-	# radio group hull backgrounds
-	for radio in getattr(app, '_radio_groups', []):
-		radio.configure(hull_background=gui['toolbar'])
-
-	# active/inactive mode buttons
+	# active/inactive mode buttons (also recolors radio group hulls)
 	_recolor_mode_buttons(app, gui)
 
 	# tab highlights
 	_recolor_tabs(app, gui)
+
+	# status bar (row 7) -- recolor frame and child labels
+	_bg = gui['background']
+	_fg = gui.get('toolbar_fg', '#000000')
+	for child in app.main_frame.winfo_children():
+		info = child.grid_info()
+		if info and info.get('row') == 7:
+			child.configure(bg=_bg)
+			for label in child.winfo_children():
+				label.configure(bg=_bg, fg=_fg)
+			break
 
 	# canvas surround for each paper
 	for paper in getattr(app, 'papers', []):
@@ -309,19 +541,19 @@ def _recolor_toolbar_frame(frame, gui: dict) -> None:
 	toolbar_bg = gui['toolbar']
 	for child in frame.winfo_children():
 		wclass = child.winfo_class()
+		# skip ttk widgets -- they are styled via configure_ttk_styles()
+		if wclass.startswith('T') and wclass in ('TRadiobutton', 'TButton'):
+			continue
 		if wclass == 'Frame':
 			# separator frames between groups
 			if child.cget('width') == 1:
 				child.configure(bg=gui['group_separator'])
 			else:
 				child.configure(bg=toolbar_bg)
-				# recurse into Pmw hull frames
+				# recurse into sub-frames
 				_recolor_toolbar_frame(child, gui)
 		elif wclass == 'Button':
-			child.configure(
-				background=toolbar_bg,
-				activebackground=gui['button_active_bg'],
-			)
+			child.configure(background=toolbar_bg, activebackground=toolbar_bg)
 
 
 #============================================
@@ -346,65 +578,34 @@ def _recolor_subframe(app, gui: dict) -> None:
 def _recolor_mode_buttons(app, gui: dict) -> None:
 	"""Recolor toolbar mode buttons for active/inactive state.
 
+	For ttk buttons (when _mode_var exists), styling is handled
+	declaratively via configure_ttk_styles() and the StringVar state.
+	For classic tk buttons, applies explicit background/relief changes.
+
 	Args:
 		app: The BKChem application instance.
 		gui: The gui section of the active theme.
 	"""
-	toolbar_bg = gui['toolbar']
-	active_mode_color = gui['active_mode']
-	active_hl = gui['active_mode_highlight']
-	current_mode = getattr(app, 'mode', None)
-	# get the mode tag for the current mode
-	if current_mode and not isinstance(current_mode, str):
-		current_tag = None
-		for tag, mode_obj in app.modes.items():
-			if mode_obj is current_mode:
-				current_tag = tag
-				break
-	else:
-		current_tag = current_mode
-
-	for btn_name in getattr(app, 'modes_sort', []):
-		btn = app.get_mode_button(btn_name)
-		if not btn:
-			continue
-		if btn_name == current_tag:
-			btn.configure(
-				background=active_mode_color,
-				activebackground=gui['button_active_bg'],
-				highlightbackground=active_hl,
-				highlightcolor=active_hl,
-			)
-		else:
-			btn.configure(
-				background=toolbar_bg,
-				activebackground=gui['button_active_bg'],
-			)
-	# update stored defaults for hover/leave handlers
-	app._btn_default_bg = toolbar_bg
+	# ttk toolbar buttons are styled via configure_ttk_styles() and
+	# the StringVar -- no manual recoloring needed
+	if hasattr(app, '_mode_var'):
+		return
 
 
 #============================================
 def _recolor_tabs(app, gui: dict) -> None:
 	"""Recolor notebook tabs for active/inactive state.
 
+	With ttk.Notebook, tab colors are handled declaratively via
+	style maps configured in configure_ttk_styles().  This function
+	is a no-op for ttk notebooks.
+
 	Args:
 		app: The BKChem application instance.
 		gui: The gui section of the active theme.
 	"""
-	if not hasattr(app, 'notebook') or not hasattr(app, 'papers'):
-		return
-	for i, paper in enumerate(app.papers):
-		if paper is app.paper:
-			app.notebook.tab(i).configure(
-				background=gui['active_tab_bg'],
-				fg=gui['active_tab_fg'],
-			)
-		else:
-			app.notebook.tab(i).configure(
-				background=gui['background'],
-				fg=gui['inactive_tab_fg'],
-			)
+	# ttk.Notebook handles tab coloring via TNotebook.Tab style maps
+	pass
 
 
 #============================================
@@ -423,5 +624,5 @@ def _apply_paper_theme(paper, theme: dict) -> None:
 			outline=theme['paper']['outline'],
 		)
 	# hex grid overlay
-	if hasattr(paper, '_hex_grid'):
-		paper._hex_grid.redraw()
+	if hasattr(paper, '_hex_grid_overlay') and paper._hex_grid_overlay:
+		paper._hex_grid_overlay.redraw()

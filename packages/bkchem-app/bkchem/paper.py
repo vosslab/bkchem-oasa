@@ -34,7 +34,7 @@ try:
 except ImportError:
 	from tkinter import Canvas, ALL
 
-import Pmw
+from bkchem.bk_dialogs import BkTextDialog
 from bkchem import bkchem_utils
 from bkchem import undo
 from bkchem import checks
@@ -320,7 +320,7 @@ class chem_paper(
 		if not s_mols:
 			return
 
-		dialog = Pmw.TextDialog( self, title=_("Info on selected molecules"), defaultbutton=0)
+		dialog = BkTextDialog( self, title=_("Info on selected molecules"), defaultbutton=0)
 		dialog.withdraw()
 
 		comps = PT.formula_dict()
@@ -364,7 +364,7 @@ class chem_paper(
 		if not s_mols:
 			return
 
-		dialog = Pmw.TextDialog( self, title=_("Chemistry check of selected molecules"), defaultbutton=0)
+		dialog = BkTextDialog( self, title=_("Chemistry check of selected molecules"), defaultbutton=0)
 		dialog.withdraw()
 
 		val.validate( s_mols)

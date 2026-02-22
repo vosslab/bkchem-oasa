@@ -53,7 +53,10 @@ class MainFileIOMixin:
           tkinter.messagebox.showerror( _("File already opened!"), _("Sorry but you are already editing a file with this name (%s), please choose a different name or close the other file.") % name['name'])
           return None
         self.paper.file_name = self.get_name_dic( a)
-        self.notebook.tab( self.get_paper_tab_name( self.paper)).configure( text = self.paper.file_name['name'])
+        tab_name = self.get_paper_tab_name(self.paper)
+        frame = self._tab_name_2_frame.get(tab_name)
+        if frame:
+          self.notebook.tab(frame, text=self.paper.file_name['name'])
         return self.paper.file_name
       else:
         return None
@@ -95,7 +98,10 @@ class MainFileIOMixin:
       self.paper.file_name = self.get_name_dic( name + ".svg", local_file=1)
     else:
       self.paper.file_name = self.get_name_dic( name, local_file=1)
-    self.notebook.tab( self.get_paper_tab_name( self.paper)).configure( text = self.paper.file_name['name'])
+    tab_name = self.get_paper_tab_name(self.paper)
+    frame = self._tab_name_2_frame.get(tab_name)
+    if frame:
+      self.notebook.tab(frame, text=self.paper.file_name['name'])
 
 
   def load_CDML( self, file=None, replace=0):

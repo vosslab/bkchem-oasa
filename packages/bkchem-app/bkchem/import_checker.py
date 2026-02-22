@@ -24,7 +24,6 @@ import sys
 
 __all__ = [
   'MIN_PYTHON',
-  'Pmw_available',
   'oasa_available',
   'python_version_ok',
   'python_version',
@@ -44,5 +43,4 @@ def _module_available( module_name):
   return 1
 
 
-Pmw_available = _module_available( "Pmw")
 oasa_available = _module_available( "oasa")

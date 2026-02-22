@@ -130,7 +130,7 @@ def main():
 		repo_root, 'packages', 'bkchem-app', 'bkchem_data', 'pixmaps', 'src',
 	)
 	png_dir = os.path.join(
-		repo_root, 'packages', 'bkchem-app', 'bkchem_data', 'pixmaps',
+		repo_root, 'packages', 'bkchem-app', 'bkchem_data', 'pixmaps', 'png',
 	)
 
 	if not os.path.isdir(svg_dir):

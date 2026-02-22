@@ -25,6 +25,7 @@ from bkchem import bkchem_utils
 from bkchem import classes
 from bkchem import dom_extensions
 from bkchem import helper_graphics as hg
+from bkchem import theme_manager
 from warnings import warn
 
 from bkchem.singleton_store import Screen
@@ -146,9 +147,12 @@ class rect( vector_graphics_item, area_colored):
 
 
   def draw( self):
+    # map colors through theme so default-colored shapes follow dark/light theme
+    _lc = theme_manager.map_chemistry_color(self.line_color)
+    _ac = theme_manager.map_chemistry_color(self.area_color, color_type='area')
     self.item = self.paper.create_rectangle( tuple( self.coords),
-                                             fill = self.area_color,
-                                             outline = self.line_color,
+                                             fill = _ac,
+                                             outline = _lc,
                                              width = self.line_width,
                                              tags=("rect","vector"))
     self.paper.register_id( self.item, self)
@@ -158,8 +162,10 @@ class rect( vector_graphics_item, area_colored):
     if not self.item:
       self.draw()
     else:
+      _lc = theme_manager.map_chemistry_color(self.line_color)
+      _ac = theme_manager.map_chemistry_color(self.area_color, color_type='area')
       self.paper.coords( self.item, tuple( self.coords))
-      self.paper.itemconfig( self.item, width=self.line_width, fill=self.area_color, outline=self.line_color)
+      self.paper.itemconfig( self.item, width=self.line_width, fill=_ac, outline=_lc)
 
 
   def get_package( self, doc):
@@ -248,9 +254,12 @@ class oval( vector_graphics_item):
 
 
   def draw( self):
+    # map colors through theme so default-colored shapes follow dark/light theme
+    _lc = theme_manager.map_chemistry_color(self.line_color)
+    _ac = theme_manager.map_chemistry_color(self.area_color, color_type='area')
     self.item = self.paper.create_oval( tuple( self.coords),
-                                        fill = self.area_color,
-                                        outline = self.line_color,
+                                        fill = _ac,
+                                        outline = _lc,
                                         width = self.line_width,
                                         tags=("oval","vector"))
     self.paper.register_id( self.item, self)
@@ -260,8 +269,10 @@ class oval( vector_graphics_item):
     if not self.item:
       self.draw()
     else:
+      _lc = theme_manager.map_chemistry_color(self.line_color)
+      _ac = theme_manager.map_chemistry_color(self.area_color, color_type='area')
       self.paper.coords( self.item, tuple( self.coords))
-      self.paper.itemconfig( self.item, width=self.line_width, fill=self.area_color, outline=self.line_color)
+      self.paper.itemconfig( self.item, width=self.line_width, fill=_ac, outline=_lc)
 
 
   def get_package( self, doc):
@@ -368,9 +379,12 @@ class polygon( vector_graphics_item, container, area_colored):
     [p.draw() for p in self.points]
     coords = (j for i in [b.get_xy() for b in self.points]
                   for j in i)
+    # map colors through theme so default-colored shapes follow dark/light theme
+    _lc = theme_manager.map_chemistry_color(self.line_color)
+    _ac = theme_manager.map_chemistry_color(self.area_color, color_type='area')
     self.item = self.paper.create_polygon( tuple( coords),
-                                           fill=self.area_color,
-                                           outline=self.line_color,
+                                           fill=_ac,
+                                           outline=_lc,
                                            width=self.line_width,
                                            tags=("polygon","vector"))
     self.paper.register_id( self.item, self)
@@ -387,8 +401,10 @@ class polygon( vector_graphics_item, container, area_colored):
     else:
       coords = (j for i in [b.get_xy() for b in self.points]
                     for j in i)
+      _lc = theme_manager.map_chemistry_color(self.line_color)
+      _ac = theme_manager.map_chemistry_color(self.area_color, color_type='area')
       self.paper.coords( self.item, tuple( coords))
-      self.paper.itemconfig( self.item, width=self.line_width, fill=self.area_color, outline=self.line_color)
+      self.paper.itemconfig( self.item, width=self.line_width, fill=_ac, outline=_lc)
 
 
   def select( self):
@@ -506,8 +522,10 @@ class polyline( vector_graphics_item, container, line_colored):
     [p.draw() for p in self.points]
     coords = (j for i in [b.get_xy_on_screen() for b in self.points]
                   for j in i)
+    # map line color through theme so default-colored shapes follow dark/light theme
+    _lc = theme_manager.map_chemistry_color(self.line_color)
     self.item = self.paper.create_line( tuple( coords),
-                                        fill=self.line_color,
+                                        fill=_lc,
                                         width=self.line_width,
                                         tags=("polyline","vector"),
                                         smooth=self.spline)
@@ -529,7 +547,8 @@ class polyline( vector_graphics_item, container, line_colored):
       coords = (j for i in [b.get_xy_on_screen() for b in self.points]
                     for j in i)
       self.paper.coords( self.item, tuple( coords))
-      self.paper.itemconfig( self.item, width=self.line_width, fill=self.line_color, smooth=self.spline)
+      _lc = theme_manager.map_chemistry_color(self.line_color)
+      self.paper.itemconfig( self.item, width=self.line_width, fill=_lc, smooth=self.spline)
 
   def focus(self):
     self.paper.itemconfig( self.item, width=self.line_width+2)

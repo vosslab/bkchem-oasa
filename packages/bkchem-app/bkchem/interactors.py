@@ -26,7 +26,7 @@ import os
 import xml
 import tkinter.messagebox as tkMessageBox
 
-import Pmw
+from bkchem.bk_dialogs import BkDialog, BkPromptDialog, BkTextDialog
 
 from bkchem import dialogs
 from bkchem import widgets
@@ -54,7 +54,7 @@ def ask_name_for_selected( paper):
                             _("At least one molecule must be selected. Please select it."))
     return
 
-  dial = Pmw.PromptDialog( paper,
+  dial = BkPromptDialog( paper,
                            title=_('Name'),
                            label_text=_('Name:'),
                            entryfield_labelpos = 'n',
@@ -92,7 +92,7 @@ def ask_id_for_selected( paper):
   m = ms[0]
 
   while True:
-    dial = Pmw.PromptDialog( paper,
+    dial = BkPromptDialog( paper,
                              title=_('Id'),
                              label_text=_('Id:'),
                              entryfield_labelpos = 'n',
@@ -173,7 +173,7 @@ def ask_display_form_for_selected( paper):
                             _("At least one molecule must be selected. Please select it."))
     return
 
-  dial = Pmw.Dialog( paper,
+  dial = BkDialog( paper,
                      title=_('Display Form'),
                      #defaultbutton = _('OK'),
                      buttons=(_('OK'),_('Cancel')))
@@ -223,7 +223,7 @@ def save_as_template( paper):
   errors = 'atom' in missing or 'name' in missing
 
   if missing:
-    dialog = Pmw.TextDialog( paper, title=_("Template summary"))
+    dialog = BkTextDialog( paper, title=_("Template summary"))
     dialog.withdraw()
 
     if errors:
@@ -276,7 +276,7 @@ def save_as_template( paper):
     # ask for the name
     name = ''
     while not name:
-      dial = Pmw.PromptDialog( paper,
+      dial = BkPromptDialog( paper,
                                title=_('Template file name'),
                                label_text=_('File name for the template:'),
                                entryfield_labelpos = 'n',
@@ -312,7 +312,7 @@ def create_fragment_from_selected( paper):
   vs = [v for v in paper.selected if v in mol.vertices]
 
   # ask for name
-  dial = Pmw.PromptDialog( paper,
+  dial = BkPromptDialog( paper,
                            title=_('Fragment name'),
                            label_text=_('Enter fragment name:'),
                            entryfield_labelpos = 'w',
@@ -332,7 +332,7 @@ def view_fragments( paper):
 
 
 def set_atom_number( atoms):
-  dial = Pmw.PromptDialog( Store.app,
+  dial = BkPromptDialog( Store.app,
                            title=_('Atom number'),
                            label_text=_('Enter atom number:'),
                            entryfield_labelpos = 'w',

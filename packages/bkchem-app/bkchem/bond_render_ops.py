@@ -116,10 +116,13 @@ class BondRenderOpsMixin:
     self.paper.register_id(self.item, self)
 
   def _render_ops_to_tk_canvas(self, ops):
+    # helper: map any color through the theme so default-colored bonds
+    # (stored as #000) follow the active dark/light theme
+    _map = theme_manager.map_chemistry_color
     created = []
     for op in render_ops.sort_ops(ops):
       if isinstance(op, render_ops.LineOp):
-        color = op.color or theme_manager.map_chemistry_color(self.line_color)
+        color = _map(op.color or self.line_color)
         item = self._create_line_with_transform(
           (op.p1[0], op.p1[1], op.p2[0], op.p2[1]),
           tags=("bond",),
@@ -134,12 +137,14 @@ class BondRenderOpsMixin:
         coords = []
         for x, y in op.points:
           coords.extend((x, y))
+        _fill = _map(op.fill) if op.fill else ""
+        _stroke = _map(op.stroke) if op.stroke else ""
         item = self._create_polygon_with_transform(
           tuple(coords),
           tags=("bond",),
           width=op.stroke_width or 0.0,
-          fill=op.fill or "",
-          outline=op.stroke or "",
+          fill=_fill,
+          outline=_stroke,
           joinstyle="round",
         )
         created.append(item)
@@ -147,12 +152,14 @@ class BondRenderOpsMixin:
       if isinstance(op, render_ops.CircleOp):
         cx, cy = op.center
         r = op.radius
+        _fill = _map(op.fill) if op.fill else ""
+        _stroke = _map(op.stroke) if op.stroke else ""
         item = self._create_oval_with_transform(
           (cx - r, cy - r, cx + r, cy + r),
           tags=("bond",),
           width=op.stroke_width or 0.0,
-          fill=op.fill or "",
-          outline=op.stroke or "",
+          fill=_fill,
+          outline=_stroke,
         )
         created.append(item)
         continue
@@ -163,12 +170,14 @@ class BondRenderOpsMixin:
             coords = []
             for x, y in polygon:
               coords.extend((x, y))
+            _fill = _map(op.fill)
+            _stroke = _map(op.stroke) if op.stroke else ""
             item = self._create_polygon_with_transform(
               tuple(coords),
               tags=("bond",),
               width=op.stroke_width if op.stroke else 0.0,
-              fill=op.fill,
-              outline=op.stroke or "",
+              fill=_fill,
+              outline=_stroke,
               joinstyle=op.join or "round",
             )
             created.append(item)
@@ -182,7 +191,7 @@ class BondRenderOpsMixin:
               tuple(coords),
               tags=("bond",),
               width=op.stroke_width or self.line_width,
-              fill=op.stroke,
+              fill=_map(op.stroke),
               capstyle=op.cap or "round",
               joinstyle=op.join or "round",
               smooth=1,

@@ -5,7 +5,7 @@ import sys
 import tkinter.messagebox
 
 import oasa
-import Pmw
+from bkchem.bk_dialogs import BkPromptDialog, BkTextDialog
 from bkchem import bkchem_config
 from bkchem import interactors
 from bkchem import oasa_bridge
@@ -24,7 +24,7 @@ class MainChemistryIOMixin:
       return
     lt = _("Enter a SMILES or IsoSMILES string:")
     if not smiles:
-      dial = Pmw.PromptDialog( self,
+      dial = BkPromptDialog( self,
                                title='SMILES',
                                label_text=lt,
                                entryfield_labelpos = 'n',
@@ -64,7 +64,7 @@ The InChI should be entered in the plain text form, e.g.- 1/C7H8/1-7-5-3-2-4-6-7
 Enter InChI:""")
     text = None
     if not inchi:
-      dial = Pmw.PromptDialog( self,
+      dial = BkPromptDialog( self,
                                title='InChI',
                                label_text=lt,
                                entryfield_labelpos = 'n',
@@ -127,7 +127,7 @@ Enter InChI:""")
     supported_str = ', '.join(supported)
     lt = _("Enter a single-letter amino acid sequence (e.g. ANKLE):\n"
            "Supported: %s") % supported_str
-    dial = Pmw.PromptDialog( self,
+    dial = BkPromptDialog( self,
                              title=_('Peptide Sequence'),
                              label_text=lt,
                              entryfield_labelpos = 'n',
@@ -180,7 +180,7 @@ Enter InChI:""")
       if m.object_type == 'molecule':
         sms.append(oasa_bridge.mol_to_smiles(m))
     text = '\n\n'.join(sms)
-    dial = Pmw.TextDialog(self,
+    dial = BkTextDialog(self,
                           title=_('Generated SMILES'),
                           buttons=(_('OK'),))
     dial.insert('end', text)
@@ -211,7 +211,7 @@ Enter InChI:""")
       sms = [_("Unknown error occured during InChI generation, sorry."), _("Please, try to make sure the path to the InChI program is correct in 'Options/InChI program path'")]
     self.paper.swap_sides_of_selected("horizontal")
     text = '\n'.join( sms)
-    dial = Pmw.TextDialog( self,
+    dial = BkTextDialog( self,
                            title=_('Generated InChIs'),
                            buttons=(_('OK'),))
     dial.insert( 'end', text)

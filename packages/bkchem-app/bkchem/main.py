@@ -29,10 +29,12 @@ import sys
 import oasa
 import collections
 
-from tkinter import Button, Frame, Label, StringVar, Tk
-from tkinter import LEFT, RAISED, SUNKEN
+import tkinter.messagebox
+from tkinter import Frame, Label, StringVar, Tk
+from tkinter import LEFT, SUNKEN
 
-import Pmw
+import tkinter.ttk as ttk
+
 from bkchem import bkchem_utils
 from bkchem.modes.mode_loader import build_all_modes
 from bkchem.modes.config import get_toolbar_order, get_toolbar_separator_positions
@@ -55,27 +57,11 @@ from bkchem.main_lib.main_chemistry_io import MainChemistryIOMixin
 from bkchem.main_lib.main_modes import MainModesMixin
 from bkchem.main_lib.main_tabs import MainTabsMixin
 from bkchem import theme_manager
+from bkchem.bk_tooltip import BkBalloon
+from bkchem.platform_menu import PlatformMenuAdapter
 
 # gettext i18n translation fallback
 _ = builtins.__dict__.get( '_', lambda m: m)
-
-
-#============================================
-def _on_btn_enter(btn, default_bg):
-	"""Highlight a toolbar button on mouse hover."""
-	# skip hover tint if button is the active (selected) mode
-	if str(btn.cget('background')) == theme_manager.get_color('active_mode'):
-		return
-	btn.configure(background=theme_manager.get_color('hover'))
-
-
-#============================================
-def _on_btn_leave(btn, default_bg):
-	"""Restore a toolbar button background when mouse leaves."""
-	# keep active mode fill when leaving
-	if str(btn.cget('background')) == theme_manager.get_color('active_mode'):
-		return
-	btn.configure(background=default_bg)
 
 
 class BKChem(
@@ -101,8 +87,11 @@ class BKChem(
 		#self.option_add( "*Background", "#eaeaea")
 		self.option_add( "*Entry*Background", theme_manager.get_color('entry_bg'))
 		self.option_add( "*Entry*Foreground", theme_manager.get_color('entry_fg'))
-		self.tk_setPalette( "background", theme_manager.get_color('background'),
-												"insertBackground", theme_manager.get_color('entry_insert_bg'))
+		self.tk_setPalette(
+			"background", theme_manager.get_color('background'),
+			"foreground", theme_manager.get_color('toolbar_fg'),
+			"insertBackground", theme_manager.get_color('entry_insert_bg'),
+		)
 
 		oasa.oasa_config.Config.molecule_class = molecule_lib.BkMolecule
 
@@ -116,9 +105,8 @@ class BKChem(
 
 		# main drawing part
 		self.papers = []
-		self.notebook = Pmw.NoteBook( self.main_frame,
-																	raisecommand=self.change_paper,
-																	borderwidth=bkchem_config.border_width)
+		self.notebook = ttk.Notebook(self.main_frame)
+		self.notebook.bind('<<NotebookTabChanged>>', self._on_tab_changed)
 		self.add_new_paper()
 
 		# template and group managers
@@ -128,6 +116,11 @@ class BKChem(
 		self.init_menu()
 		self.init_plugins_menu()
 
+		# ttk style setup: use clam for consistent cross-platform rendering
+		self._ttk_style = ttk.Style()
+		self._ttk_style.theme_use('clam')
+		theme_manager.configure_ttk_styles(self._ttk_style)
+
 		# modes initialization
 		self.init_modes()
 		self.mode = 'draw' # this is normaly not a string but it makes things easier on startup
@@ -136,19 +129,21 @@ class BKChem(
 		# edit pool (Entry only; buttons are created per-mode in change_mode)
 		self.editPool = editPool( self.main_frame, width=60)
 		# hidden until an edit_mode-derived mode activates it
-		self.editPool.grid( row=4, sticky="wens")
+		self.editPool.grid( row=5, sticky="wens")
 		self.editPool.grid_remove()
+		# reserve space for edit pool row to prevent layout shift on show/hide
+		self.main_frame.grid_rowconfigure( 5, minsize=28)
 
 		# main drawing part packing
-		self.notebook.grid( row=5, sticky="wens")
-		self.notebook.setnaturalsize()
-
-
+		self.notebook.grid( row=6, sticky="wens")
 		# preferences
 		self.init_preferences()
 
 		# init status bar
 		self.init_status_bar()
+
+		# apply full theme (palette, toolbar, status bar, canvas colors)
+		theme_manager.apply_gui_theme( self)
 
 		#
 		self.invoke_mode( self.mode)
@@ -168,8 +163,8 @@ class BKChem(
 
 		# main drawing part
 		self.papers = []
-		self.notebook = Pmw.NoteBook( self.main_frame,
-																	raisecommand=self.change_paper)
+		self.notebook = ttk.Notebook(self.main_frame)
+		self.notebook.bind('<<NotebookTabChanged>>', self._on_tab_changed)
 		self.add_new_paper()
 
 		# template and group managers
@@ -179,7 +174,7 @@ class BKChem(
 		Store.logger.handling = logger.batch_mode
 
 		# main drawing part packing
-		self.notebook.grid( row=5, sticky="wens")
+		self.notebook.grid( row=6, sticky="wens")
 
 		# protocol bindings
 		self.protocol("WM_DELETE_WINDOW", self._quit)
@@ -189,17 +184,9 @@ class BKChem(
 
 
 	def init_menu( self):
-		# defining menu
-		self._use_system_menubar = sys.platform == "darwin"
-		if self._use_system_menubar:
-			self.menu = Pmw.MainMenuBar( self, balloon=self.menu_balloon)
-			self.configure( menu=self.menu)
-		else:
-			menuf = Frame( self.main_frame, relief=RAISED, bd=bkchem_config.border_width)
-			menuf.grid( row=0, sticky="we")
-
-			self.menu = Pmw.MenuBar( menuf, balloon=self.menu_balloon)
-			self.menu.pack( side="left", expand=1, fill="both")
+		# defining menu using native tkinter.Menu via PlatformMenuAdapter
+		self.menu = PlatformMenuAdapter( self, balloon=self.menu_balloon,
+										main_frame=self.main_frame)
 
 		self.menu_template = [
 			# file menu
@@ -340,32 +327,24 @@ class BKChem(
 
 
 		# CREATION OF THE MENU
-		from bkchem.platform_menu import format_accelerator
-
 		menus = set() # we use this later for plugin entries addition
 
 		for temp in self.menu_template:
 			if temp[1] == "menu":
-				if self._use_system_menubar:
-					self.menu.addmenu( temp[0], temp[2])
-				else:
-					self.menu.addmenu( temp[0], temp[2], side=temp[3])
+				self.menu.add_menu( temp[0], temp[2], side=temp[3])
 				menus.add( temp[0])
 			elif temp[1] == "command":
-				menu, _ignore, label, accelerator, help, command, state_var = temp
-				# convert internal notation to platform-native display
-				display_accel = format_accelerator(accelerator)
-				self.menu.addmenuitem( menu, 'command', label=label, accelerator=display_accel, statusHelp=help, command=command)
+				menu_name, _ignore, label, accelerator, help_text, command, state_var = temp
+				self.menu.add_command( menu_name, label, accelerator, help_text, command)
 			elif temp[1] == "separator":
-				self.menu.addmenuitem( temp[0], 'separator')
+				self.menu.add_separator( temp[0])
 			elif temp[1] == "cascade":
-				self.menu.addcascademenu( temp[0], temp[2], temp[3], tearoff=0)
+				self.menu.add_cascade( temp[0], temp[2], temp[3])
 
 
 
 
 	def init_basics( self):
-		Pmw.initialise( self)
 		# set default font for all widgets
 		if sys.platform == 'linux':
 			try:
@@ -398,15 +377,17 @@ class BKChem(
 
 		self._untitled_counter = 0
 		self._tab_name_2_paper = {}
+		self._tab_name_2_frame = {}
+		self._programmatic_tab_select = False
 		self._last_tab = 0
 
 		self._after = None
 
-		self.balloon = Pmw.Balloon( self)
-		self.menu_balloon = Pmw.Balloon( self, statuscommand=self.update_status)
+		self.balloon = BkBalloon(self)
+		self.menu_balloon = BkBalloon(self, statuscommand=self.update_status)
 		self.main_frame = Frame( self)
 		self.main_frame.pack( fill='both', expand=1)
-		self.main_frame.rowconfigure( 5, weight=1)
+		self.main_frame.rowconfigure( 6, weight=1)
 		self.main_frame.columnconfigure( 0, weight=1)
 
 		self.format_entries = {}
@@ -428,13 +409,13 @@ class BKChem(
 			entry = self.format_entries[ codec_name]
 			local_name = entry["display_name"]
 			if entry.get("can_import"):
-				self.menu.addmenuitem( _("Import"), 'command', label=local_name,
-															statusHelp=_("Imports %s format.") % local_name,
-															command=bkchem_utils.lazy_apply( self.format_import, (codec_name,)))
+				self.menu.add_command_to_cascade( _("Import"), local_name,
+					_("Imports %s format.") % local_name,
+					bkchem_utils.lazy_apply( self.format_import, (codec_name,)))
 			if entry.get("can_export"):
-				self.menu.addmenuitem( _("Export"), 'command', label=local_name,
-															statusHelp=_("Exports %s format.") % local_name,
-															command=bkchem_utils.lazy_apply( self.format_export, (codec_name,)))
+				self.menu.add_command_to_cascade( _("Export"), local_name,
+					_("Exports %s format.") % local_name,
+					bkchem_utils.lazy_apply( self.format_export, (codec_name,)))
 
 
 
@@ -475,8 +456,9 @@ class BKChem(
 			path = Store.pm.get_preference( "recent-file%d" % (i+1))
 			if path:
 				self._recent_files.append( path)
-				self.menu.addmenuitem( _("Recent files"), 'command', label=path,
-															command=bkchem_utils.lazy_apply( self.load_CDML, (path,)))
+				self.menu.add_command_to_cascade( _("Recent files"), path,
+					_("Open recent file"),
+					bkchem_utils.lazy_apply( self.load_CDML, (path,)))
 		if not self.in_batch_mode:
 			# we do not load (or save) handling info when in batch mode
 			for key in Store.logger.handling:
@@ -495,15 +477,15 @@ class BKChem(
 	def init_mode_buttons( self):
 		# mode selection panel with slightly darker background for visual hierarchy
 		_toolbar_bg = theme_manager.get_color('toolbar')
-		_btn_active_bg = theme_manager.get_color('button_active_bg')
 		_group_sep_color = theme_manager.get_color('group_separator')
 		radioFrame = Frame( self.main_frame, bg=_toolbar_bg)
 		radioFrame.grid( row=1, sticky='we')
-		# build toolbar as separate RadioSelect widgets per group with
-		# separator frames between them; Pmw.RadioSelect uses grid internally
-		# so we cannot pack separator frames inside it
-		sep_positions = set(get_toolbar_separator_positions())
+		# StringVar tracks the active mode -- single source of truth
+		self._mode_var = StringVar(value='')
+		# dict mapping mode name -> ttk.Radiobutton widget
+		self._mode_buttons = {}
 		# split mode list into groups at separator positions
+		sep_positions = set(get_toolbar_separator_positions())
 		groups = []
 		current_group = []
 		for idx, m in enumerate(self.modes_sort):
@@ -513,67 +495,51 @@ class BKChem(
 			current_group.append(m)
 		if current_group:
 			groups.append(current_group)
-		# shared command that dispatches to change_mode and selects across groups
-		self._radio_groups = []
+		# build ttk.Radiobutton widgets per group with separator frames between
 		for gi, group in enumerate(groups):
-			# thin separator line between groups
 			if gi > 0:
 				sep = Frame(radioFrame, width=1, bg=_group_sep_color)
 				sep.pack(side=LEFT, fill='y', padx=3, pady=2)
-			radio = Pmw.RadioSelect(radioFrame,
-															buttontype='button',
-															selectmode='single',
-															orient='horizontal',
-															command=self.change_mode,
-															hull_borderwidth=0,
-															padx=1,
-															pady=1,
-															hull_relief='flat')
-			radio.pack(side=LEFT)
-			# match hull background to toolbar band
-			radio.configure(hull_background=_toolbar_bg)
-			self._radio_groups.append(radio)
 			for m in group:
+				btn_kwargs = {
+					'text': self.modes[m].label,
+					'variable': self._mode_var,
+					'value': m,
+					'style': 'Toolbar.Toolbutton',
+					'command': lambda tag=m: self.change_mode(tag),
+				}
 				if m in pixmaps.images:
-					recent = radio.add(m, image=pixmaps.images[m], text=self.modes[m].label,
-														compound='top', activebackground=_btn_active_bg,
-														background=_toolbar_bg,
-														relief='flat', borderwidth=bkchem_config.border_width)
-					self.balloon.bind(recent, self.modes[m].name)
-				else:
-					recent = radio.add(m, text=self.modes[m].label,
-														activebackground=_btn_active_bg,
-														background=_toolbar_bg,
-														borderwidth=bkchem_config.border_width)
-				# hover effect: lighten background on mouse enter, restore on leave
-				recent.bind('<Enter>', lambda e, btn=recent, bg=_toolbar_bg: _on_btn_enter(btn, bg))
-				recent.bind('<Leave>', lambda e, btn=recent, bg=_toolbar_bg: _on_btn_leave(btn, bg))
-		# build mode-name-to-group lookup for cross-group button access
-		self._mode_to_group = {}
-		for radio in self._radio_groups:
-			for btn_name in radio._buttonList:
-				self._mode_to_group[btn_name] = radio
-		# undo/redo buttons on the right side of the toolbar
+					btn_kwargs['image'] = pixmaps.images[m]
+					btn_kwargs['compound'] = 'top'
+				btn = ttk.Radiobutton(radioFrame, **btn_kwargs)
+				btn.pack(side=LEFT, padx=2, pady=1)
+				self._mode_buttons[m] = btn
+				self.balloon.bind(btn, self.modes[m].name)
+		# undo/redo ttk.Button widgets on the right side of the toolbar
 		sep = Frame(radioFrame, width=1, bg=_group_sep_color)
 		sep.pack(side=LEFT, fill='y', padx=4, pady=2)
 		# undo button
-		undo_kwargs = {'text': _('Undo'), 'command': lambda: self.paper.undo(),
-									'relief': 'flat', 'borderwidth': bkchem_config.border_width,
-									'activebackground': _btn_active_bg, 'background': _toolbar_bg}
+		undo_kwargs = {
+			'text': _('Undo'),
+			'command': lambda: self.paper.undo(),
+			'style': 'Toolbar.TButton',
+		}
 		if 'undo' in pixmaps.images:
 			undo_kwargs['image'] = pixmaps.images['undo']
 			undo_kwargs['compound'] = 'top'
-		self._undo_btn = Button(radioFrame, **undo_kwargs)
+		self._undo_btn = ttk.Button(radioFrame, **undo_kwargs)
 		self._undo_btn.pack(side=LEFT, padx=1)
 		self.balloon.bind(self._undo_btn, _('Undo (C-z)'))
 		# redo button
-		redo_kwargs = {'text': _('Redo'), 'command': lambda: self.paper.redo(),
-									'relief': 'flat', 'borderwidth': bkchem_config.border_width,
-									'activebackground': _btn_active_bg, 'background': _toolbar_bg}
+		redo_kwargs = {
+			'text': _('Redo'),
+			'command': lambda: self.paper.redo(),
+			'style': 'Toolbar.TButton',
+		}
 		if 'redo' in pixmaps.images:
 			redo_kwargs['image'] = pixmaps.images['redo']
 			redo_kwargs['compound'] = 'top'
-		self._redo_btn = Button(radioFrame, **redo_kwargs)
+		self._redo_btn = ttk.Button(radioFrame, **redo_kwargs)
 		self._redo_btn.pack(side=LEFT, padx=1)
 		self.balloon.bind(self._redo_btn, _('Redo (C-S-z)'))
 
@@ -587,12 +553,15 @@ class BKChem(
 		self.subbuttons = []
 		# the remaining of sub modes support is now in self.change_mode
 
+		# horizontal separator between submode ribbon and canvas area
+		sep_bot = Frame( self.main_frame, height=1, bg=theme_manager.get_color('separator'))
+		sep_bot.grid( row=4, sticky='we')
+
 
 	def invoke_mode( self, mode_name_or_index):
 		"""Invoke a toolbar mode button by name or global index.
 
-		Looks up the correct RadioSelect group and invokes the button
-		within that group.
+		Sets the mode variable and calls change_mode.
 
 		Args:
 			mode_name_or_index: mode name string or integer index into modes_sort
@@ -604,29 +573,25 @@ class BKChem(
 			else:
 				return
 		name = str(mode_name_or_index)
-		group = self._mode_to_group.get(name)
-		if group:
-			group.invoke(name)
+		if name in self._mode_buttons:
+			self._mode_buttons[name].invoke()
 
 
 	def get_mode_button( self, mode_name):
-		"""Return the Tk Button widget for the given mode name.
+		"""Return the ttk.Radiobutton widget for the given mode name.
 
 		Args:
 			mode_name: mode name string
 
 		Returns:
-			Tk Button widget
+			ttk.Radiobutton widget or None
 		"""
-		group = self._mode_to_group.get(mode_name)
-		if group:
-			return group.button(mode_name)
-		return None
+		return self._mode_buttons.get(mode_name)
 
 
 	def init_status_bar( self):
 		status_frame = Frame( self.main_frame)
-		status_frame.grid( row=6, sticky="we")
+		status_frame.grid( row=7, sticky="we")
 		# status message (expanding)
 		status = Label( status_frame, relief=SUNKEN, bd=bkchem_config.border_width, textvariable=self.stat, anchor='w', height=2, justify='l')
 		status.pack( side="left", expand=1, fill="both")
@@ -642,13 +607,8 @@ class BKChem(
 
 
 	def about( self):
-		dialog = Pmw.MessageDialog(self,
-															title = _('About BKChem'),
-															defaultbutton = 0,
-															buttons=(_("OK"),),
-															message_text = "BKChem " + _("version") + " " + bkchem_config.current_BKChem_version + "\n\n" + messages.about_text)
-		dialog.iconname('BKChem')
-		dialog.activate()
+		about_msg = "BKChem " + _("version") + " " + bkchem_config.current_BKChem_version + "\n\n" + messages.about_text
+		tkinter.messagebox.showinfo(_('About BKChem'), about_msg, parent=self)
 
 
 	def update_status( self, signal, time=None):
@@ -806,7 +766,7 @@ class BKChem(
 		if not Store.btm or not Store.btm.get_template_names():
 			Store.log( _("No biomolecule templates are available"))
 			return
-		if hasattr( self, '_mode_to_group') and 'biotemplate' in self.modes_sort:
+		if hasattr( self, '_mode_buttons') and 'biotemplate' in self.modes_sort:
 			self.invoke_mode( 'biotemplate')
 		else:
 			self.change_mode( 'biotemplate')
@@ -819,9 +779,7 @@ class BKChem(
 	#============================================
 	def _get_menu_component( self, name):
 		"""Return the tkinter.Menu component for the given menu name."""
-		if getattr( self, '_use_system_menubar', False):
-			return self.menu.component( name)
-		return self.menu.component( name + "-menu")
+		return self.menu.get_menu_component( name)
 
 
 	def update_menu_after_selection_change( self, e):

@@ -103,6 +103,7 @@ Repo-wide conventions for this project and related repos.
 - `README.md`: project purpose, quick start, and links to deeper documentation.
 - `LICENSE`: legal terms for using and redistributing the project; keep exact license text.
 - `docs/CHANGELOG.md`: chronological, user facing record of changes, grouped by date. Timeline of what changed and when.
+- `docs/CHANGELOG.md` entries should also note important failures and key implementation choices so the log remains a useful learning record for later debugging and decision review.
 - `docs/CODE_ARCHITECTURE.md`: high-level system design, major components, and data flow.
 - `docs/FILE_STRUCTURE.md`: directory map with what belongs where, including generated assets.
 - `docs/INSTALL.md`: setup steps, dependencies, and environment requirements.

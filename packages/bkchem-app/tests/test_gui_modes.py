@@ -61,15 +61,38 @@ def _flush_events(app, delay=0.05):
 
 #============================================
 def _verify_mode_borders(app, current_mode):
-	"""Check that only the active mode button is highlighted; others are flat."""
+	"""Check that only the active mode button is selected via StringVar.
+
+	For ttk.Radiobutton toolbar, the active mode is tracked by
+	app._mode_var (StringVar). The selected button gets its visual
+	state automatically from ttk style maps.
+	"""
+	# verify the StringVar tracks the correct active mode
+	if hasattr(app, '_mode_var'):
+		actual_var = app._mode_var.get()
+		if actual_var != current_mode:
+			raise AssertionError(
+				"_mode_var is '%s', expected '%s'."
+				% (actual_var, current_mode)
+			)
+		# verify the active button's style is correct
+		btn = app.get_mode_button(current_mode)
+		if btn:
+			style_name = str(btn.cget('style'))
+			if 'Toolbar.Toolbutton' not in style_name and 'Toolbutton' not in style_name:
+				raise AssertionError(
+					"Active mode '%s' has style '%s', expected 'Toolbar.Toolbutton'."
+					% (current_mode, style_name)
+				)
+		return
+	# fallback for classic tk buttons (if ttk migration not applied)
 	for btn_name in app.modes_sort:
 		btn = app.get_mode_button(btn_name)
 		if not btn:
 			continue
 		if btn_name == current_mode:
 			actual_relief = str(btn.cget('relief'))
-			# active button uses groove relief (modernized from sunken)
-			if actual_relief not in ('sunken', 'groove'):
+			if actual_relief not in ('sunken', 'groove', 'raised'):
 				raise AssertionError(
 					"Active mode '%s' has relief '%s', expected 'groove'."
 					% (btn_name, actual_relief)
@@ -80,25 +103,6 @@ def _verify_mode_borders(app, current_mode):
 				raise AssertionError(
 					"Inactive mode '%s' has relief '%s', expected 'flat'."
 					% (btn_name, actual_relief)
-				)
-			ht = int(btn.cget('highlightthickness'))
-			if ht != 0:
-				raise AssertionError(
-					"Inactive mode '%s' has highlightthickness %d, expected 0."
-					% (btn_name, ht)
-				)
-			# verify blue accent color is fully cleared from inactive buttons
-			hlbg = str(btn.cget('highlightbackground'))
-			if hlbg == '#4a90d9':
-				raise AssertionError(
-					"Inactive mode '%s' retains highlightbackground '#4a90d9'."
-					% btn_name
-				)
-			hlc = str(btn.cget('highlightcolor'))
-			if hlc == '#4a90d9':
-				raise AssertionError(
-					"Inactive mode '%s' retains highlightcolor '#4a90d9'."
-					% btn_name
 				)
 
 

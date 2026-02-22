@@ -4,3 +4,4 @@ dist/
 output_smoke/
 bkchem_webpage/
 report_*.txt
+.DS_Store

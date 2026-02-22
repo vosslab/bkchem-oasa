@@ -109,11 +109,6 @@ if not bkchem_config.debug:
     print(messages.low_python_version_text % import_checker.python_version)
     sys.exit(1)
 
-  # can't do without Pmw
-  if not import_checker.Pmw_available:
-    print(messages.no_pmw_text)
-    sys.exit(1)
-
   # oasa is the core now, we need it
   if not import_checker.oasa_available:
     print(messages.no_oasa_text)
