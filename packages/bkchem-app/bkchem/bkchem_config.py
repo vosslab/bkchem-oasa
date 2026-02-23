@@ -43,7 +43,7 @@ def _read_repo_version( key, fallback):
 				return value
 	return fallback
 
-current_BKChem_version = _read_repo_version( "bkchem", "26.02")
+current_BKChem_version = _read_repo_version( "bkchem", "26.02a1")
 
 
 

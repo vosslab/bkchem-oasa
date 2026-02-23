@@ -2,6 +2,53 @@
 
 ## 2026-02-23
 
+### Additions and New Features
+
+- Build script now reads `pip_requirements.txt` at build time and auto-generates
+  `--hidden-import` and `--collect-all` flags for PyInstaller, so new pip
+  dependencies are automatically bundled into the macOS app without manual edits.
+  Packages with C extensions or deep submodule trees (rdkit, rustworkx, cairo)
+  are listed in `COLLECT_ALL_PACKAGES` and get `--collect-all` in addition to
+  `--hidden-import`.
+  File changed: [`devel/build_macos_dmg.py`](devel/build_macos_dmg.py).
+
+### Behavior or Interface Changes
+
+- Set version to `26.02a1` (alpha 1) across all version sources: `VERSION`,
+  `packages/oasa/pyproject.toml`, and `bkchem_config.py` fallback.
+  Files changed: [`VERSION`](VERSION),
+  [`packages/oasa/pyproject.toml`](packages/oasa/pyproject.toml),
+  [`packages/bkchem-app/bkchem/bkchem_config.py`](packages/bkchem-app/bkchem/bkchem_config.py).
+
+- Add `dependencies` block to bkchem-app `pyproject.toml` matching
+  `pip_requirements.txt` (defusedxml, pycairo, pyyaml, rdkit, rustworkx).
+  File changed:
+  [`packages/bkchem-app/pyproject.toml`](packages/bkchem-app/pyproject.toml).
+- Add missing `rustworkx` dependency to oasa `pyproject.toml`.
+  File changed:
+  [`packages/oasa/pyproject.toml`](packages/oasa/pyproject.toml).
+
+### Fixes and Maintenance
+
+- Replace blanket `--collect-all` with fine-grained `--collect-binaries` and
+  targeted `--hidden-import` flags for rdkit, cairo, and rustworkx in the macOS
+  build script. The old `--collect-all` bundled every submodule, data file, and
+  shared library for each package, inflating the app bundle to 1.8 GB. The new
+  `PACKAGE_PYINSTALLER_FLAGS` dict specifies only the binaries and imports
+  actually needed. tkinter retains `--collect-all` since it needs Tcl/Tk runtime
+  data directories.
+  File changed: [`devel/build_macos_dmg.py`](devel/build_macos_dmg.py).
+
+- Fix BKChem.app crash on launch due to missing tkinter/Tcl/Tk. Added
+  `--hidden-import=tkinter`, `--hidden-import=_tkinter`, and
+  `--collect-all=tkinter` to the PyInstaller command. PyInstaller could not
+  auto-detect tkinter because the bootstrap script reaches it only at runtime.
+  File changed: [`devel/build_macos_dmg.py`](devel/build_macos_dmg.py).
+- Fix macOS DMG build script paths. The script referenced `packages/bkchem/`
+  but the actual package directory is `packages/bkchem-app/`. Fixed all four
+  path references (SVG icon, ICNS icon, bkchem package, bkchem data, addons).
+  File changed: [`devel/build_macos_dmg.py`](devel/build_macos_dmg.py).
+
 ### Removals and Deprecations
 
 - Remove remaining Pmw references from build script, docs, locale files, and

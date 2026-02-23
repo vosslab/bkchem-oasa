@@ -10,9 +10,10 @@ requires-python = ">=3.10"
 license = {text = "GPL-2.0-only"}
 authors = [{name = "Beda Kosata", email = "beda@zirael.org"}]
 maintainers = [{name = "Reinis Danne", email = "rei4dan@gmail.com"}]
-version = "26.02"
+version = "26.02a1"
 dependencies = [
     "rdkit",
+    "rustworkx",
 ]
 
 [project.urls]

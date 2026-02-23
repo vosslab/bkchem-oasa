@@ -254,14 +254,14 @@ def generate_icns(repo_root: str, dry_run: bool) -> str:
 		Path to the generated .icns file.
 	"""
 	svg_path = os.path.join(
-		repo_root, "packages", "bkchem", "bkchem_data", "images", "bkchem.svg"
+		repo_root, "packages", "bkchem-app", "bkchem_data", "images", "bkchem.svg"
 	)
 	if not os.path.isfile(svg_path):
 		fail(f"SVG icon not found: {svg_path}")
 
 	# output .icns alongside the SVG for reuse
 	icns_path = os.path.join(
-		repo_root, "packages", "bkchem", "bkchem_data", "images", "bkchem.icns"
+		repo_root, "packages", "bkchem-app", "bkchem_data", "images", "bkchem.icns"
 	)
 
 	# check for rsvg-convert
@@ -364,6 +364,93 @@ def _write_bootstrap_script(temp_dir: str) -> str:
 
 #============================================
 
+def read_pip_requirements(repo_root: str) -> list:
+	"""Read package names from pip_requirements.txt.
+
+	Strips comments and blank lines, returns a list of pip package names.
+
+	Args:
+		repo_root: Path to the repository root.
+
+	Returns:
+		List of pip package names (lowercase).
+	"""
+	req_path = os.path.join(repo_root, "pip_requirements.txt")
+	if not os.path.isfile(req_path):
+		print_warning(f"  pip_requirements.txt not found: {req_path}")
+		return []
+	packages = []
+	with open(req_path, "r") as handle:
+		for line in handle:
+			# strip inline comments and whitespace
+			text = line.split("#")[0].strip()
+			if not text:
+				continue
+			# strip version specifiers (e.g. "pkg>=1.0")
+			for sep_char in (">=", "<=", "==", "!=", "~=", ">", "<"):
+				if sep_char in text:
+					text = text.split(sep_char)[0].strip()
+					break
+			# strip extras (e.g. "pkg[extra]")
+			if "[" in text:
+				text = text.split("[")[0].strip()
+			if text:
+				packages.append(text.lower())
+	return packages
+
+#============================================
+
+# pip package name -> Python import name (only where they differ)
+PIP_TO_IMPORT = {
+	"pycairo": "cairo",
+	"pyyaml": "yaml",
+	"pillow": "PIL",
+}
+
+# per-package PyInstaller flags replacing the old blanket --collect-all
+# rdkit: hidden-imports for the two modules we use, plus binaries for .dylibs
+# cairo: single C extension (_cairo.so)
+# rustworkx: single Rust extension (rustworkx.abi3.so)
+PACKAGE_PYINSTALLER_FLAGS = {
+	"rdkit": [
+		"--hidden-import=rdkit.Chem",
+		"--hidden-import=rdkit.Chem.AllChem",
+		"--collect-binaries=rdkit",
+	],
+	"cairo": [
+		"--collect-binaries=cairo",
+	],
+	"rustworkx": [
+		"--collect-binaries=rustworkx",
+	],
+}
+
+#============================================
+
+def pip_packages_to_pyinstaller_flags(packages: list) -> list:
+	"""Convert pip package names to PyInstaller flags.
+
+	Generates --hidden-import for every package, plus any fine-grained
+	flags from PACKAGE_PYINSTALLER_FLAGS (targeted --collect-binaries
+	and extra --hidden-import entries instead of blanket --collect-all).
+
+	Args:
+		packages: List of pip package names.
+
+	Returns:
+		List of PyInstaller flag strings.
+	"""
+	flags = []
+	for pkg in packages:
+		import_name = PIP_TO_IMPORT.get(pkg, pkg)
+		flags.append(f"--hidden-import={import_name}")
+		# add per-package fine-grained flags if defined
+		extra_flags = PACKAGE_PYINSTALLER_FLAGS.get(import_name, [])
+		flags.extend(extra_flags)
+	return flags
+
+#============================================
+
 def build_app(repo_root: str, icns_path: str, output_dir: str, dry_run: bool) -> str:
 	"""Build BKChem.app using PyInstaller.
 
@@ -379,9 +466,9 @@ def build_app(repo_root: str, icns_path: str, output_dir: str, dry_run: bool) ->
 	print_step("Building BKChem.app with PyInstaller...")
 
 	# resolve data directories
-	bkchem_pkg = os.path.join(repo_root, "packages", "bkchem", "bkchem")
-	bkchem_data = os.path.join(repo_root, "packages", "bkchem", "bkchem_data")
-	addons_dir = os.path.join(repo_root, "packages", "bkchem", "addons")
+	bkchem_pkg = os.path.join(repo_root, "packages", "bkchem-app", "bkchem")
+	bkchem_data = os.path.join(repo_root, "packages", "bkchem-app", "bkchem_data")
+	addons_dir = os.path.join(repo_root, "packages", "bkchem-app", "addons")
 	oasa_pkg = os.path.join(repo_root, "packages", "oasa", "oasa")
 	oasa_data = os.path.join(repo_root, "packages", "oasa", "oasa_data")
 	version_file = os.path.join(repo_root, "VERSION")
@@ -405,6 +492,10 @@ def build_app(repo_root: str, icns_path: str, output_dir: str, dry_run: bool) ->
 	with tempfile.TemporaryDirectory(prefix="bkchem_build_") as temp_dir:
 		bootstrap_path = _write_bootstrap_script(temp_dir)
 
+		# read pip_requirements.txt to auto-generate PyInstaller flags
+		pip_packages = read_pip_requirements(repo_root)
+		pip_flags = pip_packages_to_pyinstaller_flags(pip_packages)
+
 		cmd = [
 			sys.executable, "-m", "PyInstaller",
 			"--name", "BKChem",
@@ -418,14 +509,13 @@ def build_app(repo_root: str, icns_path: str, output_dir: str, dry_run: bool) ->
 			f"--add-data={oasa_pkg}{sep}oasa",
 			f"--add-data={oasa_data}{sep}oasa_data",
 			f"--add-data={version_file}{sep}.",
-			# hidden imports for packages PyInstaller may miss
+			# hidden imports for local packages PyInstaller cannot discover
 			"--hidden-import=bkchem",
 			"--hidden-import=oasa",
-			"--hidden-import=defusedxml",
-			"--hidden-import=yaml",
-			"--hidden-import=cairo",
-			# collect-all for tricky packages
-			"--collect-all=cairo",
+			# tkinter is a stdlib runtime dep not visible to PyInstaller
+			"--hidden-import=tkinter",
+			"--hidden-import=_tkinter",
+			"--collect-all=tkinter",
 			# output directories
 			"--distpath", output_dir,
 			"--workpath", os.path.join(output_dir, "build_temp"),
@@ -434,6 +524,9 @@ def build_app(repo_root: str, icns_path: str, output_dir: str, dry_run: bool) ->
 			"--clean",
 			"--noconfirm",
 		]
+
+		# add hidden-import and collect-all flags from pip_requirements.txt
+		cmd.extend(pip_flags)
 
 		# add icon if it exists
 		if os.path.isfile(icns_path):

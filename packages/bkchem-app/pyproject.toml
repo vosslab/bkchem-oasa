@@ -11,6 +11,13 @@ license = {text = "GPL-2.0-only"}
 authors = [{name = "Beda Kosata", email = "beda@zirael.org"}]
 maintainers = [{name = "Reinis Danne", email = "rei4dan@gmail.com"}]
 dynamic = ["version"]
+dependencies = [
+    "defusedxml",
+    "pycairo",
+    "pyyaml",
+    "rdkit",
+    "rustworkx",
+]
 
 [project.urls]
 Homepage = "https://github.com/vosslab/bkchem"
