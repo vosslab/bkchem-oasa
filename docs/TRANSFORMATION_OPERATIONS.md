@@ -138,4 +138,4 @@ tr.set_move(cx, cy)
   grid points. Useful for validating transforms (rotate 60 degrees, check
   grid alignment preserved) and for `coords_generator2` snap-on-generate.
   Visual dot overlay and interactive snap-to-grid in BKChem are a separate
-  Tk/PMW feature built on top of the OASA geometry.
+  Tk/ttk feature built on top of the OASA geometry.

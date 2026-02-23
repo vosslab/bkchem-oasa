@@ -7,7 +7,7 @@ Relevant to future toolkit migration (PySide, Tauri, etc.).
 
 - **Total files:** 78 Python files in `packages/bkchem-app/bkchem/`
 - **Total lines:** ~25,072
-- **Files with tkinter/Pmw imports:** 17
+- **Files with tkinter imports:** 17
 - **Files with Canvas drawing calls:** 14
 - **Estimated tkinter-entangled lines:** ~1,000+
 
@@ -88,7 +88,7 @@ Replaceable in a day or two per file.
 | `ftext.py` | 321 | `tkinter.font.Font` for sizing; `canvas.create_text/bbox/move/delete/lift` |
 | `logger.py` | 117 | One `tkinter.messagebox.showinfo` call |
 | `context_menu.py` | 385 | Subclasses `tkinter.Menu`; `.add_command()`, `.post()` |
-| `external_data.py` | 329 | One `Pmw.PromptDialog` for data entry |
+| `external_data.py` | 329 | One `bk_dialogs.PromptDialog` for data entry |
 | `bkchem_app.py` | 221 | Indirect tkinter use via Store |
 | `splash.py` | ~80 | Subclasses `tkinter.Toplevel` |
 | `pixmaps.py` | 99 | `tkinter.PhotoImage` only |
@@ -102,7 +102,7 @@ full rewrite or deep refactor.
 
 `chem_paper` inherits from `tkinter.Canvas`. Every drawing call in the entire
 codebase ultimately calls methods on this Canvas subclass:
-- 48 tkinter/Pmw pattern matches
+- 48 tkinter pattern matches
 - `self.bind(...)` with 20+ event bindings
 - `create_rectangle`, `delete`, `bbox`, `scale`, `find_withtag`,
   `find_overlapping`, `addtag_withtag`, `dtag`, `gettags`, `lift`, `lower`
@@ -113,8 +113,7 @@ codebase ultimately calls methods on this Canvas subclass:
 #### `main.py` (1639 lines) - critical hub
 
 `BKChem` inherits from `tkinter.Tk`:
-- 83 tkinter/Pmw matches
-- `Pmw.NoteBook`, `Pmw.Balloon`, `Pmw.AboutDialog`
+- 83 tkinter matches (Pmw replaced with ttk/bk_widgets)
 - `StringVar`, `filedialog`, `.after()`, `.mainloop()`
 - `.pack()`, `.grid()` geometry managers throughout
 
@@ -126,14 +125,14 @@ All mouse/keyboard event handling:
 
 #### `dialogs.py` (1164 lines) - critical
 
-Heaviest Pmw user (149 matches):
-- `Pmw.Dialog`, `Pmw.Counter`, `Pmw.EntryField`, `Pmw.RadioSelect`,
-  `Pmw.OptionMenu`, `Pmw.ScrolledFrame`, `Pmw.ScrolledText`, `Pmw.TextDialog`
+Heaviest former Pmw user (now uses bk_dialogs/bk_widgets ttk replacements):
+- `bk_dialogs.Dialog`, `bk_dialogs.Counter`, `bk_widgets.OptionMenu`,
+  `bk_widgets.RadioSelect`, `bk_dialogs.TextDialog`
 - `tkinter.IntVar`, `tkinter.StringVar`, `tkinter.Checkbutton`
 
 #### `widgets.py` (533 lines) - critical
 
-79 tkinter/Pmw matches:
+79 tkinter matches (Pmw replaced with bk_widgets):
 - `ColorButton(tkinter.Button)`, `ModeButton`, tool palette buttons
 - `tkinter.colorchooser`, `tkinter.filedialog`
 
@@ -142,11 +141,11 @@ Heaviest Pmw user (149 matches):
 | File | Lines | Coupling |
 | --- | --- | --- |
 | `edit_pool.py` | 288 | Subclasses `tkinter.Frame` |
-| `interactors.py` | 485 | `Pmw.PromptDialog`, `tkinter.messagebox` |
-| `platform_menu.py` | 140 | Wraps `Pmw.MainMenuBar` / `Pmw.MenuBar` |
+| `interactors.py` | 485 | `bk_dialogs.PromptDialog`, `tkinter.messagebox` |
+| `platform_menu.py` | 140 | Wraps `tkinter.Menu` (Pmw replaced with ttk) |
 | `helper_graphics.py` | 234 | 33 canvas op matches |
 | `graphics.py` | 624 | 35 canvas op matches |
-| `menu_builder.py` | 189 | Uses `platform_menu.py` Pmw wrapper |
+| `menu_builder.py` | 189 | Uses `platform_menu.py` menu wrapper |
 
 ## Inheritance tree
 

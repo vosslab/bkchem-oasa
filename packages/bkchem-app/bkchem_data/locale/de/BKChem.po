@@ -1971,7 +1971,7 @@ msgstr ""
 #, fuzzy
 msgid ""
 "BKChem was conceived and written by Beda Kosata\n"
-"and is performed by Python, Pmw & (optionally) Cairo.\n"
+"and is performed by Python, tkinter & (optionally) Cairo.\n"
 "Currently it is maintained by Reinis Danne <rei4dan@gmail.com>.\n"
 "\n"
 "BKChem is free software and is distributed under GNU GPL.\n"
@@ -1982,7 +1982,7 @@ msgid ""
 "and redistribute BKChem as long as you do it under GNU GPL."
 msgstr ""
 "BKChem wurde erdacht und geschrieben von Beda Kosata\n"
-"und wird von Python, Pmw & (optional) Cairo unterstützt.\n"
+"und wird von Python, tkinter & (optional) Cairo unterstützt.\n"
 "\n"
 "BKChem ist freie Software und steht unter der Lizenz der GNU GPL.\n"
 "BKChem wird 'so wie es ist' bereitgestellt, es kann keine Gewähr für "
@@ -1994,20 +1994,6 @@ msgstr ""
 "verteilen\n"
 "solange dies unter den Bedingungen der GNU GPL geschieht."
 
-#: ../../bkchem/messages.py:90
-#, fuzzy
-msgid ""
-"UNABLE TO IMPORT PMW\n"
-"\n"
-"Sorry, but BKChem relies too heavily on Pmw to be usable without it. Please "
-"install Pmw and try again.\n"
-"(for more info on Pmw see documentation)"
-msgstr ""
-"KANN PMW NICHT IMPORTIEREN\n"
-"\n"
-"Entschuldigung, BKChem basiert zu stark auf Pmw um ohne es nutzbar zu sein. "
-"Bitte installieren Sie Pmw und versuchen Sie es erneut.\n"
-"(für mehr Informationen über Pmw schauen Sie in die Dokumentation)"
 
 #: ../../bkchem/messages.py:96
 #, fuzzy

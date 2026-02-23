@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-02-23
+
+### Removals and Deprecations
+
+- Remove remaining Pmw references from build script, docs, locale files, and
+  pip requirements. Pmw was fully replaced with ttk in the codebase; these
+  were leftover references in non-Python files.
+  Files changed:
+  [`devel/build_macos_dmg.py`](devel/build_macos_dmg.py),
+  [`pip_requirements.txt`](pip_requirements.txt),
+  [`docs/INSTALL.md`](docs/INSTALL.md),
+  [`docs/TKINTER_COUPLING.md`](docs/TKINTER_COUPLING.md),
+  [`docs/TRANSFORMATION_OPERATIONS.md`](docs/TRANSFORMATION_OPERATIONS.md),
+  all `.po`/`.pot` locale files under
+  [`packages/bkchem-app/bkchem_data/locale/`](packages/bkchem-app/bkchem_data/locale/).
+
 ## 2026-02-21
 - Fix unsaved-changes dialog grammar. The message "what should I do?" did not
   match the Yes/No/Cancel buttons. Changed to "Save before closing?" so the

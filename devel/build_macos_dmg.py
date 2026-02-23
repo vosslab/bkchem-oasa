@@ -421,12 +421,10 @@ def build_app(repo_root: str, icns_path: str, output_dir: str, dry_run: bool) ->
 			# hidden imports for packages PyInstaller may miss
 			"--hidden-import=bkchem",
 			"--hidden-import=oasa",
-			"--hidden-import=Pmw",
 			"--hidden-import=defusedxml",
 			"--hidden-import=yaml",
 			"--hidden-import=cairo",
 			# collect-all for tricky packages
-			"--collect-all=Pmw",
 			"--collect-all=cairo",
 			# output directories
 			"--distpath", output_dir,

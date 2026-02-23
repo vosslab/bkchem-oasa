@@ -1872,7 +1872,7 @@ msgstr "結合または二つの原子を選択して反転(線対称)させる�
 #, fuzzy
 msgid ""
 "BKChem was conceived and written by Beda Kosata\n"
-"and is performed by Python, Pmw & (optionally) Cairo.\n"
+"and is performed by Python, tkinter & (optionally) Cairo.\n"
 "Currently it is maintained by Reinis Danne <rei4dan@gmail.com>.\n"
 "\n"
 "BKChem is free software and is distributed under GNU GPL.\n"
@@ -1889,14 +1889,6 @@ msgstr ""
 "\n"
 "BKChemの改変，再配布はGNU GPLの下であれば可能です．"
 
-#: ../../bkchem/messages.py:90
-msgid ""
-"UNABLE TO IMPORT PMW\n"
-"\n"
-"Sorry, but BKChem relies too heavily on Pmw to be usable without it. Please "
-"install Pmw and try again.\n"
-"(for more info on Pmw see documentation)"
-msgstr ""
 
 #: ../../bkchem/messages.py:96
 msgid ""
