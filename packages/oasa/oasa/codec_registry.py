@@ -294,6 +294,50 @@ def _ensure_defaults_registered():
 		),
 		aliases=["cd-svg"],
 	)
+	# RDKit-backed codecs
+	from oasa.codecs import rdkit_formats
+	register_codec(
+		Codec(
+			name="molfile_v3000",
+			text_to_mol=rdkit_formats.molfile_v3000_text_to_mol,
+			mol_to_text=rdkit_formats.molfile_v3000_mol_to_text,
+			file_to_mol=rdkit_formats.molfile_v3000_file_to_mol,
+			mol_to_file=rdkit_formats.molfile_v3000_mol_to_file,
+			description="Molfile V3000",
+		),
+		aliases=["mol-v3000", "v3000"],
+	)
+	register_codec(
+		Codec(
+			name="sdf",
+			text_to_mol=rdkit_formats.sdf_text_to_mol,
+			mol_to_text=rdkit_formats.sdf_mol_to_text,
+			file_to_mol=rdkit_formats.sdf_file_to_mol,
+			mol_to_file=rdkit_formats.sdf_mol_to_file,
+			extensions=[".sdf"],
+			description="SDF (Structure Data File)",
+		),
+	)
+	register_codec(
+		Codec(
+			name="sdf_v3000",
+			text_to_mol=rdkit_formats.sdf_v3000_text_to_mol,
+			mol_to_text=rdkit_formats.sdf_v3000_mol_to_text,
+			file_to_mol=rdkit_formats.sdf_v3000_file_to_mol,
+			mol_to_file=rdkit_formats.sdf_v3000_mol_to_file,
+			description="SDF V3000",
+		),
+		aliases=["sdf-v3000"],
+	)
+	register_codec(
+		Codec(
+			name="smarts",
+			mol_to_text=rdkit_formats.smarts_mol_to_text,
+			mol_to_file=rdkit_formats.smarts_mol_to_file,
+			extensions=[".sma"],
+			description="SMARTS (export-only)",
+		),
+	)
 	_DEFAULTS_REGISTERED = True
 
 

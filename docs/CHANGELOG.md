@@ -1,5 +1,96 @@
 # Changelog
 
+## 2026-02-26
+
+### Additions and New Features
+
+- Add RDKit-backed file format codecs: Molfile V2000, Molfile V3000, SDF,
+  SDF V3000, SMILES, and SMARTS (export-only). All use `rdkit_bridge` for
+  OASA-to-RDKit conversion. File changed:
+  [`packages/oasa/oasa/codecs/rdkit_formats.py`](packages/oasa/oasa/codecs/rdkit_formats.py).
+- Register new codecs in the OASA codec registry with extensions `.sdf`
+  and `.sma`, and aliases `v3000`, `mol-v3000`, `sdf-v3000`.
+  File changed:
+  [`packages/oasa/oasa/codec_registry.py`](packages/oasa/oasa/codec_registry.py).
+- Add GUI menu entries for Molfile V3000, SDF, SDF V3000, and SMARTS formats.
+  File changed:
+  [`packages/bkchem-app/bkchem/format_menus.yaml`](packages/bkchem-app/bkchem/format_menus.yaml).
+- Open dialog now recognizes chemistry file extensions (`.mol`, `.sdf`, `.smi`,
+  `.cml`, `.cdxml`) and routes them through the import pipeline automatically.
+  File changed:
+  [`packages/bkchem-app/bkchem/main_lib/main_file_io.py`](packages/bkchem-app/bkchem/main_lib/main_file_io.py).
+- After import, a summary popup shows molecule/atom/bond counts.
+  File changed:
+  [`packages/bkchem-app/bkchem/main_lib/main_file_io.py`](packages/bkchem-app/bkchem/main_lib/main_file_io.py).
+- Add 6x6 NxN cholesterol super roundtrip test covering all read/write codec
+  pairs (smiles, molfile, molfile_v3000, sdf, sdf_v3000, inchi). Each pair
+  writes cholesterol in format A, reads back, writes in format B, reads back,
+  and verifies atom/bond counts survive both hops.
+  File changed:
+  [`packages/oasa/tests/test_rdkit_formats.py`](packages/oasa/tests/test_rdkit_formats.py).
+
+### Behavior or Interface Changes
+
+- Migrate Molfile V2000 read/write to RDKit. The `molfile_lib.py` module-level
+  `text_to_mol`, `mol_to_text`, `file_to_mol`, `mol_to_file` now delegate to
+  `rdkit_formats.molfile_*` functions. The legacy `Molfile` class is retained
+  but no longer used by the module interface.
+  File changed:
+  [`packages/oasa/oasa/molfile_lib.py`](packages/oasa/oasa/molfile_lib.py).
+- Migrate SMILES read/write to RDKit. The `smiles_lib.py` module-level
+  `text_to_mol` and `mol_to_text` now delegate to `rdkit_formats.smiles_*`
+  functions. The `calc_coords` and `localize_aromatic_bonds` parameters are
+  preserved. The legacy `Smiles` class is retained but no longer used by the
+  module interface.
+  File changed:
+  [`packages/oasa/oasa/smiles_lib.py`](packages/oasa/oasa/smiles_lib.py).
+- Migrate InChI reader to RDKit. The `inchi_lib.py` `text_to_mol` now
+  delegates to `rdkit_formats.inchi_text_to_mol`. The `include_hydrogens`,
+  `mark_aromatic_bonds`, and `calc_coords` parameters are preserved.
+  File changed:
+  [`packages/oasa/oasa/inchi_lib.py`](packages/oasa/oasa/inchi_lib.py).
+- Replace external-binary InChI generation with RDKit-native `MolToInchi` /
+  `MolFromInchi` / `InchiToInchiKey`. No external InChI program is needed.
+  The `program` parameter is accepted but ignored for backward compatibility.
+  File changed:
+  [`packages/oasa/oasa/inchi_lib.py`](packages/oasa/oasa/inchi_lib.py).
+- Remove `program_path` gui_option from InChI format entry since the external
+  binary is no longer used.
+  File changed:
+  [`packages/bkchem-app/bkchem/format_menus.yaml`](packages/bkchem-app/bkchem/format_menus.yaml).
+- Remove InChI special-case export code from format_loader since InChI now
+  uses the standard codec write_file interface.
+  File changed:
+  [`packages/bkchem-app/bkchem/format_loader.py`](packages/bkchem-app/bkchem/format_loader.py).
+
+### Fixes and Maintenance
+
+- Fix `TypeError: '>' not supported between instances of 'NoneType' and 'int'`
+  in `cairo_out.py` when drawing aromatic molecules parsed via RDKit. The bridge
+  function `_rdkit_to_oasa()` now kekulizes the RDKit molecule before conversion
+  so aromatic bonds get explicit single/double orders instead of `order=None`.
+  File changed:
+  [`packages/oasa/oasa/codecs/rdkit_formats.py`](packages/oasa/oasa/codecs/rdkit_formats.py).
+- Fix Import menu being empty: `load_backend_capabilities()` in
+  `format_loader.py` crashed with `AttributeError` because it accessed
+  `oasa_bridge.oasa.codec_registry` instead of importing `oasa.codec_registry`
+  directly. The error was silently caught, resulting in no Import/Export menu
+  items.
+  File changed:
+  [`packages/bkchem-app/bkchem/format_loader.py`](packages/bkchem-app/bkchem/format_loader.py).
+- Fix opening .mol files doing nothing: the extension routing in `load_CDML()`
+  called `format_import("molfile", ...)` but `format_entries` was empty due to
+  the above bug. Now that the registry loads correctly, .mol/.sdf/.smi files
+  open as expected.
+
+### Removals and Deprecations
+
+- Remove `subprocess` and `os` imports from `inchi_lib.py` (no longer needed
+  without external binary calls).
+- Remove `coords_generator` import from `inchi_lib.py` (now handled internally
+  by `rdkit_formats.inchi_text_to_mol`).
+- Remove dead `program_path` error handler from main_file_io.py export path.
+
 ## 2026-02-23
 
 ### Additions and New Features

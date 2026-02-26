@@ -239,12 +239,11 @@ def read_molfile_value( file, length, strip=1, conversion=None):
 
 
 ##################################################
-# MODULE INTERFACE
+# MODULE INTERFACE -- delegates to RDKit via rdkit_formats
 
-try:
-  from io import StringIO
-except ImportError:
-  from io import StringIO
+from io import StringIO
+
+from oasa.codecs import rdkit_formats
 
 reads_text = 1
 reads_files = 1
@@ -252,22 +251,16 @@ writes_text = 1
 writes_files = 1
 
 def mol_to_text( mol):
-  m = Molfile()
-  m.structure = mol
-  return m.get_text()
+  return rdkit_formats.molfile_mol_to_text( mol)
 
 def mol_to_file( mol, f):
-  m = Molfile()
-  m.structure = mol
-  m.write_file( f)
+  rdkit_formats.molfile_mol_to_file( mol, f)
 
 def file_to_mol( f):
-  m = Molfile()
-  m.read_file( f)
-  return m.structure
+  return rdkit_formats.molfile_file_to_mol( f)
 
 def text_to_mol( text):
-  return file_to_mol( StringIO( text))
+  return rdkit_formats.molfile_text_to_mol( text)
 
 # NEW MODULE INTERFACE
 

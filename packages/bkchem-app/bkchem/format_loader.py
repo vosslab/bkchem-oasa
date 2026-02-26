@@ -47,7 +47,8 @@ def load_backend_capabilities():
 	"""Return registry capabilities keyed by codec name."""
 	if not oasa_bridge.oasa_available:
 		return {}
-	return oasa_bridge.oasa.codec_registry.get_registry_snapshot()
+	import oasa.codec_registry
+	return oasa.codec_registry.get_registry_snapshot()
 
 
 #============================================
@@ -195,25 +196,10 @@ def export_format(codec_name, paper, filename, scope, gui_options):
 	with open(filename, "wb") as handle:
 		if scope == "selected_molecule":
 			mol = oasa_bridge.validate_selected_molecule(paper)
-			# Bridge still returns preformatted text for SMILES/InChI instead of
-			# exposing these via the generic codec write_file interface.
+			# Bridge still returns preformatted text for SMILES instead of
+			# exposing it via the generic codec write_file interface.
 			if codec_name == "smiles":
 				_write_text_output(handle, oasa_bridge.mol_to_smiles(mol))
-				return
-			if codec_name == "inchi":
-				inchi, key, warnings = oasa_bridge.mol_to_inchi(
-					mol,
-					kwargs.get("program_path"),
-				)
-				lines = []
-				if inchi:
-					lines.append(inchi)
-				if key:
-					lines.append("InChIKey=" + key)
-				if warnings:
-					lines.extend(["# " + warning for warning in warnings])
-				if lines:
-					_write_text_output(handle, "\n".join(lines))
 				return
 			oasa_bridge.write_codec_file_from_selected_molecule(
 				codec_name,

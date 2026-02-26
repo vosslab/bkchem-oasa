@@ -47,6 +47,11 @@ def test_codec_registry_defaults():
 	assert "pdf" in codecs
 	assert "png" in codecs
 	assert "ps" in codecs
+	# RDKit-backed codecs
+	assert "molfile_v3000" in codecs
+	assert "sdf" in codecs
+	assert "sdf_v3000" in codecs
+	assert "smarts" in codecs
 	smiles_codec = oasa.codec_registry.get_codec("s")
 	assert smiles_codec.name == "smiles"
 	by_ext = oasa.codec_registry.get_codec_by_extension(".smi")
@@ -59,6 +64,11 @@ def test_codec_registry_defaults():
 	assert by_ext.name == "svg"
 	by_ext = oasa.codec_registry.get_codec_by_extension(".cdsvg")
 	assert by_ext.name == "cdsvg"
+	# new extension lookups
+	by_ext = oasa.codec_registry.get_codec_by_extension(".sdf")
+	assert by_ext.name == "sdf"
+	by_ext = oasa.codec_registry.get_codec_by_extension(".sma")
+	assert by_ext.name == "smarts"
 
 
 #============================================
@@ -229,3 +239,12 @@ def test_registry_snapshot_contains_capabilities():
 	assert snapshot["pdf"]["reads_files"] is False
 	assert snapshot["pdf"]["writes_files"] is True
 	assert snapshot["cdsvg"]["reads_files"] is True
+	# RDKit-backed codecs
+	assert "molfile_v3000" in snapshot
+	assert "sdf" in snapshot
+	assert "sdf_v3000" in snapshot
+	assert "smarts" in snapshot
+	assert snapshot["smarts"]["reads_files"] is False
+	assert snapshot["smarts"]["writes_text"] is True
+	assert snapshot["sdf"]["reads_files"] is True
+	assert snapshot["sdf"]["writes_files"] is True

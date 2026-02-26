@@ -21,8 +21,29 @@ formats:
     scope: selected_molecule
     gui_options: []
 
+  molfile_v3000:
+    display_name: Molfile V3000
+    scope: selected_molecule
+    gui_options: []
+
+  sdf:
+    display_name: SDF
+    scope: paper
+    gui_options: []
+
+  sdf_v3000:
+    display_name: SDF V3000
+    scope: paper
+    gui_options: []
+
   smiles:
     display_name: SMILES
+    menu_capabilities: [export]
+    scope: selected_molecule
+    gui_options: []
+
+  smarts:
+    display_name: SMARTS
     menu_capabilities: [export]
     scope: selected_molecule
     gui_options: []
@@ -31,11 +52,7 @@ formats:
     display_name: InChI
     menu_capabilities: [export]
     scope: selected_molecule
-    gui_options:
-      - key: program_path
-        source: preference
-        preference_key: inchi_program_path
-        required: true
+    gui_options: []
 
   pdf:
     display_name: PDF

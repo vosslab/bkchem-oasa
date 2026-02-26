@@ -771,9 +771,10 @@ converter = smiles_converter
 ##################################################
 
 ##################################################
-## MODULE INTERFACE - oldstyle
+## MODULE INTERFACE - oldstyle -- delegates to RDKit via rdkit_formats
 
 from oasa import coords_generator
+from oasa.codecs import rdkit_formats
 
 reads_text = True
 writes_text = True
@@ -781,21 +782,12 @@ reads_files = True
 writes_files = True
 
 def mol_to_text( structure):
-  sm = Smiles()
-  structure.mark_aromatic_bonds()
-  return sm.get_smiles( structure)
+  return rdkit_formats.smiles_mol_to_text( structure)
 
 def text_to_mol( text, calc_coords=1, localize_aromatic_bonds=True):
-  sm = Smiles()
-  sm.read_smiles( text)
-  mol = sm.structure
-  if localize_aromatic_bonds:
-    mol.localize_aromatic_bonds()
-    for b in mol.bonds:
-      b.aromatic = 0
-  if calc_coords:
-    coords_generator.calculate_coords( mol, bond_length=calc_coords)
-  return mol
+  return rdkit_formats.smiles_text_to_mol(
+    text, calc_coords=calc_coords,
+    localize_aromatic_bonds=localize_aromatic_bonds)
 
 
 #============================================
