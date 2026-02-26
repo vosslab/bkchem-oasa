@@ -71,6 +71,11 @@
   so aromatic bonds get explicit single/double orders instead of `order=None`.
   File changed:
   [`packages/oasa/oasa/codecs/rdkit_formats.py`](packages/oasa/oasa/codecs/rdkit_formats.py).
+- Add defensive fallback in `bond.order` getter: if `_order` is `None` without
+  `aromatic` set, return `1` instead of `None`. Prevents `NoneType` comparison
+  errors if a bond is ever created in the invalid state `_order=None, aromatic=0`.
+  File changed:
+  [`packages/oasa/oasa/bond_lib.py`](packages/oasa/oasa/bond_lib.py).
 - Fix Import menu being empty: `load_backend_capabilities()` in
   `format_loader.py` crashed with `AttributeError` because it accessed
   `oasa_bridge.oasa.codec_registry` instead of importing `oasa.codec_registry`
@@ -82,6 +87,24 @@
   called `format_import("molfile", ...)` but `format_entries` was empty due to
   the above bug. Now that the registry loads correctly, .mol/.sdf/.smi files
   open as expected.
+- Improve error message when opening V3000 mol files with macromolecule residue
+  notation (TEMPLATE blocks, CLASS=AA). Instead of a generic "could not parse"
+  error, users now see a message explaining that BKChem does not support
+  macromolecule template blocks and suggesting to export with residues expanded.
+  File changed:
+  [`packages/oasa/oasa/codecs/rdkit_formats.py`](packages/oasa/oasa/codecs/rdkit_formats.py).
+
+### Decisions and Failures
+
+- Decided not to support V3000 macromolecule template expansion (peptide/polymer
+  TEMPLATE blocks with SAP attachment points). BKChem is a molecular editor, not
+  a template connector. Users working with macromolecule residue notation should
+  expand residues to full atomic structures in their source editor (e.g. Ketcher)
+  before importing.
+- V2000 and V3000 molfile codecs share the same read path since RDKit
+  auto-detects V2000 vs V3000 format via the `M  V30 BEGIN CTAB` marker. The
+  codecs are separate only for the write path: V2000 uses `MolToMolBlock()`,
+  V3000 uses `MolToV3KMolBlock()`.
 
 ### Removals and Deprecations
 

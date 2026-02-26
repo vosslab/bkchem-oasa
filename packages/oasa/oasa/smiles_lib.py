@@ -851,7 +851,12 @@ def cxsmiles_to_mol(cxsmiles_text, localize_aromatic_bonds=True):
 
 
 def mol_to_file( mol, f):
-  f.write( mol_to_text( mol))
+  text = mol_to_text( mol)
+  import io
+  if isinstance(f, io.TextIOBase):
+    f.write( text)
+  else:
+    f.write( text.encode("utf-8"))
 
 def file_to_mol( f):
   return text_to_mol( f.read())

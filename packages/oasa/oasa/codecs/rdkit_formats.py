@@ -70,6 +70,33 @@ def _rdkit_to_oasa(rmol):
 	return omol
 
 
+#============================================
+def _molblock_error_message(text):
+	"""Return a descriptive error message for an unparseable mol block.
+
+	Detects V3000 macromolecule notation (TEMPLATE blocks, CLASS=AA residues)
+	and returns a specific message instead of a generic parse failure.
+
+	Args:
+		text: The mol block text that failed to parse.
+
+	Returns:
+		Error message string.
+	"""
+	# check for V3000 macromolecule notation markers
+	has_template = "M  V30 BEGIN TEMPLATE" in text
+	has_class_aa = "CLASS=AA" in text
+	if has_template or has_class_aa:
+		return (
+			"This mol file contains macromolecule residue notation "
+			"(peptide/polymer templates). BKChem is a molecular editor "
+			"and does not support macromolecule template blocks. "
+			"Try exporting from your editor with residues expanded to "
+			"full atomic structures."
+		)
+	return "RDKit could not parse the mol block."
+
+
 # ===================================================================
 # Molfile V2000 codec
 # ===================================================================
@@ -88,7 +115,7 @@ def molfile_text_to_mol(text):
 	"""
 	rmol = rdkit.Chem.MolFromMolBlock(text, sanitize=True, removeHs=False)
 	if rmol is None:
-		raise ValueError("RDKit could not parse the mol block.")
+		raise ValueError(_molblock_error_message(text))
 	return _rdkit_to_oasa(rmol)
 
 
@@ -151,7 +178,7 @@ def molfile_v3000_text_to_mol(text):
 	"""
 	rmol = rdkit.Chem.MolFromMolBlock(text, sanitize=True, removeHs=False)
 	if rmol is None:
-		raise ValueError("RDKit could not parse the mol block.")
+		raise ValueError(_molblock_error_message(text))
 	return _rdkit_to_oasa(rmol)
 
 

@@ -91,6 +91,24 @@ def test_molfile_v3000_invalid_input():
 		rdkit_formats.molfile_v3000_text_to_mol("not a mol block")
 
 
+#============================================
+def test_molfile_macromolecule_error_message():
+	"""Verify that macromolecule V3000 files produce a helpful error."""
+	# fake V3000 mol block with TEMPLATE marker
+	fake_macro = (
+		"\n  Ketcher  1\n\n"
+		"  0  0  0  0  0  0  0  0  0  0  V3000\n"
+		"M  V30 BEGIN CTAB\n"
+		"M  V30 BEGIN TEMPLATE\n"
+		"M  V30 TEMPLATE 4Pal CLASS=AA\n"
+		"M  V30 END TEMPLATE\n"
+		"M  V30 END CTAB\n"
+		"M  END\n"
+	)
+	with pytest.raises(ValueError, match="macromolecule residue notation"):
+		rdkit_formats.molfile_text_to_mol(fake_macro)
+
+
 # ===================================================================
 # SDF tests
 # ===================================================================

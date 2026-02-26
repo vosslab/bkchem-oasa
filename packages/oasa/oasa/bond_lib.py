@@ -106,8 +106,10 @@ class Bond(edge, object):
     """
     if self._order is None and self.aromatic:
       return 4
-    else:
-      return self._order
+    if self._order is None:
+      # defensive fallback: _order should never be None without aromatic set
+      return 1
+    return self._order
 
 
   @order.setter
