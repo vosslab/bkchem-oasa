@@ -18,8 +18,6 @@ def register_insert_actions(registry, app) -> None:
 		label_key='Biomolecule template',
 		help_key='Insert a biomolecule template into the drawing',
 		accelerator=None,
-		handler=lambda: app.statusBar().showMessage(
-			"Biomolecule template: not yet implemented", 3000
-		),
+		handler=lambda: app._mode_manager.set_mode("biotemplate"),
 		enabled_when=None,
 	))

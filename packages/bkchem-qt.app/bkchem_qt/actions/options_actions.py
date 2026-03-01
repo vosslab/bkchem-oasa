@@ -60,13 +60,13 @@ def register_options_actions(registry, app) -> None:
 		enabled_when=None,
 	))
 
-	# switch between light and dark color themes
+	# choose a color theme
 	registry.register(MenuAction(
 		id='options.theme',
 		label_key='Theme',
-		help_key='Switch between light and dark color themes',
+		help_key='Choose a color theme',
 		accelerator=None,
-		handler=app._on_toggle_theme,
+		handler=app._on_choose_theme,
 		enabled_when=None,
 	))
 

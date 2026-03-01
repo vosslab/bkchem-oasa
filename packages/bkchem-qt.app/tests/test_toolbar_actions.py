@@ -18,7 +18,7 @@ def _check_subprocess_result(result):
 		raise AssertionError(f"Subprocess failed (rc={result.returncode}):\n{msg}")
 
 
-# all toolbar action names that toolbar.py looks up via getattr
+# all action method names used by menu action registrations
 _TOOLBAR_ACTION_NAMES = [
 	"on_new",
 	"on_open",

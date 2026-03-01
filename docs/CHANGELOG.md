@@ -4,6 +4,60 @@
 
 ### Additions and New Features
 
+- Added Qt submode framework: modes now display context-sensitive submode
+  buttons in a horizontal ribbon below the mode toolbar, matching the Tk
+  behavior. The `SubModeRibbon` widget renders row and grid button groups from
+  YAML-driven submode data, with selection highlighting and dynamic refresh.
+  The `EditRibbon` is now shown/hidden based on the mode's `show_edit_pool`
+  flag rather than being always visible. Files created:
+  [`packages/bkchem-qt.app/bkchem_qt/widgets/submode_ribbon.py`](packages/bkchem-qt.app/bkchem_qt/widgets/submode_ribbon.py),
+  [`packages/bkchem-qt.app/bkchem_qt/modes/config.py`](packages/bkchem-qt.app/bkchem_qt/modes/config.py).
+  Files modified:
+  [`packages/bkchem-qt.app/bkchem_qt/modes/base_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/base_mode.py),
+  [`packages/bkchem-qt.app/bkchem_qt/main_window.py`](packages/bkchem-qt.app/bkchem_qt/main_window.py).
+
+- Added `file_actions` mode to both Qt and Tk apps. A "file" mode button
+  appears first in the mode toolbar with New, Open, Save, and Save As submode
+  buttons. File menu items remain for keyboard shortcut access. Files created:
+  [`packages/bkchem-qt.app/bkchem_qt/modes/file_actions_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/file_actions_mode.py),
+  [`packages/bkchem-app/bkchem/modes/file_actions_mode.py`](packages/bkchem-app/bkchem/modes/file_actions_mode.py).
+  Files modified:
+  [`packages/bkchem-app/bkchem_data/modes.yaml`](packages/bkchem-app/bkchem_data/modes.yaml),
+  [`packages/bkchem-qt.app/bkchem_qt/main_window.py`](packages/bkchem-qt.app/bkchem_qt/main_window.py).
+
+- Added `_on_save_as()` handler to Qt `MainWindow` for Save As file dialog
+  that always prompts for a new file path.
+
+- Added biomolecule template mode (`biotemplate`) to the Qt app with
+  category-based submode groups. The mode loads biomolecule SMILES entries via
+  `bkchem.biomolecule_loader`, organizes them by category in a row+grid ribbon,
+  and places templates on the canvas using the same SMILES-to-mol pipeline as
+  the existing template mode. File created:
+  [`packages/bkchem-qt.app/bkchem_qt/modes/biotemplate_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/biotemplate_mode.py).
+  Files modified:
+  [`packages/bkchem-qt.app/bkchem_qt/main_window.py`](packages/bkchem-qt.app/bkchem_qt/main_window.py),
+  [`packages/bkchem-qt.app/bkchem_qt/actions/insert_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/insert_actions.py).
+
+- Wired Insert > Biomolecule Template menu action to activate the `biotemplate`
+  mode in the Qt app instead of showing a stub message. File modified:
+  [`packages/bkchem-qt.app/bkchem_qt/actions/insert_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/insert_actions.py).
+
+- Added theme chooser dialog to Qt app. Options > Theme now opens a list dialog
+  (`ThemeChooserDialog`) instead of toggling between dark and light. The dialog
+  shows all available themes from the shared YAML themes directory and lets the
+  user select one. File created:
+  [`packages/bkchem-qt.app/bkchem_qt/dialogs/theme_chooser_dialog.py`](packages/bkchem-qt.app/bkchem_qt/dialogs/theme_chooser_dialog.py).
+  Files modified:
+  [`packages/bkchem-qt.app/bkchem_qt/actions/options_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/options_actions.py),
+  [`packages/bkchem-qt.app/bkchem_qt/main_window.py`](packages/bkchem-qt.app/bkchem_qt/main_window.py),
+  [`packages/bkchem-qt.app/bkchem_qt/themes/theme_manager.py`](packages/bkchem-qt.app/bkchem_qt/themes/theme_manager.py).
+
+- Added `get_theme_names()` to Qt `theme_loader.py` for discovering available
+  themes by scanning the shared themes directory for YAML files. Also updated
+  `ThemeManager.apply_theme()` to validate theme names against the available
+  themes instead of a hardcoded list. File modified:
+  [`packages/bkchem-qt.app/bkchem_qt/themes/theme_loader.py`](packages/bkchem-qt.app/bkchem_qt/themes/theme_loader.py).
+
 - Add `MenuBuilder` and integrate YAML-driven menu construction into
   `MainWindow` (Stream 3 of the parallel implementation plan). The
   `MenuBuilder` reads `menus.yaml`, looks up actions from the `ActionRegistry`,
@@ -359,6 +413,11 @@
 
 ### Fixes and Maintenance
 
+- Fixed Qt hex grid visual parity with Tk: thinner grid lines (0.375 width
+  vs 1.0), smaller dots (1.0 radius vs 1.5), non-cosmetic pen for
+  zoom-correct line scaling. File modified:
+  [`packages/bkchem-qt.app/bkchem_qt/canvas/scene.py`](packages/bkchem-qt.app/bkchem_qt/canvas/scene.py).
+
 - Fix crash on File > New when paper was not rebuilt after `scene.clear()`.
   `_on_new()` now calls `_build_paper()` before `_build_grid()` since
   `clear()` destroys all scene items including the paper rectangle.
@@ -388,6 +447,24 @@
   scrolls to viewport edge to confirm dark margin pixels.
   File modified:
   [`packages/bkchem-qt.app/tests/test_qt_gui_smoke.py`](packages/bkchem-qt.app/tests/test_qt_gui_smoke.py).
+- Fixed Qt hex grid visual parity with Tk: thinner grid lines (0.375 vs 1.0),
+  smaller dots (1.0 vs 1.5), non-cosmetic pen for zoom-correct scaling.
+  File modified:
+  [`packages/bkchem-qt.app/bkchem_qt/canvas/scene.py`](packages/bkchem-qt.app/bkchem_qt/canvas/scene.py).
+
+### Removals and Deprecations
+
+- Removed `MainToolbar` (New/Open/Save/Undo/Redo/Cut/Copy/Paste/Zoom/Grid
+  button row) from the Qt app to match the Tk layout. All those actions are
+  already accessible via menu items with keyboard shortcuts and via the
+  file_actions mode submodes. The mode toolbar is now the topmost toolbar row.
+  File modified:
+  [`packages/bkchem-qt.app/bkchem_qt/main_window.py`](packages/bkchem-qt.app/bkchem_qt/main_window.py).
+
+- Fixed initial submode/edit ribbon visibility on startup. Previously the
+  submode ribbon and edit ribbon state were not set until the user clicked a
+  mode. Now `_on_mode_changed("edit")` is called at the end of signal wiring
+  so the correct ribbon state is shown immediately.
 
 ### Decisions and Failures
 

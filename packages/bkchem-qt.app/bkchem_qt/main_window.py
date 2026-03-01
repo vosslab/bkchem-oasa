@@ -17,10 +17,12 @@ import bkchem_qt.config.preferences
 import bkchem_qt.widgets.status_bar
 import bkchem_qt.widgets.mode_toolbar
 import bkchem_qt.widgets.edit_ribbon
-import bkchem_qt.widgets.toolbar
+import bkchem_qt.widgets.submode_ribbon
 import bkchem_qt.widgets.icon_loader
+import bkchem_qt.modes.config
 import bkchem_qt.modes.mode_manager
 import bkchem_qt.modes.template_mode
+import bkchem_qt.modes.biotemplate_mode
 import bkchem_qt.modes.arrow_mode
 import bkchem_qt.modes.text_mode
 import bkchem_qt.modes.mark_mode
@@ -32,11 +34,13 @@ import bkchem_qt.modes.vector_mode
 import bkchem_qt.modes.repair_mode
 import bkchem_qt.modes.plus_mode
 import bkchem_qt.modes.misc_mode
+import bkchem_qt.modes.file_actions_mode
 import bkchem_qt.actions.file_actions
 import bkchem_qt.actions.context_menu
 import bkchem_qt.io.cdml_io
 import bkchem_qt.dialogs.about_dialog
 import bkchem_qt.dialogs.preferences_dialog
+import bkchem_qt.dialogs.theme_chooser_dialog
 import bkchem_qt.models.document
 import bkchem_qt.io.export
 import bkchem_qt.themes.palettes
@@ -125,10 +129,21 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 		self._mode_manager = bkchem_qt.modes.mode_manager.ModeManager(
 			self._view, parent=self
 		)
+		# register file actions mode (before edit/draw in toolbar order)
+		self._mode_manager.register_mode(
+			"file_actions",
+			bkchem_qt.modes.file_actions_mode.FileActionsMode(
+				self._view, main_window=self
+			),
+		)
 		# register additional modes beyond the default edit/draw
 		self._mode_manager.register_mode(
 			"template",
 			bkchem_qt.modes.template_mode.TemplateMode(self._view),
+		)
+		self._mode_manager.register_mode(
+			"biotemplate",
+			bkchem_qt.modes.biotemplate_mode.BioTemplateMode(self._view),
 		)
 		self._mode_manager.register_mode(
 			"arrow",
@@ -176,6 +191,57 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 		)
 		# connect the mode manager to the view for event dispatch
 		self._view.set_mode_manager(self._mode_manager)
+		# inject YAML submode data into each registered mode
+		self._inject_submodes_from_yaml()
+
+	#============================================
+	def _inject_submodes_from_yaml(self) -> None:
+		"""Parse modes.yaml and inject submode data into registered modes.
+
+		For each registered mode, looks up its definition in modes.yaml
+		and parses the submodes section. The parsed data is set on the
+		mode object's attributes so the SubModeRibbon can render them.
+		"""
+		if not _MODES_YAML_PATH.is_file():
+			return
+		with open(_MODES_YAML_PATH, "r") as fh:
+			modes_config = yaml.safe_load(fh) or {}
+		modes_defs = modes_config.get("modes", {})
+
+		for mode_name in self._mode_manager.mode_names():
+			mode = self._mode_manager._modes[mode_name]
+			# find the YAML definition for this mode
+			# try direct key match first, then alias lookup
+			yaml_key = mode_name
+			if yaml_key == "align":
+				yaml_key = "bondalign"
+			cfg = modes_defs.get(yaml_key, {})
+			if not cfg:
+				continue
+
+			# set show_edit_pool from YAML
+			mode.show_edit_pool = cfg.get('show_edit_pool', False)
+
+			# dynamic modes populate their own submodes at init time;
+			# skip YAML injection if the mode already has submode data
+			if cfg.get('dynamic') and mode.submodes:
+				continue
+
+			# parse submode groups from YAML
+			parsed = bkchem_qt.modes.config.load_submodes_from_yaml(cfg)
+			(submodes, submodes_names, submode_defaults,
+			 icon_map, group_labels, group_layouts,
+			 tooltip_map, size_map) = parsed
+
+			mode.submodes = submodes
+			mode.submodes_names = submodes_names
+			# initialize current submode indices from defaults
+			mode.submode = list(submode_defaults)
+			mode.icon_map = icon_map
+			mode.group_labels = group_labels
+			mode.group_layouts = group_layouts
+			mode.tooltip_map = tooltip_map
+			mode.size_map = size_map
 
 	#============================================
 	def _setup_menus(self) -> None:
@@ -338,21 +404,16 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 
 	#============================================
 	def _setup_toolbars(self) -> None:
-		"""Create the main toolbar, mode toolbar, and edit ribbon.
+		"""Create the mode toolbar, submode ribbon, and edit ribbon.
 
-		The mode toolbar is placed horizontally after the main toolbar,
-		using the toolbar_order from modes.yaml for mode sequencing and
+		The mode toolbar is the topmost toolbar row, using the
+		toolbar_order from modes.yaml for mode sequencing and
 		separator placement. Icons are loaded from pixmaps via icon_loader.
 		"""
 		# validate icon data directory before loading any icons
 		bkchem_qt.widgets.icon_loader.validate_icon_paths()
 		# sync icon_loader with the current theme
 		bkchem_qt.widgets.icon_loader.set_theme(self._theme_manager.current_theme)
-
-		# main action toolbar (file/edit/view buttons)
-		self._main_toolbar = bkchem_qt.widgets.toolbar.MainToolbar(self)
-		self._main_toolbar.setup_actions(self)
-		self.addToolBar(self._main_toolbar)
 
 		# load modes.yaml for toolbar_order and icon mappings
 		if not _MODES_YAML_PATH.is_file():
@@ -366,7 +427,7 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 		toolbar_order = modes_config.get("toolbar_order", [])
 		modes_defs = modes_config.get("modes", {})
 
-		# mode selection toolbar - horizontal on top (after main toolbar)
+		# mode selection toolbar - topmost horizontal toolbar row
 		self._mode_toolbar = bkchem_qt.widgets.mode_toolbar.ModeToolbar(self)
 		registered_modes = set(self._mode_manager.mode_names())
 
@@ -390,16 +451,28 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 				self._mode_toolbar.add_mode("align", label, tooltip=tooltip, icon=icon)
 
 		self._mode_toolbar.set_active_mode("edit")
-		# force mode toolbar onto its own row below the main toolbar
-		self.addToolBarBreak()
+		# mode toolbar is the topmost toolbar row
 		self.addToolBar(self._mode_toolbar)
 
-		# edit ribbon on its own row below mode toolbar
+		# submode ribbon on its own row below mode toolbar
+		self.addToolBarBreak()
+		self._submode_ribbon = (
+			bkchem_qt.widgets.submode_ribbon.SubModeRibbon(self)
+		)
+		self._submode_toolbar = self.addToolBar(
+			self.tr("Submode Ribbon")
+		)
+		self._submode_toolbar.addWidget(self._submode_ribbon)
+		self._submode_toolbar.setMovable(False)
+
+		# edit ribbon on its own row below submode ribbon
 		self.addToolBarBreak()
 		self._edit_ribbon = bkchem_qt.widgets.edit_ribbon.EditRibbon(self)
-		ribbon_toolbar = self.addToolBar(self.tr("Edit Ribbon"))
-		ribbon_toolbar.addWidget(self._edit_ribbon)
-		ribbon_toolbar.setMovable(False)
+		self._edit_ribbon_toolbar = self.addToolBar(
+			self.tr("Edit Ribbon")
+		)
+		self._edit_ribbon_toolbar.addWidget(self._edit_ribbon)
+		self._edit_ribbon_toolbar.setMovable(False)
 
 	#============================================
 	def _setup_status_bar(self) -> None:
@@ -418,6 +491,13 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 		self._mode_toolbar.mode_selected.connect(self._mode_manager.set_mode)
 		self._mode_manager.mode_changed.connect(self._mode_toolbar.set_active_mode)
 		self._mode_manager.mode_changed.connect(self._status_bar.update_mode)
+		# mode changes -> rebuild submode ribbon and show/hide edit ribbon
+		self._mode_manager.mode_changed.connect(self._on_mode_changed)
+
+		# submode ribbon -> active mode submode selection
+		self._submode_ribbon.submode_selected.connect(
+			self._on_submode_selected
+		)
 
 		# edit ribbon -> draw mode
 		self._edit_ribbon.element_changed.connect(self._on_element_changed)
@@ -427,8 +507,11 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 		# theme changes -> icon refresh and menu text update
 		self._theme_manager.theme_changed.connect(self._on_theme_changed)
 
+		# trigger initial mode visibility (submode ribbon + edit ribbon)
+		self._on_mode_changed("edit")
+
 	# ------------------------------------------------------------------
-	# Public toolbar action methods (used by widgets/toolbar.py via getattr)
+	# Public action methods (used by menu action registrations)
 	# ------------------------------------------------------------------
 
 	#============================================
@@ -500,6 +583,44 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 		self._action_toggle_grid.setChecked(not current)
 
 	# ------------------------------------------------------------------
+	# Mode and submode switching
+	# ------------------------------------------------------------------
+
+	#============================================
+	def _on_mode_changed(self, mode_name: str) -> None:
+		"""Handle a mode switch by rebuilding the submode ribbon.
+
+		Shows or hides the edit ribbon based on the mode's
+		show_edit_pool flag. Rebuilds the submode ribbon with
+		the new mode's submode groups.
+
+		Args:
+			mode_name: Name of the newly active mode.
+		"""
+		mode = self._mode_manager.current_mode
+		if mode is None:
+			return
+		# rebuild the submode ribbon for the new mode
+		self._submode_ribbon.rebuild(mode_name)
+		# show/hide the submode toolbar based on whether mode has submodes
+		has_submodes = bool(mode.submodes)
+		self._submode_toolbar.setVisible(has_submodes)
+		# show/hide the edit ribbon based on mode's show_edit_pool flag
+		show_edit = getattr(mode, 'show_edit_pool', False)
+		self._edit_ribbon_toolbar.setVisible(show_edit)
+
+	#============================================
+	def _on_submode_selected(self, key: str) -> None:
+		"""Forward a submode button click to the active mode.
+
+		Args:
+			key: The submode key string selected in the ribbon.
+		"""
+		mode = self._mode_manager.current_mode
+		if mode is not None:
+			mode.set_submode(key)
+
+	# ------------------------------------------------------------------
 	# Private action handlers
 	# ------------------------------------------------------------------
 
@@ -558,6 +679,27 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 		)
 
 	#============================================
+	def _on_save_as(self) -> None:
+		"""Save the current document to a new file path.
+
+		Always prompts for a save location, even if the document
+		already has a file path.
+		"""
+		file_path = PySide6.QtWidgets.QFileDialog.getSaveFileName(
+			self, self.tr("Save CDML File As"), "",
+			self.tr("CDML Files (*.cdml);;All Files (*)"),
+		)[0]
+		if not file_path:
+			return
+		bkchem_qt.io.cdml_io.save_cdml_file(file_path, self._document)
+		self._document.file_path = file_path
+		self._document.dirty = False
+		self._tab_widget.setTabText(0, self._document.title())
+		self.statusBar().showMessage(
+			self.tr("Saved: %s") % file_path, 3000,
+		)
+
+	#============================================
 	def _on_export_svg(self) -> None:
 		"""Export scene to SVG."""
 		path = PySide6.QtWidgets.QFileDialog.getSaveFileName(
@@ -602,6 +744,16 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 		self._theme_manager.toggle_theme()
 
 	#============================================
+	def _on_choose_theme(self) -> None:
+		"""Open the theme chooser dialog and apply the selected theme."""
+		current = self._theme_manager.current_theme
+		chosen = bkchem_qt.dialogs.theme_chooser_dialog.ThemeChooserDialog \
+			.choose_theme(self, current)
+		# apply only if user selected a different theme
+		if chosen is not None and chosen != current:
+			self._theme_manager.apply_theme(chosen)
+
+	#============================================
 	def _on_theme_changed(self, theme_name: str) -> None:
 		"""Handle a theme change by refreshing icons and updating menu text.
 
@@ -611,9 +763,6 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 		# update icon_loader theme and clear cache
 		bkchem_qt.widgets.icon_loader.set_theme(theme_name)
 		bkchem_qt.widgets.icon_loader.reload_icons()
-
-		# refresh toolbar icons from new theme
-		self._main_toolbar.refresh_icons()
 
 		# refresh mode toolbar icons
 		modes_config = {}
@@ -634,7 +783,16 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 		self._view.set_background_color(surround)
 		self._scene.apply_theme(theme_name)
 
-		# theme menu text is static ("Theme") since it toggles
+		# refresh submode ribbon icons for new theme
+		mode = self._mode_manager.current_mode
+		if mode is not None:
+			mode_name = mode.name
+			# find the registered name for rebuild
+			for name in self._mode_manager.mode_names():
+				if self._mode_manager._modes[name] is mode:
+					mode_name = name
+					break
+			self._submode_ribbon.rebuild(mode_name)
 
 	#============================================
 	def _on_preferences(self) -> None:

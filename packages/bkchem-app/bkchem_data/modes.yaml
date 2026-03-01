@@ -5,6 +5,8 @@
 # All display strings passed through _() for i18n/gettext at load time.
 
 toolbar_order:
+  - file_actions
+  - ---
   - edit
   - draw
   - ---
@@ -29,6 +31,19 @@ toolbar_order:
   - misc
 
 modes:
+  file_actions:
+    name: file
+    parent: basic_mode
+    icon: file_actions
+    submodes:
+      - group_label: File Operations
+        options:
+          - {key: new, name: New, size: large, tooltip: Create a new document}
+          - {key: open, name: Open, size: large, tooltip: Open a file}
+          - {key: save, name: Save, size: large, tooltip: Save the current file}
+          - {key: save_as, name: Save As, size: large, tooltip: Save to a new file}
+        default: 0
+
   edit:
     name: edit
     parent: basic_mode

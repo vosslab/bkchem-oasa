@@ -116,8 +116,7 @@ class ChemScene(PySide6.QtWidgets.QGraphicsScene):
 		line_pen = PySide6.QtGui.QPen(
 			PySide6.QtGui.QColor(grid_colors["line"])
 		)
-		line_pen.setWidthF(1.0)
-		line_pen.setCosmetic(True)
+		line_pen.setWidthF(0.375)
 
 		edges = oasa.hex_grid.generate_hex_honeycomb_edges(
 			left, top, right, bottom, self._grid_spacing,
@@ -135,7 +134,7 @@ class ChemScene(PySide6.QtWidgets.QGraphicsScene):
 		dot_brush = PySide6.QtGui.QBrush(
 			PySide6.QtGui.QColor(grid_colors["dot_fill"])
 		)
-		dot_radius = 1.5
+		dot_radius = 1.0
 
 		points = oasa.hex_grid.generate_hex_grid_points(
 			left, top, right, bottom, self._grid_spacing,

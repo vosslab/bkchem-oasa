@@ -142,6 +142,22 @@ def get_gui_colors(theme_name: str) -> dict:
 
 
 #============================================
+def get_theme_names() -> list[str]:
+	"""Return sorted list of available theme names from the themes directory.
+
+	Scans _THEMES_DIR for .yaml files and returns their stem names
+	(e.g. ["dark", "light"]).
+
+	Returns:
+		Sorted list of theme name strings.
+	"""
+	if not _THEMES_DIR.is_dir():
+		return []
+	names = [p.stem for p in sorted(_THEMES_DIR.glob("*.yaml"))]
+	return names
+
+
+#============================================
 def clear_cache() -> None:
 	"""Clear the cached theme data, forcing a reload on next access."""
 	_THEME_CACHE.clear()

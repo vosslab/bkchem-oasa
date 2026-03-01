@@ -59,8 +59,11 @@ class ThemeManager(PySide6.QtCore.QObject):
 		Raises:
 			ValueError: If name is not 'dark' or 'light'.
 		"""
-		if name not in ("dark", "light"):
-			msg = self.tr("Unknown theme: '{0}'. Use 'dark' or 'light'.").format(name)
+		valid_names = bkchem_qt.themes.theme_loader.get_theme_names()
+		if name not in valid_names:
+			msg = self.tr(
+				"Unknown theme: '{0}'. Available: {1}"
+			).format(name, ", ".join(valid_names))
 			raise ValueError(msg)
 
 		# clear theme cache so YAML changes take effect
@@ -137,7 +140,8 @@ class ThemeManager(PySide6.QtCore.QObject):
 		except ImportError:
 			pass
 
-		if saved_theme in ("dark", "light"):
+		valid_names = bkchem_qt.themes.theme_loader.get_theme_names()
+		if saved_theme in valid_names:
 			# user had a saved preference, respect it
 			self._user_override = True
 			self.apply_theme(saved_theme)

@@ -39,6 +39,18 @@ class BaseMode(PySide6.QtCore.QObject):
 		self._name = "Base"
 		self._cursor = PySide6.QtCore.Qt.CursorShape.ArrowCursor
 
+		# submode data, populated from modes.yaml at registration time
+		# each list is indexed by group index
+		self.submodes = []          # list of lists of submode key strings
+		self.submodes_names = []    # list of lists of display name strings
+		self.submode = []           # list of ints: current index per group
+		self.icon_map = {}          # submode key -> icon name
+		self.group_labels = []      # group label strings
+		self.group_layouts = []     # layout type per group ('row', 'grid', etc.)
+		self.tooltip_map = {}       # submode key -> tooltip text
+		self.size_map = {}          # submode key -> size hint ('large', etc.)
+		self.show_edit_pool = False # whether to show the EditRibbon
+
 	# ------------------------------------------------------------------
 	# Properties
 	# ------------------------------------------------------------------
@@ -135,6 +147,58 @@ class BaseMode(PySide6.QtCore.QObject):
 		Args:
 			event: The QKeyEvent.
 		"""
+
+	# ------------------------------------------------------------------
+	# Submode management
+	# ------------------------------------------------------------------
+
+	#============================================
+	def set_submode(self, name: str) -> None:
+		"""Set the active submode by key name.
+
+		Searches all submode groups for the key and updates the
+		current index for its group. Calls on_submode_switch() when
+		the submode is found.
+
+		Args:
+			name: The submode key string to activate.
+		"""
+		for group_keys in self.submodes:
+			if name in group_keys:
+				group_idx = self.submodes.index(group_keys)
+				self.submode[group_idx] = group_keys.index(name)
+				self.on_submode_switch(group_idx, name)
+				break
+
+	#============================================
+	def on_submode_switch(self, submode_index: int, name: str) -> None:
+		"""Hook called when a submode selection changes.
+
+		Subclasses override this to respond to submode switches,
+		for example updating cursor style or triggering a file action.
+
+		Args:
+			submode_index: Group index of the changed submode.
+			name: Key string of the newly selected submode.
+		"""
+
+	#============================================
+	def get_submode(self, group_index: int) -> str:
+		"""Return the currently selected submode key for a group.
+
+		Args:
+			group_index: Index of the submode group.
+
+		Returns:
+			The active submode key string.
+
+		Raises:
+			ValueError: If group_index is out of range.
+		"""
+		if group_index < len(self.submodes):
+			idx = self.submode[group_index]
+			return self.submodes[group_index][idx]
+		raise ValueError(f"invalid submode group index: {group_index}")
 
 	# ------------------------------------------------------------------
 	# Helpers
