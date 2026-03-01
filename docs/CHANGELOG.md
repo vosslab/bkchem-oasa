@@ -1,5 +1,403 @@
 # Changelog
 
+## 2026-02-28
+
+### Additions and New Features
+
+- Add `MenuBuilder` and integrate YAML-driven menu construction into
+  `MainWindow` (Stream 3 of the parallel implementation plan). The
+  `MenuBuilder` reads `menus.yaml`, looks up actions from the `ActionRegistry`,
+  and calls the `PlatformMenuAdapter` to build Qt menus. Replace the manually
+  coded `_setup_menus()` in `main_window.py` with the YAML-driven approach;
+  the old method is preserved as `_setup_menus_legacy()` for reference. Export
+  actions (SVG, PNG, PDF) are populated into the Export cascade after menu
+  construction. The dynamic theme text update in `_on_theme_changed()` is
+  removed since the Options > Theme action label is now static. Backward
+  compatibility aliases (`_action_save`, `_action_open`, etc.) are maintained
+  for existing code references. The grid toggle action is added directly to the
+  View menu as a standalone checkable action since it is not in `menus.yaml`.
+  Files created:
+  [`packages/bkchem-qt.app/bkchem_qt/actions/menu_builder.py`](packages/bkchem-qt.app/bkchem_qt/actions/menu_builder.py),
+  [`packages/bkchem-qt.app/tests/test_qt_menu_build.py`](packages/bkchem-qt.app/tests/test_qt_menu_build.py),
+  [`packages/bkchem-qt.app/tests/test_qt_menu_cascades.py`](packages/bkchem-qt.app/tests/test_qt_menu_cascades.py).
+  Files modified:
+  [`packages/bkchem-qt.app/bkchem_qt/main_window.py`](packages/bkchem-qt.app/bkchem_qt/main_window.py).
+
+- Rewrite `palettes.py` to be YAML-driven (Stream 8 of the parallel
+  implementation plan). Remove all hardcoded color constants (`DARK_BG`,
+  `DARK_SURFACE`, `DARK_PRIMARY`, `DARK_SECONDARY`, `DARK_TEXT`, `DARK_MUTED`,
+  `CANVAS_BG`, `DARK_QSS`, `LIGHT_QSS`, `dark_palette()`, `light_palette()`).
+  Replace with `build_palette(theme_name)` and `build_qss(theme_name)` that
+  read from the shared YAML theme files via `theme_loader.get_gui_colors()`.
+  Update `theme_manager.py` to call the new functions and clear the YAML cache
+  on each theme switch. Update `test_qt_gui_smoke.py` dark mode assertions to
+  expect `#2b2b2b` (from `dark.yaml`) instead of old `#1e1e2e`.
+  Files modified:
+  [`packages/bkchem-qt.app/bkchem_qt/themes/palettes.py`](packages/bkchem-qt.app/bkchem_qt/themes/palettes.py),
+  [`packages/bkchem-qt.app/bkchem_qt/themes/theme_manager.py`](packages/bkchem-qt.app/bkchem_qt/themes/theme_manager.py),
+  [`packages/bkchem-qt.app/tests/test_qt_gui_smoke.py`](packages/bkchem-qt.app/tests/test_qt_gui_smoke.py).
+  Files created:
+  [`packages/bkchem-qt.app/tests/test_qt_theme_yaml_mapping.py`](packages/bkchem-qt.app/tests/test_qt_theme_yaml_mapping.py),
+  [`packages/bkchem-qt.app/tests/test_qt_theme_toggle_runtime.py`](packages/bkchem-qt.app/tests/test_qt_theme_toggle_runtime.py).
+
+- Add Qt `PlatformMenuAdapter` module (Stream 2 of the parallel implementation
+  plan). Wraps `QMenuBar`/`QMenu`/`QAction` behind the same interface that the
+  Tk `PlatformMenuAdapter` uses, so the `MenuBuilder` can construct menus
+  without knowing the toolkit. Includes `format_accelerator()` that converts
+  internal notation like `(C-S-z)` to Qt shortcut strings like `Ctrl+Shift+Z`,
+  handling edge cases for `+`, `-`, and `0` key characters, and returning `None`
+  for multi-key sequences that Qt does not support. Also includes
+  `format_accelerator_display()` for Unicode modifier symbols in the keyboard
+  shortcuts dialog. The adapter provides `add_menu()`, `add_command()`,
+  `add_separator()`, `add_cascade()`, `add_command_to_cascade()`,
+  `get_action()`, `set_item_state()`, `component()`, and
+  `get_menu_component()` methods matching the Tk version's interface.
+  File created:
+  [`packages/bkchem-qt.app/bkchem_qt/actions/platform_menu.py`](packages/bkchem-qt.app/bkchem_qt/actions/platform_menu.py).
+
+- Add chemistry, repair, options, help, and plugins action registrar modules
+  for BKChem-Qt (Stream 7 of the parallel implementation plan).
+  `chemistry_actions.py` registers 14 stub actions for molecule info, chemistry
+  checks, group expansion, oxidation numbers, SMILES/InChI/peptide import and
+  export, molecule naming and ID, fragment creation and viewing, and linear form
+  conversion. `repair_actions.py` registers 6 stub actions for bond length and
+  angle normalization, hex grid snapping, ring normalization, bond straightening,
+  and geometry cleanup. `options_actions.py` registers 6 actions: 4 stubs
+  (standard, language, logging, InChI path) and 2 with real handlers
+  (`app._on_toggle_theme`, `app._on_preferences`). `help_actions.py` registers
+  2 actions: keyboard shortcuts (stub) and about (`app._on_about`).
+  `plugins_actions.py` registers 0 actions (pass-through placeholder). All use
+  `enabled_when=None` and `accelerator=None`. Auto-discovered by
+  `register_all_actions()`.
+  Files created:
+  [`packages/bkchem-qt.app/bkchem_qt/actions/chemistry_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/chemistry_actions.py),
+  [`packages/bkchem-qt.app/bkchem_qt/actions/repair_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/repair_actions.py),
+  [`packages/bkchem-qt.app/bkchem_qt/actions/options_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/options_actions.py),
+  [`packages/bkchem-qt.app/bkchem_qt/actions/help_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/help_actions.py),
+  [`packages/bkchem-qt.app/bkchem_qt/actions/plugins_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/plugins_actions.py).
+
+- Add `register_file_actions()` to the Qt `file_actions.py` (Stream 4 of the
+  parallel implementation plan). Registers 9 file menu actions with the Qt
+  `ActionRegistry`: `file.new`, `file.save`, `file.save_as`, `file.save_as_template`,
+  `file.load`, `file.load_same_tab`, `file.properties`, `file.close_tab`, and
+  `file.exit`. Four actions map to existing Qt handlers (`app._on_new`,
+  `app._on_save`, `app._on_open`, `app.close`); the remaining five use stub
+  lambdas that display a status bar message. The function is auto-discovered by
+  `register_all_actions()` in the Qt action registry. Also added the `MenuAction`
+  import from `bkchem_qt.actions.action_registry`.
+  File modified:
+  [`packages/bkchem-qt.app/bkchem_qt/actions/file_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/file_actions.py).
+
+- Add insert, align, and object action registrar modules for BKChem-Qt
+  (Stream 6 of the parallel implementation plan). `insert_actions.py` registers
+  1 action (biomolecule template). `align_actions.py` registers 6 actions
+  (top, bottom, left, right, center horizontally, center vertically).
+  `object_actions.py` registers 7 actions (scale, bring to front, send back,
+  swap on stack, vertical mirror, horizontal mirror, configure). All handlers
+  are stubs displaying status bar messages. All use `enabled_when=None` and
+  `accelerator=None`. Auto-discovered by `register_all_actions()`.
+  Files created:
+  [`packages/bkchem-qt.app/bkchem_qt/actions/insert_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/insert_actions.py),
+  [`packages/bkchem-qt.app/bkchem_qt/actions/align_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/align_actions.py),
+  [`packages/bkchem-qt.app/bkchem_qt/actions/object_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/object_actions.py).
+
+- Add edit and view action registrar modules for BKChem-Qt (Stream 5 of the
+  parallel implementation plan). `edit_actions.py` registers 7 actions:
+  undo, redo, cut, copy, paste, copy-as-SVG (stub), and select-all (stub).
+  `view_actions.py` registers 5 actions: zoom-in, zoom-out, zoom-to-100%,
+  zoom-to-fit (stub), and zoom-to-content (stub). Both modules follow the
+  `MenuAction` registrar pattern and are auto-discovered by
+  `register_all_actions()` in the action registry.
+  Files created:
+  [`packages/bkchem-qt.app/bkchem_qt/actions/edit_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/edit_actions.py),
+  [`packages/bkchem-qt.app/bkchem_qt/actions/view_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/view_actions.py).
+
+- Port ActionRegistry and MenuAction from Tk to Qt actions package. The
+  `action_registry.py` module provides the `MenuAction` dataclass (with
+  translatable label/help properties) and the `ActionRegistry` class (with
+  register/get/contains/is_enabled/all_actions methods). The
+  `register_all_actions()` function auto-discovers `*_actions.py` modules in
+  the Qt actions package. Only change from the Tk version is the import path
+  (`bkchem_qt.actions` instead of `bkchem.actions`). Added 20 pytest tests
+  covering construction, property access, duplicate rejection, and all three
+  `is_enabled` predicate modes (None, callable, string attribute).
+  File created:
+  [`packages/bkchem-qt.app/bkchem_qt/actions/action_registry.py`](packages/bkchem-qt.app/bkchem_qt/actions/action_registry.py).
+  File created:
+  [`packages/bkchem-qt.app/tests/test_qt_menu_contract.py`](packages/bkchem-qt.app/tests/test_qt_menu_contract.py).
+
+- Add YAML theme file loader for BKChem-Qt. The new `theme_loader.py` module
+  reads paper, grid, chemistry, and GUI colors from the shared YAML theme files
+  in `bkchem_data/themes/` (same files used by the Tk version). `ChemScene` now
+  accepts a `theme_name` parameter and has an `apply_theme()` method that
+  rebuilds the grid and paper with colors from the YAML file. `MainWindow` uses
+  `theme_loader.get_canvas_surround()` for viewport background instead of
+  hardcoded values. Dark paper is now `#2b2b2b` and canvas surround `#1e1e1e`,
+  matching the Tk dark.yaml. Light theme grid colors (`#E8E8E8`, `#BFE5D9`,
+  `#CCCCCC`) now come from light.yaml.
+  File created:
+  [`packages/bkchem-qt.app/bkchem_qt/themes/theme_loader.py`](packages/bkchem-qt.app/bkchem_qt/themes/theme_loader.py).
+  Files modified:
+  [`packages/bkchem-qt.app/bkchem_qt/canvas/scene.py`](packages/bkchem-qt.app/bkchem_qt/canvas/scene.py),
+  [`packages/bkchem-qt.app/bkchem_qt/main_window.py`](packages/bkchem-qt.app/bkchem_qt/main_window.py).
+
+- Add an independent manager review record for the Qt rewrite plan,
+  documenting severity-ranked conformance findings, open questions, residual
+  risk, screenshot-confirmation requirements, and a prioritized coder action
+  directive. The review decision is `Not complete` pending milestone gate
+  evidence and parity closure.
+  File created:
+  [`docs/active_plans/BKCHEM_TO_QT_PLAN_INDEPENDENT_REVIEW_2026-02-28.md`](docs/active_plans/BKCHEM_TO_QT_PLAN_INDEPENDENT_REVIEW_2026-02-28.md).
+
+- Add dark mode canvas support to BKChem-Qt. Scene now uses a "white paper on
+  dark background" approach: a centered white `QGraphicsRectItem` (2000x1500)
+  at z=-200 acts as the drawing surface, while the scene background is
+  transparent so the QGraphicsView viewport color shows through. Grid lines
+  are constrained to paper boundaries. New `paper_rect` property and
+  `set_paper_color()` method on `ChemScene`. `ChemView` uses a
+  `drawBackground()` override to paint the viewport background color reliably
+  on macOS Qt 6 (QSS `background-color` does not affect QGraphicsView viewport
+  rendering). Theme changes wire through `MainWindow._on_theme_changed()` to
+  update the view background via `ChemView.set_background_color()`.
+  Files modified:
+  [`packages/bkchem-qt.app/bkchem_qt/canvas/view.py`](packages/bkchem-qt.app/bkchem_qt/canvas/view.py),
+  [`packages/bkchem-qt.app/bkchem_qt/canvas/scene.py`](packages/bkchem-qt.app/bkchem_qt/canvas/scene.py),
+  [`packages/bkchem-qt.app/bkchem_qt/main_window.py`](packages/bkchem-qt.app/bkchem_qt/main_window.py),
+  [`packages/bkchem-qt.app/bkchem_qt/themes/palettes.py`](packages/bkchem-qt.app/bkchem_qt/themes/palettes.py).
+- Add Qt GUI smoke test suite with 8 test cases: launch, dark mode, status bar
+  coordinates, benzene drawing, zoom controls, cholesterol SMILES import, mode
+  cycling, and grid toggle. Uses subprocess isolation pattern (one QApplication
+  per test) matching the Tk smoke test architecture. Tests show windows, take
+  screenshots saved to `output_smoke/`, and verify pixel colors for dark mode
+  and grid rendering.
+  File created:
+  [`packages/bkchem-qt.app/tests/test_qt_gui_smoke.py`](packages/bkchem-qt.app/tests/test_qt_gui_smoke.py).
+
+- Add theme-aware icon loader for BKChem-Qt that loads PNG icons from
+  `bkchem_data/pixmaps/` with theme-appropriate directory selection
+  (`png/` for light, `png-dark/` for dark), caching, and cache clearing
+  on theme switch.
+  File created:
+  [`packages/bkchem-qt.app/bkchem_qt/widgets/icon_loader.py`](packages/bkchem-qt.app/bkchem_qt/widgets/icon_loader.py).
+- Add system theme detection to BKChem-Qt theme manager. Uses
+  `styleHints().colorScheme()` (Qt 6.5+) with palette brightness fallback.
+  `restore_theme()` checks saved preference first, then detects system
+  theme, and connects to live OS theme changes unless user overrides.
+- Add icons to BKChem-Qt mode toolbar and main toolbar. Mode toolbar is now
+  horizontal on top (matching old layout) with icon+text-under buttons,
+  ordered by `modes.yaml` `toolbar_order` with visual separators between
+  mode groups. Main toolbar buttons now show icons (undo/redo from pixmaps,
+  file/view actions from Qt StandardPixmap fallbacks).
+- Add theme-aware icon refresh: when theme changes, icon cache is cleared
+  and both toolbars reload their icons from the new theme directory.
+- Add Align, Object, and Options stub menus to match old BKChem menu bar
+  structure (File, Edit, Insert, Align, Object, View, Chemistry, Options, Help).
+
+### Behavior or Interface Changes
+
+- BKChem-Qt no longer hard-codes dark theme at startup. The theme manager
+  restores the user's saved preference, or detects the system theme if no
+  preference exists. Live system theme changes are followed unless the user
+  has explicitly toggled via View menu.
+- View menu "Toggle Dark Mode" action now shows "Switch to Light Mode" or
+  "Switch to Dark Mode" reflecting the current state.
+- Mode toolbar moved from vertical left side to horizontal top position,
+  placed after the main toolbar. Buttons show icon with text underneath.
+
+- Add BKChem-Qt Milestone 2 QGraphicsItem subclasses for rendering atoms and
+  bonds using OASA's render_lib system. `render_ops_painter` translates OASA
+  render ops (LineOp, PolygonOp, CircleOp, PathOp, TextOp) to QPainter draw
+  calls. `AtomItem` wraps an `AtomModel` and calls `build_vertex_ops()`.
+  `BondItem` wraps a bond model and calls `build_bond_ops()`. Both support
+  selection highlighting, hover effects, and shape-based hit testing.
+  File created:
+  [`packages/bkchem-qt.app/bkchem_qt/canvas/items/render_ops_painter.py`](packages/bkchem-qt.app/bkchem_qt/canvas/items/render_ops_painter.py).
+  File created:
+  [`packages/bkchem-qt.app/bkchem_qt/canvas/items/atom_item.py`](packages/bkchem-qt.app/bkchem_qt/canvas/items/atom_item.py).
+  File created:
+  [`packages/bkchem-qt.app/bkchem_qt/canvas/items/bond_item.py`](packages/bkchem-qt.app/bkchem_qt/canvas/items/bond_item.py).
+- Add BKChem-Qt Milestone 2 chemistry model wrappers: Qt-side composition
+  wrappers around OASA objects with QObject signals, following the
+  has-a (composition) pattern from the CDML backend-to-frontend contract.
+  File created:
+  [`packages/bkchem-qt.app/bkchem_qt/models/atom_model.py`](packages/bkchem-qt.app/bkchem_qt/models/atom_model.py).
+  File created:
+  [`packages/bkchem-qt.app/bkchem_qt/models/bond_model.py`](packages/bkchem-qt.app/bkchem_qt/models/bond_model.py).
+  File created:
+  [`packages/bkchem-qt.app/bkchem_qt/models/molecule_model.py`](packages/bkchem-qt.app/bkchem_qt/models/molecule_model.py).
+  File created:
+  [`packages/bkchem-qt.app/bkchem_qt/models/document.py`](packages/bkchem-qt.app/bkchem_qt/models/document.py).
+- Begin BKChem Qt rewrite Milestone 1: application shell, canvas, themes, and
+  packaging. New package at `packages/bkchem-qt.app/` with PySide6 frontend.
+  File created:
+  [`packages/bkchem-qt.app/pyproject.toml`](packages/bkchem-qt.app/pyproject.toml).
+- Add `ChemScene` (QGraphicsScene subclass) with 4000x3000 default scene rect,
+  forced white background, toggleable grid overlay, and `snap_to_grid()` helper.
+  File created:
+  [`packages/bkchem-qt.app/bkchem_qt/canvas/scene.py`](packages/bkchem-qt.app/bkchem_qt/canvas/scene.py).
+- Add `ChemView` (QGraphicsView subclass) with cursor-centered mouse-wheel zoom
+  (10%-1000%), middle-click pan, Alt+left-click pan for macOS trackpads,
+  Ctrl+0 zoom reset, and `zoom_changed`/`mouse_moved` signals.
+  File created:
+  [`packages/bkchem-qt.app/bkchem_qt/canvas/view.py`](packages/bkchem-qt.app/bkchem_qt/canvas/view.py).
+- Add `Preferences` singleton wrapping `QSettings` for persisting user
+  preferences (theme, grid visibility, recent files, zoom level, window
+  geometry/state) with key constants and sensible defaults.
+  File created:
+  [`packages/bkchem-qt.app/bkchem_qt/config/preferences.py`](packages/bkchem-qt.app/bkchem_qt/config/preferences.py).
+- Add `StatusBar` (QStatusBar subclass) with permanent coordinate, mode, and
+  zoom labels and `update_coords()`, `update_mode()`, `update_zoom()` methods.
+  File created:
+  [`packages/bkchem-qt.app/bkchem_qt/widgets/status_bar.py`](packages/bkchem-qt.app/bkchem_qt/widgets/status_bar.py).
+- Add `palettes` module with dark/light `QPalette` constructors, color constants
+  (`DARK_BG`, `DARK_SURFACE`, `DARK_PRIMARY`, `DARK_SECONDARY`, `DARK_TEXT`,
+  `DARK_MUTED`, `CANVAS_BG`, `SUCCESS`, `WARNING`, `ERROR`), and matching QSS
+  stylesheets (`DARK_QSS`, `LIGHT_QSS`) covering QMainWindow, QMenuBar, QMenu,
+  QToolBar, QStatusBar, QTabWidget, QTabBar, QPushButton, QLabel, QLineEdit
+  with hover/selected states.
+  File created:
+  [`packages/bkchem-qt.app/bkchem_qt/themes/palettes.py`](packages/bkchem-qt.app/bkchem_qt/themes/palettes.py).
+- Add `ThemeManager(QObject)` with `apply_theme()`, `toggle_theme()`,
+  `theme_changed` signal, `current_theme` property, and optional preference
+  persistence via Preferences. All user-visible strings use `self.tr()`.
+  File created:
+  [`packages/bkchem-qt.app/bkchem_qt/themes/theme_manager.py`](packages/bkchem-qt.app/bkchem_qt/themes/theme_manager.py).
+- Add `MainWindow(QMainWindow)` with menu bar (File, Edit, View, Insert,
+  Chemistry, Help), tab-based canvas, toolbar placeholder, and status bar
+  wired to view signals. Grid toggle and dark/light theme toggle in View menu.
+  File created:
+  [`packages/bkchem-qt.app/bkchem_qt/main_window.py`](packages/bkchem-qt.app/bkchem_qt/main_window.py).
+- Add application bootstrap (`app.py`) with QApplication setup, QTranslator
+  for Qt built-in strings, ThemeManager with dark default, and geometry restore.
+  File created:
+  [`packages/bkchem-qt.app/bkchem_qt/app.py`](packages/bkchem-qt.app/bkchem_qt/app.py).
+- Add CLI entry point with argparse (`-v`/`--version`, positional `files`).
+  File created:
+  [`packages/bkchem-qt.app/bkchem_qt/cli.py`](packages/bkchem-qt.app/bkchem_qt/cli.py).
+- Symlink `packages/bkchem-qt.app/bkchem_data` to `packages/bkchem-app/bkchem_data`
+  for shared icons, templates, themes, and mode definitions.
+- Add BKChem-Qt Milestone 3 interaction modes and undo system. `BaseMode` abstract
+  class with event dispatch, `EditMode` (select, rubber-band, drag-to-move, Delete,
+  Ctrl+A/C/V/X), `DrawMode` (click-to-add atom, drag-to-draw bond), `ModeManager`
+  for mode switching. Six QUndoCommand subclasses: AddAtom, RemoveAtom, AddBond,
+  RemoveBond, MoveAtoms (with merge), ChangeProperty. `ModeToolbar` and `EditRibbon`
+  widgets for mode selection and bond/element controls.
+  Files created:
+  [`bkchem_qt/modes/base_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/base_mode.py),
+  [`bkchem_qt/modes/edit_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/edit_mode.py),
+  [`bkchem_qt/modes/draw_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/draw_mode.py),
+  [`bkchem_qt/modes/mode_manager.py`](packages/bkchem-qt.app/bkchem_qt/modes/mode_manager.py),
+  [`bkchem_qt/undo/commands.py`](packages/bkchem-qt.app/bkchem_qt/undo/commands.py),
+  [`bkchem_qt/widgets/mode_toolbar.py`](packages/bkchem-qt.app/bkchem_qt/widgets/mode_toolbar.py),
+  [`bkchem_qt/widgets/edit_ribbon.py`](packages/bkchem-qt.app/bkchem_qt/widgets/edit_ribbon.py).
+- Add BKChem-Qt Milestone 3 OASA bridge and file I/O. `oasa_bridge` converts between
+  OASA and Qt model objects (composition, not inheritance). `cdml_io` loads/saves CDML
+  files. `file_actions` provides open_file dialog with CDML/mol/sdf/smi support.
+  `format_bridge` wraps the OASA codec registry for import/export.
+  Files created:
+  [`bkchem_qt/bridge/oasa_bridge.py`](packages/bkchem-qt.app/bkchem_qt/bridge/oasa_bridge.py),
+  [`bkchem_qt/io/cdml_io.py`](packages/bkchem-qt.app/bkchem_qt/io/cdml_io.py),
+  [`bkchem_qt/actions/file_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/file_actions.py),
+  [`bkchem_qt/io/format_bridge.py`](packages/bkchem-qt.app/bkchem_qt/io/format_bridge.py).
+- Add BKChem-Qt Milestone 4 property dialogs: `AtomDialog` (symbol, charge, valency,
+  isotope, multiplicity, font, color), `BondDialog` (order, type, center, widths),
+  `ScaleDialog` (X/Y with aspect lock), `TextDialog`, `ArrowDialog`. Plus `ArrowItem`
+  (line/spline with arrowheads), `TextItem` (rich text annotation), `TemplateMode`
+  (loads from oasa.known_groups), and right-click `context_menu`.
+  Files created:
+  [`bkchem_qt/dialogs/atom_dialog.py`](packages/bkchem-qt.app/bkchem_qt/dialogs/atom_dialog.py),
+  [`bkchem_qt/dialogs/bond_dialog.py`](packages/bkchem-qt.app/bkchem_qt/dialogs/bond_dialog.py),
+  [`bkchem_qt/dialogs/scale_dialog.py`](packages/bkchem-qt.app/bkchem_qt/dialogs/scale_dialog.py),
+  [`bkchem_qt/dialogs/text_dialog.py`](packages/bkchem-qt.app/bkchem_qt/dialogs/text_dialog.py),
+  [`bkchem_qt/dialogs/arrow_dialog.py`](packages/bkchem-qt.app/bkchem_qt/dialogs/arrow_dialog.py),
+  [`bkchem_qt/canvas/items/arrow_item.py`](packages/bkchem-qt.app/bkchem_qt/canvas/items/arrow_item.py),
+  [`bkchem_qt/canvas/items/text_item.py`](packages/bkchem-qt.app/bkchem_qt/canvas/items/text_item.py),
+  [`bkchem_qt/modes/template_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/template_mode.py),
+  [`bkchem_qt/actions/context_menu.py`](packages/bkchem-qt.app/bkchem_qt/actions/context_menu.py).
+- Add BKChem-Qt Milestone 5 export, marks, and additional modes. SVG/PNG/PDF export
+  via QSvgGenerator/QImage/QPdfWriter. Mark items (charge, radical, electron pair).
+  Graphic shape items (rect, oval, polygon). Rotate, arrow, text, mark, atom, and
+  bond-align modes. QThread-based async workers for OASA operations.
+  Files created:
+  [`bkchem_qt/io/export.py`](packages/bkchem-qt.app/bkchem_qt/io/export.py),
+  [`bkchem_qt/canvas/items/mark_item.py`](packages/bkchem-qt.app/bkchem_qt/canvas/items/mark_item.py),
+  [`bkchem_qt/canvas/items/graphics_item.py`](packages/bkchem-qt.app/bkchem_qt/canvas/items/graphics_item.py),
+  [`bkchem_qt/modes/rotate_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/rotate_mode.py),
+  [`bkchem_qt/modes/arrow_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/arrow_mode.py),
+  [`bkchem_qt/modes/text_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/text_mode.py),
+  [`bkchem_qt/modes/mark_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/mark_mode.py),
+  [`bkchem_qt/modes/atom_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/atom_mode.py),
+  [`bkchem_qt/modes/bondalign_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/bondalign_mode.py),
+  [`bkchem_qt/bridge/worker.py`](packages/bkchem-qt.app/bkchem_qt/bridge/worker.py).
+- Add BKChem-Qt Milestone 6 polish: keybinding manager, preferences dialog (4 tabs:
+  Appearance, Drawing, Files, Shortcuts), about dialog, main toolbar with
+  File/Edit/View sections, color picker widget, periodic table popup, and stub modes
+  for bracket, vector, repair, plus, and misc operations.
+  Files created:
+  [`bkchem_qt/config/keybindings.py`](packages/bkchem-qt.app/bkchem_qt/config/keybindings.py),
+  [`bkchem_qt/dialogs/preferences_dialog.py`](packages/bkchem-qt.app/bkchem_qt/dialogs/preferences_dialog.py),
+  [`bkchem_qt/dialogs/about_dialog.py`](packages/bkchem-qt.app/bkchem_qt/dialogs/about_dialog.py),
+  [`bkchem_qt/widgets/toolbar.py`](packages/bkchem-qt.app/bkchem_qt/widgets/toolbar.py),
+  [`bkchem_qt/widgets/color_picker.py`](packages/bkchem-qt.app/bkchem_qt/widgets/color_picker.py),
+  [`bkchem_qt/widgets/periodic_table.py`](packages/bkchem-qt.app/bkchem_qt/widgets/periodic_table.py),
+  [`bkchem_qt/modes/bracket_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/bracket_mode.py),
+  [`bkchem_qt/modes/vector_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/vector_mode.py),
+  [`bkchem_qt/modes/repair_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/repair_mode.py),
+  [`bkchem_qt/modes/plus_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/plus_mode.py),
+  [`bkchem_qt/modes/misc_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/misc_mode.py).
+
+### Behavior or Interface Changes
+
+- Add `packages/bkchem-qt.app` to PYTHONPATH in `source_me.sh`.
+- Add PySide6 to `pip_requirements.txt`.
+- Update `MainWindow` to integrate all M2-M6 components: 13 registered modes via
+  ModeManager, MainToolbar/ModeToolbar/EditRibbon, File export menu (SVG/PNG/PDF),
+  Undo/Redo wired to Document QUndoStack, Preferences dialog, mode event dispatch
+  from ChemView to ModeManager.
+- Fix `QUndoStack` import in `document.py`: PySide6 places it in `QtGui`, not
+  `QtWidgets`.
+
+### Fixes and Maintenance
+
+- Fix crash on File > New when paper was not rebuilt after `scene.clear()`.
+  `_on_new()` now calls `_build_paper()` before `_build_grid()` since
+  `clear()` destroys all scene items including the paper rectangle.
+  File modified:
+  [`packages/bkchem-qt.app/bkchem_qt/main_window.py`](packages/bkchem-qt.app/bkchem_qt/main_window.py).
+- Update smoke tests for YAML theme changes: dark mode test now expects
+  dark paper (`#2b2b2b`) instead of white, grid test expects visible-by-default.
+  Grid boundary checks skip dot ellipses (only check line items).
+  File modified:
+  [`packages/bkchem-qt.app/tests/test_qt_gui_smoke.py`](packages/bkchem-qt.app/tests/test_qt_gui_smoke.py).
+- Fix dark mode canvas viewport rendering on macOS Qt 6. QSS `background-color`
+  on `QGraphicsView` targets the widget frame, not the drawing viewport.
+  `setBackgroundBrush()` also fails to render reliably on macOS Qt 6. The fix
+  overrides `drawBackground()` in `ChemView` to call `painter.fillRect()` with
+  the stored background color. Theme switches now call
+  `ChemView.set_background_color()` which stores a `QColor` and triggers a
+  viewport repaint. Removed dead `background-color` rules from QGraphicsView
+  QSS in both dark and light palettes (kept `border: none`).
+  Files modified:
+  [`packages/bkchem-qt.app/bkchem_qt/canvas/view.py`](packages/bkchem-qt.app/bkchem_qt/canvas/view.py),
+  [`packages/bkchem-qt.app/bkchem_qt/main_window.py`](packages/bkchem-qt.app/bkchem_qt/main_window.py),
+  [`packages/bkchem-qt.app/bkchem_qt/themes/palettes.py`](packages/bkchem-qt.app/bkchem_qt/themes/palettes.py).
+- Upgrade Qt GUI smoke tests from API-only assertions to screenshot-verified
+  visual tests. All test runners now call `main_window.show()`, take screenshots
+  via `QWidget.grab()` saved to `output_smoke/`, and sample pixel colors to
+  verify dark mode viewport background and grid line rendering. Dark mode test
+  scrolls to viewport edge to confirm dark margin pixels.
+  File modified:
+  [`packages/bkchem-qt.app/tests/test_qt_gui_smoke.py`](packages/bkchem-qt.app/tests/test_qt_gui_smoke.py).
+
+### Decisions and Failures
+
+- QGraphicsView background rendering on macOS Qt 6: `setBackgroundBrush()` sets
+  the property correctly but the viewport renders white. `scene.render()` to a
+  QImage produces correct colors, but `viewport().grab()` returns white. Only a
+  `drawBackground()` override with `painter.fillRect()` works reliably. This
+  appears to be a Qt 6 macOS compositor issue where the brush-based rendering
+  path is not honored during viewport compositing.
+
 ## 2026-02-26
 
 ### Additions and New Features
@@ -65,6 +463,10 @@
 
 ### Fixes and Maintenance
 
+- Verify BKChem-Qt status bar coordinate display uses f-strings (not Qt
+  `.arg()` which caused `AttributeError: 'str' object has no attribute 'arg'`).
+  Smoke test confirms `update_coords()`, `update_zoom()`, and `update_mode()`
+  work correctly.
 - Fix `TypeError: '>' not supported between instances of 'NoneType' and 'int'`
   in `cairo_out.py` when drawing aromatic molecules parsed via RDKit. The bridge
   function `_rdkit_to_oasa()` now kekulizes the RDKit molecule before conversion

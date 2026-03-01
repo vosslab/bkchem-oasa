@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bkchem-qt"
+version = "26.02a1"
+description = "BKChem Qt frontend - 2D molecular structure editor"
+readme = {text = "BKChem Qt frontend built with PySide6.", content-type = "text/markdown"}
+requires-python = ">=3.10"
+license = {text = "GPL-2.0-only"}
+authors = [{name = "Neil Voss"}]
+dependencies = [
+    "PySide6>=6.7",
+    "pyyaml",
+]
+
+[project.urls]
+Homepage = "https://github.com/vosslab/bkchem"
+Issues = "https://github.com/vosslab/bkchem/issues"
+
+[project.scripts]
+bkchem-qt = "bkchem_qt.cli:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["bkchem_qt*"]

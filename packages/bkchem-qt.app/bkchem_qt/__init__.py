@@ -1,0 +1,1 @@
+"""BKChem Qt frontend."""
