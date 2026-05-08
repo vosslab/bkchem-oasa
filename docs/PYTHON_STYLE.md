@@ -2,6 +2,22 @@
 
 Language Model guide to Neil python3 programming
 
+## Common misconceptions
+
+AI agents frequently get these wrong. Read the full sections below for details.
+
+- **Fix the design, not the symptom.** When something behaves wrong, fix the design before adding a fallback. See [Design philosophy](REPO_STYLE.md#core-philosophies).
+- **Tabs not spaces.** Always indent with tabs. See [USE TABS](#use-tabs).
+- **Avoid try/except.** Do not wrap code in try/except blocks. See [CODE STRUCTURE](#code-structure).
+- **Do not hide bugs with defaults.** Use `dict[key]` when the key must exist, not `dict.get(key, fallback)`. See [DO NOT HIDE BUGS WITH DEFAULTS](#do-not-hide-bugs-with-defaults).
+- **Shebangs only on runnable scripts.** No shebangs on library modules, test files, or helpers. See [CODE STRUCTURE](#code-structure).
+- **Argparse minimalism.** Only add flags users frequently change between runs. See [ARGPARSE](#argparse).
+- **Import the module, not names from it.** Prefer `import os` over `from os import path`. See [IMPORTING](#importing).
+- **No relative imports.** Never use `from . import` or `from ..module import`. See [IMPORTING](#importing).
+- **Declare all third-party imports.** Every non-stdlib, non-local import must be in `pip_requirements.txt`. See [IMPORT REQUIREMENTS](#import-requirements).
+- **No brittle pytest assertions.** Do not assert on dates, collection sizes, required key lists, hardcoded defaults, or function names. See [PYTEST_STYLE.md](PYTEST_STYLE.md).
+- **No `assert` in plain scripts.** All `assert` statements live in `tests/test_*.py`, `tests/playwright/` (browser tests), or `tests/e2e/` (shell/Python E2E). Module-level asserts run on every import and slow script startup. See [ASSERT](#assert).
+
 ## Python version
 
 * I like using one of the latest versions of python, but not the latest, of python3, currently **3.12**.
@@ -33,14 +49,45 @@ Language Model guide to Neil python3 programming
 - Avoid using `sys.exit(1)` prefer to raise Errors.
 - Use f-strings, in older code I used `.format()` or `'%'` system, update to f-strings.
 - I prefer string concatenation `'+='` over multiline strings.
-- If a Python script is intended to be executed as a program, the first line must be:
-	- `#!/usr/bin/env python3`
+- Shebangs apply ONLY to executable scripts - files with a `if __name__ == '__main__':` guard that are meant to be run directly from the command line.
+- The required shebang is `#!/usr/bin/env python3` and it must be the very first line. The module docstring comes after it.
+- Do NOT add shebangs to library modules, helper files, `__init__.py` files, or test files. These are imported, not executed directly.
 - Do not hard-code interpreter paths in shebangs (bad: `#!/opt/homebrew/.../python3.12`).
 - Do not use `/usr/bin/python` or `/usr/bin/python3` in shebangs.
-- The shebang must be the first line of the file. The module docstring comes after it.
+- Files with a shebang must also have the executable bit set, and vice versa. See `tests/test_shebangs.py` for enforcement.
 - Return statements should be simple and should not perform calculations, fill out a dict, or build strings. Store computed values and assembled strings in variables first, including any multiline HTML or text, then return the variable.
 - add comments within the code to describe what different lines are doing, to make for better readability later. especially for complex lines!
 - Please only use ascii characters in the script, if utf characters are need they should be escape e.g. `&alpha;` `&lrarr;`
+
+## DO NOT HIDE BUGS WITH DEFAULTS
+
+This section is the Python expression of "fix the design, not the symptom" (see [Design philosophy](REPO_STYLE.md#core-philosophies)). Defensive coding patterns that silently supply fallback values hide bugs instead of exposing them. If a key, attribute, or value is required, access it directly so missing data fails loudly.
+
+- Use `dict[key]` when the key must exist. Do not use `dict.get(key, default)` to paper over missing data.
+- Use `dict.get(key, default)` only when the key is genuinely optional and the default is intentional.
+- Do not use `value or fallback` to silently replace None, empty strings, or zero. If the value should never be None, fix the source.
+- Do not catch broad exceptions to continue silently. `except Exception: pass` hides every possible bug.
+
+### Bad (hides missing keys)
+
+```python
+name = config.get("name", "Unknown")
+count = data.get("count", 0)
+```
+
+### Good (fails on missing required keys)
+
+```python
+name = config["name"]
+count = data["count"]
+```
+
+### Good (genuinely optional with intentional default)
+
+```python
+# verbose flag is optional, defaults to off
+verbose = config.get("verbose", False)
+```
 
 ## `__init__.py` FILES
 
@@ -122,11 +169,12 @@ volume_text = f"<span style='font-family: monospace;'>{vol1:.1f} mL</span>"
 ## TESTING
 
 - I like to test the code with **pyflakes** and **mypy**
-- For simple functions only, provide an **assert** command.
 - create a folder in most projects called tests for storing test scripts
 - a good repo-wide pyflakes gate is `tests/test_pyflakes_code_lint.py` (run with pytest)
+- For pytest-specific style, test design, and command usage, see [PYTEST_STYLE.md](PYTEST_STYLE.md).
+- For slow end-to-end tests run outside pytest, see [E2E_TESTS.md](E2E_TESTS.md).
 ```bash
-source source_me.sh && python -m pytest tests/test_pyflakes_code_lint.py
+pytest tests/test_pyflakes_code_lint.py
 ```
 
 ## DO NOT USE HEREDOCS
@@ -135,8 +183,6 @@ source source_me.sh && python -m pytest tests/test_pyflakes_code_lint.py
 * Avoid patterns like `python3 - <<EOF`.
 * Python code should live in `.py` files or be passed explicitly as files or modules.
 * Heredocs make code harder to read, harder to lint, and harder to test.
-
-Here is a tightened version that keeps the rule and examples, without extra explanation.
 
 ## ENVIRONMENT VARIABLES
 
@@ -184,44 +230,12 @@ export PYTHONDONTWRITEBYTECODE=1
 * No emoji or special characters in comments, only ascii characters
 
 ## ASSERT
-* For simple functions only, provide an assert command.
-* Do not do complex asserts that would require more than 4 lines or go over 100 characters in length
-* Do not add assert to functions that require user input or read/write to files
 
-### Good examples of Assert
-
-* Simple assertion test for the function: 'check_due_date'
-```python
-result = check_due_date("1970/10/25", {'deadline': {'due date': 'Oct 25, 1970'}})
-assert result == (0.0, 'On-Time', '')
-```
-
-* Simple assertion test for the function: 'get_final_score'
-```python
-test_entry = {}
-test_config = {'total points': '10', 'assignment name': 'HW1'}
-get_final_score(test_entry, test_config)
-assert test_entry['Final Score'] == '10.00'
-```
-
-* Simple assertion test for the function: 'make_key'
-```python
-result = make_key({'ID': 12, 'Name': 'JoHN  '}, ('ID', 'Name'))
-assert result == '12 john'
-```
-
-## PYTEST
-* Prefer pytest for automated tests when a repo has more than a few simple asserts.
-* Store tests in tests/ with files named test_*.py.
-* Test functions should be named test_* and should use plain assert.
-* Keep tests small and deterministic. Avoid network calls, random behavior, and time based logic unless mocked.
-* Prefer fixtures for setup and shared resources. Use built in fixtures like tmp_path instead of custom temp directories.
-* Avoid complex logic inside tests. If test logic needs comments, move the logic into helper functions and test those helpers.
-* Basic commands:
-* pytest run all tests
-* pytest -q quiet
-* pytest -k name run tests matching a substring
-* pytest -x stop on first failure
+* Do not put `assert` statements in plain `.py` scripts or library modules. All asserts live in `tests/test_*.py`, `tests/playwright/` (browser tests), or `tests/e2e/` (shell/Python E2E).
+* Reason: module-level asserts run at import time, which slows CLI startup. Tests pay the cost once, in the test suite.
+* Do not assert in functions that require user input or read/write to files; cover those with end-to-end checks instead. See [E2E_TESTS.md](E2E_TESTS.md).
+* Keep individual asserts short: under 4 lines and under 100 characters.
+* For pytest test structure and good/brittle assert patterns, see [PYTEST_STYLE.md](PYTEST_STYLE.md).
 
 ## TYPE HINTING
 * Use the python3-style explicit variable type hinting. I think it is good practice. Very little of my code uses it now, but I want to change that. For example,
@@ -237,6 +251,7 @@ def greater_than(a: int, b: int) -> bool:
 * Never use import *
 * I prefer to keep the original module names, just import numpy is preferred over import numpy as np.
 * This one is flexible but I also prefer to avoid using 'from' in the import statements. 'import PIL.Image' over 'from PIL import Image'. I like to know where commands are coming from.
+* Never use relative imports (`from . import`, `from ..module import`). Always use absolute imports so it is clear where every name comes from. See `tests/test_import_dot.py` for enforcement.
 * Place import modules in the following order (1) external python/pip modules vs. local repo modules with commented headings (2) length of module name with the shortest first, (3) alphabetical 'os' comes before 're'. For example:
 
 ```python
@@ -256,6 +271,16 @@ import PIL.Image #python-pillow
 import bptools
 import aminoacidlib
 ```
+
+## IMPORT REQUIREMENTS
+
+Every import in the repo must come from one of three sources:
+
+- **Python standard library** (os, sys, re, etc.)
+- **Repo-local modules** (other `.py` files tracked in the same repo)
+- **Declared pip dependencies** listed in `pip_requirements.txt` or `pip_requirements-dev.txt`
+
+If you add a new third-party import, add the package to the appropriate requirements file. Some pip packages use a different import name than their package name (e.g., `import yaml` comes from `pyyaml`, `import cv2` comes from `opencv-python`). Known aliases are maintained in `tests/test_import_requirements.py` under `IMPORT_REQUIREMENT_ALIASES`. See `tests/test_import_requirements.py` for enforcement.
 
 ## ARGPARSE
 
