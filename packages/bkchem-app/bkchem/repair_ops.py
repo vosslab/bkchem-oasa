@@ -11,7 +11,7 @@ from bkchem.singleton_store import Screen, Store
 
 
 #============================================
-def _get_target_molecules(paper) -> list:
+def _get_target_molecules(paper: object) -> list:
 	"""Return molecules to operate on: selected if any, else all.
 
 	Args:
@@ -33,7 +33,7 @@ def _get_target_molecules(paper) -> list:
 
 
 #============================================
-def _get_bond_length_px(paper) -> float:
+def _get_bond_length_px(paper: object) -> float:
 	"""Return the standard bond length in pixels.
 
 	Args:
@@ -46,7 +46,7 @@ def _get_bond_length_px(paper) -> float:
 
 
 #============================================
-def normalize_bond_lengths(paper) -> None:
+def normalize_bond_lengths(paper: object) -> None:
 	"""Set all bonds to the standard bond length using BFS.
 
 	Args:
@@ -62,7 +62,7 @@ def normalize_bond_lengths(paper) -> None:
 
 
 #============================================
-def normalize_bond_angles(paper) -> None:
+def normalize_bond_angles(paper: object) -> None:
 	"""Round non-ring bond angles to nearest 60-degree multiple.
 
 	Args:
@@ -78,7 +78,7 @@ def normalize_bond_angles(paper) -> None:
 
 
 #============================================
-def normalize_rings(paper) -> None:
+def normalize_rings(paper: object) -> None:
 	"""Reshape each ring to a regular polygon centered on its centroid.
 
 	Args:
@@ -94,7 +94,7 @@ def normalize_rings(paper) -> None:
 
 
 #============================================
-def straighten_bonds(paper) -> None:
+def straighten_bonds(paper: object) -> None:
 	"""Snap terminal and chain bond angles to nearest 30-degree direction.
 
 	Args:
@@ -109,7 +109,7 @@ def straighten_bonds(paper) -> None:
 
 
 #============================================
-def snap_to_hex_grid(paper) -> None:
+def snap_to_hex_grid(paper: object) -> None:
 	"""Move every atom to the nearest hex grid point.
 
 	Args:
@@ -125,7 +125,7 @@ def snap_to_hex_grid(paper) -> None:
 
 
 #============================================
-def clean_geometry(paper) -> None:
+def clean_geometry(paper: object) -> None:
 	"""Full coordinate regeneration for molecules.
 
 	If molecules are selected, delegates to paper.clean_selected().

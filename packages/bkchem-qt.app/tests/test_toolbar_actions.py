@@ -19,7 +19,7 @@ _TOOLBAR_ACTION_NAMES = [
 
 
 #============================================
-def test_all_toolbar_actions_resolve(main_window):
+def test_all_toolbar_actions_resolve(main_window: object) -> None:
 	"""All 12 getattr(main_window, 'on_*') resolve to callables."""
 	for name in _TOOLBAR_ACTION_NAMES:
 		attr = getattr(main_window, name, None)
@@ -28,7 +28,7 @@ def test_all_toolbar_actions_resolve(main_window):
 
 
 #============================================
-def test_save_action_exists_and_has_shortcut(main_window):
+def test_save_action_exists_and_has_shortcut(main_window: object) -> None:
 	"""The Save menu action exists and has a keyboard shortcut."""
 	assert hasattr(main_window, "_action_save"), "should have _action_save"
 	assert hasattr(main_window, "_on_save"), "should have _on_save method"

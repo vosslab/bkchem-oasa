@@ -78,7 +78,7 @@ transform. The non-molecule parts (arrows, text, shapes, fonts) stay in BKChem.
 After the transform refactor (see plan), all coordinate transforms move to OASA
 modules. BKChem serializes to CDML, calls OASA, and redraws from the result.
 
-See [docs/CDML_BACKEND_TO_FRONTEND_CONTRACT.md](docs/CDML_BACKEND_TO_FRONTEND_CONTRACT.md)
+See [CDML_BACKEND_TO_FRONTEND_CONTRACT.md](CDML_BACKEND_TO_FRONTEND_CONTRACT.md)
 for the full backend-to-frontend boundary contract.
 
 ## OASA transform modules (planned)

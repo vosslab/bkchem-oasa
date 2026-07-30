@@ -1,7 +1,7 @@
 # Composition refactor plan
 
 Replace OASA inheritance with composition in BKChem GUI classes. See
-[docs/CDML_BACKEND_TO_FRONTEND_CONTRACT.md](../CDML_BACKEND_TO_FRONTEND_CONTRACT.md)
+[CDML_BACKEND_TO_FRONTEND_CONTRACT.md](../CDML_BACKEND_TO_FRONTEND_CONTRACT.md)
 for the boundary contract.
 
 ## Wave 1: foundation infrastructure

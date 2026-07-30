@@ -11,14 +11,14 @@ import oasa.molecule_lib
 class TestBiomoleculeLoader:
 	"""Tests for the biomolecule_loader YAML reader."""
 
-	def test_load_entries_returns_list(self):
+	def test_load_entries_returns_list(self) -> None:
 		"""load_biomolecule_entries should return a non-empty list."""
 		from bkchem import biomolecule_loader
 		entries = biomolecule_loader.load_biomolecule_entries()
 		assert isinstance(entries, list)
 		assert len(entries) > 0
 
-	def test_entries_have_required_keys(self):
+	def test_entries_have_required_keys(self) -> None:
 		"""Each entry should have category, subcategory, name, label, smiles."""
 		from bkchem import biomolecule_loader
 		entries = biomolecule_loader.load_biomolecule_entries()
@@ -27,7 +27,7 @@ class TestBiomoleculeLoader:
 			missing = required_keys - set(entry.keys())
 			assert not missing, f"Entry {entry.get('name')} missing keys: {missing}"
 
-	def test_all_20_amino_acids_present(self):
+	def test_all_20_amino_acids_present(self) -> None:
 		"""All 20 standard amino acids should be in the YAML."""
 		from bkchem import biomolecule_loader
 		entries = biomolecule_loader.load_biomolecule_entries()
@@ -38,7 +38,7 @@ class TestBiomoleculeLoader:
 		missing = expected - amino_acid_labels
 		assert not missing, f"Missing amino acids: {missing}"
 
-	def test_four_categories_present(self):
+	def test_four_categories_present(self) -> None:
 		"""YAML should contain carbs, nucleic_acids, lipids, protein."""
 		from bkchem import biomolecule_loader
 		entries = biomolecule_loader.load_biomolecule_entries()
@@ -47,7 +47,7 @@ class TestBiomoleculeLoader:
 		missing = expected - categories
 		assert not missing, f"Missing categories: {missing}"
 
-	def test_labels_are_short(self):
+	def test_labels_are_short(self) -> None:
 		"""Labels should be short (at most 5 characters) for button grid."""
 		from bkchem import biomolecule_loader
 		entries = biomolecule_loader.load_biomolecule_entries()
@@ -60,7 +60,7 @@ class TestBiomoleculeLoader:
 class TestSmilesTemplateGeneration:
 	"""Tests for SMILES-to-template generation (pure OASA, no GUI)."""
 
-	def test_all_smiles_parse(self):
+	def test_all_smiles_parse(self) -> None:
 		"""Every SMILES in the YAML should parse into a valid molecule."""
 		from bkchem import biomolecule_loader
 		entries = biomolecule_loader.load_biomolecule_entries()
@@ -69,7 +69,7 @@ class TestSmilesTemplateGeneration:
 			assert mol is not None, f"Failed to parse SMILES for {entry['name']}"
 			assert len(list(mol.vertices)) > 0, f"Empty molecule for {entry['name']}"
 
-	def test_all_smiles_have_2d_coords(self):
+	def test_all_smiles_have_2d_coords(self) -> None:
 		"""Parsed molecules should have non-zero coordinate spans."""
 		from bkchem import biomolecule_loader
 		entries = biomolecule_loader.load_biomolecule_entries()
@@ -83,7 +83,7 @@ class TestSmilesTemplateGeneration:
 			total_span = x_span + y_span
 			assert total_span > 0.01, f"No 2D coords for {entry['name']}"
 
-	def test_normalize_bond_length(self):
+	def test_normalize_bond_length(self) -> None:
 		"""Molecules should normalize to 1.0 cm bond length."""
 		from bkchem import biomolecule_loader
 		entries = biomolecule_loader.load_biomolecule_entries()
@@ -96,7 +96,7 @@ class TestSmilesTemplateGeneration:
 				f"Bond length {mean_bl:.3f} != 1.0 for {entry['name']}"
 			)
 
-	def test_anchor_atom_selection(self):
+	def test_anchor_atom_selection(self) -> None:
 		"""Anchor atom selection should be deterministic."""
 		from bkchem.temp_manager import _choose_anchor_atom, _choose_anchor_neighbor
 		from bkchem import biomolecule_loader
@@ -112,7 +112,7 @@ class TestSmilesTemplateGeneration:
 			anchor2 = _choose_anchor_atom(mol)
 			assert anchor is anchor2, f"Non-deterministic anchor for {entry['name']}"
 
-	def test_cdml_string_generation(self):
+	def test_cdml_string_generation(self) -> None:
 		"""CDML XML string should be valid and contain expected elements."""
 		from bkchem.temp_manager import (
 			_choose_anchor_atom, _choose_anchor_neighbor,
@@ -144,11 +144,11 @@ class TestSmilesTemplateGeneration:
 class TestRemoveUnimportantHydrogens:
 	"""Verify remove_unimportant_hydrogens works on pure OASA molecules."""
 
-	def test_method_exists_on_oasa_molecule(self):
+	def test_method_exists_on_oasa_molecule(self) -> None:
 		"""oasa.molecule_lib.Molecule (the class) should have remove_unimportant_hydrogens."""
 		assert hasattr(oasa.molecule_lib.Molecule, 'remove_unimportant_hydrogens')
 
-	def test_removes_implicit_hydrogens(self):
+	def test_removes_implicit_hydrogens(self) -> None:
 		"""Parsing methane should give atoms, remove_unimportant_hydrogens reduces count."""
 		mol = oasa.smiles_lib.text_to_mol("C", calc_coords=1)
 		# methane has carbons and hydrogens

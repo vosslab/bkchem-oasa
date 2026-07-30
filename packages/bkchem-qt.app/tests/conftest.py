@@ -2,23 +2,32 @@
 
 # Standard Library
 import os
-import gc
+import sys
+
+_REPO_TESTS_DIR = os.path.abspath(os.path.join(
+	os.path.dirname(__file__), "..", "..", "..", "tests",
+))
+if _REPO_TESTS_DIR not in sys.path:
+	sys.path.insert(0, _REPO_TESTS_DIR)
+
+pytest_plugins = ("pytest_kill_after",)
+
+# Qt reads its platform choice when QApplication is initialized.  Set the
+# headless test policy before importing any PySide6 module.
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+# suppress "This plugin does not support propagateSizeHints()" noise
+# from Qt's Cocoa platform plugin on macOS
+os.environ.setdefault("QT_LOGGING_RULES", "qt.qpa.*=false")
 
 # PIP3 modules
 import pytest
+import PySide6.QtCore
 import PySide6.QtWidgets
 import PySide6.QtTest
 
 # local repo modules
 import bkchem_qt.themes.theme_manager
 import bkchem_qt.main_window
-
-
-# force offscreen rendering so tests run without a display server
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-# suppress "This plugin does not support propagateSizeHints()" noise
-# from Qt's Cocoa platform plugin on macOS
-os.environ.setdefault("QT_LOGGING_RULES", "qt.qpa.*=false")
 
 
 #============================================
@@ -45,13 +54,22 @@ VISUAL_HOLD_MS = max(0, _env_int("BKCHEM_QT_TEST_VISUAL_HOLD_MS", 0))
 
 
 #============================================
+def _drain_deferred_deletes(
+		app: PySide6.QtWidgets.QApplication,
+		window: bkchem_qt.main_window.MainWindow = None,
+		) -> bool:
+	"""Deliver deferred deletion through the production bounded reaper drain."""
+	return bkchem_qt.main_window.drain_pending_session_deletions(app, window)
+
+
+#============================================
 def _using_offscreen_backend() -> bool:
 	"""Return True when tests are running with offscreen Qt platform."""
 	return os.environ.get("QT_QPA_PLATFORM", "").strip().lower() == "offscreen"
 
 
 #============================================
-def _should_show_windows(request) -> bool:
+def _should_show_windows(request: pytest.FixtureRequest) -> bool:
 	"""Decide whether GUI windows should be shown during pytest runs.
 
 	Visual mode is enabled either explicitly via env var or implicitly
@@ -65,7 +83,7 @@ def _should_show_windows(request) -> bool:
 
 #============================================
 @pytest.fixture(scope="session")
-def qapp():
+def qapp() -> PySide6.QtWidgets.QApplication:
 	"""Return the QApplication singleton, creating it if needed.
 
 	Returns:
@@ -76,18 +94,22 @@ def qapp():
 		app = PySide6.QtWidgets.QApplication([])
 	yield app
 	# Explicit Qt teardown avoids GC-time shiboken crashes on interpreter exit.
+	# QClipboard owns QMimeData passed through setMimeData().  Clear that native
+	# owner while both Qt and Python are still live; otherwise its wrapped
+	# QMimeData can be destroyed during interpreter shutdown.
+	app.clipboard().clear()
 	for widget in list(app.topLevelWidgets()):
 		widget.close()
-		widget.deleteLater()
-	app.processEvents()
-	PySide6.QtWidgets.QApplication.sendPostedEvents()
-	app.processEvents()
-	gc.collect()
+		if isinstance(widget, bkchem_qt.main_window.MainWindow):
+			assert _drain_deferred_deletes(app, widget)
+		assert bkchem_qt.main_window.delete_qobject_and_wait(app, widget)
 
 
 #============================================
 @pytest.fixture(scope="session")
-def theme_manager(qapp):
+def theme_manager(
+		qapp: PySide6.QtWidgets.QApplication,
+		) -> bkchem_qt.themes.theme_manager.ThemeManager:
 	"""Return a ThemeManager bound to the QApplication.
 
 	Args:
@@ -102,7 +124,11 @@ def theme_manager(qapp):
 
 #============================================
 @pytest.fixture(scope="module")
-def main_window(qapp, theme_manager, request):
+def main_window(
+		qapp: PySide6.QtWidgets.QApplication,
+		theme_manager: bkchem_qt.themes.theme_manager.ThemeManager,
+		request: pytest.FixtureRequest,
+		) -> bkchem_qt.main_window.MainWindow:
 	"""Return a MainWindow shared across tests in the same module.
 
 	Module scope avoids creating 45+ MainWindow instances during the
@@ -123,32 +149,46 @@ def main_window(qapp, theme_manager, request):
 		mw.activateWindow()
 		qapp.processEvents()
 	yield mw
+	_normalize_main_window(mw)
 	mw.close()
-	mw.deleteLater()
-	qapp.processEvents()
+	assert _drain_deferred_deletes(qapp, mw)
+	assert bkchem_qt.main_window.delete_qobject_and_wait(qapp, mw)
+
+
+#============================================
+def _normalize_main_window(main_window: bkchem_qt.main_window.MainWindow) -> None:
+	"""Install one fresh blank backend session through normal session disposal.
+
+	A shared MainWindow cannot clear its current Qt document to reset test state:
+	the session may instead own a newer authoritative backend snapshot.  A fresh
+	session gives the next test a matching blank backend snapshot and projection,
+	while `_remove_session()` retires every old projection through the production
+	lifecycle path.
+	"""
+	fresh_session = main_window._create_session(activate=False)
+	for session in tuple(main_window.sessions):
+		if session is fresh_session:
+			continue
+		assert main_window._remove_session(session)
+		assert _drain_deferred_deletes(
+			PySide6.QtWidgets.QApplication.instance(), main_window,
+		)
+	main_window._tab_widget.setCurrentIndex(0)
+	main_window._activate_session(fresh_session)
+	main_window.view.reset_zoom()
 
 
 #============================================
 @pytest.fixture(autouse=True)
-def _reset_main_window(main_window):
-	"""Reset document and scene state before each test for isolation."""
-	# clear all molecules from document (also clears undo stack)
-	main_window.document.clear()
-	# remove all scene items except paper rect and grid group
-	scene = main_window.scene
-	keep = {id(scene._paper_item)}
-	if scene._grid_group is not None:
-		keep.add(id(scene._grid_group))
-	for item in list(scene.items()):
-		if id(item) in keep:
-			continue
-		# skip grid children (they belong to the group)
-		if item.group() is scene._grid_group:
-			continue
-		scene.removeItem(item)
-	# reset zoom to 100%
-	main_window.view.reset_zoom()
+def _reset_main_window(
+		main_window: bkchem_qt.main_window.MainWindow,
+		) -> None:
+	"""Normalize the shared window and drain terminal session ownership."""
+	_normalize_main_window(main_window)
 	yield
+	assert _drain_deferred_deletes(
+		PySide6.QtWidgets.QApplication.instance(), main_window,
+	)
 	if main_window.isVisible() and VISUAL_HOLD_MS > 0:
 		main_window.repaint()
 		PySide6.QtWidgets.QApplication.processEvents()

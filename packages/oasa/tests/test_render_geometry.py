@@ -31,7 +31,7 @@ from oasa.render_lib.bond_ops import build_bond_ops
 #============================================
 
 #============================================
-def test_perpendicular_distance_point_on_line():
+def test_perpendicular_distance_point_on_line() -> None:
 	# point on the line should have distance 0
 	dist = _perpendicular_distance_to_line(
 		(5.0, 5.0), (0.0, 0.0), (10.0, 10.0),
@@ -40,7 +40,7 @@ def test_perpendicular_distance_point_on_line():
 
 
 #============================================
-def test_perpendicular_distance_horizontal_line():
+def test_perpendicular_distance_horizontal_line() -> None:
 	# point (3, 5) above horizontal line y=0
 	dist = _perpendicular_distance_to_line(
 		(3.0, 5.0), (0.0, 0.0), (10.0, 0.0),
@@ -49,7 +49,7 @@ def test_perpendicular_distance_horizontal_line():
 
 
 #============================================
-def test_perpendicular_distance_vertical_line():
+def test_perpendicular_distance_vertical_line() -> None:
 	# point (7, 3) to the right of vertical line x=0
 	dist = _perpendicular_distance_to_line(
 		(7.0, 3.0), (0.0, 0.0), (0.0, 10.0),
@@ -58,7 +58,7 @@ def test_perpendicular_distance_vertical_line():
 
 
 #============================================
-def test_perpendicular_distance_diagonal():
+def test_perpendicular_distance_diagonal() -> None:
 	# point (1, 0) to line from (0,0) to (0,1) -- distance is 1
 	dist = _perpendicular_distance_to_line(
 		(1.0, 0.0), (0.0, 0.0), (0.0, 1.0),
@@ -67,7 +67,7 @@ def test_perpendicular_distance_diagonal():
 
 
 #============================================
-def test_perpendicular_distance_degenerate_line():
+def test_perpendicular_distance_degenerate_line() -> None:
 	# degenerate line (start == end) falls back to euclidean distance
 	dist = _perpendicular_distance_to_line(
 		(3.0, 4.0), (0.0, 0.0), (0.0, 0.0),
@@ -76,7 +76,7 @@ def test_perpendicular_distance_degenerate_line():
 
 
 #============================================
-def test_perpendicular_distance_negative_coords():
+def test_perpendicular_distance_negative_coords() -> None:
 	# point (-3, 0) to horizontal line y=4 from (-10,4) to (10,4)
 	dist = _perpendicular_distance_to_line(
 		(-3.0, 0.0), (-10.0, 4.0), (10.0, 4.0),
@@ -85,7 +85,7 @@ def test_perpendicular_distance_negative_coords():
 
 
 #============================================
-def test_perpendicular_distance_45_degree_line():
+def test_perpendicular_distance_45_degree_line() -> None:
 	# point (0, 1) to 45-degree line from (0,0) to (1,1)
 	# perpendicular distance = |0*1 - 1*1 + 0| / sqrt(2) ... using formula
 	# cross product: |dy*(px-sx) - dx*(py-sy)| / length
@@ -101,7 +101,7 @@ def test_perpendicular_distance_45_degree_line():
 #============================================
 
 #============================================
-def test_retreat_zero_gap_returns_endpoint():
+def test_retreat_zero_gap_returns_endpoint() -> None:
 	# target_gap=0 should return the endpoint unchanged
 	result = _retreat_to_target_gap(
 		(0.0, 0.0), (10.0, 0.0), 0.0, [],
@@ -110,7 +110,7 @@ def test_retreat_zero_gap_returns_endpoint():
 
 
 #============================================
-def test_retreat_negative_gap_returns_endpoint():
+def test_retreat_negative_gap_returns_endpoint() -> None:
 	# negative target_gap should return the endpoint unchanged
 	result = _retreat_to_target_gap(
 		(0.0, 0.0), (10.0, 0.0), -1.0, [],
@@ -119,7 +119,7 @@ def test_retreat_negative_gap_returns_endpoint():
 
 
 #============================================
-def test_retreat_gap_already_satisfied():
+def test_retreat_gap_already_satisfied() -> None:
 	# endpoint is 5 units from the box boundary, target_gap=2
 	# box from (12, -5) to (20, 5), endpoint at (10, 0) -> distance to box = 2
 	box = make_box_target((12.0, -5.0, 20.0, 5.0))
@@ -130,7 +130,7 @@ def test_retreat_gap_already_satisfied():
 
 
 #============================================
-def test_retreat_gap_needs_retreat():
+def test_retreat_gap_needs_retreat() -> None:
 	# box from (11, -5) to (20, 5), endpoint at (10, 0) -> distance to box = 1
 	# target_gap=3, so need to retreat by 2 units
 	box = make_box_target((11.0, -5.0, 20.0, 5.0))
@@ -144,7 +144,7 @@ def test_retreat_gap_needs_retreat():
 
 
 #============================================
-def test_retreat_gap_vertical_direction():
+def test_retreat_gap_vertical_direction() -> None:
 	# vertical bond: start=(5,0), endpoint=(5,10), box at (3,12) to (7,20)
 	# distance from (5,10) to box boundary = 2 (y direction)
 	# target_gap=4, need to retreat 2 units
@@ -160,7 +160,7 @@ def test_retreat_gap_vertical_direction():
 
 
 #============================================
-def test_retreat_gap_no_forbidden_regions():
+def test_retreat_gap_no_forbidden_regions() -> None:
 	# no forbidden regions: current_gap=0, so retreat by full target_gap
 	result = _retreat_to_target_gap(
 		(0.0, 0.0), (10.0, 0.0), 2.0, [],
@@ -170,7 +170,7 @@ def test_retreat_gap_no_forbidden_regions():
 
 
 #============================================
-def test_retreat_gap_excessive_retreat_clamps_to_start():
+def test_retreat_gap_excessive_retreat_clamps_to_start() -> None:
 	# target gap exceeds bond length -- should clamp to line_start
 	box = make_box_target((3.0, -1.0, 5.0, 1.0))
 	result = _retreat_to_target_gap(
@@ -180,7 +180,7 @@ def test_retreat_gap_excessive_retreat_clamps_to_start():
 
 
 #============================================
-def test_retreat_gap_degenerate_zero_length():
+def test_retreat_gap_degenerate_zero_length() -> None:
 	# start == endpoint: should return endpoint unchanged
 	result = _retreat_to_target_gap(
 		(5.0, 5.0), (5.0, 5.0), 1.0, [],
@@ -189,7 +189,7 @@ def test_retreat_gap_degenerate_zero_length():
 
 
 #============================================
-def test_retreat_gap_diagonal_approach_converges():
+def test_retreat_gap_diagonal_approach_converges() -> None:
 	# bond approaches a box corner at ~45 degrees; single-pass retreat
 	# under-corrects because retreat distance != perpendicular gap.
 	# The iterative loop should converge to the target gap.
@@ -222,7 +222,7 @@ def test_retreat_gap_diagonal_approach_converges():
 #============================================
 
 #============================================
-def test_correct_alignment_already_aligned():
+def test_correct_alignment_already_aligned() -> None:
 	# bond from (0,0) to (10,0), alignment center at (10,0) -- on the line
 	box = make_box_target((8.0, -2.0, 12.0, 2.0))
 	result = _correct_endpoint_for_alignment(
@@ -232,7 +232,7 @@ def test_correct_alignment_already_aligned():
 
 
 #============================================
-def test_correct_alignment_within_tolerance():
+def test_correct_alignment_within_tolerance() -> None:
 	# bond from (0,0) to (10,0), alignment center at (10, 0.1) -- within tolerance
 	box = make_box_target((8.0, -2.0, 12.0, 2.0))
 	result = _correct_endpoint_for_alignment(
@@ -242,7 +242,7 @@ def test_correct_alignment_within_tolerance():
 
 
 #============================================
-def test_correct_alignment_off_axis_corrects():
+def test_correct_alignment_off_axis_corrects() -> None:
 	# bond from (0,0) to (10,0), alignment center at (10, 5) -- off axis
 	# correction should redirect toward alignment center and hit box boundary
 	box = make_box_target((8.0, -2.0, 12.0, 8.0))
@@ -261,7 +261,7 @@ def test_correct_alignment_off_axis_corrects():
 
 
 #============================================
-def test_correct_alignment_circle_target():
+def test_correct_alignment_circle_target() -> None:
 	# bond from (0,0) to (10,0), alignment center at (10, 3)
 	# circle target centered at (10,3) radius 2
 	circle = make_circle_target((10.0, 3.0), 2.0)
@@ -278,7 +278,7 @@ def test_correct_alignment_circle_target():
 
 
 #============================================
-def test_correct_alignment_coincident_start_center():
+def test_correct_alignment_coincident_start_center() -> None:
 	# bond_start == alignment_center: should return endpoint unchanged
 	box = make_box_target((8.0, -2.0, 12.0, 2.0))
 	result = _correct_endpoint_for_alignment(
@@ -288,7 +288,7 @@ def test_correct_alignment_coincident_start_center():
 
 
 #============================================
-def test_composite_alignment_picks_best_perp():
+def test_composite_alignment_picks_best_perp() -> None:
 	"""Two children both produce corrections; the one with lower perp error wins."""
 	bond_start = (0.0, 0.0)
 	endpoint = (10.0, 0.0)
@@ -320,7 +320,7 @@ def test_composite_alignment_picks_best_perp():
 
 
 #============================================
-def test_composite_alignment_already_aligned():
+def test_composite_alignment_already_aligned() -> None:
 	"""Alignment center on bond line -- endpoint returned unchanged with composite."""
 	bond_start = (0.0, 5.0)
 	endpoint = (7.0, 5.0)
@@ -338,7 +338,7 @@ def test_composite_alignment_already_aligned():
 
 
 #============================================
-def test_composite_alignment_single_child_match():
+def test_composite_alignment_single_child_match() -> None:
 	"""Only one child produces a correction; that single candidate is used."""
 	bond_start = (0.0, 0.0)
 	endpoint = (10.0, 0.0)
@@ -363,7 +363,7 @@ def test_composite_alignment_single_child_match():
 
 
 #============================================
-def test_composite_alignment_no_children_match():
+def test_composite_alignment_no_children_match() -> None:
 	"""Composite where no child produces a changed endpoint -- returns unchanged."""
 	bond_start = (0.0, 0.0)
 	endpoint = (10.0, 0.0)
@@ -387,14 +387,14 @@ def test_composite_alignment_no_children_match():
 
 class _FakeVertex:
 	"""Minimal vertex stand-in for dict-key identity in label_targets."""
-	def __init__(self, name):
+	def __init__(self, name: object) -> None:
 		self.name = name
-	def __repr__(self):
+	def __repr__(self) -> str:
 		return f"_FakeVertex({self.name!r})"
 
 
 #============================================
-def test_cross_label_no_cross_targets():
+def test_cross_label_no_cross_targets() -> None:
 	# only own-vertex targets present -- endpoints unchanged
 	v1 = _FakeVertex("A")
 	v2 = _FakeVertex("B")
@@ -409,7 +409,7 @@ def test_cross_label_no_cross_targets():
 
 
 #============================================
-def test_cross_label_own_target_excluded():
+def test_cross_label_own_target_excluded() -> None:
 	# own vertex's box sits on the bond path but must be ignored
 	v1 = _FakeVertex("A")
 	v2 = _FakeVertex("B")
@@ -424,7 +424,7 @@ def test_cross_label_own_target_excluded():
 
 
 #============================================
-def test_cross_label_near_end_retreats_end():
+def test_cross_label_near_end_retreats_end() -> None:
 	# cross-label box near the end of a horizontal bond
 	v1 = _FakeVertex("A")
 	v2 = _FakeVertex("B")
@@ -442,7 +442,7 @@ def test_cross_label_near_end_retreats_end():
 
 
 #============================================
-def test_cross_label_near_start_retreats_start():
+def test_cross_label_near_start_retreats_start() -> None:
 	# cross-label box near the start of a horizontal bond
 	v1 = _FakeVertex("A")
 	v2 = _FakeVertex("B")
@@ -459,7 +459,7 @@ def test_cross_label_near_start_retreats_start():
 
 
 #============================================
-def test_cross_label_no_intersection():
+def test_cross_label_no_intersection() -> None:
 	# cross-label box far from bond path -- no retreat
 	v1 = _FakeVertex("A")
 	v2 = _FakeVertex("B")
@@ -475,7 +475,7 @@ def test_cross_label_no_intersection():
 
 
 #============================================
-def test_cross_label_min_length_guard():
+def test_cross_label_min_length_guard() -> None:
 	# short bond with cross-label on path -- should not collapse below min length
 	v1 = _FakeVertex("A")
 	v2 = _FakeVertex("B")
@@ -499,7 +499,7 @@ def test_cross_label_min_length_guard():
 #============================================
 
 #============================================
-def test_attach_constraints_default_alignment_tolerance():
+def test_attach_constraints_default_alignment_tolerance() -> None:
 	"""Default AttachConstraints should use ATTACH_PERP_TOLERANCE."""
 	constraints = AttachConstraints()
 	assert constraints.alignment_tolerance == ATTACH_PERP_TOLERANCE
@@ -507,14 +507,14 @@ def test_attach_constraints_default_alignment_tolerance():
 
 
 #============================================
-def test_attach_constraints_custom_alignment_tolerance():
+def test_attach_constraints_custom_alignment_tolerance() -> None:
 	"""AttachConstraints should accept a custom alignment_tolerance."""
 	constraints = AttachConstraints(alignment_tolerance=0.5)
 	assert constraints.alignment_tolerance == 0.5
 
 
 #============================================
-def test_alignment_correction_uses_constraints_tolerance():
+def test_alignment_correction_uses_constraints_tolerance() -> None:
 	"""_correct_endpoint_for_alignment behavior changes with tolerance."""
 	# bond from (0,0) to (10,0), alignment center at (10, 0.5)
 	# perp distance from (10, 0.5) to the line y=0 is 0.5
@@ -540,7 +540,7 @@ def test_alignment_correction_uses_constraints_tolerance():
 
 
 #============================================
-def test_no_hardcoded_tolerance_fallback():
+def test_no_hardcoded_tolerance_fallback() -> None:
 	"""Default alignment_tolerance uses the module constant ATTACH_PERP_TOLERANCE,
 	not the old max(line_width * 0.5, 0.25) expression."""
 	constraints = AttachConstraints(line_width=2.0)
@@ -557,7 +557,7 @@ def test_no_hardcoded_tolerance_fallback():
 #============================================
 
 #============================================
-def test_make_attach_constraints_default_absolute_gap():
+def test_make_attach_constraints_default_absolute_gap() -> None:
 	"""No args returns ATTACH_GAP_TARGET as the gap."""
 	constraints = make_attach_constraints()
 	assert constraints.target_gap == ATTACH_GAP_TARGET
@@ -565,7 +565,7 @@ def test_make_attach_constraints_default_absolute_gap():
 
 
 #============================================
-def test_make_attach_constraints_font_relative_gap():
+def test_make_attach_constraints_font_relative_gap() -> None:
 	"""font_size arg computes font-relative gap via ATTACH_GAP_FONT_FRACTION."""
 	constraints = make_attach_constraints(font_size=12.0)
 	expected_gap = 12.0 * ATTACH_GAP_FONT_FRACTION
@@ -573,7 +573,7 @@ def test_make_attach_constraints_font_relative_gap():
 
 
 #============================================
-def test_make_attach_constraints_explicit_gap_overrides_font():
+def test_make_attach_constraints_explicit_gap_overrides_font() -> None:
 	"""Explicit target_gap takes priority over font_size."""
 	constraints = make_attach_constraints(
 		font_size=12.0, target_gap=5.0,
@@ -582,7 +582,7 @@ def test_make_attach_constraints_explicit_gap_overrides_font():
 
 
 #============================================
-def test_make_attach_constraints_passthrough_fields():
+def test_make_attach_constraints_passthrough_fields() -> None:
 	"""All fields are forwarded correctly to AttachConstraints."""
 	center = (1.0, 2.0)
 	constraints = make_attach_constraints(
@@ -602,7 +602,7 @@ def test_make_attach_constraints_passthrough_fields():
 
 
 #============================================
-def test_make_attach_constraints_matches_haworth_gap():
+def test_make_attach_constraints_matches_haworth_gap() -> None:
 	"""Haworth calling convention: explicit target_gap overrides font-relative gap."""
 	# Haworth renderer now passes target_gap=ATTACH_GAP_TARGET explicitly
 	font_size = 12.0
@@ -617,7 +617,7 @@ def test_make_attach_constraints_matches_haworth_gap():
 #============================================
 
 #============================================
-def test_resolve_endpoint_none_target():
+def test_resolve_endpoint_none_target() -> None:
 	"""None target returns bond_start unchanged."""
 	result = _resolve_endpoint_with_constraints(
 		(5.0, 3.0), None,
@@ -626,7 +626,7 @@ def test_resolve_endpoint_none_target():
 
 
 #============================================
-def test_resolve_endpoint_matches_clip_to_target():
+def test_resolve_endpoint_matches_clip_to_target() -> None:
 	"""Default constraints produce identical results to _clip_to_target()
 	for axis-aligned bonds (direction snapping preserves the angle)."""
 	box = make_box_target((8.0, -2.0, 12.0, 2.0))
@@ -641,7 +641,7 @@ def test_resolve_endpoint_matches_clip_to_target():
 
 
 #============================================
-def test_resolve_endpoint_alignment_correction():
+def test_resolve_endpoint_alignment_correction() -> None:
 	"""Explicit alignment_center triggers centerline correction."""
 	box = make_box_target((8.0, -2.0, 12.0, 8.0))
 	bond_start = (0.0, 0.0)
@@ -662,7 +662,7 @@ def test_resolve_endpoint_alignment_correction():
 
 
 #============================================
-def test_resolve_endpoint_gap_retreat():
+def test_resolve_endpoint_gap_retreat() -> None:
 	"""target_gap > 0 creates a gap between endpoint and target."""
 	box = make_box_target((8.0, -2.0, 12.0, 2.0))
 	bond_start = (0.0, 0.0)
@@ -679,7 +679,7 @@ def test_resolve_endpoint_gap_retreat():
 
 
 #============================================
-def test_resolve_endpoint_legality_retreat():
+def test_resolve_endpoint_legality_retreat() -> None:
 	"""Endpoint inside target gets retreated out with nonzero line_width."""
 	# box covers the endpoint area; with line_width > 0 the stroke footprint
 	# extends inside the box, triggering legality retreat.
@@ -696,7 +696,7 @@ def test_resolve_endpoint_legality_retreat():
 
 
 #============================================
-def test_build_bond_ops_triple_clips_offsets():
+def test_build_bond_ops_triple_clips_offsets() -> None:
 	"""Triple bond offset lines respect label targets."""
 	v1 = _FakeVertex("A")
 	v2 = _FakeVertex("B")
@@ -739,7 +739,7 @@ import oasa.atom_lib
 from oasa.render_lib.molecule_ops import build_label_attach_targets
 
 
-def _make_atom(symbol="O", x=0.0, y=0.0, charge=0, label=None, anchor=None):
+def _make_atom(symbol: object="O", x: object=0.0, y: object=0.0, charge: object=0, label: object=None, anchor: object=None) -> None:
 	"""Create an OASA atom for testing."""
 	atom = oasa.atom_lib.Atom(symbol=symbol)
 	atom.x = float(x)
@@ -753,7 +753,7 @@ def _make_atom(symbol="O", x=0.0, y=0.0, charge=0, label=None, anchor=None):
 
 
 #============================================
-def test_build_label_attach_targets_heteroatom_shown():
+def test_build_label_attach_targets_heteroatom_shown() -> None:
 	"""Shown heteroatom (N) produces non-empty targets."""
 	nitrogen = _make_atom(symbol="N", x=10.0, y=20.0)
 	shown, labels, attaches = build_label_attach_targets(
@@ -770,7 +770,7 @@ def test_build_label_attach_targets_heteroatom_shown():
 
 
 #============================================
-def test_build_label_attach_targets_carbon_hidden():
+def test_build_label_attach_targets_carbon_hidden() -> None:
 	"""Hidden carbon (uncharged, no label) returns empty targets."""
 	carbon = _make_atom(symbol="C", x=10.0, y=20.0)
 	shown, labels, attaches = build_label_attach_targets(
@@ -783,7 +783,7 @@ def test_build_label_attach_targets_carbon_hidden():
 
 
 #============================================
-def test_build_label_attach_targets_carbon_with_show_carbon():
+def test_build_label_attach_targets_carbon_with_show_carbon() -> None:
 	"""Carbon added to shown_vertices when show_carbon_symbol=True.
 
 	Note: plain uncharged carbons are added to shown_vertices but do not
@@ -802,7 +802,7 @@ def test_build_label_attach_targets_carbon_with_show_carbon():
 
 
 #============================================
-def test_build_label_attach_targets_charged_carbon_shown():
+def test_build_label_attach_targets_charged_carbon_shown() -> None:
 	"""Charged carbon is shown even without show_carbon_symbol."""
 	carbon = _make_atom(symbol="C", x=0.0, y=0.0, charge=1)
 	shown, labels, attaches = build_label_attach_targets(
@@ -814,7 +814,7 @@ def test_build_label_attach_targets_charged_carbon_shown():
 
 
 #============================================
-def test_build_label_attach_targets_mixed_atoms():
+def test_build_label_attach_targets_mixed_atoms() -> None:
 	"""Mixed atom list: only heteroatoms and special carbons get targets."""
 	c1 = _make_atom(symbol="C", x=0.0, y=0.0)
 	n1 = _make_atom(symbol="N", x=30.0, y=0.0)
@@ -832,7 +832,7 @@ def test_build_label_attach_targets_mixed_atoms():
 
 
 #============================================
-def test_build_label_attach_targets_with_transform():
+def test_build_label_attach_targets_with_transform() -> None:
 	"""Transform function shifts target coordinates."""
 	nitrogen = _make_atom(symbol="N", x=10.0, y=20.0)
 	# identity: no transform
@@ -841,7 +841,7 @@ def test_build_label_attach_targets_with_transform():
 		font_size=12.0,
 	)
 	# shift transform
-	def shift(x, y):
+	def shift(x: object, y: object) -> tuple:
 		return (x + 100.0, y + 200.0)
 	_, labels_shifted, _ = build_label_attach_targets(
 		vertices=[nitrogen],
@@ -856,7 +856,7 @@ def test_build_label_attach_targets_with_transform():
 
 
 #============================================
-def test_bond_clipping_with_vs_without_targets():
+def test_bond_clipping_with_vs_without_targets() -> None:
 	"""Bond ops differ when label targets are present vs empty."""
 	nitrogen = _make_atom(symbol="N", x=40.0, y=0.0)
 	shown, labels, attaches = build_label_attach_targets(

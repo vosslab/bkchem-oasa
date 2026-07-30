@@ -17,7 +17,7 @@ _ = builtins.__dict__.get( '_', lambda m: m)
 class MainModesMixin:
 	"""Mode and submode switching helpers extracted from main.py."""
 
-	def change_mode( self, tag):
+	def change_mode( self, tag: str) -> None:
 		old_mode = self.mode
 		self.mode = self.modes[ tag]
 		if not bkchem_utils.myisstr(old_mode):
@@ -110,11 +110,12 @@ class MainModesMixin:
 		self.mode.startup()
 
 
-	def change_submode( self, tag):
+	def change_submode( self, tag: str) -> None:
 		self.mode.set_submode( tag)
 
 
-	def _build_submode_row(self, m, group_index, mode_icon_map, tooltip_map):
+	def _build_submode_row(self, m: object, group_index: int, mode_icon_map: object,
+						tooltip_map: object) -> object:
 		"""Build a ttk.Button row for a submode group.
 
 		Args:
@@ -130,7 +131,7 @@ class MainModesMixin:
 		row_frame._row_buttons = {}
 		row_frame._row_selected = None
 
-		def on_row_click(name, btn, frame=row_frame):
+		def on_row_click(name: str, btn: object, frame: object=row_frame) -> None:
 			"""Handle row button click -- highlight and set submode."""
 			# deselect previous
 			if frame._row_selected and frame._row_selected.winfo_exists():
@@ -174,7 +175,7 @@ class MainModesMixin:
 		return row_frame
 
 
-	def _build_submode_grid(self, m, group_index, tooltip_map):
+	def _build_submode_grid(self, m: object, group_index: int, tooltip_map: object) -> object:
 		"""Build a ttk Frame with buttons arranged in a grid layout.
 
 		Args:
@@ -198,7 +199,7 @@ class MainModesMixin:
 		grid_frame._grid_buttons = {}
 		grid_frame._grid_selected = None
 
-		def on_grid_click(name, btn):
+		def on_grid_click(name: str, btn: object) -> None:
 			"""Handle grid button click -- highlight and set submode."""
 			# un-highlight previous selection
 			if grid_frame._grid_selected and grid_frame._grid_selected.winfo_exists():
@@ -234,7 +235,7 @@ class MainModesMixin:
 		return grid_frame
 
 
-	def refresh_submode_buttons(self, group_index):
+	def refresh_submode_buttons(self, group_index: int) -> None:
 		"""Rebuild the submode widget at the given group index.
 
 		Used when the template list changes (e.g. category switch

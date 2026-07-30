@@ -15,7 +15,7 @@ DEFAULT_NAME = "alpha-d-glucopyranose"
 
 
 #============================================
-def parse_args():
+def parse_args() -> argparse.Namespace:
 	"""Parse command-line arguments."""
 	parser = argparse.ArgumentParser(
 		description="Render a SMILES string to SVG, PDF, and PNG formats using OASA."
@@ -51,14 +51,14 @@ def parse_args():
 
 
 #============================================
-def ensure_dir(path):
+def ensure_dir(path: object) -> None:
 	"""Ensure output directory exists."""
 	if not os.path.isdir(path):
 		os.makedirs(path, exist_ok=True)
 
 
 #============================================
-def build_molecule(smiles_text):
+def build_molecule(smiles_text: object) -> object:
 	"""Convert SMILES to an OASA molecule with coordinates."""
 	mol = oasa.smiles_lib.text_to_mol(smiles_text, calc_coords=False)
 	if not mol:
@@ -70,7 +70,7 @@ def build_molecule(smiles_text):
 
 
 #============================================
-def render_format(mols, output_path, file_format, scale):
+def render_format(mols: object, output_path: object, file_format: object, scale: object) -> None:
 	"""Render molecules to a single output file."""
 	import oasa.cairo_out as cairo_out
 	renderer = cairo_out.cairo_out(color_bonds=True, color_atoms=True, scaling=scale)
@@ -80,7 +80,7 @@ def render_format(mols, output_path, file_format, scale):
 
 
 #============================================
-def main():
+def main() -> None:
 	args = parse_args()
 	output_dir = args.output_dir
 	if output_dir is None:

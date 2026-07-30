@@ -90,7 +90,7 @@ def font_family_candidates(font_name: str) -> list[str]:
 
 
 #============================================
-def label_text_path(label: dict):
+def label_text_path(label: dict) -> object | None:
 	"""Return transformed matplotlib text path for one SVG label when available."""
 	if not MATPLOTLIB_TEXTPATH_AVAILABLE:
 		return None
@@ -124,7 +124,7 @@ def label_text_path(label: dict):
 
 
 #============================================
-def path_line_segments(path_obj) -> list[tuple[tuple[float, float], tuple[float, float]]]:
+def path_line_segments(path_obj: object) -> list[tuple[tuple[float, float], tuple[float, float]]]:
 	"""Return piecewise-linear boundary segments from one matplotlib path."""
 	if path_obj is None:
 		return []
@@ -165,7 +165,7 @@ def path_line_segments(path_obj) -> list[tuple[tuple[float, float], tuple[float,
 
 
 #============================================
-def point_to_text_path_signed_distance(point: tuple[float, float], path_obj) -> float:
+def point_to_text_path_signed_distance(point: tuple[float, float], path_obj: object) -> float:
 	"""Return signed distance from one point to one glyph text path."""
 	if path_obj is None:
 		return float("inf")
@@ -209,7 +209,7 @@ def point_to_label_signed_distance(point: tuple[float, float], label: dict) -> f
 def nearest_endpoint_to_text_path(
 		lines: list[dict],
 		line_indexes: list[int],
-		path_obj) -> tuple[tuple[float, float] | None, float | None, int | None, float | None]:
+		path_obj: object) -> tuple[tuple[float, float] | None, float | None, int | None, float | None]:
 	"""Return nearest endpoint to one text path across candidate lines."""
 	best_endpoint = None
 	best_distance = float("inf")
@@ -451,7 +451,7 @@ def all_endpoints_near_glyph_primitives(
 def all_endpoints_near_text_path(
 		lines: list[dict],
 		line_indexes: list[int],
-		path_obj,
+		path_obj: object,
 		label_center_x: float,
 		search_limit: float) -> list[dict]:
 	"""Return all bond endpoints within search distance of a text path.
@@ -504,7 +504,8 @@ def all_endpoints_near_text_path(
 
 
 #============================================
-def line_closest_endpoint_to_target(line: dict, target) -> tuple[tuple[float, float], float, float]:
+def line_closest_endpoint_to_target(
+		line: dict, target: object) -> tuple[tuple[float, float], float, float]:
 	"""Return nearest endpoint, nearest distance, and far-end distance for one target."""
 	p1 = (line["x1"], line["y1"])
 	p2 = (line["x2"], line["y2"])

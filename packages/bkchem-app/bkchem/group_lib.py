@@ -27,6 +27,7 @@
 import re
 import sys
 import oasa
+import oasa.linear_formula
 from oasa import periodic_table as PT
 from oasa.known_groups import name_to_smiles
 
@@ -87,7 +88,7 @@ class BkGroup( drawable_chem_vertex):
 	meta__allowed_marks = ("atom_number",)
 
 
-	def __init__( self, standard=None, xy=(), package=None, molecule=None):
+	def __init__( self, standard: object=None, xy: object=(), package: object=None, molecule: object=None) -> None:
 		drawable_chem_vertex.__init__( self, standard=standard, xy=xy, molecule=molecule)
 
 		self.group_graph = None
@@ -102,7 +103,7 @@ class BkGroup( drawable_chem_vertex):
 	## -------------------------------------- CLASS METHODS ------------------------------
 
 	@classmethod
-	def is_known_group( cls, text):
+	def is_known_group( cls, text: object) -> bool:
 		if (text in name_to_smiles): # or (text.capitalize() in name_to_smiles):
 			return True
 		return False
@@ -111,12 +112,12 @@ class BkGroup( drawable_chem_vertex):
 
 	# symbol
 	@property
-	def symbol(self):
+	def symbol(self) -> object:
 		return self._symbol
 
 
 	@symbol.setter
-	def symbol(self, symbol):
+	def symbol(self, symbol: object) -> None:
 		# Use unicode strings internally
 		if sys.version_info[0] > 2:
 			if isinstance(symbol, bytes):
@@ -130,7 +131,7 @@ class BkGroup( drawable_chem_vertex):
 
 	#valency (overrides chem_vertex.valency)
 	@property
-	def valency(self):
+	def valency(self) -> object:
 		"""Atoms (maximum) valency, used for hydrogen counting.
 
 		"""
@@ -139,13 +140,13 @@ class BkGroup( drawable_chem_vertex):
 
 
 	@valency.setter
-	def valency(self, val):
+	def valency(self, val: object) -> None:
 		pass
 
 
 	# xml_ftext (override drawable_chem_vertex.xml_ftext)
 	@property
-	def xml_ftext(self):
+	def xml_ftext(self) -> object:
 		"""Text used for rendering using the ftext class.
 
 		"""
@@ -169,7 +170,7 @@ class BkGroup( drawable_chem_vertex):
 	## JUST TO MIMICK ATOM
 	# show
 	@property
-	def show(self):
+	def show(self) -> int:
 		"""Should the atom symbol be displayed?
 
 		Accepts both 0|1 and yes|no.
@@ -178,29 +179,29 @@ class BkGroup( drawable_chem_vertex):
 
 
 	@show.setter
-	def show(self, show):
+	def show(self, show: object) -> None:
 		pass
 
 
 	# show_hydrogens
 	@property
-	def show_hydrogens(self):
+	def show_hydrogens(self) -> int:
 		return 1
 
 
 	@show_hydrogens.setter
-	def show_hydrogens(self, show_hydrogens):
+	def show_hydrogens(self, show_hydrogens: object) -> None:
 		pass
 
 
 	#group_type
 	@property
-	def group_type(self):
+	def group_type(self) -> object:
 		return self.__group_type
 
 
 	@group_type.setter
-	def group_type(self, group_type):
+	def group_type(self, group_type: object) -> None:
 		allowed_types = (None,"builtin","explicit","implicit","chain","general")
 		if group_type not in allowed_types:
 			raise ValueError("group_type must be one of "+ str( allowed_types) + "got %s" % group_type)
@@ -211,7 +212,7 @@ class BkGroup( drawable_chem_vertex):
 	## // -------------------- END OF PROPERTIES --------------------------
 
 
-	def set_name( self, name, interpret=1, occupied_valency=None):
+	def set_name( self, name: str, interpret: int=1, occupied_valency: object=None) -> bool:
 		if occupied_valency is None:
 			occupied_valency = self.occupied_valency
 		if occupied_valency == 1 and (name.lower() in GROUPS_TABLE):
@@ -220,10 +221,16 @@ class BkGroup( drawable_chem_vertex):
 			self.group_type = "builtin"
 			return True
 		# try interpret the formula
-		lf = oasa.linear_formula.linear_formula( name, start_valency=occupied_valency)
+		lf = oasa.linear_formula.linear_formula(
+			name, start_valency=occupied_valency,
+			molecule_factory=self._make_group_molecule,
+		)
 		if not lf.molecule:
 			# it is possible the text goes the other way
-			lf = oasa.linear_formula.linear_formula( name, end_valency=occupied_valency)
+			lf = oasa.linear_formula.linear_formula(
+				name, end_valency=occupied_valency,
+				molecule_factory=self._make_group_molecule,
+			)
 		if lf.molecule:
 			self.group_graph = lf.molecule
 			if lf.first_atom:
@@ -246,12 +253,21 @@ class BkGroup( drawable_chem_vertex):
 		return False
 
 
-	def interpret_name( self, name):
-		lf = oasa.linear_formula.linear_formula( name, start_valency=self.valency)
+	def _make_group_molecule( self) -> object:
+		"""Build an implicit-group graph with this group's paper context."""
+		from bkchem.molecule_lib import BkMolecule
+		return BkMolecule( paper=self.paper)
+
+
+	def interpret_name( self, name: str) -> object:
+		lf = oasa.linear_formula.linear_formula(
+			name, start_valency=self.valency,
+			molecule_factory=self._make_group_molecule,
+		)
 		return lf.molecule
 
 
-	def read_package( self, package):
+	def read_package( self, package: object) -> None:
 		"""reads the dom element package and sets internal state according to it"""
 		self.id = package.getAttribute( 'id')
 		self.pos = package.getAttribute( 'pos')
@@ -293,7 +309,7 @@ class BkGroup( drawable_chem_vertex):
 			self.number = package.getAttribute( 'number')
 
 
-	def get_package( self, doc):
+	def get_package( self, doc: object) -> object:
 		"""returns a DOM element describing the object in CDML,
 		doc is the parent document which is used for element creation
 		(the returned element is not inserted into the document)"""
@@ -333,7 +349,7 @@ class BkGroup( drawable_chem_vertex):
 		return a
 
 
-	def get_formula_dict( self):
+	def get_formula_dict( self) -> object:
 		"""returns formula as dictionary that can
 		be passed to functions in periodic_table"""
 		if self.group_type == "builtin":
@@ -350,11 +366,11 @@ class BkGroup( drawable_chem_vertex):
 			return PT.formula_dict( self.symbol)
 
 
-	def __str__( self):
+	def __str__( self) -> str:
 		return self.id
 
 
-	def expand( self):
+	def expand( self) -> object:
 		"""expands the group and returns list of atoms that new drawing afterwords"""
 		if self.group_type == "builtin":
 			names = Store.gm.get_template_names()
@@ -410,4 +426,3 @@ class BkGroup( drawable_chem_vertex):
 			dy = y - replacement.y
 			[a.move( dx, dy) for a in self.group_graph.vertices]
 		return self.group_graph.vertices
-

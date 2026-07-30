@@ -23,13 +23,13 @@
 
 ## Assets for reference
 - Local samples:
-  - [docs/sample_haworth/Alpha-D-Glucopyranose.svg](docs/sample_haworth/Alpha-D-Glucopyranose.svg)
-  - [docs/sample_haworth/Alpha-D-Arabinofuranose.svg](docs/sample_haworth/Alpha-D-Arabinofuranose.svg)
-  - [docs/sample_haworth/D-Ribose_Haworth.svg](docs/sample_haworth/D-Ribose_Haworth.svg)
-  - [docs/sample_haworth/D-Xylulose_Haworth.svg](docs/sample_haworth/D-Xylulose_Haworth.svg)
-  - [docs/sample_haworth/Haworth_projection_of_a-L-Glucopyranose.svg](docs/sample_haworth/Haworth_projection_of_a-L-Glucopyranose.svg)
-  - [docs/sample_haworth/GDP-D-Mannose.svg](docs/sample_haworth/GDP-D-Mannose.svg)
-  - [docs/sample_haworth/Sucralose.svg](docs/sample_haworth/Sucralose.svg)
+  - `Alpha-D-Glucopyranose.svg`
+  - `Alpha-D-Arabinofuranose.svg`
+  - `D-Ribose_Haworth.svg`
+  - `D-Xylulose_Haworth.svg`
+  - `Haworth_projection_of_a-L-Glucopyranose.svg`
+  - [GDP-D-Mannose.svg](../sample_haworth/GDP-D-Mannose.svg)
+  - [Sucralose.svg](../sample_haworth/Sucralose.svg)
 - Additional sample files from the NEUROtiker galleries (external references,
   not stored in this repo).
   - [NEUROtiker archive 1](https://commons.wikimedia.org/wiki/User:NEUROtiker/gallery/archive1)
@@ -167,16 +167,16 @@
 ### Stage 6: Docs + reference outputs
 - Outcome: updated docs plus reference SVG/PNG for Haworth and wavy-bond
   glucose samples.
-- Store reference outputs under [docs/reference_outputs/](docs/reference_outputs/)
+- Store reference outputs under `reference_outputs`
   and document regeneration in
-  [docs/REFERENCE_OUTPUTS.md](docs/REFERENCE_OUTPUTS.md).
+  [REFERENCE_OUTPUTS.md](../REFERENCE_OUTPUTS.md).
 - Tests: smoke test ensures reference outputs exist and are non-empty.
 
 ### Stage 7: CLI + batch output
 - Outcome: provide a CLI for Haworth rendering that accepts SMILES input and
   produces SVG/PNG outputs for batch testing and automation.
 - Example target command (final syntax TBD):
-  - `python3 packages/oasa/oasa_cli.py haworth --smiles 'OC[C@@H]1O[C@@H](O)[C@@H](O)[C@H](O)[C@H]1O' --output alpha-D-glucopyranose.png`
+  - `python3 packages/oasa/oasa_cli.py haworth --smiles 'OC[C@@H]1O`O``O``O`[C@H]1O' --output alpha-D-glucopyranose.png`
 - Tests: smoke run the CLI with known SMILES inputs and confirm output files
   exist and are non-empty.
 

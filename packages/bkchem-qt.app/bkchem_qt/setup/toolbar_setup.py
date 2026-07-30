@@ -16,7 +16,12 @@ import bkchem_qt.setup.mode_setup
 
 
 #============================================
-def setup_toolbars(window, mode_manager, document, theme_manager):
+def setup_toolbars(
+		window: object,
+		mode_manager: object,
+		document: object,
+		theme_manager: object,
+		) -> dict[str, object]:
 	"""Create the mode toolbar, submode ribbon, edit ribbon, and property dock.
 
 	Args:
@@ -40,7 +45,7 @@ def setup_toolbars(window, mode_manager, document, theme_manager):
 	if not modes_yaml_path.is_file():
 		raise FileNotFoundError(
 			f"modes.yaml not found: {modes_yaml_path}\n"
-			"Check that the bkchem_data symlink is correct."
+			"Reinstall the bkchem-qt package."
 		)
 	with open(modes_yaml_path, "r") as fh:
 		modes_config = yaml.safe_load(fh) or {}
@@ -80,12 +85,12 @@ def setup_toolbars(window, mode_manager, document, theme_manager):
 	mode_toolbar.add_separator_marker()
 	undo_action = mode_toolbar.add_action_button(
 		"undo", "Undo", tooltip="Undo last action",
-		callback=document.undo_stack.undo,
+		callback=window.on_undo,
 	)
 	undo_action.setEnabled(document.undo_stack.canUndo())
 	redo_action = mode_toolbar.add_action_button(
 		"redo", "Redo", tooltip="Redo last undone action",
-		callback=document.undo_stack.redo,
+		callback=window.on_redo,
 	)
 	redo_action.setEnabled(document.undo_stack.canRedo())
 

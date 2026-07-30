@@ -41,10 +41,11 @@ class Smiles( plugin):
 
   organic_subset = ['B', 'C', 'N', 'O', 'P', 'S', 'F', 'Cl', 'Br', 'I']
 
-  def __init__( self, structure=None):
+  def __init__( self, structure: object=None, molecule_factory: object=None) -> None:
     self.structure = structure
+    self.molecule_factory = molecule_factory
 
-  def recode_oasa_to_smiles_bond( self, b):
+  def recode_oasa_to_smiles_bond( self, b: object) -> object:
     if b.aromatic:
       return ''
     elif b in self._stereo_bonds_to_others:
@@ -79,15 +80,31 @@ class Smiles( plugin):
           return '-'
       return self.oasa_to_smiles_bond_recode[ b.order]
 
-  def set_structure( self, structure):
+  def set_structure( self, structure: object) -> object:
     self.structure = structure
 
-  def get_structure( self):
+  def get_structure( self) -> object:
     return self.structure
 
-  def read_smiles( self, text, explicit_hydrogens_to_real_atoms=False):
+  def read_smiles( self, text: object, explicit_hydrogens_to_real_atoms: object=False,
+                   molecule_factory: object=None, root_molecule: object=None) -> object:
+    """Parse SMILES using an explicitly supplied graph root when requested.
+
+    The legacy default deliberately keeps ``Config.create_molecule`` for
+    callers that have not migrated yet.  Frontends can instead pass a factory
+    or a prepared root molecule, avoiding process-wide configuration state.
+    """
     self.explicit_hydrogens_to_real_atoms = explicit_hydrogens_to_real_atoms
-    mol = Config.create_molecule()
+    if root_molecule is not None:
+      mol = root_molecule
+    else:
+      factory = molecule_factory
+      if factory is None:
+        factory = self.molecule_factory
+      if factory is not None:
+        mol = factory()
+      else:
+        mol = Config.create_molecule()
     text = "".join( text.split())
     is_text = re.compile("^[A-Z][a-z]?$")
     # internally revert \/ bonds before numbers, this makes further processing much easier
@@ -186,7 +203,7 @@ class Smiles( plugin):
     self.structure = mol
 
 
-  def _parse_atom_spec( self, c, a):
+  def _parse_atom_spec( self, c: object, a: object) -> object:
     """c is the text spec,
     a is an empty prepared vertex (atom) instance"""
     bracketed_atom = re.compile(r"^\[(\d*)([A-z][a-z]?)(.*?)\]")
@@ -237,7 +254,7 @@ class Smiles( plugin):
     # using [] means valency is explicit
     a.properties_['explicit_valency'] = True
 
-  def _check_the_chunks( self, chunks):
+  def _check_the_chunks( self, chunks: object) -> object:
     is_text = re.compile("^[A-Z][a-z]?$")
     is_long_num = re.compile( "^%[0-9]{1,2}$")
     ret = []
@@ -259,15 +276,15 @@ class Smiles( plugin):
 
 
 
-  def _process_stereochemistry( self, mol):
+  def _process_stereochemistry( self, mol: object) -> object:
     ## process stereochemistry
     ## double bonds
-    def get_stereobond_direction( end_atom, inside_atom, bond, init):
+    def get_stereobond_direction( end_atom: object, inside_atom: object, bond: object, init: object) -> object:
       position = mol.vertices.index( end_atom) - mol.vertices.index( inside_atom)
       char = bond.properties_['stereo'] == "\\" and 1 or -1
       direction = (position * char * init) < 0 and "up" or "down"
       return direction
-    def get_end_and_inside_vertex_from_edge_path( edge, path):
+    def get_end_and_inside_vertex_from_edge_path( edge: object, path: object) -> object:
       a1,a2 = edge.vertices
       if len( [e for e in a1.neighbor_edges if e in path]) == 1:
         return a1, a2
@@ -350,7 +367,7 @@ class Smiles( plugin):
         del v.properties_['stereo']
 
 
-  def get_smiles( self, mol):
+  def get_smiles( self, mol: object) -> object:
     if not mol.is_connected():
       raise oasa_exceptions.oasa_not_implemented_error( "SMILES", "Cannot encode disconnected compounds, such as salts etc. HINT - use molecule.get_disconnected_subgraphs() to divide the molecule to individual parts.")
     #mol = molec.copy()
@@ -405,7 +422,7 @@ class Smiles( plugin):
 
 
 
-  def _get_smiles( self, mol, start_from=None):
+  def _get_smiles( self, mol: object, start_from: object=None) -> object:
     # single atoms
     if len( mol.vertices) == 1:
       v = mol.vertices[0]
@@ -472,7 +489,7 @@ class Smiles( plugin):
         was_end = True
 
 
-  def _create_atom_smiles( self, v):
+  def _create_atom_smiles( self, v: object) -> object:
     self._processed_atoms.append( v)
     if 'aromatic' in list(v.properties_.keys()):
       symbol = v.symbol.lower()
@@ -504,7 +521,7 @@ class Smiles( plugin):
       return symbol
 
 
-  def disconnect_something( self, mol, start_from=None):
+  def disconnect_something( self, mol: object, start_from: object=None) -> object:
     """returns (broken edge, resulting mol, atom where mol was disconnected, disconnected branch)"""
     # we cannot do much about this part
     if start_from and start_from.degree != 1:
@@ -577,7 +594,7 @@ class Smiles( plugin):
 
 
 
-  def disconnect_something_simple( self, mol, start_from=None):
+  def disconnect_something_simple( self, mol: object, start_from: object=None) -> object:
     """returns (broken edge, resulting mol, atom where mol was disconnected, disconnected branch)"""
     # we cannot do much about this part
     if not mol.is_connected():
@@ -620,7 +637,7 @@ class Smiles( plugin):
     raise Exception("fuck, how comes!?")
 
   @staticmethod
-  def _create_ring_join_smiles( index):
+  def _create_ring_join_smiles( index: object) -> object:
     i = index +1
     if i > 9:
       return "%%%d" % i
@@ -629,7 +646,7 @@ class Smiles( plugin):
 
 
 
-def is_line( mol):
+def is_line( mol: object) -> object:
   """all degrees are 2 except of two with degree 1"""
   if len( mol.vertices) == 1:
     return True
@@ -646,10 +663,10 @@ def is_line( mol):
     return True
   return False
 
-def is_pure_ring(mol):
+def is_pure_ring(mol: object) -> object:
   return [x for x in mol.vertices if x.degree != 2] == []
 
-def match_atom_lists( l1, l2):
+def match_atom_lists( l1: object, l2: object) -> object:
   """sort of bubble sort with counter"""
   count = 0
   for i1, v1 in enumerate( l1):
@@ -687,10 +704,10 @@ class smiles_converter( converter_base):
                            "W_DETECT_STEREO_FROM_COORDS": True,
                            }
 
-  def __init__( self):
+  def __init__( self) -> None:
     converter_base.__init__( self)
 
-  def mols_to_text( self, structures):
+  def mols_to_text( self, structures: object) -> object:
     converter_base.mols_to_text( self, structures)
     sm = Smiles()
     ret = []
@@ -703,7 +720,7 @@ class smiles_converter( converter_base):
     self.last_status = self.STATUS_OK
     return self.configuration["W_INDIVIDUAL_MOLECULE_SEPARATOR"].join( ret)
 
-  def read_text( self, text):
+  def read_text( self, text: object) -> object:
     # reaction support
     if ">" in text:
       if text.count(">") != 2:
@@ -731,7 +748,7 @@ class smiles_converter( converter_base):
     else:
       return self._read_string( text)
 
-  def _read_string( self, text):
+  def _read_string( self, text: object) -> object:
     converter_base.read_text( self, text)
     sm = Smiles()
     sm.read_smiles( text, explicit_hydrogens_to_real_atoms=self.configuration['R_EXPLICIT_HYDROGENS_TO_REAL_ATOMS'])
@@ -753,11 +770,11 @@ class smiles_converter( converter_base):
     self.last_status = self.STATUS_OK
     return mols
 
-  def mols_to_file( self, structures, f):
+  def mols_to_file( self, structures: object, f: object) -> object:
     converter_base.mols_to_file( self, structures, f)
     f.write( self.mols_to_text( structures))
 
-  def read_file( self, f):
+  def read_file( self, f: object) -> object:
     converter_base.read_file( self, f)
     mols = []
     for line in f:
@@ -781,17 +798,17 @@ writes_text = True
 reads_files = True
 writes_files = True
 
-def mol_to_text( structure):
+def mol_to_text( structure: object) -> object:
   return rdkit_formats.smiles_mol_to_text( structure)
 
-def text_to_mol( text, calc_coords=1, localize_aromatic_bonds=True):
+def text_to_mol( text: object, calc_coords: object=1, localize_aromatic_bonds: object=True) -> object:
   return rdkit_formats.smiles_text_to_mol(
     text, calc_coords=calc_coords,
     localize_aromatic_bonds=localize_aromatic_bonds)
 
 
 #============================================
-def cxsmiles_to_mol(cxsmiles_text, localize_aromatic_bonds=True):
+def cxsmiles_to_mol(cxsmiles_text: object, localize_aromatic_bonds: object=True) -> object:
   """Parse a CXSMILES string and return a molecule with 2D coordinates.
 
   CXSMILES format: SMILES |(x1,y1,;x2,y2,;...)|
@@ -850,7 +867,7 @@ def cxsmiles_to_mol(cxsmiles_text, localize_aromatic_bonds=True):
   return mol
 
 
-def mol_to_file( mol, f):
+def mol_to_file( mol: object, f: object) -> object:
   text = mol_to_text( mol)
   import io
   if isinstance(f, io.TextIOBase):
@@ -858,7 +875,7 @@ def mol_to_file( mol, f):
   else:
     f.write( text.encode("utf-8"))
 
-def file_to_mol( f):
+def file_to_mol( f: object) -> object:
   return text_to_mol( f.read())
 
 
@@ -874,7 +891,7 @@ if __name__ == '__main__':
   import sys
   import time
 
-  def main( text, cycles):
+  def main( text: object, cycles: object) -> object:
     t = time.time()
     conv = converter()
     conv.configuration['R_EXPLICIT_HYDROGENS_TO_REAL_ATOMS'] = True
@@ -926,4 +943,3 @@ if __name__ == '__main__':
 ## THIS IS A PROBLEM : C=1ccC=2C=1C=CC=CC=2  (should be azulene)
 
 # E/Z stereo is ignored in rings
-

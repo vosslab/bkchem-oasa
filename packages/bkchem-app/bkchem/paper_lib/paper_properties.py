@@ -23,58 +23,58 @@ class PaperPropertiesMixin:
 	"""Paper properties and standard management helpers extracted from paper.py."""
 
 	@property
-	def molecules(self):
+	def molecules(self) -> list:
 		return [o for o in self.stack if isinstance( o, BkMolecule)]
 
 
 	@property
-	def arrows(self):
+	def arrows(self) -> list:
 		return [o for o in self.stack if isinstance( o, BkArrow)]
 
 
 	@property
-	def pluses(self):
+	def pluses(self) -> list:
 		return [o for o in self.stack if isinstance( o, classes.plus)]
 
 
 	@property
-	def texts(self):
+	def texts(self) -> list:
 		return [o for o in self.stack if isinstance( o, classes.text)]
 
 
 	@property
-	def vectors(self):
+	def vectors(self) -> list:
 		return [o for o in self.stack if isinstance( o, graphics.vector_graphics_item)]
 
 
 	@property
-	def top_levels(self):
+	def top_levels(self) -> list:
 		return self.stack
 
 
 	@property
-	def full_path(self):
+	def full_path(self) -> str:
 		return os.path.abspath( os.path.join( self.file_name['dir'], self.file_name['name']))
 
 
 	@property
-	def window_name(self):
+	def window_name(self) -> str:
 		return self.create_window_name( self.file_name)
 
 
 	@staticmethod
-	def create_window_name(name_dict):
+	def create_window_name(name_dict: object) -> str:
 		if name_dict['ord'] == 0:
 			return name_dict['name']
 		else:
 			return name_dict['name'] + '<%d>' % name_dict['ord']
 
 
-	def get_base_name( self):
+	def get_base_name( self) -> str:
 		return os.path.splitext( self.file_name['name'])[0]
 
 
-	def set_default_paper_properties( self):
+	def set_default_paper_properties( self) -> None:
 		t = self.standard.paper_type
 		o = self.standard.paper_orientation
 		if o == 'portrait':
@@ -109,7 +109,7 @@ class PaperPropertiesMixin:
 				self._hex_grid_overlay.redraw()
 
 
-	def create_background( self):
+	def create_background( self) -> None:
 		sx = self._paper_properties['size_x']
 		sy = self._paper_properties['size_y']
 		# use theme colors for paper background (display-only, not saved to CDML)
@@ -123,7 +123,7 @@ class PaperPropertiesMixin:
 			self.itemconfig( self.background, fill=paper_fill, outline=paper_outline)
 
 
-	def set_paper_properties( self, type=None, orientation=None, x=None, y=None, crop_svg=None, all=None, crop_margin=None, use_real_minus=None, replace_minus=None):
+	def set_paper_properties( self, type: object = None, orientation: object = None, x: object = None, y: object = None, crop_svg: object = None, all: object = None, crop_margin: object = None, use_real_minus: object = None, replace_minus: object = None) -> None:
 		if all:
 			self._paper_properties = copy.copy( all)
 			return
@@ -168,7 +168,7 @@ class PaperPropertiesMixin:
 				self._hex_grid_overlay.redraw()
 
 
-	def update_scrollregion( self):
+	def update_scrollregion( self) -> None:
 		bbox = self.bbox(ALL)
 		if not bbox:
 			return
@@ -183,14 +183,14 @@ class PaperPropertiesMixin:
 		self.config(scrollregion=(x1 - padding, y1 - padding, x2 + padding, y2 + padding))
 
 
-	def get_paper_property( self, name):
+	def get_paper_property( self, name: object) -> object:
 		if name in self._paper_properties:
 			return self._paper_properties[ name]
 		else:
 			return None
 
 
-	def read_standard_from_dom( self, d):
+	def read_standard_from_dom( self, d: object) -> object:
 		std = dom_extensions.getFirstChildNamed( d, 'standard')
 		if std:
 			st = classes.standard()
@@ -199,7 +199,7 @@ class PaperPropertiesMixin:
 		return None
 
 
-	def apply_current_standard( self, objects=[], old_standard=None, template_mode=0):
+	def apply_current_standard( self, objects: object = [], old_standard: object = None, template_mode: object = 0) -> None:
 		"""if no objects are given all are used, if old_standard is given only the values
 		that have changed are applied; in template mode no changes of paper format are made"""
 		if not template_mode:
@@ -220,7 +220,7 @@ class PaperPropertiesMixin:
 		return to_redraw
 
 
-	def get_personal_standard( self):
+	def get_personal_standard( self) -> object:
 		name = os_support.get_config_filename( 'standard.cdml', level="personal", mode="r")
 		if name:
 			try:
@@ -231,7 +231,7 @@ class PaperPropertiesMixin:
 		return classes.standard()
 
 
-	def save_personal_standard( self, st):
+	def save_personal_standard( self, st: object) -> None:
 		name = os_support.get_config_filename( 'standard.cdml', level="personal", mode="w")
 		if name:
 			doc = dom.Document()

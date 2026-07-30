@@ -24,11 +24,15 @@ from oasa.molecule_lib import Molecule as molecule_class
 class Config (object):
   """Singleton class for library wide configuration.
 
+  ``molecule_class`` remains as a compatibility fallback for external legacy
+  callers. New frontend code must inject a molecule factory or root molecule
+  into stateful parsers instead of changing this process-wide setting.
+
   """
   inchi_binary_path = "/usr/bin/inchi-1"
 
   molecule_class = molecule_class
 
   @classmethod
-  def create_molecule(self):
+  def create_molecule(self: object) -> object:
     return self.molecule_class()

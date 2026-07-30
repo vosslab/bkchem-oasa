@@ -41,11 +41,11 @@ from bkchem.singleton_store import Screen
 
 
 
-def _get_codec( name):
+def _get_codec(name: str) -> object:
   return oasa.codec_registry.get_codec( name)
 
 
-def _read_codec_file_to_bkchem_mols( codec_name, file_obj, paper, **kwargs):
+def _read_codec_file_to_bkchem_mols(codec_name: str, file_obj: object, paper: object, **kwargs) -> list:
   codec = _get_codec( codec_name)
   mol = codec.read_file( file_obj, **kwargs)
   if mol is None:
@@ -56,13 +56,13 @@ def _read_codec_file_to_bkchem_mols( codec_name, file_obj, paper, **kwargs):
   return [oasa_mol_to_bkchem_mol( mol, paper)]
 
 
-def _write_codec_file_from_bkchem_mol( codec_name, bkchem_mol, file_obj, **kwargs):
+def _write_codec_file_from_bkchem_mol(codec_name: str, bkchem_mol: object, file_obj: object, **kwargs) -> None:
   codec = _get_codec( codec_name)
   oasa_mol = bkchem_mol_to_oasa_mol( bkchem_mol)
   codec.write_file( oasa_mol, file_obj, **kwargs)
 
 
-def _write_codec_file_from_bkchem_paper( codec_name, paper, file_obj, **kwargs):
+def _write_codec_file_from_bkchem_paper(codec_name: str, paper: object, file_obj: object, **kwargs) -> None:
   oasa_mols = [bkchem_mol_to_oasa_mol( mol) for mol in paper.molecules]
   merged = oasa.molecule_utils.merge_molecules( oasa_mols)
   if merged is None:
@@ -71,7 +71,7 @@ def _write_codec_file_from_bkchem_paper( codec_name, paper, file_obj, **kwargs):
   codec.write_file( merged, file_obj, **kwargs)
 
 
-def validate_selected_molecule( paper):
+def validate_selected_molecule(paper: object) -> object:
   conts, _unique = paper.selected_to_unique_top_levels()
   mols = [o for o in conts if getattr( o, "object_type", None) == "molecule"]
   if not mols:
@@ -81,26 +81,26 @@ def validate_selected_molecule( paper):
   return mols[0]
 
 
-def read_codec_file( codec_name, file_obj, paper, **kwargs):
+def read_codec_file(codec_name: str, file_obj: object, paper: object, **kwargs) -> list:
   return _read_codec_file_to_bkchem_mols( codec_name, file_obj, paper, **kwargs)
 
 
-def write_codec_file_from_paper( codec_name, paper, file_obj, **kwargs):
+def write_codec_file_from_paper(codec_name: str, paper: object, file_obj: object, **kwargs) -> None:
   _write_codec_file_from_bkchem_paper( codec_name, paper, file_obj, **kwargs)
 
 
-def write_codec_file_from_selected_molecule( codec_name, paper, file_obj, **kwargs):
+def write_codec_file_from_selected_molecule(codec_name: str, paper: object, file_obj: object, **kwargs) -> None:
   selected = validate_selected_molecule( paper)
   _write_codec_file_from_bkchem_mol( codec_name, selected, file_obj, **kwargs)
 
 
-def _calculate_coords( mol, bond_length=1.0, force=1):
+def _calculate_coords(mol: object, bond_length: float = 1.0, force: int = 1) -> None:
   """Generate 2D coordinates using RDKit via coords_generator."""
   from oasa import coords_generator
   coords_generator.calculate_coords( mol, bond_length=bond_length, force=force)
 
 
-def smiles_to_cdml_elements( smiles_text, paper):
+def smiles_to_cdml_elements(smiles_text: str, paper: object) -> list:
   """Convert SMILES text to a list of CDML molecule DOM elements.
 
   Routes through the canonical CDML serialization path:
@@ -135,7 +135,7 @@ def smiles_to_cdml_elements( smiles_text, paper):
   return elements
 
 
-def peptide_to_cdml_elements( sequence_text, paper):
+def peptide_to_cdml_elements(sequence_text: str, paper: object) -> list:
   """Convert a peptide sequence to a list of CDML molecule DOM elements.
 
   Delegates all chemistry to OASA: peptide validation, SMILES generation,
@@ -155,7 +155,7 @@ def peptide_to_cdml_elements( sequence_text, paper):
   return smiles_to_cdml_elements( smiles_text, paper)
 
 
-def _oasa_mol_to_cdml_element( mol, paper):
+def _oasa_mol_to_cdml_element(mol: object, paper: object) -> object:
   """Convert a single connected OASA molecule to a CDML DOM element.
 
   Generates 2D coordinates, rescales to match the paper standard bond
@@ -200,7 +200,7 @@ def _oasa_mol_to_cdml_element( mol, paper):
   return element
 
 
-def mol_to_smiles( mol):
+def mol_to_smiles(mol: object) -> str:
   codec = _get_codec( "smiles")
   m = bkchem_mol_to_oasa_mol( mol)
   m.remove_unimportant_hydrogens()
@@ -208,52 +208,52 @@ def mol_to_smiles( mol):
   return text
 
 
-def read_inchi( text, paper):
+def read_inchi(text: str, paper: object) -> object:
   codec = _get_codec( "inchi")
   mol = codec.read_text( text, calc_coords=1, include_hydrogens=False)
   m = oasa_mol_to_bkchem_mol( mol, paper)
   return m
 
 
-def mol_to_inchi( mol, program):
+def mol_to_inchi(mol: object, program: object) -> tuple:
   m = bkchem_mol_to_oasa_mol( mol)
   # we do not use mol_to_text because generate_inchi_and_inchikey returns extra warning messages
   _inchi, _key, _warnings = oasa.inchi_lib.generate_inchi_and_inchikey( m, program=program, fixed_hs=False)
   return (_inchi, _key, _warnings)
 
 
-def read_molfile( file, paper):
+def read_molfile(file: object, paper: object) -> list:
   return _read_codec_file_to_bkchem_mols( "molfile", file, paper)
 
 
-def write_molfile( mol, file):
+def write_molfile(mol: object, file: object) -> None:
   _write_codec_file_from_bkchem_mol( "molfile", mol, file)
 
 
-def read_cml( file_obj, paper, version=1):
+def read_cml(file_obj: object, paper: object, version: int = 1) -> list:
   codec_name = "cml2" if int( version) == 2 else "cml"
   return _read_codec_file_to_bkchem_mols( codec_name, file_obj, paper)
 
 
-def write_cml( mol, file_obj, version=1):
+def write_cml(mol: object, file_obj: object, version: int = 1) -> None:
   del mol, file_obj, version
   raise ValueError("CML export is not supported. Legacy CML is import-only.")
 
 
-def write_cml_from_paper( paper, file_obj, version=1):
+def write_cml_from_paper(paper: object, file_obj: object, version: int = 1) -> None:
   del paper, file_obj, version
   raise ValueError("CML export is not supported. Legacy CML is import-only.")
 
 
-def read_cdxml( file_obj, paper):
+def read_cdxml(file_obj: object, paper: object) -> list:
   return _read_codec_file_to_bkchem_mols( "cdxml", file_obj, paper)
 
 
-def write_cdxml( mol, file_obj):
+def write_cdxml(mol: object, file_obj: object) -> None:
   _write_codec_file_from_bkchem_mol( "cdxml", mol, file_obj)
 
 
-def write_cdxml_from_paper( paper, file_obj):
+def write_cdxml_from_paper(paper: object, file_obj: object) -> None:
   _write_codec_file_from_bkchem_paper( "cdxml", paper, file_obj)
 
 
@@ -261,7 +261,7 @@ def write_cdxml_from_paper( paper, file_obj):
 # OASA -> BKCHEM
 # Chemistry properties set via public API (at.x, at.charge, bo.type, etc.);
 # after Wave 2, these delegate to _chem_atom/_chem_bond internally.
-def oasa_mol_to_bkchem_mol( mol, paper):
+def oasa_mol_to_bkchem_mol(mol: object, paper: object) -> object:
   m = BkMolecule( paper)
   if None in (j for i in ((a.x, a.y) for a in mol.atoms)
                   for j in i):
@@ -313,7 +313,7 @@ def oasa_mol_to_bkchem_mol( mol, paper):
   return m
 
 
-def oasa_atom_to_bkchem_atom( a, paper, m):
+def oasa_atom_to_bkchem_atom(a: object, paper: object, m: object) -> object:
   """Convert an OASA atom to a BKChem atom.
 
   Sets BKChem atom properties through the public API; after Wave 2
@@ -351,7 +351,7 @@ def oasa_atom_to_bkchem_atom( a, paper, m):
   return at
 
 
-def oasa_bond_to_bkchem_bond( b, paper):
+def oasa_bond_to_bkchem_bond(b: object, paper: object) -> object:
   """Convert an OASA bond to a BKChem bond.
 
   Sets bond properties through the public API; after Wave 2 these
@@ -375,7 +375,7 @@ def oasa_bond_to_bkchem_bond( b, paper):
 # BKCHEM -> OASA
 # Reading BKChem properties (a.symbol, a.charge, b.order, b.atoms, etc.);
 # after Wave 2, these read from _chem_atom/_chem_bond internally.
-def bkchem_mol_to_oasa_mol( mol):
+def bkchem_mol_to_oasa_mol(mol: object) -> object:
   m = oasa.molecule_lib.Molecule()
   for a in mol.atoms:
     m.add_vertex( bkchem_atom_to_oasa_atom( a))
@@ -390,7 +390,7 @@ def bkchem_mol_to_oasa_mol( mol):
   return m
 
 
-def bkchem_atom_to_oasa_atom( a):
+def bkchem_atom_to_oasa_atom(a: object) -> object:
   """Convert a BKChem atom to an OASA atom.
 
   Reads BKChem atom properties through the public API; after Wave 2
@@ -419,7 +419,7 @@ def bkchem_atom_to_oasa_atom( a):
   return ret
 
 
-def bkchem_bond_to_oasa_bond( b):
+def bkchem_bond_to_oasa_bond(b: object) -> object:
   """Convert a BKChem bond to an OASA bond.
 
   Reads BKChem bond properties through the public API; after Wave 2

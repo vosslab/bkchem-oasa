@@ -12,7 +12,7 @@ import tempfile
 
 
 #============================================
-def parse_args():
+def parse_args() -> argparse.Namespace:
 	"""Parse command-line arguments.
 
 	Returns:
@@ -32,7 +32,7 @@ def parse_args():
 
 
 #============================================
-def ensure_sys_path(root_dir):
+def ensure_sys_path(root_dir: str) -> None:
 	"""Ensure BKChem package paths are on sys.path."""
 	bkchem_pkg_dir = os.path.join(root_dir, 'packages', 'bkchem')
 	if bkchem_pkg_dir not in sys.path:
@@ -43,7 +43,7 @@ def ensure_sys_path(root_dir):
 
 
 #============================================
-def ensure_gettext_fallbacks():
+def ensure_gettext_fallbacks() -> None:
 	"""Ensure gettext helpers exist for module-level strings."""
 	if '_' not in builtins.__dict__:
 		builtins.__dict__['_'] = lambda m: m
@@ -52,7 +52,7 @@ def ensure_gettext_fallbacks():
 
 
 #============================================
-def verify_tkinter():
+def verify_tkinter() -> None:
 	"""Verify Tk is available for GUI-backed scripts."""
 	try:
 		import tkinter
@@ -67,7 +67,7 @@ def verify_tkinter():
 
 
 #============================================
-def ensure_preferences():
+def ensure_preferences() -> None:
 	"""Initialize preference manager for tests."""
 	import os_support
 	import pref_manager
@@ -82,7 +82,7 @@ def ensure_preferences():
 
 #============================================
 #============================================
-def run_batch_demo(input_path):
+def run_batch_demo(input_path: str) -> None:
 	"""Run a batch-mode update similar to the legacy demo script."""
 	import bkchem.main
 
@@ -100,7 +100,7 @@ def run_batch_demo(input_path):
 
 
 #============================================
-def run_script1(input_path):
+def run_script1(input_path: str) -> None:
 	"""Run a batch-style update similar to the legacy script1."""
 	import bkchem.main
 
@@ -121,7 +121,7 @@ def run_script1(input_path):
 
 
 #============================================
-def main():
+def main() -> None:
 	"""Run batch script examples on a temporary CDML copy."""
 	args = parse_args()
 	root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

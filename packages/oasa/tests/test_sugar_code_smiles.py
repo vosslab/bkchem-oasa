@@ -13,14 +13,14 @@ import oasa.smiles_lib as oasa_smiles
 # ============================================
 
 #============================================
-def test_glucose_alpha_pyranose():
+def test_glucose_alpha_pyranose() -> None:
 	"""Alpha-D-glucopyranose (ARLRDM) matches known reference SMILES."""
 	text = sugar_code_smiles.sugar_code_to_smiles("ARLRDM", "pyranose", "alpha")
 	assert text == "O[C@@H]1O[C@@H](CO)[C@@H](O)[C@H](O)[C@H]1O"
 
 
 #============================================
-def test_glucose_beta_pyranose():
+def test_glucose_beta_pyranose() -> None:
 	"""Beta-D-glucopyranose differs from alpha only at anomeric carbon."""
 	text = sugar_code_smiles.sugar_code_to_smiles("ARLRDM", "pyranose", "beta")
 	# Only C1 chirality changes: @@ -> @
@@ -28,7 +28,7 @@ def test_glucose_beta_pyranose():
 
 
 #============================================
-def test_galactose_alpha_pyranose():
+def test_galactose_alpha_pyranose() -> None:
 	"""Alpha-D-galactopyranose (ARLLDM) differs from glucose at C4."""
 	text = sugar_code_smiles.sugar_code_to_smiles("ARLLDM", "pyranose", "alpha")
 	# C4 changes from R(@@) to L(@)
@@ -36,7 +36,7 @@ def test_galactose_alpha_pyranose():
 
 
 #============================================
-def test_mannose_alpha_pyranose():
+def test_mannose_alpha_pyranose() -> None:
 	"""Alpha-D-mannopyranose (ALLRDM) differs from glucose at C2."""
 	text = sugar_code_smiles.sugar_code_to_smiles("ALLRDM", "pyranose", "alpha")
 	# C2 changes from R(@) to L(@@)
@@ -44,7 +44,7 @@ def test_mannose_alpha_pyranose():
 
 
 #============================================
-def test_ribose_beta_furanose():
+def test_ribose_beta_furanose() -> None:
 	"""Beta-D-ribofuranose (ARRDM)."""
 	text = sugar_code_smiles.sugar_code_to_smiles("ARRDM", "furanose", "beta")
 	# Furanose ring C1-C2-C3-C4-O, C5 exocyclic
@@ -52,7 +52,7 @@ def test_ribose_beta_furanose():
 
 
 #============================================
-def test_erythrose_alpha_furanose():
+def test_erythrose_alpha_furanose() -> None:
 	"""Alpha-D-erythrofuranose (ARDM) - minimal 4-carbon aldofuranose."""
 	text = sugar_code_smiles.sugar_code_to_smiles("ARDM", "furanose", "alpha")
 	# 4-carbon furanose: C4 closure has no exocyclic chain (achiral C)
@@ -64,7 +64,7 @@ def test_erythrose_alpha_furanose():
 # ============================================
 
 #============================================
-def test_fructose_beta_furanose():
+def test_fructose_beta_furanose() -> None:
 	"""Beta-D-fructofuranose (MKLRDM)."""
 	text = sugar_code_smiles.sugar_code_to_smiles("MKLRDM", "furanose", "beta")
 	# Ketofuranose: C2 anomeric (no H), C1 branch, ring C2-C3-C4-C5-O
@@ -76,7 +76,7 @@ def test_fructose_beta_furanose():
 
 
 #============================================
-def test_fructose_alpha_pyranose():
+def test_fructose_alpha_pyranose() -> None:
 	"""Alpha-D-fructopyranose (MKLRDM)."""
 	text = sugar_code_smiles.sugar_code_to_smiles("MKLRDM", "pyranose", "alpha")
 	mol = oasa_smiles.text_to_mol(text, calc_coords=0)
@@ -88,7 +88,7 @@ def test_fructose_alpha_pyranose():
 # ============================================
 
 #============================================
-def test_glucose_furanose():
+def test_glucose_furanose() -> None:
 	"""D-glucose in furanose form (6-carbon aldose in 5-ring)."""
 	text = sugar_code_smiles.sugar_code_to_smiles("ARLRDM", "furanose", "alpha")
 	mol = oasa_smiles.text_to_mol(text, calc_coords=0)
@@ -97,7 +97,7 @@ def test_glucose_furanose():
 
 
 #============================================
-def test_ribose_pyranose():
+def test_ribose_pyranose() -> None:
 	"""D-ribose in pyranose form (5-carbon aldose in 6-ring)."""
 	text = sugar_code_smiles.sugar_code_to_smiles("ARRDM", "pyranose", "alpha")
 	mol = oasa_smiles.text_to_mol(text, calc_coords=0)
@@ -110,7 +110,7 @@ def test_ribose_pyranose():
 # ============================================
 
 #============================================
-def test_l_glucose_alpha_pyranose():
+def test_l_glucose_alpha_pyranose() -> None:
 	"""Alpha-L-glucopyranose (ALRLLM) - all chirality flipped from D."""
 	text_l = sugar_code_smiles.sugar_code_to_smiles("ALRLLM", "pyranose", "alpha")
 	text_d = sugar_code_smiles.sugar_code_to_smiles("ARLRDM", "pyranose", "alpha")
@@ -127,7 +127,7 @@ def test_l_glucose_alpha_pyranose():
 # ============================================
 
 #============================================
-def test_deoxyribose_beta_furanose():
+def test_deoxyribose_beta_furanose() -> None:
 	"""Beta-D-2-deoxyribofuranose (AdRDM) - deoxy at C2."""
 	text = sugar_code_smiles.sugar_code_to_smiles("AdRDM", "furanose", "beta")
 	# C2 is deoxy (no OH, achiral) so C2 has no chirality marker
@@ -137,7 +137,7 @@ def test_deoxyribose_beta_furanose():
 
 
 #============================================
-def test_glucosamine_alpha_pyranose():
+def test_glucosamine_alpha_pyranose() -> None:
 	"""Alpha-D-glucosamine (AnLRDM) - amino at C2."""
 	text = sugar_code_smiles.sugar_code_to_smiles("AnLRDM", "pyranose", "alpha")
 	# Should have N in the SMILES
@@ -152,7 +152,7 @@ def test_glucosamine_alpha_pyranose():
 # ============================================
 
 #============================================
-def test_heptose_pyranose():
+def test_heptose_pyranose() -> None:
 	"""D-glycero-D-gluco-heptose pyranose (ARLRRDM)."""
 	text = sugar_code_smiles.sugar_code_to_smiles("ARLRRDM", "pyranose", "alpha")
 	mol = oasa_smiles.text_to_mol(text, calc_coords=0)
@@ -161,7 +161,7 @@ def test_heptose_pyranose():
 
 
 #============================================
-def test_heptose_furanose():
+def test_heptose_furanose() -> None:
 	"""D-glycero-D-gluco-heptose furanose (ARLRRDM)."""
 	text = sugar_code_smiles.sugar_code_to_smiles("ARLRRDM", "furanose", "alpha")
 	mol = oasa_smiles.text_to_mol(text, calc_coords=0)
@@ -173,28 +173,51 @@ def test_heptose_furanose():
 # ============================================
 
 #============================================
-def test_invalid_ring_type_raises():
+def test_invalid_ring_type_raises() -> None:
 	with pytest.raises(ValueError) as error:
 		sugar_code_smiles.sugar_code_to_smiles("ARLRDM", "heptanose", "alpha")
 	assert "ring_type" in str(error.value)
 
 
 #============================================
-def test_invalid_anomeric_raises():
+def test_invalid_anomeric_raises() -> None:
 	with pytest.raises(ValueError) as error:
 		sugar_code_smiles.sugar_code_to_smiles("ARLRDM", "pyranose", "gamma")
 	assert "anomeric" in str(error.value)
 
 
 #============================================
-def test_3keto_prefix_raises():
-	"""3-KETO prefix is not supported for SMILES conversion."""
-	with pytest.raises(ValueError):
-		sugar_code_smiles.sugar_code_to_smiles("MLKRDM", "pyranose", "alpha")
+@pytest.mark.parametrize(
+	"code,ring,formula",
+	(
+		("MRKLDM", "furanose", "C6H12O6"),
+		("MLKLDM", "furanose", "C6H12O6"),
+		("MRKLRDM", "pyranose", "C7H14O7"),
+		("MLKLRDM", "pyranose", "C7H14O7"),
+	),
+)
+def test_3keto_ring_forms_parse_with_complete_preanomeric_chain(
+		code: str,
+		ring: str,
+		formula: str) -> None:
+	"""3-ketose ring forms retain the C1--C2 pre-anomeric chain."""
+	text = sugar_code_smiles.sugar_code_to_smiles(code, ring, "alpha")
+	mol = oasa_smiles.text_to_mol(text, calc_coords=0)
+	assert str(mol.get_formula_dict()) == formula
 
 
 #============================================
-def test_too_few_carbons_raises():
+def test_3keto_prefix_and_anomeric_stereochemistry_differ() -> None:
+	"""C2 prefix and anomeric configuration both remain stereochemical inputs."""
+	r_alpha = sugar_code_smiles.sugar_code_to_smiles("MRKLRDM", "pyranose", "alpha")
+	l_alpha = sugar_code_smiles.sugar_code_to_smiles("MLKLRDM", "pyranose", "alpha")
+	r_beta = sugar_code_smiles.sugar_code_to_smiles("MRKLRDM", "pyranose", "beta")
+	assert r_alpha != l_alpha
+	assert r_alpha != r_beta
+
+
+#============================================
+def test_too_few_carbons_raises() -> None:
 	"""Sugar with insufficient carbons for the requested ring raises."""
 	# 4-carbon sugar in pyranose (needs 5)
 	with pytest.raises(ValueError) as error:
@@ -203,7 +226,7 @@ def test_too_few_carbons_raises():
 
 
 #============================================
-def test_ring_and_anomeric_case_normalized():
+def test_ring_and_anomeric_case_normalized() -> None:
 	"""Ring type and anomeric strings are case/whitespace normalized."""
 	text = sugar_code_smiles.sugar_code_to_smiles("ARLRDM", " Pyranose ", " Alpha ")
 	assert text == "O[C@@H]1O[C@@H](CO)[C@@H](O)[C@H](O)[C@H]1O"
@@ -214,7 +237,7 @@ def test_ring_and_anomeric_case_normalized():
 # ============================================
 
 #============================================
-def test_canonical_deterministic():
+def test_canonical_deterministic() -> None:
 	"""Same input always produces the same output string."""
 	result1 = sugar_code_smiles.sugar_code_to_smiles("ARLRDM", "pyranose", "alpha")
 	result2 = sugar_code_smiles.sugar_code_to_smiles("ARLRDM", "pyranose", "alpha")
@@ -222,7 +245,7 @@ def test_canonical_deterministic():
 
 
 #============================================
-def test_alpha_beta_differ():
+def test_alpha_beta_differ() -> None:
 	"""Alpha and beta of the same sugar produce different SMILES."""
 	alpha = sugar_code_smiles.sugar_code_to_smiles("ARLRDM", "pyranose", "alpha")
 	beta = sugar_code_smiles.sugar_code_to_smiles("ARLRDM", "pyranose", "beta")
@@ -233,7 +256,7 @@ def test_alpha_beta_differ():
 # Full matrix smoke test
 # ============================================
 
-def _all_valid_combos():
+def _all_valid_combos() -> object:
 	"""Generate (code, ring, anomeric) for all valid combinations."""
 	names = sugar_code_names.all_sugar_names()
 	combos = []
@@ -245,12 +268,12 @@ def _all_valid_combos():
 
 
 @pytest.mark.parametrize("code,ring,anom", _all_valid_combos())
-def test_smoke_matrix(code, ring, anom):
+def test_smoke_matrix(code: object, ring: object, anom: object) -> None:
 	"""Every valid sugar code x ring x anomeric produces parseable SMILES."""
 	try:
 		text = sugar_code_smiles.sugar_code_to_smiles(code, ring, anom)
 	except ValueError:
-		# Expected for 3-KETO prefix, meso, or too few carbons
+		# Expected for meso forms or insufficient ring capacity
 		return
 	# Must be a non-empty string
 	assert isinstance(text, str)

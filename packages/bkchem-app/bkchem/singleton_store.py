@@ -55,25 +55,25 @@ class Screen(object):
   dpi = 0  # this should be set on startup
 
   @classmethod
-  def cm_to_px(self, cm):
+  def cm_to_px(self, cm: object) -> object:
     """transforms coord from cm to px"""
     return self.dpi * cm / 2.54
 
 
   @classmethod
-  def in_to_px(self, inch):
+  def in_to_px(self, inch: object) -> object:
     """transforms coord from in to px"""
     return self.dpi * inch
 
 
   @classmethod
-  def mm_to_px(self, mm):
+  def mm_to_px(self, mm: object) -> object:
     """transforms coord from mm to px"""
     return self.dpi * mm / 25.4
 
 
   @classmethod
-  def read_xml_point(self, point):
+  def read_xml_point(self, point: object) -> object:
     x = point.getAttribute( 'x')
     y = point.getAttribute( 'y')
     z = point.getAttribute( 'z')
@@ -81,7 +81,7 @@ class Screen(object):
 
 
   @classmethod
-  def any_to_px(self, xyz):
+  def any_to_px(self, xyz: object) -> object:
     if isinstance(xyz, (tuple, list)):
       return [self.any_to_px( i) for i in xyz]
     a, au = bkchem_utils.split_number_and_unit( xyz)
@@ -98,13 +98,13 @@ class Screen(object):
 
 
   @classmethod
-  def px_to_cm(self, px):
+  def px_to_cm(self, px: object) -> object:
     """transforms coord from px to cm"""
     return self.px_to_unit( px, unit='cm')
 
 
   @classmethod
-  def px_to_unit(self, xyz, unit='cm', round_to=3):
+  def px_to_unit(self, xyz: object, unit: object='cm', round_to: object=3) -> object:
     # handle sets of values
     if isinstance(xyz, (tuple, list)):
       return [self.px_to_unit( i, unit=unit, round_to=round_to) for i in xyz]
@@ -129,7 +129,7 @@ class Screen(object):
 
 
   @classmethod
-  def px_to_text_with_unit(self, xyz, unit='cm', round_to=3):
+  def px_to_text_with_unit(self, xyz: object, unit: object='cm', round_to: object=3) -> object:
     # handle sets of values
     if isinstance(xyz, (tuple, list)):
       return [self.px_to_text_with_unit( i, unit=unit, round_to=round_to) for i in xyz]

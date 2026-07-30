@@ -5,12 +5,12 @@ import PySide6.QtGui
 import PySide6.QtWidgets
 
 # local repo modules
+import bkchem_qt.bond_presentation
 import bkchem_qt.canvas.items.atom_item
 import bkchem_qt.canvas.items.bond_item
+import bkchem_qt.canvas.document_projection
 import bkchem_qt.canvas.scene_queries
-import bkchem_qt.dialogs.atom_dialog
-import bkchem_qt.dialogs.bond_dialog
-import bkchem_qt.io.clipboard_manager
+import bkchem_qt.actions.property_editing
 import bkchem_qt.undo.commands
 
 
@@ -26,21 +26,8 @@ _BOND_ORDER_LABELS = {
 # reverse mapping: label -> order int
 _BOND_ORDER_VALUES = {v: k for k, v in _BOND_ORDER_LABELS.items()}
 
-# -- bond type labels --
-_BOND_TYPE_LABELS = {
-	"n": "Normal",
-	"w": "Wedge",
-	"h": "Hashed",
-	"b": "Bold",
-	"d": "Dotted",
-	"q": "Wavy",
-}
-# reverse mapping: label -> type char
-_BOND_TYPE_VALUES = {v: k for k, v in _BOND_TYPE_LABELS.items()}
-
-
 #============================================
-def show_context_menu(view, scene_pos, screen_pos) -> None:
+def show_context_menu(view: object, scene_pos: object, screen_pos: object) -> None:
 	"""Build and show context menu for items at scene_pos.
 
 	Dispatches to atom/bond/molecule-specific menus based on
@@ -72,13 +59,19 @@ def show_context_menu(view, scene_pos, screen_pos) -> None:
 		menu = _bond_context_menu(target_item, view)
 	else:
 		menu = _empty_context_menu(view)
-	menu.exec(screen_pos)
+	# ``exec()`` owns a nested Qt event loop.  The transient menu and its action
+	# tree therefore stay live through the user's choice, then retire through
+	# Qt's ordinary deferred-delete delivery rather than remaining view children.
+	try:
+		menu.exec(screen_pos)
+	finally:
+		menu.deleteLater()
 
 
 
 
 #============================================
-def _atom_context_menu(atom_item, view) -> PySide6.QtWidgets.QMenu:
+def _atom_context_menu(atom_item: object, view: object) -> PySide6.QtWidgets.QMenu:
 	"""Build context menu for an atom item with connected callbacks.
 
 	Args:
@@ -103,8 +96,9 @@ def _atom_context_menu(atom_item, view) -> PySide6.QtWidgets.QMenu:
 	# properties action (opens atom dialog)
 	props_action = menu.addAction("Properties...")
 	props_action.triggered.connect(
-		lambda: bkchem_qt.dialogs.atom_dialog.AtomDialog.edit_atom(
+		lambda: bkchem_qt.actions.property_editing.edit_atom_properties(
 			atom_model, view,
+			bkchem_qt.canvas.scene_queries.find_undo_stack(view),
 		)
 	)
 
@@ -123,7 +117,7 @@ def _atom_context_menu(atom_item, view) -> PySide6.QtWidgets.QMenu:
 
 
 #============================================
-def _delete_atom(view, atom_item) -> None:
+def _delete_atom(view: object, atom_item: object) -> None:
 	"""Delete an atom and its connected bonds with undo support.
 
 	Args:
@@ -146,30 +140,70 @@ def _delete_atom(view, atom_item) -> None:
 
 
 #============================================
-def _set_atom_symbol(view, atom_model, symbol: str) -> None:
-	"""Change an atom's element symbol with undo support.
+def _active_document_session(view: object) -> object | None:
+	"""Return the one live active session registered for view."""
+	window = view.window()
+	session = getattr(window, "_active_session", None)
+	if session is None or session.view is not view:
+		return None
+	if session.is_disposed or session not in window.sessions:
+		return None
+	return session
+
+
+#============================================
+def _select_fresh_atom(view: object, atom_id: str) -> None:
+	"""Restore selection through one accepted projection's durable atom ID."""
+	scene = view.scene()
+	if scene is None:
+		return
+	scene.clearSelection()
+	bkchem_qt.canvas.document_projection.select_projected_persistent_keys(
+		scene, frozenset({("atom", atom_id)}),
+	)
+
+
+#============================================
+def _set_atom_symbol(view: object, atom_model: object, symbol: str) -> None:
+	"""Submit one backend-authoritative atom element substitution.
 
 	Args:
 		view: The ChemView widget.
-		atom_model: The AtomModel to change.
+		atom_model: The currently projected AtomModel identifying the target.
 		symbol: New element symbol.
 	"""
-	undo_stack = bkchem_qt.canvas.scene_queries.find_undo_stack(view)
-	if undo_stack is None:
-		atom_model.symbol = symbol
+	if not isinstance(symbol, str) or not symbol:
+		return
+	session = _active_document_session(view)
+	if session is None:
 		return
 	old_symbol = atom_model.symbol
 	if old_symbol == symbol:
 		return
-	cmd = bkchem_qt.undo.commands.ChangePropertyCommand(
-		atom_model, "symbol", old_symbol, symbol,
-		text=f"Set element to {symbol}",
+	molecule = bkchem_qt.canvas.scene_queries.find_molecule_for_atom(view, atom_model)
+	molecule_id = getattr(molecule, "mol_id", None)
+	atom_id = atom_model.backend_durable_id
+	if not molecule_id or not atom_id:
+		return
+	# Capture only durable scalar request data before accepting a replacement projection.
+	molecule_key = str(molecule_id)
+	atom_key = str(atom_id)
+	snapshot = session.backend_snapshot
+	from bkchem_qt.models import document_session
+	request = document_session.build_atom_element_request(
+		snapshot.revision, molecule_key, atom_key, symbol,
 	)
-	undo_stack.push(cmd)
+	outcome = session.submit_persistent_operation(request)
+	if outcome.status == "accepted":
+		_select_fresh_atom(view, atom_key)
+	window = view.window()
+	show_outcome = getattr(window, "_show_persistent_action_outcome", None)
+	if callable(show_outcome):
+		show_outcome(outcome)
 
 
 #============================================
-def _bond_context_menu(bond_item, view) -> PySide6.QtWidgets.QMenu:
+def _bond_context_menu(bond_item: object, view: object) -> PySide6.QtWidgets.QMenu:
 	"""Build context menu for a bond item with connected callbacks.
 
 	Args:
@@ -181,6 +215,11 @@ def _bond_context_menu(bond_item, view) -> PySide6.QtWidgets.QMenu:
 	"""
 	menu = PySide6.QtWidgets.QMenu(view)
 	bond_model = bond_item.bond_model
+	molecule = bkchem_qt.canvas.scene_queries.find_molecule_for_bond(view, bond_model)
+	molecule_id = getattr(molecule, "mol_id", None)
+	bond_id = getattr(bond_model, "backend_durable_id", None)
+	molecule_key = str(molecule_id) if isinstance(molecule_id, str) else ""
+	bond_key = str(bond_id) if isinstance(bond_id, str) else ""
 
 	# delete action
 	delete_action = menu.addAction("Delete")
@@ -194,8 +233,9 @@ def _bond_context_menu(bond_item, view) -> PySide6.QtWidgets.QMenu:
 	# properties action (opens bond dialog)
 	props_action = menu.addAction("Properties...")
 	props_action.triggered.connect(
-		lambda: bkchem_qt.dialogs.bond_dialog.BondDialog.edit_bond(
+		lambda: bkchem_qt.actions.property_editing.edit_bond_properties(
 			bond_model, view,
+			bkchem_qt.canvas.scene_queries.find_undo_stack(view),
 		)
 	)
 
@@ -206,22 +246,28 @@ def _bond_context_menu(bond_item, view) -> PySide6.QtWidgets.QMenu:
 	for order_val, label in _BOND_ORDER_LABELS.items():
 		action = order_menu.addAction(label)
 		action.triggered.connect(
-			lambda checked=False, o=order_val: _set_bond_order(view, bond_model, o)
+			lambda checked=False, o=order_val, m=molecule_key, b=bond_key: _set_bond_order(
+				view, m, b, o,
+			)
 		)
 
 	# set type submenu
 	type_menu = menu.addMenu("Set Type")
-	for type_char, label in _BOND_TYPE_LABELS.items():
+	for type_char, label in bkchem_qt.bond_presentation.ORDINARY_BOND_TYPE_CHOICES:
 		action = type_menu.addAction(label)
 		action.triggered.connect(
-			lambda checked=False, t=type_char: _set_bond_type(view, bond_model, t)
+			lambda checked=False, t=type_char, m=molecule_key, b=bond_key: _set_bond_type(
+				view, m, b, t,
+			)
 		)
+	# Keep submenu wrappers alive for this QMenu's native ownership lifetime.
+	menu._bkchem_submenus = (order_menu, type_menu)
 
 	return menu
 
 
 #============================================
-def _delete_bond(view, bond_item) -> None:
+def _delete_bond(view: object, bond_item: object) -> None:
 	"""Delete a bond with undo support.
 
 	Args:
@@ -243,53 +289,61 @@ def _delete_bond(view, bond_item) -> None:
 
 
 #============================================
-def _set_bond_order(view, bond_model, order: int) -> None:
-	"""Change a bond's order with undo support.
+def _set_bond_order(view: object, molecule_id: str, bond_id: str, order: int) -> None:
+	"""Submit one backend-authoritative exact bond-order change.
 
 	Args:
 		view: The ChemView widget.
-		bond_model: The BondModel to change.
+		molecule_id: Durable direct-root molecule identifier.
+		bond_id: Durable direct-core bond identifier.
 		order: New bond order (1, 2, or 3).
 	"""
-	undo_stack = bkchem_qt.canvas.scene_queries.find_undo_stack(view)
-	old_order = bond_model.order
-	if old_order == order:
+	if (
+		type(order) is not int or order not in _BOND_ORDER_LABELS
+		or not isinstance(molecule_id, str) or not molecule_id
+		or not isinstance(bond_id, str) or not bond_id
+	):
 		return
-	if undo_stack is None:
-		bond_model.order = order
+	session = _active_document_session(view)
+	if session is None:
 		return
-	cmd = bkchem_qt.undo.commands.ChangePropertyCommand(
-		bond_model, "order", old_order, order,
-		text=f"Set bond order to {order}",
-	)
-	undo_stack.push(cmd)
+	outcome = session.submit_bond_order(molecule_id, bond_id, order)
+	window = view.window()
+	show_outcome = getattr(window, "_show_persistent_action_outcome", None)
+	if callable(show_outcome):
+		show_outcome(outcome)
 
 
 #============================================
-def _set_bond_type(view, bond_model, bond_type: str) -> None:
-	"""Change a bond's type with undo support.
+def _set_bond_type(
+		view: object, molecule_id: str, bond_id: str, bond_type: str,
+		) -> None:
+	"""Submit one backend-authoritative exact bond-type change.
 
 	Args:
 		view: The ChemView widget.
-		bond_model: The BondModel to change.
+		molecule_id: Durable direct-root molecule identifier.
+		bond_id: Durable direct-core bond identifier.
 		bond_type: New bond type character.
 	"""
-	undo_stack = bkchem_qt.canvas.scene_queries.find_undo_stack(view)
-	old_type = bond_model.type
-	if old_type == bond_type:
+	if (
+		bond_type not in dict(bkchem_qt.bond_presentation.ORDINARY_BOND_TYPE_CHOICES)
+		or not isinstance(molecule_id, str) or not molecule_id
+		or not isinstance(bond_id, str) or not bond_id
+	):
 		return
-	if undo_stack is None:
-		bond_model.type = bond_type
+	session = _active_document_session(view)
+	if session is None:
 		return
-	cmd = bkchem_qt.undo.commands.ChangePropertyCommand(
-		bond_model, "type", old_type, bond_type,
-		text=f"Set bond type to {bond_type}",
-	)
-	undo_stack.push(cmd)
+	outcome = session.submit_bond_type(molecule_id, bond_id, bond_type)
+	window = view.window()
+	show_outcome = getattr(window, "_show_persistent_action_outcome", None)
+	if callable(show_outcome):
+		show_outcome(outcome)
 
 
 #============================================
-def _empty_context_menu(view) -> PySide6.QtWidgets.QMenu:
+def _empty_context_menu(view: object) -> PySide6.QtWidgets.QMenu:
 	"""Build context menu for empty canvas space.
 
 	Args:
@@ -300,14 +354,13 @@ def _empty_context_menu(view) -> PySide6.QtWidgets.QMenu:
 	"""
 	menu = PySide6.QtWidgets.QMenu(view)
 
-	# paste action -- enabled only when clipboard has CDML content
+	# Paste is available only when both the clipboard and current session qualify.
 	paste_action = menu.addAction("Paste")
 	paste_action.setShortcut(PySide6.QtGui.QKeySequence.StandardKey.Paste)
-	# use ClipboardManager to check for pasteable CDML data
-	clipboard_mgr = bkchem_qt.io.clipboard_manager.ClipboardManager()
-	paste_action.setEnabled(clipboard_mgr.can_paste())
 	# connect to main window's paste handler
 	main_window = view.window()
+	can_paste = getattr(main_window, "can_paste", None)
+	paste_action.setEnabled(bool(can_paste and can_paste()))
 	if hasattr(main_window, 'on_paste'):
 		paste_action.triggered.connect(main_window.on_paste)
 
@@ -326,7 +379,7 @@ def _empty_context_menu(view) -> PySide6.QtWidgets.QMenu:
 
 
 #============================================
-def _select_all(view) -> None:
+def _select_all(view: object) -> None:
 	"""Select all interactive items in the scene.
 
 	Args:

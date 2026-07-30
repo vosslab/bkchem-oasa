@@ -21,12 +21,12 @@ from bkchem import theme_manager
 class BondRenderOpsMixin:
   """Shared OASA render-ops based drawing path for BKChem bonds."""
 
-  def _display_line_width(self):
+  def _display_line_width(self) -> float:
     """Return bond line width in current canvas display coordinates."""
     base_line_width = float(self.line_width or 1.0)
     return abs(float(self.paper.real_to_canvas(base_line_width)))
 
-  def draw(self, automatic="none"):
+  def draw(self, automatic: object = "none") -> None:
     """Draw bond through shared render ops instead of per-type Tk geometry."""
     if self.item:
       warn("drawing bond that is probably drawn already", UserWarning, 2)
@@ -70,7 +70,7 @@ class BondRenderOpsMixin:
           atom.transform(self._transform)
         self._transform = None
 
-  def _build_bond_ops(self, start, end):
+  def _build_bond_ops(self, start: object, end: object) -> list:
     label_targets = {}
     shown_vertices = set()
     for atom in (self.atom1, self.atom2):
@@ -106,7 +106,7 @@ class BondRenderOpsMixin:
     )
     return build_bond_ops(self, start, end, context)
 
-  def _set_rendered_items(self, item_ids):
+  def _set_rendered_items(self, item_ids: object) -> None:
     ids = [item_id for item_id in item_ids if item_id is not None]
     self._render_item_ids = list(ids)
     if not ids:
@@ -121,7 +121,7 @@ class BondRenderOpsMixin:
     self.items = ids[1:]
     self.paper.register_id(self.item, self)
 
-  def _render_ops_to_tk_canvas(self, ops):
+  def _render_ops_to_tk_canvas(self, ops: object) -> list:
     # helper: map any color through the theme so default-colored bonds
     # (stored as #000) follow the active dark/light theme
     _map = theme_manager.map_chemistry_color
@@ -206,7 +206,7 @@ class BondRenderOpsMixin:
             created.append(item)
     return created
 
-  def _path_commands_to_polyline(self, commands):
+  def _path_commands_to_polyline(self, commands: object) -> list:
     points = []
     # Keep tessellation density stable across zoom levels; tying this to
     # display-space stroke width makes stereobond arcs visibly choppy at high zoom.
@@ -224,13 +224,14 @@ class BondRenderOpsMixin:
         points.extend(arc_points)
     return points
 
-  def _path_commands_to_polygon(self, commands):
+  def _path_commands_to_polygon(self, commands: object) -> list:
     points = self._path_commands_to_polyline(commands)
     if points and points[0] != points[-1]:
       points.append(points[0])
     return points
 
-  def _arc_points(self, center, radius, angle_start, angle_end, step_length):
+  def _arc_points(self, center: object, radius: object, angle_start: object,
+                  angle_end: object, step_length: object) -> list:
     if radius <= 0:
       return []
     angle_delta = angle_end - angle_start
@@ -249,7 +250,7 @@ class BondRenderOpsMixin:
     return points
 
   # Compatibility helper retained for existing wedge regression tests.
-  def _rounded_wedge_polygon(self, coords):
+  def _rounded_wedge_polygon(self, coords: object) -> object:
     x1, y1, x2, y2 = coords
     wide_width = abs(float(self.paper.real_to_canvas(self.wedge_width)))
     narrow_width = self._display_line_width()
@@ -273,7 +274,7 @@ class BondRenderOpsMixin:
     return polygon
 
   # Compatibility helper retained for existing Haworth front-edge test.
-  def _draw_q1(self):
+  def _draw_q1(self) -> object:
     coords = self._where_to_draw_from_and_to()
     if not coords:
       return None

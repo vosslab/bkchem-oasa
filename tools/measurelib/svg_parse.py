@@ -30,7 +30,7 @@ def parse_float(raw_value: str | None, default_value: float) -> float:
 
 
 #============================================
-def visible_text(text_node) -> str:
+def visible_text(text_node: object) -> str:
 	"""Return SVG text content with whitespace removed."""
 	text_value = "".join(str(part) for part in text_node.itertext())
 	return re.sub(r"\s+", "", text_value or "")
@@ -73,7 +73,7 @@ def path_points(path_d: str) -> list[tuple[float, float]]:
 
 
 #============================================
-def node_is_overlay_group(node) -> bool:
+def node_is_overlay_group(node: object) -> bool:
 	"""Return True when one SVG node is an overlay/diagnostic group to ignore."""
 	if local_tag_name(str(node.tag)) != "g":
 		return False
@@ -86,10 +86,10 @@ def node_is_overlay_group(node) -> bool:
 
 
 #============================================
-def collect_svg_lines(svg_root) -> list[dict]:
+def collect_svg_lines(svg_root: object) -> list[dict]:
 	"""Collect line primitives from one SVG root."""
 	lines = []
-	def walk(node, overlay_excluded: bool) -> None:
+	def walk(node: object, overlay_excluded: bool) -> None:
 		excluded_here = overlay_excluded or node_is_overlay_group(node)
 		if (not excluded_here) and local_tag_name(str(node.tag)) == "line":
 			lines.append(
@@ -109,7 +109,7 @@ def collect_svg_lines(svg_root) -> list[dict]:
 
 
 #============================================
-def collect_svg_labels(svg_root) -> list[dict]:
+def collect_svg_labels(svg_root: object) -> list[dict]:
 	"""Collect text labels from one SVG root with measurement eligibility tags."""
 	labels = []
 	for node in svg_root.iter():
@@ -137,7 +137,7 @@ def collect_svg_labels(svg_root) -> list[dict]:
 
 
 #============================================
-def collect_svg_ring_primitives(svg_root) -> list[dict]:
+def collect_svg_ring_primitives(svg_root: object) -> list[dict]:
 	"""Collect filled polygon/path primitives usable for Haworth ring detection."""
 	primitives = []
 	for node in svg_root.iter():
@@ -169,7 +169,7 @@ def collect_svg_ring_primitives(svg_root) -> list[dict]:
 
 
 #============================================
-def collect_svg_wedge_bonds(svg_root) -> list[dict]:
+def collect_svg_wedge_bonds(svg_root: object) -> list[dict]:
 	"""Collect filled polygon elements that represent wedge/stereo bonds."""
 	wedge_bonds = []
 	for node in svg_root.iter():
@@ -227,7 +227,7 @@ def resolve_svg_paths(repo_root: pathlib.Path, input_glob: str) -> list[pathlib.
 
 
 #============================================
-def svg_tag_with_namespace(svg_root, local_name: str) -> str:
+def svg_tag_with_namespace(svg_root: object, local_name: str) -> str:
 	"""Return namespaced tag when the parsed SVG root has one."""
 	root_tag = str(svg_root.tag)
 	if root_tag.startswith("{") and "}" in root_tag:

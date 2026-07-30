@@ -23,7 +23,7 @@ class ModeToolbar(PySide6.QtWidgets.QToolBar):
 	mode_selected = PySide6.QtCore.Signal(str)
 
 	#============================================
-	def __init__(self, parent=None):
+	def __init__(self, parent: object = None) -> None:
 		"""Initialize the mode toolbar with an exclusive action group.
 
 		Args:
@@ -73,7 +73,7 @@ class ModeToolbar(PySide6.QtWidgets.QToolBar):
 	#============================================
 	def add_action_button(self, name: str, label: str, tooltip: str = "",
 			icon: PySide6.QtGui.QIcon = None,
-			callback=None) -> PySide6.QtGui.QAction:
+			callback: object = None) -> PySide6.QtGui.QAction:
 		"""Add a non-checkable action button to the toolbar.
 
 		Used for actions like Undo/Redo that are not mode toggles.

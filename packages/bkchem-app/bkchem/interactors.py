@@ -44,7 +44,7 @@ from bkchem.singleton_store import Store
 
 
 
-def ask_name_for_selected( paper):
+def ask_name_for_selected( paper: object) -> object:
   """opens dialog for input of molecule name and sets it"""
   top_levels, unique = paper.selected_to_unique_top_levels()
   ms = [o for o in top_levels if isinstance( o, BkMolecule)]
@@ -74,7 +74,7 @@ def ask_name_for_selected( paper):
   paper.start_new_undo_record()
 
 
-def ask_id_for_selected( paper):
+def ask_id_for_selected( paper: object) -> object:
   """opens dialog for input of molecule ID and sets it"""
   top_levels, unique = paper.selected_to_unique_top_levels()
   ms = [o for o in top_levels if isinstance( o, BkMolecule)]
@@ -122,7 +122,7 @@ def ask_id_for_selected( paper):
   paper.start_new_undo_record()
 
 
-def check_validity( mols):
+def check_validity( mols: object) -> bool:
   val = validator.validator()
   val.validate( mols)
   if val.report.text_atoms:
@@ -148,7 +148,7 @@ def check_validity( mols):
   return 1
 
 
-def ask_inchi_program_path():
+def ask_inchi_program_path() -> object:
   path = Store.pm.get_preference( "inchi_program_path") or ""
   dial = widgets.FileSelectionWithText( Store.app,
                                         title=_("The InChI program path"),
@@ -164,7 +164,7 @@ def ask_inchi_program_path():
   return 0
 
 
-def ask_display_form_for_selected( paper):
+def ask_display_form_for_selected( paper: object) -> object:
   top_levels, unique = paper.selected_to_unique_top_levels()
   ms = [o for o in top_levels if isinstance( o, BkMolecule)]
 
@@ -210,7 +210,7 @@ def ask_display_form_for_selected( paper):
   paper.start_new_undo_record()
 
 
-def save_as_template( paper):
+def save_as_template( paper: object) -> object:
   missing = {}
   for mol in paper.molecules:
     if not mol.t_atom:
@@ -301,7 +301,7 @@ def save_as_template( paper):
         return name
 
 
-def create_fragment_from_selected( paper):
+def create_fragment_from_selected( paper: object) -> object:
   top_levels, unique = paper.selected_to_unique_top_levels()
   if len( top_levels) != 1:
     Store.log( _("The selected items must be part of exactly one molecule."), message_type="error")
@@ -326,12 +326,12 @@ def create_fragment_from_selected( paper):
       Store.log( _("The bonds and atoms could not have been used for creation of a new molecular fragment, they are probably not defining a connected subgraph of the molecular graph."), message_type="warning")
 
 
-def view_fragments( paper):
+def view_fragments( paper: object) -> None:
   a = dialogs.fragment_dialog( paper, deletion=True)
   a.activate()
 
 
-def set_atom_number( atoms):
+def set_atom_number( atoms: object) -> None:
   dial = BkPromptDialog( Store.app,
                            title=_('Atom number'),
                            label_text=_('Enter atom number:'),
@@ -344,7 +344,7 @@ def set_atom_number( atoms):
     Store.log( _("Number %s was set to atom(s).") % dial.get(), message_type="info")
 
 
-def log_atom_type( vtype):
+def log_atom_type( vtype: object) -> None:
   """according to vtype tells the user how an atom text was interpreted"""
   if  vtype == "atom":
     Store.log( _("BKChem interpreted the entered text as an atom"))
@@ -354,7 +354,7 @@ def log_atom_type( vtype):
     Store.log( _("BKChem could not interpret the entered text as anything with chemical meaning"))
 
 
-def select_language( paper):
+def select_language( paper: object) -> object:
   a = dialogs.language_dialog( paper)
   a.activate()
   if a.proceed:
@@ -368,7 +368,7 @@ def select_language( paper):
                              _("The selected language will be used the next time you start BKChem."))
 
 
-def convert_selected_to_linear_fragment( paper):
+def convert_selected_to_linear_fragment( paper: object) -> object:
   # check the selection
   bond_length = 10
   changes = False
@@ -392,7 +392,7 @@ def convert_selected_to_linear_fragment( paper):
     paper.start_new_undo_record()
 
 
-def atoms_to_linear_fragment( mol, vs, bond_length=10):
+def atoms_to_linear_fragment( mol: object, vs: object, bond_length: object=10) -> object:
   changes = False
   if vs and mol.defines_connected_subgraph_v( vs):
     # the selection is connected
@@ -449,7 +449,7 @@ def atoms_to_linear_fragment( mol, vs, bond_length=10):
     raise ValueError("Vertices do not define connected subgraph.")
 
 
-def compute_oxidation_number( paper):
+def compute_oxidation_number( paper: object) -> object:
   v = validator.validator()
   v.validate( paper.selected_atoms)
   logged = False
@@ -476,6 +476,6 @@ def compute_oxidation_number( paper):
     Store.log( _("You can move and delete the created oxidation numbers in the mark mode"), message_type="hint")
 
 
-def set_logging( paper, logger):
+def set_logging( paper: object, logger: object) -> None:
   d = dialogs.logging_dialog( paper, logger)
   d.activate()

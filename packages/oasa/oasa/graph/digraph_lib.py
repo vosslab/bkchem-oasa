@@ -43,16 +43,16 @@ class Digraph(base_graph):
   edge_class = Diedge
 
 
-  def create_edge( self):
+  def create_edge( self) -> object:
     return Diedge()
 
 
-  def __str__( self):
+  def __str__( self) -> object:
     str = "digraph G(V,E), |V|=%d, |E|=%d" % ( len( self.vertices), len( self.edges))
     return str
 
 
-  def add_edge( self, v1, v2, e=None):
+  def add_edge( self, v1: object, v2: object, e: object=None) -> object:
     """adds an edge to a graph connecting vertices v1 and v2, if e argument is not given creates a new one.
     returns None if operation fails or the edge instance if successful"""
     i1 = self._get_vertex_index( v1)
@@ -71,7 +71,7 @@ class Digraph(base_graph):
     return e
 
 
-  def get_connected_components( self):
+  def get_connected_components( self) -> object:
     """returns the connected components of graph in a form o list of lists of vertices"""
     comp = set() # just processed component
     not_processed = set( self.vertices)
@@ -99,6 +99,5 @@ class Digraph(base_graph):
         not_processed -= recent
     # when there is only one atom in the last piece it is not yielded in the loop
     yield comp
-
 
 

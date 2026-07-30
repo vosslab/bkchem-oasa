@@ -25,8 +25,6 @@
 ##  localized bond order is available
 
 
-import sys
-sys.path.append( '../')
 import math
 
 from oasa.graph.edge_lib import Edge as edge
@@ -41,16 +39,17 @@ class Bond(edge, object):
   'n' - normal
   'w' - wedge
   'h' - hashed
-  'a' - adder
+  'a' - adder / unspecified stereochemistry
   'b' - bold
   'd' - dash
+  'o' - dotted
   's' - wavy
   'q' - wide rectangle (Haworth)
   """
   attrs_to_copy = edge.attrs_to_copy + ("order","aromatic","type",
                                         "line_color","wavy_style")
 
-  def __init__( self, vs=[], order=1, type='n'):
+  def __init__( self, vs: list | None=None, order: int=1, type: str='n') -> None:
     edge.__init__( self, vs=vs)
     self.set_vertices( vs)
     self.aromatic = None  # None means it was not set
@@ -64,21 +63,21 @@ class Bond(edge, object):
     self.center = None
 
 
-  def __str__( self):
+  def __str__( self) -> str:
     if self._vertices:
       return "bond between %s %s" % tuple( map( str, self.vertices))
     else:
       return "bond, no vertices set"
 
 
-  def matches( self, other):
+  def matches( self, other: object) -> bool:
     if self.order == other.order:
       return True
     return False
 
 
   @property
-  def vertices(self):
+  def vertices(self) -> list:
     """Tuple of 2 vertices (start, end).
 
     """
@@ -86,10 +85,12 @@ class Bond(edge, object):
 
 
   @vertices.setter
-  def vertices(self, vs=[]):
+  def vertices(self, vs: list | None=None) -> None:
     """Sets the vertices this edge connects.
 
     """
+    if vs is None:
+      vs = []
     assert len( vs) == 2 or len( vs) == 0
     #if len( vs) == 2 and vs[0] == vs[1]:
     #  warn( "creating bond with both ends equal", UserWarning, 2)
@@ -97,7 +98,7 @@ class Bond(edge, object):
 
 
   @property
-  def order(self):
+  def order(self) -> object:
     """Bond order.
 
     1-3 for normal bonds,
@@ -113,7 +114,7 @@ class Bond(edge, object):
 
 
   @order.setter
-  def order(self, order):
+  def order(self, order: int) -> None:
     [a.bond_order_changed() for a in self.vertices]
     if order == 4:
       self._order = None
@@ -124,7 +125,7 @@ class Bond(edge, object):
 
 
   @property
-  def length(self):
+  def length(self) -> float | int:
     """Bond length.
 
     """
@@ -138,4 +139,3 @@ class Bond(edge, object):
 ### TODO
 
 # support for the bond.aromatic
-

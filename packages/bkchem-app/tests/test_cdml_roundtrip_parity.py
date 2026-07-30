@@ -23,19 +23,19 @@ Screen = bkchem.singleton_store.Screen
 class _DummyPaper(object):
 	"""Minimal paper stub with screen/real ratio methods."""
 
-	def __init__(self, standard):
+	def __init__(self, standard: object) -> None:
 		self.standard = standard
 
-	def screen_to_real_ratio(self):
+	def screen_to_real_ratio(self) -> object:
 		return 1.0
 
-	def real_to_screen_ratio(self):
+	def real_to_screen_ratio(self) -> object:
 		return 1.0
 
 
 #============================================
 class _DummyParent(object):
-	def __init__(self, paper):
+	def __init__(self, paper: object) -> None:
 		self.paper = paper
 
 
@@ -43,7 +43,7 @@ class _DummyParent(object):
 class _DummyAtom(object):
 	"""Atom stub with id and registerable in id_manager."""
 
-	def __init__(self, atom_id):
+	def __init__(self, atom_id: object) -> None:
 		self.id = atom_id
 
 
@@ -51,27 +51,27 @@ class _DummyAtom(object):
 class _DummyIdManager(object):
 	"""Id manager that tracks objects by id for round-trip lookup."""
 
-	def __init__(self):
+	def __init__(self) -> None:
 		self._registry = {}
 		self._counts = {}
 
-	def generate_and_register_id(self, obj, prefix=None):
+	def generate_and_register_id(self, obj: object, prefix: object=None) -> object:
 		key = prefix or "obj"
 		self._counts[key] = self._counts.get(key, 0) + 1
 		obj_id = "%s%d" % (key, self._counts[key])
 		self._registry[obj_id] = obj
 		return obj_id
 
-	def is_registered_object(self, obj):
+	def is_registered_object(self, obj: object) -> object:
 		return any(v is obj for v in self._registry.values())
 
-	def unregister_object(self, obj):
+	def unregister_object(self, obj: object) -> object:
 		return None
 
-	def register_id(self, obj, obj_id):
+	def register_id(self, obj: object, obj_id: object) -> object:
 		self._registry[str(obj_id)] = obj
 
-	def get_object_with_id(self, obj_id):
+	def get_object_with_id(self, obj_id: object) -> object:
 		return self._registry.get(str(obj_id))
 
 
@@ -79,7 +79,7 @@ class _DummyIdManager(object):
 
 #============================================
 @pytest.fixture(autouse=True)
-def _setup_singletons():
+def _setup_singletons() -> object:
 	"""Set up singleton store with dummy id_manager and DPI for all tests."""
 	original_manager = Store.id_manager
 	original_dpi = getattr(Screen, "dpi", 72)
@@ -92,7 +92,7 @@ def _setup_singletons():
 
 #============================================
 @pytest.fixture()
-def paper():
+def paper() -> object:
 	"""Return a dummy paper with standard settings."""
 	standard = bkchem.classes.standard()
 	return _DummyPaper(standard)
@@ -100,7 +100,7 @@ def paper():
 
 #============================================
 @pytest.fixture()
-def atoms():
+def atoms() -> object:
 	"""Return a pair of dummy atoms registered in the id manager."""
 	a1 = _DummyAtom("a1")
 	a2 = _DummyAtom("a2")
@@ -110,7 +110,7 @@ def atoms():
 
 
 #============================================
-def _make_bond(paper, atoms, bond_type="n", order=1):
+def _make_bond(paper: object, atoms: object, bond_type: object="n", order: object=1) -> object:
 	"""Create a bond wired to dummy paper and atoms.
 
 	Args:
@@ -131,7 +131,7 @@ def _make_bond(paper, atoms, bond_type="n", order=1):
 
 
 #============================================
-def _roundtrip(bond):
+def _roundtrip(bond: object) -> object:
 	"""Serialize a bond to CDML and deserialize into a fresh bond.
 
 	Args:
@@ -163,7 +163,7 @@ BOND_ORDERS = [1, 2, 3]
 #============================================
 @pytest.mark.parametrize("bond_type", BOND_TYPES)
 @pytest.mark.parametrize("order", BOND_ORDERS)
-def test_bond_type_order_roundtrip(paper, atoms, bond_type, order):
+def test_bond_type_order_roundtrip(paper: object, atoms: object, bond_type: object, order: object) -> None:
 	"""Bond type and order survive get_package -> read_package."""
 	bond = _make_bond(paper, atoms, bond_type=bond_type, order=order)
 	loaded = _roundtrip(bond)
@@ -174,7 +174,7 @@ def test_bond_type_order_roundtrip(paper, atoms, bond_type, order):
 # -- Test: coordinate unit conversion round-trip --
 
 #============================================
-def test_coordinate_cm_px_roundtrip():
+def test_coordinate_cm_px_roundtrip() -> None:
 	"""cm -> px -> cm conversion round-trips within rounding tolerance."""
 	# use 72 dpi (set in fixture)
 	cm_str = "3.500cm"
@@ -187,7 +187,7 @@ def test_coordinate_cm_px_roundtrip():
 # -- Test: bond_width sign preservation --
 
 #============================================
-def test_bond_width_positive_roundtrip(paper, atoms):
+def test_bond_width_positive_roundtrip(paper: object, atoms: object) -> None:
 	"""Positive bond_width survives round-trip for double bonds."""
 	bond = _make_bond(paper, atoms, bond_type="n", order=2)
 	bond.bond_width = 6.0
@@ -196,7 +196,7 @@ def test_bond_width_positive_roundtrip(paper, atoms):
 
 
 #============================================
-def test_bond_width_negative_roundtrip(paper, atoms):
+def test_bond_width_negative_roundtrip(paper: object, atoms: object) -> None:
 	"""Negative bond_width survives round-trip for double bonds."""
 	bond = _make_bond(paper, atoms, bond_type="n", order=2)
 	bond.bond_width = -6.0
@@ -209,7 +209,7 @@ def test_bond_width_negative_roundtrip(paper, atoms):
 # -- Test: center and auto_sign preservation for double bonds --
 
 #============================================
-def test_center_yes_roundtrip(paper, atoms):
+def test_center_yes_roundtrip(paper: object, atoms: object) -> None:
 	"""center=yes survives round-trip for order-2 bonds."""
 	bond = _make_bond(paper, atoms, bond_type="n", order=2)
 	bond.center = 1
@@ -221,7 +221,7 @@ def test_center_yes_roundtrip(paper, atoms):
 
 
 #============================================
-def test_center_no_roundtrip(paper, atoms):
+def test_center_no_roundtrip(paper: object, atoms: object) -> None:
 	"""center=no survives round-trip for order-2 bonds."""
 	bond = _make_bond(paper, atoms, bond_type="n", order=2)
 	bond.center = 0
@@ -230,7 +230,7 @@ def test_center_no_roundtrip(paper, atoms):
 
 
 #============================================
-def test_center_none_for_single_bond(paper, atoms):
+def test_center_none_for_single_bond(paper: object, atoms: object) -> None:
 	"""Single bonds do not serialize center attribute."""
 	bond = _make_bond(paper, atoms, bond_type="n", order=1)
 	doc = xml.dom.minidom.Document()
@@ -242,7 +242,7 @@ def test_center_none_for_single_bond(paper, atoms):
 # -- Test: wavy_style preservation --
 
 #============================================
-def test_wavy_style_roundtrip(paper, atoms):
+def test_wavy_style_roundtrip(paper: object, atoms: object) -> None:
 	"""wavy_style attribute survives round-trip."""
 	bond = _make_bond(paper, atoms, bond_type="s", order=1)
 	bond.wavy_style = "triangle"
@@ -251,7 +251,7 @@ def test_wavy_style_roundtrip(paper, atoms):
 
 
 #============================================
-def test_wavy_style_none_not_serialized(paper, atoms):
+def test_wavy_style_none_not_serialized(paper: object, atoms: object) -> None:
 	"""Bonds with no wavy_style do not emit the attribute."""
 	bond = _make_bond(paper, atoms, bond_type="n", order=1)
 	bond.wavy_style = None
@@ -263,7 +263,7 @@ def test_wavy_style_none_not_serialized(paper, atoms):
 # -- Test: line_color round-trip --
 
 #============================================
-def test_line_color_roundtrip(paper, atoms):
+def test_line_color_roundtrip(paper: object, atoms: object) -> None:
 	"""Non-default line_color survives round-trip."""
 	bond = _make_bond(paper, atoms)
 	bond.line_color = "#ff0000"
@@ -272,7 +272,7 @@ def test_line_color_roundtrip(paper, atoms):
 
 
 #============================================
-def test_default_color_not_serialized(paper, atoms):
+def test_default_color_not_serialized(paper: object, atoms: object) -> None:
 	"""Default color #000 is omitted from CDML output."""
 	bond = _make_bond(paper, atoms)
 	bond.line_color = "#000"
@@ -284,7 +284,7 @@ def test_default_color_not_serialized(paper, atoms):
 # -- Test: equithick round-trip --
 
 #============================================
-def test_equithick_roundtrip(paper, atoms):
+def test_equithick_roundtrip(paper: object, atoms: object) -> None:
 	"""equithick=1 survives round-trip."""
 	bond = _make_bond(paper, atoms, bond_type="w", order=1)
 	bond.equithick = 1
@@ -293,7 +293,7 @@ def test_equithick_roundtrip(paper, atoms):
 
 
 #============================================
-def test_equithick_zero_default(paper, atoms):
+def test_equithick_zero_default(paper: object, atoms: object) -> None:
 	"""equithick defaults to 0 when not in CDML."""
 	bond = _make_bond(paper, atoms)
 	bond.equithick = 0
@@ -306,7 +306,7 @@ def test_equithick_zero_default(paper, atoms):
 # -- Test: double_length_ratio round-trip --
 
 #============================================
-def test_double_length_ratio_roundtrip(paper, atoms):
+def test_double_length_ratio_roundtrip(paper: object, atoms: object) -> None:
 	"""double_length_ratio survives round-trip for double bonds."""
 	bond = _make_bond(paper, atoms, bond_type="n", order=2)
 	bond.double_length_ratio = 0.6
@@ -317,7 +317,7 @@ def test_double_length_ratio_roundtrip(paper, atoms):
 # -- Test: simple_double round-trip for non-normal bonds --
 
 #============================================
-def test_simple_double_roundtrip(paper, atoms):
+def test_simple_double_roundtrip(paper: object, atoms: object) -> None:
 	"""simple_double survives round-trip for non-normal bond with order > 1."""
 	bond = _make_bond(paper, atoms, bond_type="w", order=2)
 	bond.simple_double = 0
@@ -328,7 +328,7 @@ def test_simple_double_roundtrip(paper, atoms):
 # -- Test: wedge_width round-trip for non-normal bonds --
 
 #============================================
-def test_wedge_width_roundtrip(paper, atoms):
+def test_wedge_width_roundtrip(paper: object, atoms: object) -> None:
 	"""wedge_width survives round-trip for non-normal (wedge) bonds."""
 	bond = _make_bond(paper, atoms, bond_type="w", order=1)
 	bond.wedge_width = 5.0
@@ -343,19 +343,19 @@ def test_wedge_width_roundtrip(paper, atoms):
 class _ScaledPaper(object):
 	"""Paper stub with a non-unity screen/real ratio for scale tests."""
 
-	def __init__(self, standard, scale):
+	def __init__(self, standard: object, scale: object) -> None:
 		self.standard = standard
 		self._scale = scale
 
-	def screen_to_real_ratio(self):
+	def screen_to_real_ratio(self) -> object:
 		return 1.0 / self._scale
 
-	def real_to_screen_ratio(self):
+	def real_to_screen_ratio(self) -> object:
 		return self._scale
 
 
 #============================================
-def test_wedge_width_roundtrip_scaled():
+def test_wedge_width_roundtrip_scaled() -> None:
 	"""wedge_width cm-to-px round-trip works at non-unity ratio (2x zoom)."""
 	standard = bkchem.classes.standard()
 	scaled_paper = _ScaledPaper(standard, scale=2.0)
@@ -384,7 +384,7 @@ def test_wedge_width_roundtrip_scaled():
 # -- Test: auto_bond_sign default is 1 --
 
 #============================================
-def test_auto_bond_sign_default(paper, atoms):
+def test_auto_bond_sign_default(paper: object, atoms: object) -> None:
 	"""auto_bond_sign defaults to 1 when not serialized."""
 	bond = _make_bond(paper, atoms, bond_type="n", order=2)
 	bond.center = 1

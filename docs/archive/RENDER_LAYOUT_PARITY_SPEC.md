@@ -20,7 +20,7 @@ dependencies and without image/pixel diffing.
 ## Existing baseline
 
 - Existing parity guard:
-  [tests/test_phase_c_render_pipeline.py](tests/test_phase_c_render_pipeline.py)
+  `test_phase_c_render_pipeline.py`
   currently verifies both backends receive equal serialized ops payloads in one
   mocked pipeline path.
 - Existing backend smoke checks confirm outputs are generated, but do not
@@ -89,7 +89,7 @@ Use representative sugars from archive mapping matrix:
 
 Modify:
 
-- [tests/test_phase_c_render_pipeline.py](tests/test_phase_c_render_pipeline.py)
+- `test_phase_c_render_pipeline.py`
 
 Add:
 
@@ -101,7 +101,7 @@ Add:
 
 Create:
 
-- [tests/test_render_layout_parity.py](tests/test_render_layout_parity.py)
+- `test_render_layout_parity.py`
 
 Add:
 

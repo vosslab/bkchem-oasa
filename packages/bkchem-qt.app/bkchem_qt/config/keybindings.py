@@ -1,5 +1,8 @@
 """Keyboard shortcut management for BKChem-Qt."""
 
+# Standard Library
+import functools
+
 # PIP3 modules
 import PySide6.QtCore
 import PySide6.QtGui
@@ -8,29 +11,14 @@ import PySide6.QtWidgets
 # local repo modules
 import bkchem_qt.config.preferences
 
-# Default keybindings: action_name -> key sequence string
+# Non-registry defaults: action_name -> key sequence string.
+#
+# Menu action accelerators belong to ActionRegistry and are converted through
+# PlatformMenuAdapter.  Keeping only direct controls and modes here prevents
+# a second spelling of the same menu shortcut from drifting out of sync.
 DEFAULT_KEYBINDINGS = {
-	"file.new": "Ctrl+N",
-	"file.open": "Ctrl+O",
-	"file.save": "Ctrl+S",
-	"file.save_as": "Ctrl+Shift+S",
-	"file.export_svg": "",
-	"file.export_png": "",
-	"file.export_pdf": "",
-	"file.quit": "Ctrl+Q",
-	"edit.undo": "Ctrl+Z",
-	"edit.redo": "Ctrl+Shift+Z",
-	"edit.cut": "Ctrl+X",
-	"edit.copy": "Ctrl+C",
-	"edit.paste": "Ctrl+V",
-	"edit.select_all": "Ctrl+A",
-	"edit.delete": "Delete",
-	"view.zoom_in": "Ctrl+=",
-	"view.zoom_out": "Ctrl+-",
-	"view.reset_zoom": "Ctrl+0",
 	"view.toggle_grid": "Ctrl+G",
 	"view.toggle_grid_snap": "Ctrl+Shift+G",
-	"view.toggle_theme": "",
 	"mode.edit": "Ctrl+1",
 	"mode.draw": "Ctrl+2",
 	"mode.template": "Ctrl+3",
@@ -44,14 +32,34 @@ DEFAULT_KEYBINDINGS = {
 # settings key prefix for stored keybindings
 _SETTINGS_PREFIX = "keybindings/"
 
+# Earlier Qt builds exposed these IDs in Preferences even though their action
+# registry names were different.  Continue to honor an existing preference,
+# but only the registry IDs are used from this point onward.
+_LEGACY_ACTION_IDS = {
+	"file.load": "file.open",
+	"file.exit": "file.quit",
+	"view.zoom_reset": "view.reset_zoom",
+}
+
+
+#============================================
+class KeybindingConflictError(ValueError):
+	"""Report two active commands configured for the same key sequence."""
+
+
+#============================================
+class KeybindingRegistrationError(ValueError):
+	"""Report a configured shortcut with no action or command target."""
+
 
 #============================================
 class KeybindingManager(PySide6.QtCore.QObject):
 	"""Manages keyboard shortcuts and allows customization.
 
-	Loads keybindings from preferences on startup. Each action name
-	maps to a QShortcut on the main window. Bindings can be changed
-	at runtime and persisted back to preferences.
+	Loads keybindings from preferences on startup. Menu actions keep their
+	native QAction shortcuts so they remain visible in menus; mode commands use
+	QShortcut instances on the main window. Bindings can be changed at runtime
+	and persisted back to preferences.
 
 	Args:
 		main_window: The QMainWindow that owns the shortcuts.
@@ -59,19 +67,41 @@ class KeybindingManager(PySide6.QtCore.QObject):
 	"""
 
 	#============================================
-	def __init__(self, main_window, parent=None):
+	def __init__(self, main_window: PySide6.QtWidgets.QMainWindow,
+			registry: object,
+			parent: PySide6.QtCore.QObject | None = None) -> None:
 		"""Initialize the keybinding manager.
 
 		Args:
 			main_window: The QMainWindow that owns the shortcuts.
+			registry: ActionRegistry containing the menu action contract.
 			parent: Optional parent QObject.
 		"""
 		super().__init__(parent)
 		self._main_window = main_window
+		self._registry = registry
 		self._shortcuts = {}
-		self._bindings = dict(DEFAULT_KEYBINDINGS)
+		self._menu_actions = {}
+		self._bindings = self.default_bindings()
 		# load saved bindings from preferences, overriding defaults
 		self._load_from_preferences()
+
+	#============================================
+	def default_bindings(self) -> dict:
+		"""Return registry, direct-action, and mode shortcut defaults."""
+		from bkchem_qt.actions.platform_menu import format_accelerator
+		bindings = {}
+		for action_name, action in self._registry.all_actions().items():
+			sequence = format_accelerator(action.accelerator)
+			bindings[action_name] = sequence if sequence is not None else ""
+		for action_name, sequence in DEFAULT_KEYBINDINGS.items():
+			if action_name in bindings:
+				raise KeybindingRegistrationError(
+					"Direct shortcut '%s' duplicates an ActionRegistry ID."
+					% action_name
+				)
+			bindings[action_name] = sequence
+		return bindings
 
 	#============================================
 	def _load_from_preferences(self) -> None:
@@ -80,30 +110,90 @@ class KeybindingManager(PySide6.QtCore.QObject):
 		for action_name in self._bindings:
 			key = _SETTINGS_PREFIX + action_name
 			saved = prefs.value(key)
+			if saved is None and action_name in _LEGACY_ACTION_IDS:
+				legacy_key = _SETTINGS_PREFIX + _LEGACY_ACTION_IDS[action_name]
+				saved = prefs.value(legacy_key)
 			if saved is not None and isinstance(saved, str):
 				self._bindings[action_name] = saved
+
+	#============================================
+	def _validate_bindings(self) -> None:
+		"""Reject empty, invalid, or ambiguous active key sequences."""
+		sequences = {}
+		for action_name, key_sequence in self._bindings.items():
+			if not key_sequence:
+				continue
+			sequence = PySide6.QtGui.QKeySequence(key_sequence)
+			normalized = sequence.toString(
+				PySide6.QtGui.QKeySequence.SequenceFormat.PortableText,
+			)
+			if not normalized:
+				raise KeybindingRegistrationError(
+					f"Invalid key sequence for '{action_name}': {key_sequence!r}"
+				)
+			sequences.setdefault(normalized, []).append(action_name)
+		conflicts = {
+			sequence: action_names
+			for sequence, action_names in sequences.items()
+			if len(action_names) > 1
+		}
+		if conflicts:
+			details = "; ".join(
+				f"{sequence}: {', '.join(action_names)}"
+				for sequence, action_names in sorted(conflicts.items())
+			)
+			raise KeybindingConflictError(
+				f"Conflicting BKChem keyboard shortcuts: {details}"
+			)
+
+	#============================================
+	def _mode_callback(self, action_name: str) -> object:
+		"""Return the active-session callback for a mode shortcut."""
+		if not action_name.startswith("mode."):
+			raise KeybindingRegistrationError(
+				f"No shortcut target is registered for '{action_name}'."
+			)
+		mode_name = action_name.split(".", 1)[1]
+		return functools.partial(self._activate_mode, mode_name)
+
+	#============================================
+	def _activate_mode(self, mode_name: str) -> None:
+		"""Select a mode on whichever document session is active now."""
+		self._main_window._on_mode_selected(mode_name)
 
 	#============================================
 	def setup_shortcuts(self) -> None:
 		"""Create QShortcut objects for all bindings.
 
-		Removes any existing shortcuts and creates fresh ones from the
-		current bindings dict. Shortcuts with empty key sequences are
-		created but remain inactive.
+		Menu commands use their existing QActions so their current shortcut is
+		visible in the native menu.  Commands without menu actions (currently
+		mode selection) receive a QShortcut on the window.  Every callback
+		resolves the active session when it fires, never when shortcuts are set
+		up.
 		"""
+		self._validate_bindings()
 		# remove old shortcuts
 		for shortcut in self._shortcuts.values():
 			shortcut.setEnabled(False)
 			shortcut.deleteLater()
 		self._shortcuts.clear()
-		# create new shortcuts
+		self._menu_actions.clear()
+		# apply menu actions or create standalone mode shortcuts
 		for action_name, key_seq_str in self._bindings.items():
-			shortcut = PySide6.QtWidgets.QShortcut(self._main_window)
-			if key_seq_str:
-				shortcut.setKey(PySide6.QtGui.QKeySequence(key_seq_str))
-			shortcut.setContext(
-				PySide6.QtCore.Qt.ShortcutContext.ApplicationShortcut
+			menu_action = self._main_window._adapter.get_action_by_key(
+				action_name
 			)
+			if menu_action is not None:
+				menu_action.setShortcut(PySide6.QtGui.QKeySequence(key_seq_str))
+				self._menu_actions[action_name] = menu_action
+				continue
+			shortcut = PySide6.QtGui.QShortcut(
+				PySide6.QtGui.QKeySequence(key_seq_str), self._main_window,
+			)
+			shortcut.setContext(
+				PySide6.QtCore.Qt.ShortcutContext.WindowShortcut
+			)
+			shortcut.activated.connect(self._mode_callback(action_name))
 			self._shortcuts[action_name] = shortcut
 
 	#============================================
@@ -118,12 +208,23 @@ class KeybindingManager(PySide6.QtCore.QObject):
 			key_sequence: Qt key sequence string (e.g. "Ctrl+N") or
 				empty string to clear.
 		"""
-		self._bindings[action_name] = key_sequence
-		# update the live shortcut if it exists
-		if action_name in self._shortcuts:
-			self._shortcuts[action_name].setKey(
-				PySide6.QtGui.QKeySequence(key_sequence)
+		if action_name not in self._bindings:
+			raise KeybindingRegistrationError(
+				f"Unknown BKChem keyboard action '{action_name}'."
 			)
+		previous = self._bindings[action_name]
+		self._bindings[action_name] = key_sequence
+		try:
+			self._validate_bindings()
+		except (KeybindingConflictError, KeybindingRegistrationError):
+			self._bindings[action_name] = previous
+			raise
+		# update the live shortcut if it exists
+		sequence = PySide6.QtGui.QKeySequence(key_sequence)
+		if action_name in self._menu_actions:
+			self._menu_actions[action_name].setShortcut(sequence)
+		if action_name in self._shortcuts:
+			self._shortcuts[action_name].setKey(sequence)
 		# persist to preferences
 		prefs = bkchem_qt.config.preferences.Preferences.instance()
 		prefs.set_value(_SETTINGS_PREFIX + action_name, key_sequence)
@@ -148,18 +249,18 @@ class KeybindingManager(PySide6.QtCore.QObject):
 		clears saved overrides from preferences.
 		"""
 		prefs = bkchem_qt.config.preferences.Preferences.instance()
-		for action_name, default_seq in DEFAULT_KEYBINDINGS.items():
-			self._bindings[action_name] = default_seq
-			# update live shortcut
+		self._bindings = self.default_bindings()
+		self._validate_bindings()
+		for action_name, default_seq in self._bindings.items():
+			sequence = PySide6.QtGui.QKeySequence(default_seq)
+			if action_name in self._menu_actions:
+				self._menu_actions[action_name].setShortcut(sequence)
 			if action_name in self._shortcuts:
-				self._shortcuts[action_name].setKey(
-					PySide6.QtGui.QKeySequence(default_seq)
-				)
-			# clear saved override
+				self._shortcuts[action_name].setKey(sequence)
 			prefs.set_value(_SETTINGS_PREFIX + action_name, default_seq)
 
 	#============================================
-	def connect_action(self, action_name: str, callback) -> None:
+	def connect_action(self, action_name: str, callback: object) -> None:
 		"""Connect a callback to a named action's shortcut.
 
 		The callback is invoked when the shortcut's key sequence is
@@ -172,6 +273,8 @@ class KeybindingManager(PySide6.QtCore.QObject):
 		"""
 		if action_name in self._shortcuts:
 			self._shortcuts[action_name].activated.connect(callback)
+		elif action_name in self._menu_actions:
+			self._menu_actions[action_name].triggered.connect(callback)
 
 	#============================================
 	def get_all_bindings(self) -> dict:

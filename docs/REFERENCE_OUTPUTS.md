@@ -3,8 +3,8 @@
 Reference SVG and PNG outputs used to validate Haworth rendering.
 
 ## Files
-- [docs/reference_outputs/haworth_reference.svg](docs/reference_outputs/haworth_reference.svg)
-- [docs/reference_outputs/haworth_reference.png](docs/reference_outputs/haworth_reference.png)
+- [haworth_reference.svg](reference_outputs/haworth_reference.svg)
+- [haworth_reference.png](reference_outputs/haworth_reference.png)
 
 ## Regenerate
 Run the renderer script (requires pycairo for PNG output):

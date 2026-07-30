@@ -46,19 +46,19 @@ PRINTER_COLORS = [
 
 #============================================
 @pytest.fixture
-def output_dir(request, tmp_path):
+def output_dir(request: object, tmp_path: object) -> object:
 	if request.config.getoption("save"):
 		return os.getcwd()
 	return tmp_path
 
 
 #============================================
-def output_path(output_dir, filename):
+def output_path(output_dir: object, filename: object) -> object:
 	return os.path.join(str(output_dir), filename)
 
 
 #============================================
-def build_molecule():
+def build_molecule() -> object:
 	"""Build a simple molecule with varied bond styles."""
 	mol = oasa.smiles_lib.text_to_mol(DEFAULT_SMILES, calc_coords=False)
 	if not mol:
@@ -77,7 +77,7 @@ def build_molecule():
 
 
 #============================================
-def build_printer_self_test():
+def build_printer_self_test() -> object:
 	"""Build a molecule with all bond styles and colors for smoke testing."""
 	mol = oasa.molecule_lib.Molecule()
 	spacing_x = 110
@@ -107,7 +107,7 @@ def build_printer_self_test():
 
 
 #============================================
-def render_svg(mol, output_path):
+def render_svg(mol: object, output_path: object) -> object:
 	"""Render a molecule to SVG using svg_out."""
 	from oasa import svg_out
 	renderer = svg_out.svg_out()
@@ -120,7 +120,7 @@ def render_svg(mol, output_path):
 
 
 #============================================
-def render_png(mol, output_path, scaling=1.0):
+def render_png(mol: object, output_path: object, scaling: object = 1.0) -> object:
 	"""Render a molecule to PNG using cairo_out."""
 	from oasa import cairo_out
 	renderer = cairo_out.cairo_out(color_bonds=False, color_atoms=False, scaling=scaling)
@@ -130,7 +130,7 @@ def render_png(mol, output_path, scaling=1.0):
 
 
 #============================================
-def test_oasa_bond_styles_svg(output_dir):
+def test_oasa_bond_styles_svg(output_dir: object) -> None:
 	mol = build_molecule()
 	svg_path = output_path(output_dir, "oasa_bond_styles_smoke.svg")
 
@@ -146,7 +146,7 @@ def test_oasa_bond_styles_svg(output_dir):
 
 
 #============================================
-def test_oasa_bond_styles_png(output_dir):
+def test_oasa_bond_styles_png(output_dir: object) -> None:
 	if not CAIRO_AVAILABLE:
 		pytest.skip("Cairo backend not available.")
 	mol = build_molecule()
@@ -157,7 +157,7 @@ def test_oasa_bond_styles_png(output_dir):
 
 
 #============================================
-def test_oasa_bond_styles_printer_svg(output_dir):
+def test_oasa_bond_styles_printer_svg(output_dir: object) -> None:
 	mol = build_printer_self_test()
 	svg_path = output_path(output_dir, "oasa_bond_styles_printer_self_test.svg")
 	render_svg(mol, svg_path)
@@ -171,7 +171,7 @@ def test_oasa_bond_styles_printer_svg(output_dir):
 
 
 #============================================
-def test_oasa_bond_styles_printer_png(output_dir):
+def test_oasa_bond_styles_printer_png(output_dir: object) -> None:
 	if not CAIRO_AVAILABLE:
 		pytest.skip("Cairo backend not available.")
 	mol = build_printer_self_test()

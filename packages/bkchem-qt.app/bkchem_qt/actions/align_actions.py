@@ -1,192 +1,147 @@
 """Align menu action registrations for BKChem-Qt."""
 
 # local repo modules
+import bkchem_qt.geometry
+import bkchem_qt.models.document_object
+import bkchem_qt.models.molecule_model
 import bkchem_qt.undo.commands
 from bkchem_qt.actions.action_registry import MenuAction
 
 
 #============================================
-def _align_selection(app, direction: str) -> None:
-	"""Align selected atoms grouped by parent molecule.
+def _push_top_level_transform(
+		app: object, objects_and_offsets: list[tuple[object, float, float]],
+		text: str,
+		) -> bool:
+	"""Commit top-level translation snapshots through the document undo stack."""
+	atom_changes = []
+	presentation_changes = []
+	for object_model, dx, dy in objects_and_offsets:
+		if isinstance(
+			object_model, bkchem_qt.models.molecule_model.MoleculeModel,
+			):
+			for atom_model in object_model.atoms:
+				before = (atom_model.x, atom_model.y)
+				after = (before[0] + dx, before[1] + dy)
+				if after != before:
+					atom_changes.append((atom_model, before, after))
+		elif isinstance(
+			object_model, bkchem_qt.models.document_object.PresentationObject,
+			):
+			before_points = object_model.points
+			before_bounds = object_model.bounds
+			after_points = [
+				(x + dx, y + dy, z) for x, y, z in before_points
+			]
+			after_bounds = bkchem_qt.geometry.translate_bounds(
+				before_bounds, dx, dy,
+			)
+			if after_points != before_points or after_bounds != before_bounds:
+				presentation_changes.append((
+					object_model,
+					(before_points, before_bounds),
+					(after_points, after_bounds),
+				))
+		else:
+			raise TypeError(f"Unsupported document object: {type(object_model)!r}")
+	if not atom_changes and not presentation_changes:
+		return False
+	app.document.undo_stack.push(
+		bkchem_qt.undo.commands.TransformGeometryCommand(
+			atom_changes, presentation_changes, text,
+		),
+	)
+	return True
 
-	Groups selected atoms by their parent MoleculeModel, computes the
-	bounding box for each group, determines the alignment target from
-	the aggregate bounds, then moves each group so its bounding-box
-	edge (or center) matches the target. Pushes a MoveAtomsCommand
-	onto the undo stack so the operation is reversible.
 
-	Args:
-		app: The main BKChem-Qt application object.
-		direction: One of 'top', 'bottom', 'left', 'right',
-			'center_h', or 'center_v'.
-	"""
-	atoms = app.document.selected_atoms
-	if len(atoms) < 2:
+#============================================
+def _align_target(direction: str, bounds: list[tuple[float, float, float, float]]) -> float:
+	"""Return the legacy top-level bbox alignment coordinate."""
+	if direction == "top":
+		return min(bound[1] for bound in bounds)
+	if direction == "bottom":
+		return max(bound[3] for bound in bounds)
+	if direction == "left":
+		return min(bound[0] for bound in bounds)
+	if direction == "right":
+		return max(bound[2] for bound in bounds)
+	if direction == "center_h":
+		centers = [(bound[0] + bound[2]) / 2.0 for bound in bounds]
+		return (min(centers) + max(centers)) / 2.0
+	if direction == "center_v":
+		centers = [(bound[1] + bound[3]) / 2.0 for bound in bounds]
+		return (min(centers) + max(centers)) / 2.0
+	raise ValueError(f"Unknown align direction: {direction}")
+
+
+#============================================
+def _align_selection(app: object, direction: str) -> None:
+	"""Align selected top-level document objects by persistent bounding boxes."""
+	objects = app.document.selected_top_level_objects
+	objects_and_bounds = [
+		(object_model, bkchem_qt.geometry.top_level_bounds(object_model))
+		for object_model in objects
+	]
+	objects_and_bounds = [
+		(object_model, bounds) for object_model, bounds in objects_and_bounds
+		if bounds is not None
+	]
+	if len(objects_and_bounds) < 2:
 		app.statusBar().showMessage(
-			"Select at least 2 atoms to align", 3000
+			"Select at least 2 objects to align", 3000,
 		)
 		return
-
-	# group selected atom items by parent molecule
-	groups = {}
-	for atom_item in atoms:
-		mol = app.document._find_molecule_for_atom(atom_item.atom_model)
-		# use molecule identity as key, fall back to atom identity
-		mol_key = id(mol) if mol is not None else id(atom_item)
-		if mol_key not in groups:
-			groups[mol_key] = []
-		groups[mol_key].append(atom_item)
-
-	if len(groups) < 2:
-		app.statusBar().showMessage(
-			"Select items from at least 2 molecules to align", 3000
+	try:
+		target = _align_target(
+			direction, [bounds for _object_model, bounds in objects_and_bounds],
 		)
+	except ValueError:
+		app.statusBar().showMessage(f"Unknown align direction: {direction}", 3000)
 		return
-
-	# compute bounding box for each molecule group
-	group_bounds = {}
-	for mol_key, group_atoms in groups.items():
-		xs = [a.atom_model.x for a in group_atoms]
-		ys = [a.atom_model.y for a in group_atoms]
-		group_bounds[mol_key] = {
-			'top': min(ys),
-			'bottom': max(ys),
-			'left': min(xs),
-			'right': max(xs),
-			'center_x': (min(xs) + max(xs)) / 2.0,
-			'center_y': (min(ys) + max(ys)) / 2.0,
-		}
-
-	# compute alignment target from aggregate bounds
-	if direction == 'top':
-		target = min(b['top'] for b in group_bounds.values())
-	elif direction == 'bottom':
-		target = max(b['bottom'] for b in group_bounds.values())
-	elif direction == 'left':
-		target = min(b['left'] for b in group_bounds.values())
-	elif direction == 'right':
-		target = max(b['right'] for b in group_bounds.values())
-	elif direction == 'center_h':
-		centers = [b['center_x'] for b in group_bounds.values()]
-		target = sum(centers) / len(centers)
-	elif direction == 'center_v':
-		centers = [b['center_y'] for b in group_bounds.values()]
-		target = sum(centers) / len(centers)
-	else:
-		app.statusBar().showMessage(
-			f"Unknown align direction: {direction}", 3000
-		)
-		return
-
-	# compute per-group offsets and apply immediately
-	items_and_offsets = []
-	for mol_key, group_atoms in groups.items():
-		bounds = group_bounds[mol_key]
+	offsets = []
+	for object_model, bounds in objects_and_bounds:
+		left, top, right, bottom = bounds
 		dx = 0.0
 		dy = 0.0
-		if direction == 'top':
-			dy = target - bounds['top']
-		elif direction == 'bottom':
-			dy = target - bounds['bottom']
-		elif direction == 'left':
-			dx = target - bounds['left']
-		elif direction == 'right':
-			dx = target - bounds['right']
-		elif direction == 'center_h':
-			dx = target - bounds['center_x']
-		elif direction == 'center_v':
-			dy = target - bounds['center_y']
-
-		# skip groups that are already aligned
-		if abs(dx) < 0.001 and abs(dy) < 0.001:
-			continue
-
-		# move each atom in the group
-		for atom_item in group_atoms:
-			atom_item.atom_model.x += dx
-			atom_item.atom_model.y += dy
-			items_and_offsets.append((atom_item, dx, dy))
-
-	if not items_and_offsets:
+		if direction == "top":
+			dy = target - top
+		elif direction == "bottom":
+			dy = target - bottom
+		elif direction == "left":
+			dx = target - left
+		elif direction == "right":
+			dx = target - right
+		elif direction == "center_h":
+			dx = target - (left + right) / 2.0
+		elif direction == "center_v":
+			dy = target - (top + bottom) / 2.0
+		offsets.append((object_model, dx, dy))
+	if not _push_top_level_transform(app, offsets, f"Align {direction}"):
 		app.statusBar().showMessage("Items already aligned", 3000)
 		return
-
-	# push undo command (first redo is skipped because items moved above)
-	cmd = bkchem_qt.undo.commands.MoveAtomsCommand(
-		items_and_offsets, text=f"Align {direction}",
-	)
-	app.document.undo_stack.push(cmd)
 	app.statusBar().showMessage(f"Aligned {direction}", 2000)
 
 
 #============================================
-def register_align_actions(registry, app) -> None:
-	"""Register all Align menu actions.
+def register_align_actions(registry: object, app: object) -> None:
+	"""Register all Align menu actions."""
+	def has_selection() -> bool:
+		"""Return whether any document-backed item is selected."""
+		return app.document is not None and app.document.has_selection
 
-	Args:
-		registry: ActionRegistry instance to register actions with.
-		app: The main BKChem-Qt application object providing handler methods.
-	"""
-	# predicate: true when the document has selected items
-	def has_selection():
-		return app.document.has_selection
-
-	# align the tops of selected objects
-	registry.register(MenuAction(
-		id='align.top',
-		label_key='Top',
-		help_key='Align the tops of selected objects',
-		accelerator=None,
-		handler=lambda: _align_selection(app, 'top'),
-		enabled_when=has_selection,
-	))
-
-	# align the bottoms of selected objects
-	registry.register(MenuAction(
-		id='align.bottom',
-		label_key='Bottom',
-		help_key='Align the bottoms of selected objects',
-		accelerator=None,
-		handler=lambda: _align_selection(app, 'bottom'),
-		enabled_when=has_selection,
-	))
-
-	# align the left sides of selected objects
-	registry.register(MenuAction(
-		id='align.left',
-		label_key='Left',
-		help_key='Align the left sides of selected objects',
-		accelerator=None,
-		handler=lambda: _align_selection(app, 'left'),
-		enabled_when=has_selection,
-	))
-
-	# align the right sides of selected objects
-	registry.register(MenuAction(
-		id='align.right',
-		label_key='Right',
-		help_key='Align the right sides of selected objects',
-		accelerator=None,
-		handler=lambda: _align_selection(app, 'right'),
-		enabled_when=has_selection,
-	))
-
-	# align the horizontal centers of selected objects
-	registry.register(MenuAction(
-		id='align.center_h',
-		label_key='Center horizontally',
-		help_key='Align the horizontal centers of selected objects',
-		accelerator=None,
-		handler=lambda: _align_selection(app, 'center_h'),
-		enabled_when=has_selection,
-	))
-
-	# align the vertical centers of selected objects
-	registry.register(MenuAction(
-		id='align.center_v',
-		label_key='Center vertically',
-		help_key='Align the vertical centers of selected objects',
-		accelerator=None,
-		handler=lambda: _align_selection(app, 'center_v'),
-		enabled_when=has_selection,
-	))
+	for action_id, label, help_key, direction in (
+		("align.top", "Top", "Align the tops of selected objects", "top"),
+		("align.bottom", "Bottom", "Align the bottoms of selected objects", "bottom"),
+		("align.left", "Left", "Align the left sides of selected objects", "left"),
+		("align.right", "Right", "Align the right sides of selected objects", "right"),
+		("align.center_h", "Center horizontally", "Align the horizontal centers of selected objects", "center_h"),
+		("align.center_v", "Center vertically", "Align the vertical centers of selected objects", "center_v"),
+	):
+		registry.register(MenuAction(
+			id=action_id,
+			label_key=label,
+			help_key=help_key,
+			accelerator=None,
+			handler=lambda direction=direction: _align_selection(app, direction),
+			enabled_when=has_selection,
+		))

@@ -5,7 +5,7 @@ import oasa.cdml_bond_io as cdml_bond_io
 
 
 #============================================
-def test_select_cdml_attributes_skips_defaults():
+def test_select_cdml_attributes_skips_defaults() -> None:
 	values = {
 		"line_width": "1.0",
 		"color": "#000",
@@ -20,7 +20,7 @@ def test_select_cdml_attributes_skips_defaults():
 
 
 #============================================
-def test_select_cdml_attributes_keeps_non_default():
+def test_select_cdml_attributes_keeps_non_default() -> None:
 	values = {
 		"line_width": "2.0",
 	}

@@ -24,9 +24,9 @@ class BkOptionMenu(tkinter.ttk.Frame):
 	Pmw.OptionMenu API used throughout BKChem.
 	"""
 
-	def __init__(self, parent, labelpos: str = 'w', label_text: str = '',
-				items: tuple = (), command=None, initialitem=None,
-				menubutton_width: int = None):
+	def __init__(self, parent: object, labelpos: str = 'w', label_text: str = '',
+				items: tuple = (), command: object=None, initialitem: object=None,
+				menubutton_width: int=None) -> None:
 		"""Initialize BkOptionMenu.
 
 		Args:
@@ -91,7 +91,7 @@ class BkOptionMenu(tkinter.ttk.Frame):
 		self._combo.bind('<<ComboboxSelected>>', self._on_select)
 
 	#============================================
-	def _on_select(self, event=None):
+	def _on_select(self, event: object=None) -> None:
 		"""Handle combobox selection change events.
 
 		Clears focus from the combobox and invokes the user callback
@@ -117,7 +117,7 @@ class BkOptionMenu(tkinter.ttk.Frame):
 		self._var.set(val)
 
 	#============================================
-	def index(self, val) -> int:
+	def index(self, val: object) -> int:
 		"""Return the index of val in the item list.
 
 		For Pmw.SELECT compatibility, passing the string 'select'
@@ -139,7 +139,7 @@ class BkOptionMenu(tkinter.ttk.Frame):
 		return self._items.index(val)
 
 	#============================================
-	def setitems(self, items) -> None:
+	def setitems(self, items: object) -> None:
 		"""Replace the item list with a new sequence.
 
 		If the previously selected value exists in the new list it is
@@ -169,9 +169,9 @@ class BkRadioSelect(tkinter.Frame):
 	BooleanVar (check).
 	"""
 
-	def __init__(self, parent, labelpos: str = 'n', label_text: str = '',
+	def __init__(self, parent: object, labelpos: str = 'n', label_text: str = '',
 				buttontype: str = 'radiobutton', orient: str = 'horizontal',
-				command=None):
+				command: object=None) -> None:
 		"""Initialize BkRadioSelect.
 
 		Args:
@@ -277,7 +277,7 @@ class BkRadioSelect(tkinter.Frame):
 		return self.getvalue()
 
 	#============================================
-	def invoke(self, label) -> None:
+	def invoke(self, label: object) -> None:
 		"""Programmatically select the given value.
 
 		For radiobutton mode, sets the shared variable and fires
@@ -305,7 +305,7 @@ class BkRadioSelect(tkinter.Frame):
 			self._on_radio(label)
 
 	#============================================
-	def index(self, val) -> int:
+	def index(self, val: object) -> int:
 		"""Return the integer index of a value in the button list.
 
 		Args:
@@ -350,7 +350,7 @@ class BkGroup(tkinter.ttk.LabelFrame):
 	outer frame and the interior container.
 	"""
 
-	def __init__(self, parent, tag_text: str = ''):
+	def __init__(self, parent: object, tag_text: str = '') -> None:
 		"""Initialize BkGroup.
 
 		Args:
@@ -360,7 +360,7 @@ class BkGroup(tkinter.ttk.LabelFrame):
 		tkinter.ttk.LabelFrame.__init__(self, parent, text=tag_text)
 
 	#============================================
-	def interior(self):
+	def interior(self) -> object:
 		"""Return the interior container widget.
 
 		Returns self because the LabelFrame is its own container.

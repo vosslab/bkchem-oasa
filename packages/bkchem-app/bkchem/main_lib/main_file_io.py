@@ -32,7 +32,7 @@ _ = builtins.__dict__.get( '_', lambda m: m)
 class MainFileIOMixin:
 	"""File save/load helpers extracted from main.py."""
 
-	def save_CDML( self, name=None, update_default_dir=1):
+	def save_CDML( self, name: object = None, update_default_dir: object = 1) -> object:
 		"""saves content of self.paper (recent paper) under its filename,
 		if the filename was automaticaly given by bkchem it will call save_as_CDML
 		in order to ask for the name"""
@@ -47,7 +47,7 @@ class MainFileIOMixin:
 			return self._save_according_to_extension( name, update_default_dir=update_default_dir)
 
 
-	def save_as_CDML( self):
+	def save_as_CDML( self) -> object:
 		"""asks the user the name for a file and saves the current paper there,
 		dir and name should be given as starting values"""
 		d = self.paper.file_name['dir']
@@ -76,7 +76,7 @@ class MainFileIOMixin:
 			return None
 
 
-	def _save_according_to_extension( self, filename, update_default_dir=1):
+	def _save_according_to_extension( self, filename: str, update_default_dir: object = 1) -> object:
 		"""decides the format from the file extension and saves self.paper in it"""
 		save_dir, save_file = os.path.split( filename)
 		if update_default_dir:
@@ -104,7 +104,7 @@ class MainFileIOMixin:
 			return 0
 
 
-	def set_file_name( self, name, check_ext=0):
+	def set_file_name( self, name: str, check_ext: object = 0) -> None:
 		"""if check_ext is true append a .svg extension if no is present"""
 		if check_ext and not os.path.splitext( name)[1]:
 			self.paper.file_name = self.get_name_dic( name + ".svg", local_file=1)
@@ -116,7 +116,7 @@ class MainFileIOMixin:
 			self.notebook.tab(frame, text=self.paper.file_name['name'])
 
 
-	def load_CDML( self, file=None, replace=0):
+	def load_CDML( self, file: object = None, replace: object = 0) -> object:
 		"""loads a file into a new paper or the current one (depending on replace value),
 		file is the name of the file to load (if not supplied dialog is fired),
 		if replace == 0 the content of the file is added to the current content of the file"""
@@ -158,7 +158,7 @@ class MainFileIOMixin:
 		return 0
 
 
-	def _load_CDML_file( self, a, draw=True):
+	def _load_CDML_file( self, a: str, draw: bool = True) -> object:
 		if a != '':
 			self.save_dir, save_file = os.path.split( a)
 			## try if the file is gzipped
@@ -235,11 +235,11 @@ class MainFileIOMixin:
 			return 1
 
 
-	def save_SVG( self, file_name=None):
+	def save_SVG( self, file_name: object = None) -> object:
 		return self.format_export( "svg", filename=file_name)
 
 
-	def format_import( self, codec_name, filename=None):
+	def format_import( self, codec_name: str, filename: object = None) -> object:
 		entry = self.format_entries.get( codec_name)
 		if not entry:
 			return 0
@@ -286,7 +286,7 @@ class MainFileIOMixin:
 		return 1
 
 
-	def format_export( self, codec_name, filename=None, interactive=True, on_begin_attrs=None):
+	def format_export( self, codec_name: str, filename: object = None, interactive: bool = True, on_begin_attrs: object = None) -> bool:
 		_ = interactive
 		_ = on_begin_attrs
 		entry = self.format_entries.get( codec_name)
@@ -343,7 +343,7 @@ class MainFileIOMixin:
 		return True
 
 
-	def _format_filetypes( self, format_name, extensions):
+	def _format_filetypes( self, format_name: str, extensions: object) -> list:
 		types = []
 		for ext in extensions:
 			types.append( (format_name+" "+_("file"), ext))
@@ -351,7 +351,7 @@ class MainFileIOMixin:
 		return types
 
 
-	def _record_recent_file( self, name):
+	def _record_recent_file( self, name: str) -> None:
 		if name in self._recent_files:
 			self._recent_files.remove( name)
 		self._recent_files.insert( 0, name)

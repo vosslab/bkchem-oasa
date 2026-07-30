@@ -48,17 +48,17 @@ HAWORTH_EXPECTED_ORIENTATION = "ccw"
 
 #============================================
 def build_haworth(
-		mol,
-		mode="pyranose",
-		ring_atoms=None,
-		bond_length=30,
-		front_style="haworth",
-		back_style="n",
-		front_count=None,
-		series=None,
-		stereo=None,
-		substituent_map=None,
-		substituent_length=None):
+		mol: object,
+		mode: object="pyranose",
+		ring_atoms: object=None,
+		bond_length: object=30,
+		front_style: object="haworth",
+		back_style: object="n",
+		front_count: object=None,
+		series: object=None,
+		stereo: object=None,
+		substituent_map: object=None,
+		substituent_length: object=None) -> object:
 	"""Apply a Haworth-style ring layout and tag front edges.
 
 	Args:
@@ -113,7 +113,7 @@ def build_haworth(
 
 
 #============================================
-def _find_ring_atoms(mol, ring_size):
+def _find_ring_atoms(mol: object, ring_size: object) -> object:
 	for ring in mol.get_smallest_independent_cycles():
 		if len(ring) == ring_size:
 			return list(ring)
@@ -121,7 +121,7 @@ def _find_ring_atoms(mol, ring_size):
 
 
 #============================================
-def _order_ring_atoms(mol, ring_atoms):
+def _order_ring_atoms(mol: object, ring_atoms: object) -> object:
 	ring_set = set(ring_atoms)
 	ordered = []
 	# Prefer starting at oxygen if exactly one O is in the ring
@@ -155,7 +155,7 @@ def _order_ring_atoms(mol, ring_atoms):
 
 
 #============================================
-def _rotate_for_oxygen(ordered_atoms, ring_size):
+def _rotate_for_oxygen(ordered_atoms: object, ring_size: object) -> object:
 	target_index = _oxygen_target_index(ring_size)
 	if target_index is None:
 		return ordered_atoms
@@ -173,7 +173,7 @@ def _rotate_for_oxygen(ordered_atoms, ring_size):
 
 
 #============================================
-def _oxygen_target_index(ring_size):
+def _oxygen_target_index(ring_size: object) -> object:
 	if ring_size == 6:
 		return PYRANOSE_O_INDEX
 	if ring_size == 5:
@@ -182,7 +182,7 @@ def _oxygen_target_index(ring_size):
 
 
 #============================================
-def _normalize_orientation(ordered_atoms, coords, ring_size):
+def _normalize_orientation(ordered_atoms: object, coords: object, ring_size: object) -> object:
 	area = _signed_area(coords)
 	if _orientation_matches(area):
 		return ordered_atoms, coords
@@ -192,7 +192,7 @@ def _normalize_orientation(ordered_atoms, coords, ring_size):
 
 
 #============================================
-def _signed_area(points):
+def _signed_area(points: object) -> object:
 	if len(points) < 3:
 		return 0.0
 	area = 0.0
@@ -204,7 +204,7 @@ def _signed_area(points):
 
 
 #============================================
-def _orientation_matches(area):
+def _orientation_matches(area: object) -> object:
 	if HAWORTH_EXPECTED_ORIENTATION == "ccw":
 		return area < 0
 	if HAWORTH_EXPECTED_ORIENTATION == "cw":
@@ -213,7 +213,7 @@ def _orientation_matches(area):
 
 
 #============================================
-def _ring_template(ring_size, bond_length=30):
+def _ring_template(ring_size: object, bond_length: object=30) -> object:
 	if ring_size == 6:
 		points = list(PYRANOSE_TEMPLATE)
 	elif ring_size == 5:
@@ -229,7 +229,7 @@ def _ring_template(ring_size, bond_length=30):
 
 
 #============================================
-def _mean_edge_length(points):
+def _mean_edge_length(points: object) -> object:
 	if len(points) < 2:
 		return None
 	total = 0.0
@@ -241,7 +241,7 @@ def _mean_edge_length(points):
 
 
 #============================================
-def _center_ring_on_atoms(points, atoms):
+def _center_ring_on_atoms(points: object, atoms: object) -> object:
 	if not atoms:
 		return
 	avg_x = sum(a.x for a in atoms) / len(atoms)
@@ -255,14 +255,14 @@ def _center_ring_on_atoms(points, atoms):
 
 
 #============================================
-def _apply_coords(atoms, points):
+def _apply_coords(atoms: object, points: object) -> object:
 	for atom, (x, y) in zip(atoms, points):
 		atom.x = x
 		atom.y = y
 
 
 #============================================
-def _ring_bonds(mol, atoms):
+def _ring_bonds(mol: object, atoms: object) -> object:
 	bonds = []
 	for i in range(len(atoms)):
 		v1 = atoms[i]
@@ -276,7 +276,7 @@ def _ring_bonds(mol, atoms):
 
 
 #============================================
-def _tag_front_edges(atoms, bonds, points, front_style="haworth", back_style="n", front_count=None):
+def _tag_front_edges(atoms: object, bonds: object, points: object, front_style: object="haworth", back_style: object="n", front_count: object=None) -> object:
 	edge_midpoints = []
 	midpoint_map = {}
 	for i in range(len(points)):
@@ -321,12 +321,12 @@ def _tag_front_edges(atoms, bonds, points, front_style="haworth", back_style="n"
 
 
 #============================================
-def _resolve_front_style(front_style, edge_x, center_x):
+def _resolve_front_style(front_style: object, edge_x: object, center_x: object) -> object:
 	return front_style
 
 
 #============================================
-def _haworth_front_indices(edge_midpoints, ring_size):
+def _haworth_front_indices(edge_midpoints: object, ring_size: object) -> object:
 	if not edge_midpoints:
 		return set(), {}, None
 	front_idx = max(edge_midpoints, key=lambda item: item[2])[0]
@@ -342,7 +342,7 @@ def _haworth_front_indices(edge_midpoints, ring_size):
 
 
 #============================================
-def _orient_wedge(bond, front_vertices=None):
+def _orient_wedge(bond: object, front_vertices: object=None) -> object:
 	v1, v2 = bond.vertices
 	if front_vertices:
 		if v1 in front_vertices and v2 not in front_vertices:
@@ -356,13 +356,13 @@ def _orient_wedge(bond, front_vertices=None):
 
 #============================================
 def place_substituents(
-		mol,
-		ring_atoms,
-		series=None,
-		stereo=None,
-		substituent_map=None,
-		bond_length=30,
-		substituent_length=None):
+		mol: object,
+		ring_atoms: object,
+		series: object=None,
+		stereo: object=None,
+		substituent_map: object=None,
+		bond_length: object=30,
+		substituent_length: object=None) -> object:
 	series = _normalize_series(series)
 	stereo = _normalize_stereo(stereo)
 	if stereo and not series:
@@ -399,7 +399,7 @@ def place_substituents(
 
 
 #============================================
-def _normalize_series(series):
+def _normalize_series(series: object) -> object:
 	if not series:
 		return None
 	text = str(series).strip().upper()
@@ -409,7 +409,7 @@ def _normalize_series(series):
 
 
 #============================================
-def _normalize_stereo(stereo):
+def _normalize_stereo(stereo: object) -> object:
 	if not stereo:
 		return None
 	text = str(stereo).strip().lower()
@@ -421,7 +421,7 @@ def _normalize_stereo(stereo):
 
 
 #============================================
-def _build_substituent_orientations(ring_atoms, series=None, stereo=None, substituent_map=None):
+def _build_substituent_orientations(ring_atoms: object, series: object=None, stereo: object=None, substituent_map: object=None) -> object:
 	orientations = {}
 	_apply_substituent_map(orientations, ring_atoms, substituent_map)
 	if not series and not stereo:
@@ -450,7 +450,7 @@ def _build_substituent_orientations(ring_atoms, series=None, stereo=None, substi
 
 
 #============================================
-def _apply_substituent_map(orientations, ring_atoms, substituent_map):
+def _apply_substituent_map(orientations: object, ring_atoms: object, substituent_map: object) -> object:
 	if not substituent_map:
 		return
 	for key, value in substituent_map.items():
@@ -465,7 +465,7 @@ def _apply_substituent_map(orientations, ring_atoms, substituent_map):
 
 
 #============================================
-def _normalize_orientation_text(value):
+def _normalize_orientation_text(value: object) -> object:
 	if not value:
 		return None
 	text = str(value).strip().lower()
@@ -477,7 +477,7 @@ def _normalize_orientation_text(value):
 
 
 #============================================
-def _ring_oxygen_index(ring_atoms):
+def _ring_oxygen_index(ring_atoms: object) -> object:
 	for idx, atom in enumerate(ring_atoms):
 		if getattr(atom, "symbol", None) == "O":
 			return idx
@@ -485,7 +485,7 @@ def _ring_oxygen_index(ring_atoms):
 
 
 #============================================
-def _collect_substituent_group(start_atom, ring_set):
+def _collect_substituent_group(start_atom: object, ring_set: object) -> object:
 	group = []
 	stack = [start_atom]
 	seen = set()
@@ -502,14 +502,14 @@ def _collect_substituent_group(start_atom, ring_set):
 
 
 #============================================
-def _substituent_target(ring_atom, orientation, length):
+def _substituent_target(ring_atom: object, orientation: object, length: object) -> object:
 	if orientation == "up":
 		return ring_atom.x, ring_atom.y - length
 	return ring_atom.x, ring_atom.y + length
 
 
 #============================================
-def _shift_substituent_group(group, anchor_atom, target_x, target_y):
+def _shift_substituent_group(group: object, anchor_atom: object, target_x: object, target_y: object) -> object:
 	dx = target_x - anchor_atom.x
 	dy = target_y - anchor_atom.y
 	if dx == 0 and dy == 0:
@@ -520,5 +520,5 @@ def _shift_substituent_group(group, anchor_atom, target_x, target_y):
 
 
 #============================================
-def _distance(x1, y1, x2, y2):
+def _distance(x1: object, y1: object, x2: object, y2: object) -> object:
 	return math.hypot(x2 - x1, y2 - y1)

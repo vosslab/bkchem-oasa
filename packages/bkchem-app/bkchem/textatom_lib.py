@@ -52,7 +52,7 @@ class BkTextatom( drawable_chem_vertex):
                           ( 'charge',)
 
 
-  def __init__( self, standard=None, xy=(), package=None, molecule=None):
+  def __init__( self, standard: object=None, xy: object=(), package: object=None, molecule: object=None) -> None:
     drawable_chem_vertex.__init__( self, standard=standard, xy=xy, molecule=molecule)
 
     self.symbol = ''
@@ -63,12 +63,12 @@ class BkTextatom( drawable_chem_vertex):
 
 
   @property
-  def symbol(self):
+  def symbol(self) -> object:
     return self._symbol
 
 
   @symbol.setter
-  def symbol(self, symbol):
+  def symbol(self, symbol: object) -> None:
     if sys.version_info[0] > 2:
       if isinstance(symbol, bytes):
         symbol = symbol.decode('utf-8')
@@ -80,7 +80,7 @@ class BkTextatom( drawable_chem_vertex):
 
 
   @property
-  def show(self):
+  def show(self) -> object:
     """Should the atom symbol be displayed?
 
     Accepts both 0|1 and yes|no.
@@ -89,26 +89,26 @@ class BkTextatom( drawable_chem_vertex):
 
 
   @show.setter
-  def show(self, show):
+  def show(self, show: object) -> None:
     pass
 
 
   @property
-  def show_hydrogens(self):
+  def show_hydrogens(self) -> object:
     return 1
 
 
   @show_hydrogens.setter
-  def show_hydrogens(self, show_hydrogens):
+  def show_hydrogens(self, show_hydrogens: object) -> None:
     pass
 
 
-  def set_name( self, name, interpret=1, occupied_valency=None):
+  def set_name( self, name: object, interpret: object=1, occupied_valency: object=None) -> bool:
     self.symbol = name
     return True
 
 
-  def read_package( self, package):
+  def read_package( self, package: object) -> None:
     """reads the dom element package and sets internal state according to it"""
     self.id = package.getAttribute( 'id')
     # marks
@@ -151,7 +151,7 @@ class BkTextatom( drawable_chem_vertex):
       self.number = package.getAttribute( 'number')
 
 
-  def get_package( self, doc):
+  def get_package( self, doc: object) -> object:
     """returns a DOM element describing the object in CDML,
     doc is the parent document which is used for element creation
     (the returned element is not inserted into the document)"""
@@ -187,12 +187,11 @@ class BkTextatom( drawable_chem_vertex):
     return a
 
 
-  def get_formula_dict( self):
+  def get_formula_dict( self) -> dict:
     """returns formula as dictionary that can
     be passed to functions in periodic_table"""
     return PT.formula_dict()
 
 
-  def __str__( self):
+  def __str__( self) -> str:
     return self.id
-

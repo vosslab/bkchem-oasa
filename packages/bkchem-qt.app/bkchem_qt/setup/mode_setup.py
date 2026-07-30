@@ -5,6 +5,7 @@ import pathlib
 
 # PIP3 modules
 import yaml
+import PySide6.QtCore
 
 # local repo modules
 import bkchem_qt.modes.config
@@ -23,27 +24,55 @@ import bkchem_qt.modes.repair_mode
 import bkchem_qt.modes.plus_mode
 import bkchem_qt.modes.misc_mode
 import bkchem_qt.modes.file_actions_mode
+import bkchem_qt.resource_paths
 
-# path to modes.yaml in the shared bkchem_data directory
-_MODES_YAML_PATH = (
-	pathlib.Path(__file__).resolve().parent.parent.parent
-	/ "bkchem_data" / "modes.yaml"
-)
+# Modes are package-owned so installed Qt wheels do not need the source tree.
+_MODES_YAML_PATH = bkchem_qt.resource_paths.get_resource_path("modes.yaml")
 
 
 #============================================
-def setup_modes(view, main_window):
+def setup_modes(
+		view: object, main_window: object,
+		parent: PySide6.QtCore.QObject | None = None,
+		persistent_action: object | None = None,
+		atom_align_action: object | None = None,
+		atom_translate_action: object | None = None,
+		atom_rotate_action: object | None = None,
+		atom_translate_authority: object | None = None,
+		atom_number_context: object | None = None,
+		template_names: tuple[str, ...] | None = None,
+		graphics_retirement_reaper: object | None = None,
+		) -> object:
 	"""Create and register all interaction modes.
 
 	Args:
 		view: The ChemView widget that owns the modes.
 		main_window: The MainWindow (for file_actions_mode).
+		parent: Optional QObject owner for the manager and its modes.  A
+			DocumentSession supplies itself here so switching or closing a tab
+			cannot retain mode callbacks for another session.
+		persistent_action: Narrow plain-data callback used by migrated persistent
+			modes.  It is deliberately not a window or Qt model.
+		atom_align_action: Narrow session-owned callback accepting only an axis and
+			immutable durable atom target pairs.
+		atom_translate_action: Narrow session-owned callback accepting immutable
+			durable atom target pairs and a plain scene-point delta.
+		atom_rotate_action: Narrow session-owned callback accepting immutable
+			durable atom target pairs, a plain scene-point center, and an angle.
+		atom_translate_authority: Narrow frontend-only callback returning the
+			current drag authority: backend, local, or unavailable.
+		atom_number_context: Narrow plain-data callback from the session-owned
+			backend snapshot for Misc atom-number presentation state.
+		template_names: Immutable OASA-owned system-template selection names for
+			TemplateMode.  The session supplies them as plain data.
+		graphics_retirement_reaper: Frontend-only session owner for failed terminal
+			preview retirement.
 
 	Returns:
 		Configured ModeManager instance.
 	"""
 	mode_manager = bkchem_qt.modes.mode_manager.ModeManager(
-		view, parent=main_window
+		view, parent=parent if parent is not None else main_window,
 	)
 	# register file actions mode (before edit/draw in toolbar order)
 	mode_manager.register_mode(
@@ -55,7 +84,7 @@ def setup_modes(view, main_window):
 	# register additional modes beyond the default edit/draw
 	mode_manager.register_mode(
 		"template",
-		bkchem_qt.modes.template_mode.TemplateMode(view),
+		bkchem_qt.modes.template_mode.TemplateMode(view, template_names=template_names),
 	)
 	mode_manager.register_mode(
 		"biotemplate",
@@ -107,13 +136,41 @@ def setup_modes(view, main_window):
 	)
 	# connect the mode manager to the view for event dispatch
 	view.set_mode_manager(mode_manager)
+	# Modes are QObjects but ModeManager historically registered them without
+	# assigning a QObject parent.  Make the manager's lifetime authoritative.
+	for mode in mode_manager._modes.values():
+		mode.setParent(mode_manager)
+	# Each new manager discovers the frozen persistent-operation interface only
+	# after every mode exists.  No existing manager is retrofitted later.
+	for mode in mode_manager._modes.values():
+		installer = getattr(mode, "set_persistent_operation", None)
+		if callable(installer):
+			installer(persistent_action)
+		align_installer = getattr(mode, "set_atom_align_operation", None)
+		if callable(align_installer):
+			align_installer(atom_align_action)
+		translate_installer = getattr(mode, "set_atom_translate_operation", None)
+		if callable(translate_installer):
+			translate_installer(atom_translate_action)
+		rotate_installer = getattr(mode, "set_atom_rotate_operation", None)
+		if callable(rotate_installer):
+			rotate_installer(atom_rotate_action)
+		translate_authority_installer = getattr(mode, "set_atom_translate_authority", None)
+		if callable(translate_authority_installer):
+			translate_authority_installer(atom_translate_authority)
+		candidate_installer = getattr(mode, "set_atom_number_context", None)
+		if callable(candidate_installer):
+			candidate_installer(atom_number_context)
+		retirement_installer = getattr(mode, "set_graphics_retirement_reaper", None)
+		if callable(retirement_installer):
+			retirement_installer(graphics_retirement_reaper)
 	# inject YAML submode data into each registered mode
 	_inject_submodes_from_yaml(mode_manager)
 	return mode_manager
 
 
 #============================================
-def _inject_submodes_from_yaml(mode_manager) -> None:
+def _inject_submodes_from_yaml(mode_manager: object) -> None:
 	"""Parse modes.yaml and inject submode data into registered modes.
 
 	For each registered mode, looks up its definition in modes.yaml

@@ -13,14 +13,14 @@ import glyph_primitive_calibration as glyph_calibration
 
 
 #============================================
-def test_attach_site_contract_includes_closed_center():
+def test_attach_site_contract_includes_closed_center() -> None:
 	assert "core_center" in VALID_ATTACH_SITES
 	assert "stem_centerline" in VALID_ATTACH_SITES
 	assert "closed_center" in VALID_ATTACH_SITES
 
 
 #============================================
-def test_glyph_primitive_p_uses_explicit_special_contract():
+def test_glyph_primitive_p_uses_explicit_special_contract() -> None:
 	primitive = glyph_attach_primitive(
 		symbol="P",
 		span_x1=0.0,
@@ -34,7 +34,7 @@ def test_glyph_primitive_p_uses_explicit_special_contract():
 
 
 #============================================
-def test_glyph_calibration_table_has_required_fonts_and_glyphs():
+def test_glyph_calibration_table_has_required_fonts_and_glyphs() -> None:
 	if glyph_calibration.cairo is None:
 		pytest.skip("cairo not available for glyph calibration tests")
 	report = glyph_calibration.build_calibration_report()
@@ -49,7 +49,7 @@ def test_glyph_calibration_table_has_required_fonts_and_glyphs():
 
 
 #============================================
-def test_glyph_calibration_errors_within_thresholds():
+def test_glyph_calibration_errors_within_thresholds() -> None:
 	if glyph_calibration.cairo is None:
 		pytest.skip("cairo not available for glyph calibration tests")
 	report = glyph_calibration.build_calibration_report()

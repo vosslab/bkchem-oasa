@@ -9,7 +9,7 @@ import subprocess
 import sys
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
 	"""Parse command-line arguments."""
 	parser = argparse.ArgumentParser(
 		description="Render reference SVG/PNG outputs for Haworth."
@@ -25,7 +25,7 @@ def parse_args():
 
 
 #============================================
-def _get_repo_root():
+def _get_repo_root() -> str:
 	result = subprocess.run(
 		["git", "rev-parse", "--show-toplevel"],
 		capture_output=True,
@@ -37,20 +37,20 @@ def _get_repo_root():
 
 
 #============================================
-def _ensure_sys_path(repo_root):
+def _ensure_sys_path(repo_root: str) -> None:
 	oasa_dir = os.path.join(repo_root, "packages", "oasa")
 	if oasa_dir not in sys.path:
 		sys.path.insert(0, oasa_dir)
 
 
 #============================================
-def _ensure_dir(path):
+def _ensure_dir(path: str) -> None:
 	if not os.path.isdir(path):
 		os.makedirs(path, exist_ok=True)
 
 
 #============================================
-def _build_ring(size, oxygen_index=None):
+def _build_ring(size: int, oxygen_index: object = None) -> object:
 	import oasa
 	import oasa.atom_lib
 	import oasa.bond_lib
@@ -77,7 +77,7 @@ def _build_ring(size, oxygen_index=None):
 
 
 #============================================
-def _build_haworth_reference():
+def _build_haworth_reference() -> object:
 	from oasa.haworth import layout as haworth_layout
 
 	pyranose = _build_ring(6, oxygen_index=0)
@@ -96,7 +96,7 @@ def _build_haworth_reference():
 
 
 #============================================
-def _render_svg(mol, path):
+def _render_svg(mol: object, path: str) -> None:
 	import oasa.svg_out
 
 	renderer = oasa.svg_out.svg_out()
@@ -106,20 +106,20 @@ def _render_svg(mol, path):
 
 
 #============================================
-def _render_png(mol, path, scaling=3.0):
+def _render_png(mol: object, path: str, scaling: float = 3.0) -> None:
 	import oasa.cairo_out
 
 	oasa.cairo_out.mol_to_cairo(mol, path, format="png", scaling=scaling)
 
 
 #============================================
-def _flip_y(mol):
+def _flip_y(mol: object) -> None:
 	for atom in mol.vertices:
 		atom.y = -atom.y
 
 
 #============================================
-def render_reference_outputs(output_dir):
+def render_reference_outputs(output_dir: str) -> None:
 	# Haworth reference output
 	haworth_svg = os.path.join(output_dir, "haworth_reference.svg")
 	haworth_png = os.path.join(output_dir, "haworth_reference.png")
@@ -131,7 +131,7 @@ def render_reference_outputs(output_dir):
 
 
 #============================================
-def main():
+def main() -> None:
 	args = parse_args()
 	repo_root = _get_repo_root()
 	_ensure_sys_path(repo_root)

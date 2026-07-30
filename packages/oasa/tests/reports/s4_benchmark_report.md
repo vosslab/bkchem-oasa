@@ -18,8 +18,8 @@
 
 ## Changed files
 
-- [packages/oasa/tests/benchmark_graph_algorithms.py](packages/oasa/tests/benchmark_graph_algorithms.py) -- new benchmark script
-- [packages/oasa/tests/reports/s4_benchmark_report.md](packages/oasa/tests/reports/s4_benchmark_report.md) -- this report
+- [benchmark_graph_algorithms.py](../benchmark_graph_algorithms.py) -- new benchmark script
+- [s4_benchmark_report.md](s4_benchmark_report.md) -- this report
 
 ## Concrete next steps
 

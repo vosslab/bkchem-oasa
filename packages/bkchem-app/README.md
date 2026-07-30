@@ -8,7 +8,7 @@ structure conversion and analysis.
 Install from the repository:
 
 ```sh
-cd packages/bkchem
+cd packages/bkchem-app
 pip3 install .
 ```
 
@@ -33,7 +33,6 @@ bkchem
 - [docs/INSTALL.md](../../docs/INSTALL.md) setup and dependencies.
 - [docs/EXTERNAL_IMPORT.md](../../docs/EXTERNAL_IMPORT.md) scripting from Python.
 - [docs/CUSTOM_TEMPLATES.md](../../docs/CUSTOM_TEMPLATES.md) template workflow.
-- [docs/CUSTOM_PLUGINS.md](../../docs/CUSTOM_PLUGINS.md) plugin/addon guidance.
 
 ## Legacy
 Legacy websites are archived and reflect the Python 2 era:

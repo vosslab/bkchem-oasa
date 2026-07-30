@@ -29,7 +29,7 @@ _ = builtins.__dict__.get('_', lambda m: m)
 class PaperLayoutMixin:
 	"""Layout, alignment, and cleanup helpers extracted from paper.py."""
 
-	def align_selected( self, mode):
+	def align_selected( self, mode: object) -> None:
 		"""aligns selected items according to mode - t=top, b=bottom,
 		l=left, r=right, h=horizontal center, v=vertical center"""
 		# locate all selected top_levels, filter them to be unique
@@ -97,7 +97,7 @@ class PaperLayoutMixin:
 		self.start_new_undo_record()
 
 
-	def place_next_to_selected( self, mode, align, dist, obj):
+	def place_next_to_selected( self, mode: object, align: object, dist: object, obj: object) -> None:
 		"""Places an object (obj) in a distance (dist) next to the selection,
 		by changing the x or the y value of the object according to the mode.
 		Modes: l= left r=right a=above b=below
@@ -110,7 +110,7 @@ class PaperLayoutMixin:
 		self.start_new_undo_record()
 
 
-	def place_next_to_bbox( self, mode, align, dist, obj, bbox):
+	def place_next_to_bbox( self, mode: object, align: object, dist: object, obj: object, bbox: object) -> None:
 		"""Places an object (obj) in a distance (dist) next to the bbox,
 		by changing the x or the y value of the object according to the mode.
 		Modes: l= left r=right a=above b=below
@@ -141,7 +141,7 @@ class PaperLayoutMixin:
 				obj.move (0,(ymax+ymin)/2-(y1o+y2o)/2)
 
 
-	def swap_sides_of_selected( self, mode="vertical"):
+	def swap_sides_of_selected( self, mode: object = "vertical") -> None:
 		"""mirrors the selected things, vertical uses y-axis as a mirror plane,
 		horizontal x-axis"""
 		# locate all selected top_levels, filter them to be unique
@@ -186,7 +186,7 @@ class PaperLayoutMixin:
 		self.start_new_undo_record()
 
 
-	def lift_selected_to_top( self):
+	def lift_selected_to_top( self) -> None:
 		os = self.selected_to_unique_top_levels()[0]
 		for o in os:
 			self.stack.remove( o)
@@ -196,7 +196,7 @@ class PaperLayoutMixin:
 		self.start_new_undo_record()
 
 
-	def lower_selected_to_bottom( self):
+	def lower_selected_to_bottom( self) -> None:
 		os = self.selected_to_unique_top_levels()[0]
 		for o in os:
 			self.stack.remove( o)
@@ -206,7 +206,7 @@ class PaperLayoutMixin:
 		self.start_new_undo_record()
 
 
-	def swap_selected_on_stack( self):
+	def swap_selected_on_stack( self) -> None:
 		os = self.selected_to_unique_top_levels()[0]
 		indxs = sorted(self.stack.index(o) for o in os)
 		for i in range( len( indxs) // 2):
@@ -216,7 +216,7 @@ class PaperLayoutMixin:
 		self.start_new_undo_record()
 
 
-	def center_object( self, obj, x, y):
+	def center_object( self, obj: object, x: object, y: object) -> None:
 		"""moves an object so that its centered on coordinates x,y"""
 		x1, y1, x2, y2 = obj.bbox()
 		dx = x2 - x1
@@ -224,7 +224,7 @@ class PaperLayoutMixin:
 		obj.move( x-x1-dx/2.0, y-y1-dy/2.0)
 
 
-	def center_objects( self, objs, x, y):
+	def center_objects( self, objs: object, x: object, y: object) -> None:
 		"""moves a set of objects so that the center of the group is placed on coordinates x,y"""
 		x1, y1, x2, y2 = self.common_bbox( objs)
 		dx = x2 - x1
@@ -233,7 +233,7 @@ class PaperLayoutMixin:
 			obj.move( x-x1-dx/2.0, y-y1-dy/2.0)
 
 
-	def common_bbox( self, objects):
+	def common_bbox( self, objects: object) -> object:
 		"""returns the bbox of all 'objects', in contrast to list_bbox it works with BKChem
 		objects, not tkinter canvas objects"""
 		if not objects:
@@ -252,7 +252,7 @@ class PaperLayoutMixin:
 		return xmin, ymin, xmax, ymax
 
 
-	def list_bbox( self, items):
+	def list_bbox( self, items: object) -> object:
 		"""extension of Canvas.bbox to provide support for lists of items"""
 		self.dtag( 'bbox', 'bbox') # just to be sure
 		for i in items:
@@ -262,7 +262,7 @@ class PaperLayoutMixin:
 		return ret
 
 
-	def clean_selected( self):
+	def clean_selected( self) -> None:
 		"""cleans the geomerty of all selected molecules, the position of atoms that are selected will not be changed.
 		The selection must define a continuos subgraph of the BkMolecule(s) otherwise the coords generation would not be possible,
 		at least two atoms (one bond) must be selected for the program to give some meaningfull result"""
@@ -326,7 +326,7 @@ class PaperLayoutMixin:
 			self.start_new_undo_record()
 
 
-	def handle_overlap( self):
+	def handle_overlap( self) -> None:
 		"puts overlaping molecules together to one and then calls handle_overlap(a1, a2) for that molecule"
 		overlap = []
 		for a in self.find_withtag('atom'):
@@ -368,7 +368,7 @@ class PaperLayoutMixin:
 		return deleted, preserved
 
 
-	def set_name_to_selected( self, name, interpret=1):
+	def set_name_to_selected( self, name: object, interpret: object = 1) -> None:
 		"""sets name to all selected atoms and texts,
 		also records it in an undo !!!"""
 		if sys.version_info[0] > 2:
@@ -398,7 +398,7 @@ class PaperLayoutMixin:
 		return vtype
 
 
-	def expand_groups( self, selected=1):
+	def expand_groups( self, selected: object = 1) -> None:
 		"""expands groups, if selected==1 only for selected, otherwise for all"""
 		if selected:
 			mols = [o for o in self.selected_to_unique_top_levels()[0] if o.object_type == 'molecule']
@@ -414,7 +414,7 @@ class PaperLayoutMixin:
 		self.start_new_undo_record()
 
 
-	def config_selected( self):
+	def config_selected( self) -> None:
 		if self.selected:
 			dialog = dialogs.config_dialog( Store.app, self.selected[:])
 			if dialog.changes_made:
@@ -422,7 +422,7 @@ class PaperLayoutMixin:
 			self.add_bindings()
 
 
-	def any_color_to_rgb_string( self, color):
+	def any_color_to_rgb_string( self, color: object) -> str:
 		if not color:
 			return "none"
 		else:
@@ -430,7 +430,7 @@ class PaperLayoutMixin:
 			return "#%02x%02x%02x" % (r,g,b)
 
 
-	def mrproper( self):
+	def mrproper( self) -> None:
 		self.unselect_all()
 
 		for a in self.stack:
@@ -477,7 +477,7 @@ class PaperLayoutMixin:
 		del self.file_name
 
 
-	def clean_paper( self):
+	def clean_paper( self) -> None:
 		"removes all items from paper and deletes them from molecules and items"
 		self.unselect_all()
 		self.delete( 'all')
@@ -496,12 +496,12 @@ class PaperLayoutMixin:
 		self.changes_made = 0
 
 
-	def del_container( self, container):
+	def del_container( self, container: object) -> None:
 		container.delete()
 		self.stack.remove( container)
 
 
-	def redraw_all(self):
+	def redraw_all(self) -> None:
 		"""Redraws all the content of the paper."""
 		for o in self.stack:
 			o.redraw()

@@ -21,7 +21,7 @@ import oasa.smiles_lib
 
 
 #============================================
-def build_rx_from_oasa(mol) -> tuple:
+def build_rx_from_oasa(mol: object) -> tuple:
 	"""Convert an OASA molecule to a rustworkx PyGraph with identity maps.
 
 	Args:

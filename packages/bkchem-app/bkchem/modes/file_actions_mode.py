@@ -27,12 +27,12 @@ class file_actions_mode(basic_mode):
 	"""
 
 	#============================================
-	def __init__(self):
+	def __init__(self) -> None:
 		"""Initialize the file actions mode."""
 		basic_mode.__init__(self)
 
 	#============================================
-	def on_submode_switch(self, i, name):
+	def on_submode_switch(self, i: object, name: object) -> None:
 		"""Dispatch to the appropriate file handler.
 
 		Args:

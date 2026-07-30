@@ -25,7 +25,7 @@ DEFAULT_BOND_LENGTH = 30
 
 
 #============================================
-def parse_args(argv=None):
+def parse_args(argv: object = None) -> argparse.Namespace:
 	"""Parse command-line arguments.
 
 	Args:
@@ -88,7 +88,7 @@ def parse_args(argv=None):
 
 
 #============================================
-def _resolve_format(output_path, format_override):
+def _resolve_format(output_path: object, format_override: object) -> str:
 	"""Resolve output format from argument or filename.
 
 	Args:
@@ -111,7 +111,7 @@ def _resolve_format(output_path, format_override):
 
 
 #============================================
-def _ensure_parent_dir(output_path):
+def _ensure_parent_dir(output_path: object) -> None:
 	"""Create parent directory when needed."""
 	parent_dir = os.path.dirname(output_path)
 	if not parent_dir:
@@ -122,7 +122,7 @@ def _ensure_parent_dir(output_path):
 
 
 #============================================
-def _render_haworth(args):
+def _render_haworth(args: object) -> str:
 	"""Render a Haworth projection from SMILES and write output.
 
 	Args:
@@ -156,7 +156,7 @@ def _render_haworth(args):
 
 
 #============================================
-def main(argv=None):
+def main(argv: object = None) -> None:
 	"""Run the CLI entry point."""
 	args = parse_args(argv)
 	if args.command != "haworth":

@@ -25,43 +25,43 @@ class Edge(object):
 
   attrs_to_copy: tuple[str, ...] = ("disconnected",)
 
-  def __init__(self, vs=None):
+  def __init__(self, vs: object=None) -> None:
     self._vertices = []
     self.set_vertices(vs)
     self.properties_ = {}
     self.disconnected = False
 
 
-  def __str__(self):
+  def __str__(self) -> object:
     return "edge between %s %s" % tuple(map(str, self.vertices))
 
 
-  def copy(self):
+  def copy(self) -> object:
     other = self.__class__()
     for attr in self.attrs_to_copy:
       setattr(other, attr, copy.copy(getattr(self, attr)))
     return other
 
 
-  def set_vertices(self, vs=None):
+  def set_vertices(self, vs: object=None) -> object:
     # Ring perception algorithm relies on allowing both vertices to be the same
     if vs and len(vs) == 2:
       self._vertices = list(vs)
 
 
-  def get_vertices(self):
+  def get_vertices(self) -> object:
     return self._vertices
 
 
   @property
-  def neighbor_edges(self):
+  def neighbor_edges(self) -> object:
     v1, v2 = self.vertices
     out1 = [e for e in v1.neighbor_edges if e != self]
     out2 = [e for e in v2.neighbor_edges if e != self]
     return out1 + out2
 
 
-  def get_neighbor_edges2(self):
+  def get_neighbor_edges2(self) -> object:
     """Return 2 lists of neighbor edges (one for one side, one for the other).
 
     """
@@ -72,11 +72,10 @@ class Edge(object):
 
 
   @property
-  def disconnected(self):
+  def disconnected(self) -> object:
     return self._disconnected
 
 
   @disconnected.setter
-  def disconnected(self, d):
+  def disconnected(self, d: object) -> object:
     self._disconnected = d
-

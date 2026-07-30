@@ -8,6 +8,8 @@ import oasa.atom_lib
 import oasa.bond_lib
 import oasa.molecule_lib
 import oasa.codec_registry
+import oasa.cdml_bond_io
+import oasa.cdml_document
 from oasa import coords_generator
 from oasa import transform3d_lib
 from oasa.cdml_writer import CPK_COLORS
@@ -23,13 +25,23 @@ DEFAULT_BOND_LENGTH_PT = 40.0
 
 
 #============================================
-def oasa_mol_to_qt_mol(mol, bond_length_pt=DEFAULT_BOND_LENGTH_PT):
+def paper_catalog() -> dict[str, list[float] | None]:
+	"""Return OASA's plain CDML paper catalog for Qt display adapters."""
+	return oasa.cdml_document.paper_catalog()
+
+
+#============================================
+def oasa_mol_to_qt_mol(
+		mol: oasa.molecule_lib.Molecule,
+		bond_length_pt: float | None = DEFAULT_BOND_LENGTH_PT,
+		) -> bkchem_qt.models.molecule_model.MoleculeModel:
 	"""Convert an OASA molecule to a Qt MoleculeModel.
 
 	Creates AtomModel and BondModel wrappers for every vertex and edge in
 	the OASA molecule. When the atoms already carry coordinates, the
-	molecule is rescaled so that the average bond length matches
+	molecule is rescaled so that the average bond length matches a numeric
 	``bond_length_pt`` and centered at (DEFAULT_CENTER_X, DEFAULT_CENTER_Y).
+	Passing ``None`` preserves the input coordinate system for native CDML.
 
 	Args:
 		mol: OASA molecule object.
@@ -38,12 +50,11 @@ def oasa_mol_to_qt_mol(mol, bond_length_pt=DEFAULT_BOND_LENGTH_PT):
 	Returns:
 		MoleculeModel wrapping the converted atoms and bonds.
 	"""
-	if bond_length_pt is None:
-		bond_length_pt = DEFAULT_BOND_LENGTH_PT
-
 	mol_model = bkchem_qt.models.molecule_model.MoleculeModel(
 		oasa_mol=oasa.molecule_lib.Molecule()
 	)
+	mol_model.mol_id = str(getattr(mol, "id", "") or "")
+	mol_model.name = str(getattr(mol, "name", "") or "")
 
 	# check whether every atom already has valid coordinates
 	has_coords = True
@@ -68,14 +79,17 @@ def oasa_mol_to_qt_mol(mol, bond_length_pt=DEFAULT_BOND_LENGTH_PT):
 		mol_model.add_bond(atom1_model, atom2_model, bond_model)
 
 	# rescale and center if coordinates are present
-	if has_coords and mol_model.atoms:
+	if has_coords and mol_model.atoms and bond_length_pt is not None:
 		_rescale_and_center(mol_model, bond_length_pt)
 
 	return mol_model
 
 
 #============================================
-def _rescale_and_center(mol_model, bond_length_pt):
+def _rescale_and_center(
+		mol_model: bkchem_qt.models.molecule_model.MoleculeModel,
+		bond_length_pt: float,
+		) -> None:
 	"""Rescale atom positions so avg bond length matches target, then center.
 
 	Computes the average bond length from current positions, builds a
@@ -125,11 +139,14 @@ def _rescale_and_center(mol_model, bond_length_pt):
 
 
 #============================================
-def oasa_atom_to_qt_atom(oasa_atom):
+def oasa_atom_to_qt_atom(
+		oasa_atom: oasa.atom_lib.Atom,
+		) -> bkchem_qt.models.atom_model.AtomModel:
 	"""Convert an OASA atom to an AtomModel.
 
-	Copies coordinates, element symbol, charge, isotope, valency, and
-	multiplicity. Applies CPK color for non-carbon heteroatoms.
+	Copies coordinates, element symbol, charge, isotope, valency,
+	multiplicity, free sites, and explicit hydrogens. Applies CPK color
+	for non-carbon heteroatoms.
 
 	Args:
 		oasa_atom: OASA atom object.
@@ -140,6 +157,9 @@ def oasa_atom_to_qt_atom(oasa_atom):
 	atom_model = bkchem_qt.models.atom_model.AtomModel(
 		oasa_atom=oasa.atom_lib.Atom(symbol=oasa_atom.symbol)
 	)
+	atom_id = getattr(oasa_atom, "id", None)
+	if atom_id:
+		atom_model._chem_atom.id = str(atom_id)
 
 	# copy coordinates (may be None for unpositioned atoms)
 	x = oasa_atom.x if oasa_atom.x is not None else 0.0
@@ -151,24 +171,48 @@ def oasa_atom_to_qt_atom(oasa_atom):
 	atom_model.charge = oasa_atom.charge
 	atom_model.valency = oasa_atom.valency
 	atom_model.multiplicity = oasa_atom.multiplicity
+	atom_model.free_sites = oasa_atom.free_sites
+	atom_model.explicit_hydrogens = oasa_atom.explicit_hydrogens
 	if oasa_atom.isotope is not None:
 		atom_model.isotope = oasa_atom.isotope
+	_display_atom_properties_to_qt(oasa_atom, atom_model)
 
 	# apply CPK color for non-carbon heteroatoms
 	symbol = oasa_atom.symbol
 	cpk_color = CPK_COLORS.get(symbol)
-	if cpk_color and symbol != "C":
-		atom_model.line_color = cpk_color
+	if cpk_color and symbol != "C" and "line_color" not in atom_model._cdml_display_fields:
+		atom_model._line_color = cpk_color
 
 	return atom_model
 
 
 #============================================
-def oasa_bond_to_qt_bond(oasa_bond):
+def _display_atom_properties_to_qt(
+		oasa_atom: oasa.atom_lib.Atom,
+		atom_model: bkchem_qt.models.atom_model.AtomModel,
+		) -> None:
+	"""Copy supported CDML atom depiction fields into the Qt atom model."""
+	properties = oasa_atom.properties_
+	if "show" in properties:
+		atom_model.show = properties["show"] == "yes"
+	if "show_hydrogens" in properties:
+		atom_model.show_hydrogens = properties["show_hydrogens"] == "on"
+	if "font_size" in properties:
+		atom_model.font_size = int(properties["font_size"])
+	if "font_family" in properties:
+		atom_model.font_family = properties["font_family"]
+	if "line_color" in properties:
+		atom_model.line_color = properties["line_color"]
+
+
+#============================================
+def oasa_bond_to_qt_bond(
+		oasa_bond: oasa.bond_lib.Bond,
+		) -> bkchem_qt.models.bond_model.BondModel:
 	"""Convert an OASA bond to a BondModel.
 
-	Copies bond order and type. Endpoint atoms are wired separately by
-	the molecule-level converter.
+	Copies bond chemistry and all supported CDML depiction fields. Endpoint
+	atoms are wired separately by the molecule-level converter.
 
 	Args:
 		oasa_bond: OASA bond object.
@@ -182,11 +226,32 @@ def oasa_bond_to_qt_bond(oasa_bond):
 			type=oasa_bond.type,
 		)
 	)
+	# Haworth layout owns these semantic depiction tags. Keep the scalar tag
+	# alongside the ``q``/``w`` bond types without retaining OASA references.
+	haworth_position = oasa_bond.properties_.get("haworth_position")
+	if haworth_position:
+		bond_model._chem_bond.properties_["haworth_position"] = haworth_position
+	bond_id = getattr(oasa_bond, "id", None)
+	if bond_id:
+		bond_model._chem_bond.id = str(bond_id)
+	_display_bond_properties_to_qt(oasa_bond, bond_model)
 	return bond_model
 
 
 #============================================
-def qt_mol_to_oasa_mol(mol_model):
+def _display_bond_properties_to_qt(
+		oasa_bond: oasa.bond_lib.Bond,
+		bond_model: bkchem_qt.models.bond_model.BondModel,
+		) -> None:
+	"""Copy supported CDML depiction fields from OASA to a Qt bond model."""
+	depiction = oasa.cdml_bond_io.resolve_bond_depiction(oasa_bond)
+	bond_model.install_projected_depiction(depiction)
+
+
+#============================================
+def qt_mol_to_oasa_mol(
+		mol_model: bkchem_qt.models.molecule_model.MoleculeModel,
+		) -> oasa.molecule_lib.Molecule:
 	"""Convert a Qt MoleculeModel back to a pure OASA molecule.
 
 	Creates new OASA atom and bond objects suitable for format export
@@ -199,6 +264,10 @@ def qt_mol_to_oasa_mol(mol_model):
 		oasa.molecule_lib.Molecule with atoms and bonds.
 	"""
 	oasa_mol = oasa.molecule_lib.Molecule()
+	if mol_model.mol_id:
+		oasa_mol.id = mol_model.mol_id
+	if mol_model.name:
+		oasa_mol.name = mol_model.name
 
 	# build mapping from AtomModel id to OASA atom for bond wiring
 	qt_to_oasa_atom = {}
@@ -210,6 +279,12 @@ def qt_mol_to_oasa_mol(mol_model):
 		oasa_atom.charge = am.charge
 		oasa_atom.valency = am.valency
 		oasa_atom.multiplicity = am.multiplicity
+		oasa_atom.free_sites = am.free_sites
+		oasa_atom.explicit_hydrogens = am.explicit_hydrogens
+		_display_atom_properties_to_oasa(am, oasa_atom)
+		atom_id = getattr(am._chem_atom, "id", None)
+		if atom_id:
+			oasa_atom.id = str(atom_id)
 		if am.isotope is not None:
 			oasa_atom.isotope = am.isotope
 		oasa_mol.add_vertex(oasa_atom)
@@ -218,6 +293,14 @@ def qt_mol_to_oasa_mol(mol_model):
 	# create bonds
 	for bm in mol_model.bonds:
 		oasa_bond = oasa.bond_lib.Bond(order=bm.order, type=bm.type)
+		if "haworth_position" in bm._chem_bond.properties_:
+			oasa_bond.properties_["haworth_position"] = (
+				bm._chem_bond.properties_["haworth_position"]
+			)
+		_display_bond_properties_to_oasa(bm, oasa_bond)
+		bond_id = getattr(bm._chem_bond, "id", None)
+		if bond_id:
+			oasa_bond.id = str(bond_id)
 		a1 = bm.atom1
 		a2 = bm.atom2
 		if a1 is None or a2 is None:
@@ -232,7 +315,63 @@ def qt_mol_to_oasa_mol(mol_model):
 
 
 #============================================
-def read_codec_file(codec_name, file_obj, **kwargs):
+def _display_atom_properties_to_oasa(
+		atom_model: bkchem_qt.models.atom_model.AtomModel,
+		oasa_atom: oasa.atom_lib.Atom,
+		) -> None:
+	"""Copy explicit Qt atom display edits into OASA's CDML property carrier."""
+	properties = oasa_atom.properties_
+	fields = atom_model._cdml_display_fields
+	if "show" in fields:
+		properties["show"] = "yes" if atom_model.show else "no"
+	if "show_hydrogens" in fields:
+		properties["show_hydrogens"] = "on" if atom_model.show_hydrogens else "off"
+	if "font_size" in fields:
+		properties["font_size"] = str(atom_model.font_size)
+	if "font_family" in fields:
+		properties["font_family"] = atom_model.font_family
+	if "line_color" in fields:
+		properties["line_color"] = atom_model.line_color
+
+
+#============================================
+def _display_bond_properties_to_oasa(
+		bond_model: bkchem_qt.models.bond_model.BondModel,
+		oasa_bond: oasa.bond_lib.Bond,
+		) -> None:
+	"""Copy supported Qt depiction fields into OASA/CDML writer fields."""
+	bond_model._sync_chem_bond_depiction()
+	source = bond_model._chem_bond
+	depiction = oasa.cdml_bond_io.resolve_bond_depiction(source)
+	oasa_bond.line_color = depiction.color
+	oasa_bond.wavy_style = depiction.wavy_style
+	oasa_bond.center = depiction.center
+	oasa_bond.line_width = bond_model.line_width
+	oasa_bond.bond_width = bond_model.bond_width
+	oasa_bond.wedge_width = bond_model.wedge_width
+	oasa_bond.double_length_ratio = depiction.double_ratio
+	oasa_bond.auto_bond_sign = depiction.auto_sign
+	oasa_bond.equithick = int(depiction.equithick)
+	oasa_bond.simple_double = int(depiction.simple_double)
+	for name in depiction.explicit_fields:
+		if name in source.properties_:
+			oasa_bond.properties_[name] = source.properties_[name]
+	if "color" in depiction.explicit_fields and "line_color" in source.properties_:
+		oasa_bond.properties_["line_color"] = source.properties_["line_color"]
+	haworth_position = source.properties_.get("haworth_position")
+	if haworth_position:
+		oasa_bond.properties_["haworth_position"] = haworth_position
+	oasa.cdml_bond_io.set_cdml_bond_explicit_fields(
+		oasa_bond, depiction.explicit_fields,
+	)
+
+
+#============================================
+def read_codec_file(
+		codec_name: str,
+		file_obj: object,
+		**kwargs,
+		) -> list[bkchem_qt.models.molecule_model.MoleculeModel]:
 	"""Read a chemistry file via OASA codec and return MoleculeModel list.
 
 	Uses the OASA codec registry to parse the file into an OASA molecule,
@@ -270,7 +409,12 @@ def read_codec_file(codec_name, file_obj, **kwargs):
 
 
 #============================================
-def write_codec_file(codec_name, mol_model, file_obj, **kwargs):
+def write_codec_file(
+		codec_name: str,
+		mol_model: bkchem_qt.models.molecule_model.MoleculeModel,
+		file_obj: object,
+		**kwargs,
+		) -> None:
 	"""Write a MoleculeModel to a file via OASA codec.
 
 	Converts the MoleculeModel back to a pure OASA molecule and delegates

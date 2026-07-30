@@ -17,9 +17,9 @@ The goal is to preserve this behavior exactly in the Qt version.
 to `chem_paper` plus the active mode object.
 
 - mode switching and submode UI:
-  [`packages/bkchem-app/bkchem/main_lib/main_modes.py`](../../packages/bkchem-app/bkchem/main_lib/main_modes.py)
+  [main_modes.py](../../packages/bkchem-app/bkchem/main_lib/main_modes.py)
 - active tab/paper switching:
-  [`packages/bkchem-app/bkchem/main_lib/main_tabs.py`](../../packages/bkchem-app/bkchem/main_lib/main_tabs.py)
+  [main_tabs.py](../../packages/bkchem-app/bkchem/main_lib/main_tabs.py)
 
 
 ## 2) Paper converts Tk events and dispatches to mode
@@ -32,7 +32,7 @@ coordinates to paper coordinates, and calls mode callbacks:
 - key press/release -> `mode.key_pressed`, `mode.key_released`
 
 Source:
-[`packages/bkchem-app/bkchem/paper_lib/paper_events.py`](../../packages/bkchem-app/bkchem/paper_lib/paper_events.py)
+[paper_events.py](../../packages/bkchem-app/bkchem/paper_lib/paper_events.py)
 
 This is the core event contract. Qt parity should preserve this separation:
 the view dispatches, the mode decides, the document mutates.
@@ -44,7 +44,7 @@ Most tools inherit from `edit_mode`, which provides shared selection, moving,
 delete, text editing, clipboard, and undo-boundary behavior.
 
 Source:
-[`packages/bkchem-app/bkchem/modes/edit_mode.py`](../../packages/bkchem-app/bkchem/modes/edit_mode.py)
+[edit_mode.py](../../packages/bkchem-app/bkchem/modes/edit_mode.py)
 
 
 ## Call-flow by operation
@@ -52,11 +52,11 @@ Source:
 ## A) Drawing bonds and adding atoms (draw mode)
 
 Primary mode:
-[`packages/bkchem-app/bkchem/modes/draw_mode.py`](../../packages/bkchem-app/bkchem/modes/draw_mode.py)
+[draw_mode.py](../../packages/bkchem-app/bkchem/modes/draw_mode.py)
 
 Low-level model:
-[`packages/bkchem-app/bkchem/molecule_lib.py`](../../packages/bkchem-app/bkchem/molecule_lib.py),
-[`packages/bkchem-app/bkchem/bond_type_control.py`](../../packages/bkchem-app/bkchem/bond_type_control.py)
+[molecule_lib.py](../../packages/bkchem-app/bkchem/molecule_lib.py),
+[bond_type_control.py](../../packages/bkchem-app/bkchem/bond_type_control.py)
 
 Flow:
 
@@ -101,9 +101,9 @@ Two pathways are used in Tk:
 - commits via `paper.set_name_to_selected`
 
 Sources:
-[`packages/bkchem-app/bkchem/modes/edit_mode.py`](../../packages/bkchem-app/bkchem/modes/edit_mode.py),
-[`packages/bkchem-app/bkchem/edit_pool.py`](../../packages/bkchem-app/bkchem/edit_pool.py),
-[`packages/bkchem-app/bkchem/paper_lib/paper_layout.py`](../../packages/bkchem-app/bkchem/paper_lib/paper_layout.py)
+[edit_mode.py](../../packages/bkchem-app/bkchem/modes/edit_mode.py),
+[edit_pool.py](../../packages/bkchem-app/bkchem/edit_pool.py),
+[paper_layout.py](../../packages/bkchem-app/bkchem/paper_lib/paper_layout.py)
 
 `set_name_to_selected` behavior:
 
@@ -120,7 +120,7 @@ Sources:
 - click existing vertex: prompt and replace vertex class/symbol similarly.
 
 Source:
-[`packages/bkchem-app/bkchem/modes/atom_mode.py`](../../packages/bkchem-app/bkchem/modes/atom_mode.py)
+[atom_mode.py](../../packages/bkchem-app/bkchem/modes/atom_mode.py)
 
 Important detail:
 
@@ -129,7 +129,7 @@ Important detail:
   charge formatting.
 
 Source:
-[`packages/bkchem-app/bkchem/atom_lib.py`](../../packages/bkchem-app/bkchem/atom_lib.py)
+[atom_lib.py](../../packages/bkchem-app/bkchem/atom_lib.py)
 
 
 ## C) Moving atoms/bonds/selections
@@ -153,7 +153,7 @@ On `mouse_up` after drag:
 - overlap handling and undo record.
 
 Source:
-[`packages/bkchem-app/bkchem/modes/edit_mode.py`](../../packages/bkchem-app/bkchem/modes/edit_mode.py)
+[edit_mode.py](../../packages/bkchem-app/bkchem/modes/edit_mode.py)
 
 
 ## D) Deleting bonds/atoms/objects
@@ -173,9 +173,9 @@ Flow:
 6. `paper.start_new_undo_record()` when applicable.
 
 Sources:
-[`packages/bkchem-app/bkchem/modes/edit_mode.py`](../../packages/bkchem-app/bkchem/modes/edit_mode.py),
-[`packages/bkchem-app/bkchem/paper_lib/paper_selection.py`](../../packages/bkchem-app/bkchem/paper_lib/paper_selection.py),
-[`packages/bkchem-app/bkchem/molecule_lib.py`](../../packages/bkchem-app/bkchem/molecule_lib.py)
+[edit_mode.py](../../packages/bkchem-app/bkchem/modes/edit_mode.py),
+[paper_selection.py](../../packages/bkchem-app/bkchem/paper_lib/paper_selection.py),
+[molecule_lib.py](../../packages/bkchem-app/bkchem/molecule_lib.py)
 
 
 ## E) Changing bond types/orders/styles
@@ -192,8 +192,8 @@ Mechanism:
 - redraws bond immediately.
 
 Sources:
-[`packages/bkchem-app/bkchem/modes/draw_mode.py`](../../packages/bkchem-app/bkchem/modes/draw_mode.py),
-[`packages/bkchem-app/bkchem/bond_type_control.py`](../../packages/bkchem-app/bkchem/bond_type_control.py)
+[draw_mode.py](../../packages/bkchem-app/bkchem/modes/draw_mode.py),
+[bond_type_control.py](../../packages/bkchem-app/bkchem/bond_type_control.py)
 
 Behavior to preserve:
 
@@ -204,7 +204,7 @@ Behavior to preserve:
 ## F) Rotating about a bond and general rotation
 
 Tool mode:
-[`packages/bkchem-app/bkchem/modes/rotate_mode.py`](../../packages/bkchem-app/bkchem/modes/rotate_mode.py)
+[rotate_mode.py](../../packages/bkchem-app/bkchem/modes/rotate_mode.py)
 
 Supported flows:
 
@@ -224,7 +224,7 @@ Lifecycle:
 ## G) Bond-based transformations (align/mirror/invert/free rotation)
 
 Tool mode:
-[`packages/bkchem-app/bkchem/modes/bondalign_mode.py`](../../packages/bkchem-app/bkchem/modes/bondalign_mode.py)
+[bondalign_mode.py](../../packages/bkchem-app/bkchem/modes/bondalign_mode.py)
 
 Important distinction:
 
@@ -248,7 +248,7 @@ After transform:
 ## H) Geometry cleanup and snap transformations
 
 Tool mode:
-[`packages/bkchem-app/bkchem/modes/repair_mode.py`](../../packages/bkchem-app/bkchem/modes/repair_mode.py)
+[repair_mode.py](../../packages/bkchem-app/bkchem/modes/repair_mode.py)
 
 Single-click operations on focused molecule:
 
@@ -270,7 +270,7 @@ Backed by:
 `main.py` participates through:
 
 - mode/submode activation and ribbon rebuild:
-  [`main_lib/main_modes.py`](../../packages/bkchem-app/bkchem/main_lib/main_modes.py)
+  [main_modes.py](../../packages/bkchem-app/bkchem/main_lib/main_modes.py)
 - edit pool visibility by mode (`show_edit_pool` contract),
 - status updates (mode name, cursor position, zoom),
 - menu action wiring that calls paper/mode operations.

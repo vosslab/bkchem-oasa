@@ -9,7 +9,7 @@ _ = builtins.__dict__.get( '_', lambda m: m)
 
 
 #============================================
-def main(app):
+def main(app: object) -> None:
 	# if nothing is selected then use all
 	selected = app.paper.selected or (
 		j for i in [m.vertices for m in app.paper.molecules] for j in i

@@ -11,7 +11,7 @@ from bkchem import oasa_bridge
 
 
 class DummyCodec:
-	def __init__(self):
+	def __init__(self) -> None:
 		self.read_text_calls = []
 		self.write_text_calls = []
 		self.read_file_calls = []
@@ -20,64 +20,64 @@ class DummyCodec:
 		self.read_file_result = None
 		self.write_text_result = ""
 
-	def read_text(self, text, **kwargs):
+	def read_text(self, text: object, **kwargs) -> object:
 		self.read_text_calls.append((text, kwargs))
 		return self.read_text_result
 
-	def write_text(self, mol, **kwargs):
+	def write_text(self, mol: object, **kwargs) -> str:
 		self.write_text_calls.append((mol, kwargs))
 		return self.write_text_result
 
-	def read_file(self, file_obj, **kwargs):
+	def read_file(self, file_obj: object, **kwargs) -> object:
 		self.read_file_calls.append((file_obj, kwargs))
 		return self.read_file_result
 
-	def write_file(self, mol, file_obj, **kwargs):
+	def write_file(self, mol: object, file_obj: object, **kwargs) -> None:
 		self.write_file_calls.append((mol, file_obj, kwargs))
 
 
 class DummyMol:
-	def __init__(self):
+	def __init__(self) -> None:
 		self.cleaned = False
 
-	def remove_unimportant_hydrogens(self):
+	def remove_unimportant_hydrogens(self) -> None:
 		self.cleaned = True
 
-	def is_connected(self):
+	def is_connected(self) -> bool:
 		return True
 
 
 class DummyDisconnectedMol:
-	def __init__(self, parts):
+	def __init__(self, parts: list) -> None:
 		self._parts = parts
 
-	def is_connected(self):
+	def is_connected(self) -> bool:
 		return False
 
-	def get_disconnected_subgraphs(self):
+	def get_disconnected_subgraphs(self) -> list:
 		return list(self._parts)
 
 
 class DummyPaper:
-	def __init__(self, molecules):
+	def __init__(self, molecules: list) -> None:
 		self.molecules = list(molecules)
 
 
 class DummySelectionPaper:
-	def __init__(self, selected):
+	def __init__(self, selected: list) -> None:
 		self._selected = list(selected)
 
-	def selected_to_unique_top_levels(self):
+	def selected_to_unique_top_levels(self) -> list:
 		return self._selected, self._selected
 
 
 class DummyObject:
-	def __init__(self, object_type):
+	def __init__(self, object_type: str) -> None:
 		self.object_type = object_type
 
 
 #============================================
-def test_oasa_bridge_mol_to_smiles_uses_registry(monkeypatch):
+def test_oasa_bridge_mol_to_smiles_uses_registry(monkeypatch: object) -> None:
 	codec = DummyCodec()
 	codec.write_text_result = "CC"
 	monkeypatch.setattr(oasa.codec_registry, "get_codec", lambda name: codec)
@@ -93,7 +93,7 @@ def test_oasa_bridge_mol_to_smiles_uses_registry(monkeypatch):
 
 
 #============================================
-def test_oasa_bridge_read_inchi_uses_registry(monkeypatch):
+def test_oasa_bridge_read_inchi_uses_registry(monkeypatch: object) -> None:
 	codec = DummyCodec()
 	dummy_mol = DummyMol()
 	codec.read_text_result = dummy_mol
@@ -111,7 +111,7 @@ def test_oasa_bridge_read_inchi_uses_registry(monkeypatch):
 
 
 #============================================
-def test_oasa_bridge_read_molfile_uses_registry(monkeypatch):
+def test_oasa_bridge_read_molfile_uses_registry(monkeypatch: object) -> None:
 	codec = DummyCodec()
 	dummy_mol = DummyMol()
 	codec.read_file_result = dummy_mol
@@ -125,7 +125,7 @@ def test_oasa_bridge_read_molfile_uses_registry(monkeypatch):
 
 
 #============================================
-def test_oasa_bridge_read_molfile_disconnected(monkeypatch):
+def test_oasa_bridge_read_molfile_disconnected(monkeypatch: object) -> None:
 	codec = DummyCodec()
 	part_a = DummyMol()
 	part_b = DummyMol()
@@ -140,7 +140,7 @@ def test_oasa_bridge_read_molfile_disconnected(monkeypatch):
 
 
 #============================================
-def test_oasa_bridge_write_molfile_uses_registry(monkeypatch):
+def test_oasa_bridge_write_molfile_uses_registry(monkeypatch: object) -> None:
 	codec = DummyCodec()
 	monkeypatch.setattr(oasa.codec_registry, "get_codec", lambda name: codec)
 
@@ -154,7 +154,7 @@ def test_oasa_bridge_write_molfile_uses_registry(monkeypatch):
 
 
 #============================================
-def test_oasa_bridge_read_cml_uses_registry(monkeypatch):
+def test_oasa_bridge_read_cml_uses_registry(monkeypatch: object) -> None:
 	codec = DummyCodec()
 	part_a = DummyMol()
 	part_b = DummyMol()
@@ -172,21 +172,21 @@ def test_oasa_bridge_read_cml_uses_registry(monkeypatch):
 
 
 #============================================
-def test_oasa_bridge_write_cml_is_disabled():
+def test_oasa_bridge_write_cml_is_disabled() -> None:
 	with pytest.raises(ValueError) as error:
 		oasa_bridge.write_cml("mol", "file", version=1)
 	assert "CML export is not supported" in str(error.value)
 
 
 #============================================
-def test_oasa_bridge_write_cml_from_paper_is_disabled():
+def test_oasa_bridge_write_cml_from_paper_is_disabled() -> None:
 	with pytest.raises(ValueError) as error:
 		oasa_bridge.write_cml_from_paper(DummyPaper(["one"]), "file", version=2)
 	assert "CML export is not supported" in str(error.value)
 
 
 #============================================
-def test_oasa_bridge_read_cdxml_uses_registry(monkeypatch):
+def test_oasa_bridge_read_cdxml_uses_registry(monkeypatch: object) -> None:
 	codec = DummyCodec()
 	dummy_mol = DummyMol()
 	codec.read_file_result = dummy_mol
@@ -203,7 +203,7 @@ def test_oasa_bridge_read_cdxml_uses_registry(monkeypatch):
 
 
 #============================================
-def test_validate_selected_molecule_requires_exactly_one_selected():
+def test_validate_selected_molecule_requires_exactly_one_selected() -> None:
 	paper = DummySelectionPaper([])
 	with pytest.raises(ValueError) as error:
 		oasa_bridge.validate_selected_molecule(paper)
@@ -211,7 +211,7 @@ def test_validate_selected_molecule_requires_exactly_one_selected():
 
 
 #============================================
-def test_validate_selected_molecule_rejects_multiple():
+def test_validate_selected_molecule_rejects_multiple() -> None:
 	selected = [DummyObject("molecule"), DummyObject("molecule")]
 	paper = DummySelectionPaper(selected)
 	with pytest.raises(ValueError) as error:
@@ -220,7 +220,7 @@ def test_validate_selected_molecule_rejects_multiple():
 
 
 #============================================
-def test_validate_selected_molecule_returns_single_molecule():
+def test_validate_selected_molecule_returns_single_molecule() -> None:
 	selected = [DummyObject("atom"), DummyObject("molecule")]
 	paper = DummySelectionPaper(selected)
 	result = oasa_bridge.validate_selected_molecule(paper)

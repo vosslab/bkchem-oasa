@@ -28,7 +28,7 @@ class TestConnectedComponents:
 	"""Compare connected component counts and sizes between OASA and rustworkx."""
 
 	@pytest.mark.parametrize("fixture", ALL_FIXTURES, ids=FIXTURE_IDS)
-	def test_component_count(self, fixture):
+	def test_component_count(self, fixture: object) -> None:
 		"""Assert same number of connected components."""
 		mol = fixture["oasa_mol"]
 		rx_g = fixture["rx_graph"]
@@ -39,7 +39,7 @@ class TestConnectedComponents:
 		assert len(oasa_comps) == len(rx_comps)
 
 	@pytest.mark.parametrize("fixture", ALL_FIXTURES, ids=FIXTURE_IDS)
-	def test_component_sizes(self, fixture):
+	def test_component_sizes(self, fixture: object) -> None:
 		"""Assert same component sizes (sorted) between OASA and rustworkx."""
 		mol = fixture["oasa_mol"]
 		rx_g = fixture["rx_graph"]
@@ -53,7 +53,7 @@ class TestIsConnected:
 	"""Compare connectivity check between OASA and rustworkx."""
 
 	@pytest.mark.parametrize("fixture", ALL_FIXTURES, ids=FIXTURE_IDS)
-	def test_is_connected(self, fixture):
+	def test_is_connected(self, fixture: object) -> None:
 		"""Assert identical boolean result for is_connected."""
 		mol = fixture["oasa_mol"]
 		rx_g = fixture["rx_graph"]
@@ -67,7 +67,7 @@ class TestPathExists:
 	"""Compare path existence checks between OASA and rustworkx."""
 
 	@pytest.mark.parametrize("fixture", MULTI_VERTEX_FIXTURES, ids=MULTI_VERTEX_IDS)
-	def test_path_exists_connected(self, fixture):
+	def test_path_exists_connected(self, fixture: object) -> None:
 		"""For connected graphs, path should exist between first and last vertex."""
 		mol = fixture["oasa_mol"]
 		rx_g = fixture["rx_graph"]
@@ -79,7 +79,7 @@ class TestPathExists:
 		rx_result = rustworkx.has_path(rx_g, i0, i1)
 		assert bool(oasa_result) == bool(rx_result)
 
-	def test_path_not_exists_disconnected(self):
+	def test_path_not_exists_disconnected(self) -> None:
 		"""For disconnected graph, vertices in different components have no path."""
 		fixture = graph_test_fixtures.make_disconnected()
 		mol = fixture["oasa_mol"]
@@ -102,7 +102,7 @@ class TestDiameter:
 	"""Compare graph diameter between OASA and rustworkx."""
 
 	@pytest.mark.parametrize("fixture", CONNECTED_FIXTURES, ids=CONNECTED_IDS)
-	def test_diameter(self, fixture):
+	def test_diameter(self, fixture: object) -> None:
 		"""Assert identical diameter values."""
 		mol = fixture["oasa_mol"]
 		rx_g = fixture["rx_graph"]
@@ -120,7 +120,7 @@ class TestCycleBasis:
 	"""Compare independent cycle counts between OASA and rustworkx."""
 
 	@pytest.mark.parametrize("fixture", ALL_FIXTURES, ids=FIXTURE_IDS)
-	def test_cycle_count(self, fixture):
+	def test_cycle_count(self, fixture: object) -> None:
 		"""Assert same number of independent cycles."""
 		mol = fixture["oasa_mol"]
 		rx_g = fixture["rx_graph"]
@@ -128,7 +128,7 @@ class TestCycleBasis:
 		rx_cycles = rustworkx.cycle_basis(rx_g)
 		assert len(oasa_cycles) == len(rx_cycles)
 
-	def test_benzene_single_cycle_of_six(self):
+	def test_benzene_single_cycle_of_six(self) -> None:
 		"""Benzene should have exactly 1 cycle of size 6."""
 		fixture = graph_test_fixtures.make_benzene()
 		mol = fixture["oasa_mol"]
@@ -142,7 +142,7 @@ class TestCycleBasis:
 		# rustworkx cycles are lists of node indices
 		assert len(rx_cycles[0]) == 6
 
-	def test_cholesterol_four_cycles(self):
+	def test_cholesterol_four_cycles(self) -> None:
 		"""Cholesterol should have exactly 4 independent cycles."""
 		fixture = graph_test_fixtures.make_cholesterol()
 		mol = fixture["oasa_mol"]
@@ -158,7 +158,7 @@ class TestDistanceFrom:
 	"""Compare BFS distance results between OASA and rustworkx."""
 
 	@pytest.mark.parametrize("fixture", CONNECTED_FIXTURES, ids=CONNECTED_IDS)
-	def test_max_distance(self, fixture):
+	def test_max_distance(self, fixture: object) -> None:
 		"""Assert max distance from first vertex matches between backends."""
 		mol = fixture["oasa_mol"]
 		rx_g = fixture["rx_graph"]
@@ -174,7 +174,7 @@ class TestDistanceFrom:
 		assert oasa_max == rx_max
 
 	@pytest.mark.parametrize("fixture", CONNECTED_FIXTURES, ids=CONNECTED_IDS)
-	def test_per_vertex_distances(self, fixture):
+	def test_per_vertex_distances(self, fixture: object) -> None:
 		"""Assert per-vertex BFS distances match between OASA and rustworkx."""
 		mol = fixture["oasa_mol"]
 		rx_g = fixture["rx_graph"]
@@ -207,7 +207,7 @@ class TestBridges:
 	"""
 
 	@pytest.mark.parametrize("fixture", CONNECTED_FIXTURES, ids=CONNECTED_IDS)
-	def test_bridge_count(self, fixture):
+	def test_bridge_count(self, fixture: object) -> None:
 		"""Compare bridge counts between OASA and rustworkx."""
 		mol = fixture["oasa_mol"]
 		rx_g = fixture["rx_graph"]
@@ -238,7 +238,7 @@ class TestFindPathBetween:
 	"""Compare path finding between OASA and rustworkx."""
 
 	@pytest.mark.parametrize("fixture", MULTI_VERTEX_FIXTURES, ids=MULTI_VERTEX_IDS)
-	def test_path_validity(self, fixture):
+	def test_path_validity(self, fixture: object) -> None:
 		"""Both backends find valid paths; rustworkx path <= OASA path length."""
 		mol = fixture["oasa_mol"]
 		rx_g = fixture["rx_graph"]

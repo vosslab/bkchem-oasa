@@ -28,12 +28,12 @@ from bkchem.modes.edit_mode import edit_mode
 # -------------------- BRACKETS MODE --------------------
 class bracket_mode( edit_mode):
 
-	def __init__( self):
+	def __init__( self) -> None:
 		edit_mode.__init__( self)
 		# submodes, name loaded from YAML
 
 
-	def _end_of_empty_drag( self, x1, y1, x2, y2):
+	def _end_of_empty_drag( self, x1: object, y1: object, x2: object, y2: object) -> None:
 		#convert to real coords
 		x1 = Store.app.paper.canvas_to_real(x1)
 		x2 = Store.app.paper.canvas_to_real(x2)

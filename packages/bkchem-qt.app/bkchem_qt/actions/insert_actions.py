@@ -5,7 +5,7 @@ from bkchem_qt.actions.action_registry import MenuAction
 
 
 #============================================
-def register_insert_actions(registry, app) -> None:
+def register_insert_actions(registry: object, app: object) -> None:
 	"""Register all Insert menu actions.
 
 	Args:

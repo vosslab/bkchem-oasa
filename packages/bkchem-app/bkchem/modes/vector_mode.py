@@ -25,7 +25,7 @@ from bkchem.modes.edit_mode import edit_mode
 
 class vector_mode( edit_mode):
 
-	def __init__( self):
+	def __init__( self) -> None:
 		edit_mode.__init__( self)
 		# submodes, name loaded from YAML
 		self._polygon_points = []
@@ -33,7 +33,7 @@ class vector_mode( edit_mode):
 		self._current_obj = None
 
 
-	def mouse_down( self, event, modifiers=[]):
+	def mouse_down( self, event: object, modifiers: list = []) -> None:
 		edit_mode.mouse_down( self, event)
 		if self.get_submode(0) in ("polyline","polygon"):
 			Store.app.paper.unselect_all()
@@ -41,7 +41,7 @@ class vector_mode( edit_mode):
 			self._polygon_points += [event.x, event.y]
 
 
-	def mouse_drag( self, event):
+	def mouse_drag( self, event: object) -> None:
 		if self.get_submode(0) in ("polyline","polygon"):
 			self.mouse_move( event)
 			return
@@ -64,7 +64,7 @@ class vector_mode( edit_mode):
 			edit_mode.mouse_drag( self, event)
 
 
-	def mouse_up( self, event):
+	def mouse_up( self, event: object) -> None:
 		if self.get_submode( 0) in ("polyline","polygon"):
 			if not self._polygon_line:
 				self._polygon_line = Store.app.paper.create_line( tuple( self._polygon_points + [event.x, event.y]), fill='black')
@@ -86,7 +86,7 @@ class vector_mode( edit_mode):
 			self.mouse_click( event)
 
 
-	def mouse_down3( self, event, modifiers = []):
+	def mouse_down3( self, event: object, modifiers: list = []) -> None:
 		if self._polygon_line:
 			Store.app.paper.delete( self._polygon_line)
 			poly = None
@@ -106,7 +106,7 @@ class vector_mode( edit_mode):
 			edit_mode.mouse_down3( self, event, modifiers=modifiers)
 
 
-	def mouse_move( self, event):
+	def mouse_move( self, event: object) -> None:
 		if self.get_submode( 0) in ("polyline","polygon") and self._polygon_points:
 			if not self._polygon_line:
 				self._polygon_line = Store.app.paper.create_line( tuple( self._polygon_points + [event.x, event.y]), fill='black')

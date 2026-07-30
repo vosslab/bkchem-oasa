@@ -21,15 +21,27 @@
 
 
 from oasa import cdml_writer
+from oasa import cdml_xml
 from oasa import dom_extensions as dom_ext
-from oasa import safe_xml
 from oasa.coords_generator import calculate_coords
 
 
+#============================================
+def _parse_complete_cdml_for_molecule_import(text: object) -> object:
+  """Authorize complete CDML before extracting chemistry-only molecule data."""
+  if isinstance(text, str):
+    source = text.encode("utf-8")
+  elif isinstance(text, bytes):
+    source = text
+  else:
+    raise TypeError("CDML molecule import source must be text or bytes")
+  document = cdml_xml.parse_cdml_dom(source)
+  return document
 
-def read_cdml( text):
-  """returns the last molecule for now"""
-  doc = safe_xml.parse_dom_from_string( text)
+
+def read_cdml( text: object) -> object:
+  """Extract molecule graphs from complete CDML for chemistry import only."""
+  doc = _parse_complete_cdml_for_molecule_import(text)
   #if doc.childNodes()[0].nodeName == 'svg':
   #  path = "/svg/cdml/molecule"
   #else:
@@ -47,7 +59,7 @@ def read_cdml( text):
         yield comp
 
 
-def cm_to_float_coord( x):
+def cm_to_float_coord( x: object) -> float:
   if not x:
     return 0
   if x[-2:] == 'cm':
@@ -64,10 +76,11 @@ reads_files = 1
 writes_text = 0
 writes_files = 0
 
-def file_to_mol( f):
+def file_to_mol( f: object) -> object:
   return text_to_mol( f.read())
 
-def text_to_mol( text):
+def text_to_mol( text: object) -> object | None:
+  """Extract the first molecule for chemistry import, never native document Open."""
   gen = read_cdml( text)
   try:
     mol = next(gen)

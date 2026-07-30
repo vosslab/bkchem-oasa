@@ -13,7 +13,7 @@ import pytest
 
 
 #============================================
-def _ensure_gettext_fallbacks():
+def _ensure_gettext_fallbacks() -> object:
 	"""Ensure gettext helpers exist for module-level strings."""
 	if "_" not in builtins.__dict__:
 		builtins.__dict__["_"] = lambda m: m
@@ -22,7 +22,7 @@ def _ensure_gettext_fallbacks():
 
 
 #============================================
-def _verify_tkinter():
+def _verify_tkinter() -> object:
 	"""Verify Tk is available for GUI-backed tests."""
 	try:
 		import tkinter
@@ -37,7 +37,7 @@ def _verify_tkinter():
 
 
 #============================================
-def _ensure_preferences():
+def _ensure_preferences() -> object:
 	"""Initialize preference manager for tests."""
 	from bkchem import os_support
 	from bkchem import pref_manager
@@ -51,7 +51,7 @@ def _ensure_preferences():
 
 
 #============================================
-def _flush_events(app, delay=0.05):
+def _flush_events(app: object, delay: object=0.05) -> object:
 	"""Process Tk events with a brief delay for GUI updates."""
 	app.update_idletasks()
 	app.update()
@@ -61,7 +61,7 @@ def _flush_events(app, delay=0.05):
 
 
 #============================================
-def _canvas_to_widget(paper, cx, cy):
+def _canvas_to_widget(paper: object, cx: object, cy: object) -> object:
 	"""Convert canvas coordinates to widget coordinates for event_generate."""
 	# event_generate x,y are widget-relative; canvasx/canvasy map widget->canvas
 	wx = int(cx - paper.canvasx(0))
@@ -70,7 +70,7 @@ def _canvas_to_widget(paper, cx, cy):
 
 
 #============================================
-def _event_click(paper, x, y):
+def _event_click(paper: object, x: object, y: object) -> object:
 	"""Simulate a left click at the provided canvas coordinates."""
 	wx, wy = _canvas_to_widget(paper, x, y)
 	paper.event_generate("<Button-1>", x=wx, y=wy)
@@ -78,7 +78,7 @@ def _event_click(paper, x, y):
 
 
 #============================================
-def _event_drag(paper, x1, y1, x2, y2):
+def _event_drag(paper: object, x1: object, y1: object, x2: object, y2: object) -> object:
 	"""Simulate a left-button drag between two canvas coordinates."""
 	button_state = 256
 	# convert all canvas coords to widget coords
@@ -101,14 +101,14 @@ def _event_drag(paper, x1, y1, x2, y2):
 
 
 #============================================
-def _event_key_press(paper, key):
+def _event_key_press(paper: object, key: object) -> object:
 	"""Simulate a key press/release pair."""
 	paper.event_generate(f"<KeyPress-{key}>")
 	paper.event_generate(f"<KeyRelease-{key}>")
 
 
 #============================================
-def _event_key_combo(paper, specials, key):
+def _event_key_combo(paper: object, specials: object, key: object) -> object:
 	"""Simulate a key combo using explicit modifier press/release events."""
 	for special in specials:
 		paper.event_generate(f"<KeyPress-{special}>")
@@ -119,7 +119,7 @@ def _event_key_combo(paper, specials, key):
 
 
 #============================================
-def _mode_shortcut_number(app, mode_name):
+def _mode_shortcut_number(app: object, mode_name: object) -> object:
 	"""Return the 1-based Ctrl-number shortcut index for a mode name."""
 	if mode_name not in app.modes_sort:
 		raise AssertionError(f"Mode '{mode_name}' not found in toolbar order.")
@@ -132,19 +132,19 @@ def _mode_shortcut_number(app, mode_name):
 
 
 #============================================
-def _count_atoms(paper):
+def _count_atoms(paper: object) -> object:
 	"""Return the number of atoms across all molecules."""
 	return sum(len(mol.atoms) for mol in paper.molecules)
 
 
 #============================================
-def _count_bonds(paper):
+def _count_bonds(paper: object) -> object:
 	"""Return the number of bonds across all molecules."""
 	return sum(len(mol.bonds) for mol in paper.molecules)
 
 
 #============================================
-def _run_gui_event_simulation():
+def _run_gui_event_simulation() -> object:
 	_ensure_gettext_fallbacks()
 	_verify_tkinter()
 	_ensure_preferences()
@@ -253,13 +253,13 @@ def _run_gui_event_simulation():
 
 
 #============================================
-def main():
+def main() -> None:
 	"""Entry point for running the GUI event simulation directly."""
 	_run_gui_event_simulation()
 
 
 #============================================
-def test_bkchem_gui_event_simulation():
+def test_bkchem_gui_event_simulation() -> None:
 	cmd = [sys.executable, os.path.abspath(__file__)]
 	result = subprocess.run(cmd, capture_output=True, text=True, check=False)
 	if result.returncode == 0:

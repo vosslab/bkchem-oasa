@@ -53,12 +53,12 @@ class external_data_manager( object):
   reference_types = ("atom", "molecule", "bond")
 
 
-  def __init__( self):
+  def __init__( self) -> None:
     self.records = {}
     self.definitions = {}
 
 
-  def load_available_definitions(self):
+  def load_available_definitions(self) -> object:
     d = os_support.get_bkchem_private_dir()
     d = os.path.join(d, 'definitions')
     if not os.path.isdir(d):
@@ -71,7 +71,7 @@ class external_data_manager( object):
     return list(self.definitions.keys())
 
 
-  def read_data_definition( self, filename):
+  def read_data_definition( self, filename: object) -> object:
     doc = safe_xml.parse_dom_from_file( filename)
     root = doc.childNodes[0]
     for ecls in dom_ext.simpleXPathSearch( root, "class"):
@@ -96,7 +96,7 @@ class external_data_manager( object):
     self.records[ cls] = {}
 
 
-  def get_definitions_for_class_and_type( self, def_class, item_type):
+  def get_definitions_for_class_and_type( self, def_class: object, item_type: object) -> object:
     dclass = self.definitions.get( def_class, None)
     if dclass:
       return dclass.get( item_type, None)
@@ -104,11 +104,11 @@ class external_data_manager( object):
       return None
 
 
-  def get_definition_classes( self):
+  def get_definition_classes( self) -> object:
     return list(self.definitions.keys())
 
 
-  def set_data( self, dclass, obj, category, value):
+  def set_data( self, dclass: object, obj: object, category: object, value: object) -> object:
     """sets the data into the internal dictionary"""
     if self.value_matches_definition( dclass, obj, category, value):
       if not obj in self.records[ dclass]:
@@ -123,7 +123,7 @@ class external_data_manager( object):
       raise ValueError("the value '%s' type does not match the definition." % str( value))
 
 
-  def get_data( self, dclass, obj, category):
+  def get_data( self, dclass: object, obj: object, category: object) -> object:
     """gets data for an object from the internal dictionary,
     returns None if such data are not available for that object"""
     if dclass in self.records:
@@ -141,7 +141,7 @@ class external_data_manager( object):
     raise ValueError("not registered dclass: %s" % dclass)
 
 
-  def value_matches_definition( self, dclass, obj, category, value):
+  def value_matches_definition( self, dclass: object, obj: object, category: object, value: object) -> object:
     """checks if the value is of the type provided in definition"""
     if not dclass in list(self.records.keys()):
       raise ValueError("not registered dclass: %s" % dclass)
@@ -157,7 +157,7 @@ class external_data_manager( object):
       return False
 
 
-  def conforms_to_type( self, value, t):
+  def conforms_to_type( self, value: object, t: object) -> object:
     if isinstance(t, list):
       for v2 in t:
         if value == v2:
@@ -174,11 +174,11 @@ class external_data_manager( object):
       return isinstance( value, t)
 
 
-  def expand_type( self, t):
+  def expand_type( self, t: object) -> object:
     return self.types[ t]
 
 
-  def get_package( self, doc):
+  def get_package( self, doc: object) -> object:
     if not self.records or sum( map( len, list(self.records.values()))) == 0:
       return None
     e = doc.createElement( 'external-data')
@@ -196,7 +196,7 @@ class external_data_manager( object):
     return e
 
 
-  def read_package( self, root):
+  def read_package( self, root: object) -> object:
     """reads the data from xml (CDML) format. Is not intended for reading of definition
     files, use read_data_definition instead"""
     for ecls in dom_ext.simpleXPathSearch( root, "class"):
@@ -211,7 +211,7 @@ class external_data_manager( object):
           self.set_data( cls, obj, vcat, vvalue)
 
 
-  def convert_to_type( self, value, vtype):
+  def convert_to_type( self, value: object, vtype: object) -> object:
     if isinstance(vtype, list):
       return value
     if vtype in types.__dict__:
@@ -235,7 +235,7 @@ from bkchem.bk_widgets import BkOptionMenu, BkRadioSelect
 
 class ExternalDataEntry( Entry, object):
 
-  def __init__( self, parent, type, type_class, **kw):
+  def __init__( self, parent: object, type: object, type_class: object, **kw) -> None:
     Entry.__init__( self, parent, kw)
     self.arrow = None
     self.type_class = type_class  # is one of ("internal", "reference")
@@ -244,7 +244,7 @@ class ExternalDataEntry( Entry, object):
 
 
   @property
-  def value(self):
+  def value(self) -> object:
     """Value of the Entry, str() is run on it when displaying.
 
     """
@@ -252,14 +252,14 @@ class ExternalDataEntry( Entry, object):
 
 
   @value.setter
-  def value(self, value):
+  def value(self, value: object) -> object:
     self.delete(0, last='end')
     if value is not None:
       self._value = value
       self.insert(0, str(self._value))
 
 
-  def cleanup( self, paper):
+  def cleanup( self, paper: object) -> object:
     if self.arrow:
       paper.delete( self.arrow)
       self.arrow = None
@@ -268,7 +268,7 @@ class ExternalDataEntry( Entry, object):
 
 class ExternalDataList( BkOptionMenu, object):
 
-  def __init__( self, parent, type, **kw):
+  def __init__( self, parent: object, type: object, **kw) -> None:
     BkOptionMenu.__init__( self, parent, **kw)
     self.type_class = "reference"
     self.arrow = None
@@ -276,7 +276,7 @@ class ExternalDataList( BkOptionMenu, object):
 
 
   @property
-  def value(self):
+  def value(self) -> object:
     """Value of the List.
 
     """
@@ -284,14 +284,14 @@ class ExternalDataList( BkOptionMenu, object):
 
 
   @value.setter
-  def value(self, value):
+  def value(self, value: object) -> object:
     if value:
       self.setvalue(value)
     else:
       self.setvalue("")
 
 
-  def cleanup( self, paper):
+  def cleanup( self, paper: object) -> object:
     if self.arrow:
       paper.delete( self.arrow)
       self.arrow = None
@@ -300,7 +300,7 @@ class ExternalDataList( BkOptionMenu, object):
 
 class ExternalDataListSelection( BkRadioSelect, object):
 
-  def __init__( self, parent, type, **kw):
+  def __init__( self, parent: object, type: object, **kw) -> None:
     BkRadioSelect.__init__( self, parent, **kw)
     for t in type:
       self.add( t)
@@ -310,7 +310,7 @@ class ExternalDataListSelection( BkRadioSelect, object):
 
 
   @property
-  def value(self):
+  def value(self) -> object:
     """Value of the List.
 
     """
@@ -318,12 +318,12 @@ class ExternalDataListSelection( BkRadioSelect, object):
 
 
   @value.setter
-  def value(self, value):
+  def value(self, value: object) -> object:
     if value:
       self.invoke(value)
 
 
-  def cleanup( self, paper):
+  def cleanup( self, paper: object) -> object:
     if self.arrow:
       paper.delete( self.arrow)
       self.arrow = None

@@ -28,7 +28,7 @@ class BaseMode(PySide6.QtCore.QObject):
 	status_message = PySide6.QtCore.Signal(str)
 
 	#============================================
-	def __init__(self, view, parent=None):
+	def __init__(self, view: object, parent: PySide6.QtCore.QObject | None = None) -> None:
 		"""Initialize the base mode.
 
 		Args:
@@ -40,6 +40,7 @@ class BaseMode(PySide6.QtCore.QObject):
 		self._env = bkchem_qt.modes.mode_environment.ModeEnvironment(view)
 		self._name = "Base"
 		self._cursor = PySide6.QtCore.Qt.CursorShape.ArrowCursor
+		self._graphics_retirement_reaper = None
 
 		# submode data, populated from modes.yaml at registration time
 		# each list is indexed by group index
@@ -107,12 +108,17 @@ class BaseMode(PySide6.QtCore.QObject):
 			PySide6.QtCore.Qt.CursorShape.ArrowCursor
 		))
 
+	#============================================
+	def set_graphics_retirement_reaper(self, reaper: object | None) -> None:
+		"""Set this session's frontend-only terminal preview owner."""
+		self._graphics_retirement_reaper = reaper
+
 	# ------------------------------------------------------------------
 	# Event handlers
 	# ------------------------------------------------------------------
 
 	#============================================
-	def mouse_press(self, scene_pos: PySide6.QtCore.QPointF, event) -> None:
+	def mouse_press(self, scene_pos: PySide6.QtCore.QPointF, event: object) -> None:
 		"""Handle a mouse press event at the given scene position.
 
 		Args:
@@ -121,7 +127,7 @@ class BaseMode(PySide6.QtCore.QObject):
 		"""
 
 	#============================================
-	def mouse_release(self, scene_pos: PySide6.QtCore.QPointF, event) -> None:
+	def mouse_release(self, scene_pos: PySide6.QtCore.QPointF, event: object) -> None:
 		"""Handle a mouse release event at the given scene position.
 
 		Args:
@@ -130,7 +136,7 @@ class BaseMode(PySide6.QtCore.QObject):
 		"""
 
 	#============================================
-	def mouse_move(self, scene_pos: PySide6.QtCore.QPointF, event) -> None:
+	def mouse_move(self, scene_pos: PySide6.QtCore.QPointF, event: object) -> None:
 		"""Handle a mouse move event at the given scene position.
 
 		Args:
@@ -139,7 +145,7 @@ class BaseMode(PySide6.QtCore.QObject):
 		"""
 
 	#============================================
-	def mouse_press3(self, scene_pos: PySide6.QtCore.QPointF, event) -> None:
+	def mouse_press3(self, scene_pos: PySide6.QtCore.QPointF, event: object) -> None:
 		"""Handle a right-click (button-3) mouse press event.
 
 		Tk equivalent: mode.mouse_down3(event, modifiers). Override
@@ -152,7 +158,7 @@ class BaseMode(PySide6.QtCore.QObject):
 		"""
 
 	#============================================
-	def mouse_double_click(self, scene_pos: PySide6.QtCore.QPointF, event) -> None:
+	def mouse_double_click(self, scene_pos: PySide6.QtCore.QPointF, event: object) -> None:
 		"""Handle a mouse double-click event at the given scene position.
 
 		Args:
@@ -161,7 +167,7 @@ class BaseMode(PySide6.QtCore.QObject):
 		"""
 
 	#============================================
-	def enter_object(self, item, event) -> None:
+	def enter_object(self, item: object, event: object) -> None:
 		"""Handle the cursor entering an interactive item during drag.
 
 		Tk equivalent: mode.enter_object(object, event). Called when
@@ -174,7 +180,7 @@ class BaseMode(PySide6.QtCore.QObject):
 		"""
 
 	#============================================
-	def leave_object(self, event) -> None:
+	def leave_object(self, event: object) -> None:
 		"""Handle the cursor leaving an interactive item during drag.
 
 		Tk equivalent: mode.leave_object(event). Called when the
@@ -185,7 +191,7 @@ class BaseMode(PySide6.QtCore.QObject):
 		"""
 
 	#============================================
-	def key_press(self, event) -> None:
+	def key_press(self, event: object) -> None:
 		"""Handle a key press event.
 
 		Args:
@@ -193,7 +199,7 @@ class BaseMode(PySide6.QtCore.QObject):
 		"""
 
 	#============================================
-	def key_release(self, event) -> None:
+	def key_release(self, event: object) -> None:
 		"""Handle a key release event.
 
 		Args:
@@ -205,7 +211,7 @@ class BaseMode(PySide6.QtCore.QObject):
 	# ------------------------------------------------------------------
 
 	#============================================
-	def on_paper_switch(self, old_paper, new_paper) -> None:
+	def on_paper_switch(self, old_paper: object | None, new_paper: object | None) -> None:
 		"""Called when the active paper/tab changes.
 
 		Tk equivalent: mode.on_paper_switch(old_paper, new_paper).
@@ -228,7 +234,7 @@ class BaseMode(PySide6.QtCore.QObject):
 		"""
 
 	#============================================
-	def copy_settings(self, old_mode) -> None:
+	def copy_settings(self, old_mode: object) -> None:
 		"""Copy relevant settings from a previous mode.
 
 		Tk equivalent: mode.copy_settings(old_mode). Called after
@@ -296,7 +302,7 @@ class BaseMode(PySide6.QtCore.QObject):
 	# ------------------------------------------------------------------
 
 	#============================================
-	def _item_at(self, scene_pos: PySide6.QtCore.QPointF):
+	def _item_at(self, scene_pos: PySide6.QtCore.QPointF) -> object | None:
 		"""Find the topmost interactive item at a scene position.
 
 		Searches the scene for items at ``scene_pos`` and returns the

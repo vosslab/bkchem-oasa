@@ -17,14 +17,14 @@ responsible only for interaction and Tk rendering.
 ## Current state summary
 
 - BKChem bond types include `n`, `w`, `h`, `a`, `b`, `d`, `o`, `s`, `q` in
-  [packages/bkchem-app/bkchem/bond.py](packages/bkchem-app/bkchem/bond.py).
+  `bond.py`.
 - OASA bond types document `n`, `w`, `h`, `a`, `b`, `d`, `s`, `q` in
-  [packages/oasa/oasa/bond.py](packages/oasa/oasa/bond.py).
+  `bond.py`.
 - BKChem writes CDML bond attributes beyond OASA parsing
   (widths, center, auto_sign, equithick) in
-  [packages/bkchem-app/bkchem/bond.py](packages/bkchem-app/bkchem/bond.py).
+  `bond.py`.
 - OASA CDML parsing reads `color` and `wavy_style` in
-  [packages/oasa/oasa/cdml.py](packages/oasa/oasa/cdml.py).
+  [cdml.py](../../packages/oasa/oasa/cdml.py).
 - BKChem does not currently draw `q` in the GUI.
 - Hashed bond direction depends on vertex ordering, not a side flag.
 

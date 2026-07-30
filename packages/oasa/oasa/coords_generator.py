@@ -12,7 +12,7 @@ from oasa import rdkit_bridge
 
 
 #============================================
-def _all_coords_set(mol) -> bool:
+def _all_coords_set(mol: object) -> bool:
 	"""Return True if every atom has non-None x and y."""
 	for v in mol.vertices:
 		if v.x is None or v.y is None:
@@ -21,7 +21,7 @@ def _all_coords_set(mol) -> bool:
 
 
 #============================================
-def _measure_avg_bond_length(mol) -> float:
+def _measure_avg_bond_length(mol: object) -> float:
 	"""Compute average bond length from existing coordinates.
 
 	Returns 1.0 if no bonds have both endpoints placed.
@@ -44,7 +44,7 @@ def _measure_avg_bond_length(mol) -> float:
 
 
 #============================================
-def calculate_coords(mol, bond_length: float = 0, force: int = 0) -> None:
+def calculate_coords(mol: object, bond_length: float = 0, force: int = 0) -> None:
 	"""Generate 2D coordinates for an OASA molecule using RDKit.
 
 	Drop-in replacement for the legacy coords_generator and coords_generator2

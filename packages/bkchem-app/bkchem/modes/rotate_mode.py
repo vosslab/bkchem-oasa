@@ -40,7 +40,7 @@ _ = builtins.__dict__.get( '_', lambda m: m)
 
 class rotate_mode( edit_mode):
 
-	def __init__( self):
+	def __init__( self) -> None:
 		edit_mode.__init__( self)
 		# submodes, name loaded from YAML
 		self._rotated_mol = None
@@ -48,7 +48,7 @@ class rotate_mode( edit_mode):
 		self._fixed = None
 
 
-	def mouse_down( self, event, modifiers = []):
+	def mouse_down( self, event: object, modifiers: list = []) -> None:
 		edit_mode.mouse_down( self, event, modifiers = modifiers)
 		# blocking is not necessary in rotate mode
 		self._block_leave_event = 0
@@ -87,7 +87,7 @@ class rotate_mode( edit_mode):
 				tkinter.messagebox.showerror( _("You can only rotate molecules and arrows in 2D!"), _("Sorry but you can only rotate molecules and arrows in 2D."))
 
 
-	def mouse_up( self, event):
+	def mouse_up( self, event: object) -> None:
 		if not self._dragging:
 			self.mouse_click( event)
 		else:
@@ -104,7 +104,7 @@ class rotate_mode( edit_mode):
 		Store.app.paper.add_bindings()
 
 
-	def mouse_drag( self, event):
+	def mouse_drag( self, event: object) -> None:
 		if self.focused:
 			self.focused.unfocus()
 			self.focused = None
@@ -157,11 +157,11 @@ class rotate_mode( edit_mode):
 						a.simple_redraw()
 
 
-	def mouse_click( self, event):
+	def mouse_click( self, event: object) -> None:
 		edit_mode.mouse_click( self, event)
 
 
-	def _get_objs_to_rotate( self):
+	def _get_objs_to_rotate( self) -> object:
 		if not self._shift:
 			return self._fixed.molecule.atoms
 		b = self._fixed

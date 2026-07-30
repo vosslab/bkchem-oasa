@@ -30,14 +30,14 @@ import sys
 
 
 
-def myisstr(obj):
+def myisstr(obj: object) -> object:
   if sys.version_info[0] > 2:
     return isinstance(obj, str)
   else:
     return isinstance(obj, str)
 
 
-def intersection( a, b):
+def intersection( a: object, b: object) -> object:
   "returns intersection of 2 lists"
   ret = []
   for i in a:
@@ -46,7 +46,7 @@ def intersection( a, b):
   return ret
 
 
-def difference( a,b):
+def difference( a: object, b: object) -> object:
   "returns difference of 2 lists ( a-b)"
   ret = list( a)  # needed for type conversion of tuple for instance
   for i in b:
@@ -55,7 +55,7 @@ def difference( a,b):
   return ret
 
 
-def signum( a):
+def signum( a: object) -> object:
   if a == 0:
     return 0
   elif a < 0:
@@ -64,7 +64,7 @@ def signum( a):
     return 1
 
 
-def filter_unique( items):
+def filter_unique( items: object) -> object:
   #t1 = time.time()
   ret = []
   for item in items:
@@ -77,11 +77,11 @@ def filter_unique( items):
 #def sub_all_numbers( text):
 #  return re.sub( "\d+", '<sub>\g<0><\\sub>', text)
 
-def reverse_molecule_formula( formula):
+def reverse_molecule_formula( formula: object) -> object:
   pass
 
 
-def normalize_coords( coords):
+def normalize_coords( coords: object) -> object:
   x1, y1, x2, y2 = coords
   if x2 < x1:
     x2, x1 = x1, x2
@@ -90,7 +90,7 @@ def normalize_coords( coords):
   return (x1, y1, x2, y2)
 
 
-def list_difference( list):
+def list_difference( list: object) -> object:
   """return a list of differences between list members,
   the list is by 1 shorter than the original"""
   ret = []
@@ -99,7 +99,7 @@ def list_difference( list):
   return ret
 
 
-def split_number_and_unit( txt):
+def split_number_and_unit( txt: object) -> object:
   try:
     v = float( txt)
     return v, ''
@@ -113,14 +113,14 @@ def split_number_and_unit( txt):
   return None, None
 
 
-def lazy_apply( function, arguments):
+def lazy_apply( function: object, arguments: object) -> object:
   """similar to apply but returns a callable (lambda) that performs the apply when called."""
   return lambda: function(*arguments)
 
 
 
 
-def extend_bbox( bbox, pixels=1):
+def extend_bbox( bbox: object, pixels: object = 1) -> object:
   minx = min( (bbox[0], bbox[2]))
   maxx = max( (bbox[0], bbox[2]))
   miny = min( (bbox[1], bbox[3]))
@@ -128,7 +128,7 @@ def extend_bbox( bbox, pixels=1):
   return minx-pixels, miny-pixels, maxx+pixels, maxy+pixels
 
 
-def smallest_common_bbox( bboxes):
+def smallest_common_bbox( bboxes: object) -> object:
   _x0, _y0, _x1, _y1 = None, None, None, None
   for (x0, y0, x1, y1) in bboxes:
     minx = min( x0, x1)
@@ -150,7 +150,7 @@ def smallest_common_bbox( bboxes):
 
 
 
-def has_one_value_only( iterable):
+def has_one_value_only( iterable: object) -> object:
   if not iterable:
     return 0
   a = iterable[0]
@@ -161,7 +161,7 @@ def has_one_value_only( iterable):
 
 
 
-def plural_or_singular( iterable):
+def plural_or_singular( iterable: object) -> object:
   """useful for string construction such as 'you have %d apple%s' % (len(apples), plural_or_singular( apples)"""
   if len( iterable) == 1:
     return ''
@@ -169,11 +169,11 @@ def plural_or_singular( iterable):
     return 's'
 
 
-def len_and_ending( iterable):
+def len_and_ending( iterable: object) -> object:
   return (len( iterable), plural_or_singular( iterable))
 
 
-def reverse( iterable):
+def reverse( iterable: object) -> object:
   for i in range( len( iterable)-1, -1, -1):
     yield iterable[i]
 
@@ -196,7 +196,7 @@ isinstance_of_one = lambda obj, parents: some_apply( lambda x: isinstance( obj, 
 
 
 
-def gen_variations(items, n):
+def gen_variations(items: object, n: object) -> object:
   if n==0:
     yield []
   else:
@@ -205,7 +205,7 @@ def gen_variations(items, n):
         yield [items[i]]+v
 
 
-def gen_combinations( items, n):
+def gen_combinations( items: object, n: object) -> object:
   if n==0:
     yield []
   else:
@@ -214,18 +214,18 @@ def gen_combinations( items, n):
         yield [items[i]]+v
 
 
-def x_over_y( x, y):
+def x_over_y( x: object, y: object) -> object:
   return factorial( x) / factorial( y) / factorial( x-y)
 
 
-def factorial( x):
+def factorial( x: object) -> object:
   ret = 1
   for i in range( 2, x+1):
     ret *= i
   return ret
 
 
-def gen_variations_and_one( items, length):
+def gen_variations_and_one( items: object, length: object) -> object:
   for i in items:
     vars = gen_variations( [x for x in items if x!=i], length-1)
     for vs in vars:

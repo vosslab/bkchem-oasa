@@ -21,23 +21,22 @@
 
 class Diedge(object):
 
-  def __init__(self, vs=None):
+  def __init__(self, vs: object=None) -> None:
     self.vertices = []
     self.set_vertices(vs)
     self.properties_ = {}
 
 
-  def __str__(self):
+  def __str__(self) -> object:
     return "Directed edge between %s %s" % tuple(map(str, self.vertices))
 
 
-  def set_vertices(self, vs=None):
+  def set_vertices(self, vs: object=None) -> object:
     if vs and len(vs) == 2:
       self.vertices = vs
 
 
-  def get_vertices(self):
+  def get_vertices(self) -> object:
     return self.vertices
-
 
 

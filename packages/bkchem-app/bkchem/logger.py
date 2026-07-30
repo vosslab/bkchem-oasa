@@ -50,11 +50,11 @@ class logger(object):
   handle_order = ['ignore','console','status_bar','dialog']
 
 
-  def __init__( self):
+  def __init__( self) -> None:
     self.handling = normal
 
 
-  def log( self, message, message_type="info", delay=4):
+  def log( self, message: object, message_type: object="info", delay: object=4) -> object:
     """message_type is one of (info, warning, error, debug, hint),
     delay means the amount of time for which the text should be visible (for 'status-bar' only)"""
     if message_type not in logger.type_to_text:
@@ -64,19 +64,19 @@ class logger(object):
     self.__class__.__dict__['log_to_'+handle]( self, message, message_type=message_type, delay=delay)
 
 
-  def log_to_ignore( self, message, message_type="info", delay=4):
+  def log_to_ignore( self, message: object, message_type: object="info", delay: object=4) -> None:
     pass
 
 
-  def log_to_status_bar( self, message, message_type="info", delay=4):
+  def log_to_status_bar( self, message: object, message_type: object="info", delay: object=4) -> None:
     Store.app.update_status( message, time=delay)
 
 
-  def log_to_console( self, message, message_type="info", delay=4):
+  def log_to_console( self, message: object, message_type: object="info", delay: object=4) -> None:
     print(self.type_to_text[message_type]+":", message)
 
 
-  def log_to_dialog( self, message, message_type="info", delay=4):
+  def log_to_dialog( self, message: object, message_type: object="info", delay: object=4) -> None:
     heading = self.type_to_text[ message_type]
     if message_type == "error":
       tkMessageBox.showerror( heading, message)
@@ -90,7 +90,7 @@ class logger(object):
       tkMessageBox.showinfo( heading, message)
 
 
-  def set_handling( self, what, how):
+  def set_handling( self, what: object, how: object) -> None:
     assert what in logger.type_to_text
     assert how in logger.handle_to_text
     self.handling[what] = how

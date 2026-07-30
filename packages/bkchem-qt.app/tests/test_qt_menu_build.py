@@ -2,7 +2,7 @@
 
 
 #============================================
-def test_menu_bar_has_ten_menus(main_window):
+def test_menu_bar_has_ten_menus(main_window: object) -> None:
 	"""Verify 10 top-level menus are created from menus.yaml."""
 	menubar = main_window.menuBar()
 	menus = []

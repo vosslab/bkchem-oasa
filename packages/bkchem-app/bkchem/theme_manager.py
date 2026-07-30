@@ -266,7 +266,7 @@ def needs_icon_inversion() -> bool:
 
 
 #============================================
-def configure_ttk_styles(style) -> None:
+def configure_ttk_styles(style: object) -> None:
 	"""Configure named ttk styles from the active theme's YAML colors.
 
 	Sets up named styles for toolbar widgets so they inherit theme colors.
@@ -407,7 +407,7 @@ def configure_ttk_styles(style) -> None:
 
 
 #============================================
-def _refresh_toolbar_icons(app) -> None:
+def _refresh_toolbar_icons(app: object) -> None:
 	"""Reconfigure all toolbar button images from the reloaded pixmap cache.
 
 	Iterates through mode buttons via the app's mode-to-group mapping
@@ -431,7 +431,7 @@ def _refresh_toolbar_icons(app) -> None:
 
 
 #============================================
-def apply_gui_theme(app) -> None:
+def apply_gui_theme(app: object) -> None:
 	"""Apply the active theme's GUI colors to the running application.
 
 	Reconfigures the Tk palette, toolbar, buttons, separators,
@@ -531,7 +531,7 @@ def apply_gui_theme(app) -> None:
 
 
 #============================================
-def _recolor_toolbar_frame(frame, gui: dict) -> None:
+def _recolor_toolbar_frame(frame: object, gui: dict) -> None:
 	"""Reconfigure all widgets in the toolbar frame to match theme.
 
 	Args:
@@ -557,7 +557,7 @@ def _recolor_toolbar_frame(frame, gui: dict) -> None:
 
 
 #============================================
-def _recolor_subframe(app, gui: dict) -> None:
+def _recolor_subframe(app: object, gui: dict) -> None:
 	"""Recolor submode ribbon labels and separators.
 
 	Args:
@@ -575,7 +575,7 @@ def _recolor_subframe(app, gui: dict) -> None:
 
 
 #============================================
-def _recolor_mode_buttons(app, gui: dict) -> None:
+def _recolor_mode_buttons(app: object, gui: dict) -> None:
 	"""Recolor toolbar mode buttons for active/inactive state.
 
 	For ttk buttons (when _mode_var exists), styling is handled
@@ -593,7 +593,7 @@ def _recolor_mode_buttons(app, gui: dict) -> None:
 
 
 #============================================
-def _recolor_tabs(app, gui: dict) -> None:
+def _recolor_tabs(app: object, gui: dict) -> None:
 	"""Recolor notebook tabs for active/inactive state.
 
 	With ttk.Notebook, tab colors are handled declaratively via
@@ -609,7 +609,7 @@ def _recolor_tabs(app, gui: dict) -> None:
 
 
 #============================================
-def _apply_paper_theme(paper, theme: dict) -> None:
+def _apply_paper_theme(paper: object, theme: dict) -> None:
 	"""Apply paper background and hex grid colors from the theme.
 
 	Args:

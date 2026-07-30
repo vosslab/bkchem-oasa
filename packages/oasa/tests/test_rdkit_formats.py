@@ -17,7 +17,7 @@ from oasa.codecs import rdkit_formats
 
 
 #============================================
-def _make_simple_mol():
+def _make_simple_mol() -> None:
 	"""Create a simple C-O molecule for testing."""
 	mol = oasa.molecule_lib.Molecule()
 	a1 = oasa.atom_lib.Atom(symbol="C")
@@ -35,7 +35,7 @@ def _make_simple_mol():
 
 
 #============================================
-def _make_ethanol():
+def _make_ethanol() -> None:
 	"""Create ethanol (CCO) for testing."""
 	mol = oasa.molecule_lib.Molecule()
 	c1 = oasa.atom_lib.Atom(symbol="C")
@@ -64,7 +64,7 @@ def _make_ethanol():
 # ===================================================================
 
 #============================================
-def test_molfile_v3000_roundtrip():
+def test_molfile_v3000_roundtrip() -> None:
 	mol = _make_simple_mol()
 	text = rdkit_formats.molfile_v3000_mol_to_text(mol)
 	assert "V3000" in text
@@ -74,7 +74,7 @@ def test_molfile_v3000_roundtrip():
 
 
 #============================================
-def test_molfile_v3000_file_roundtrip():
+def test_molfile_v3000_file_roundtrip() -> None:
 	mol = _make_simple_mol()
 	out = io.BytesIO()
 	rdkit_formats.molfile_v3000_mol_to_file(mol, out)
@@ -86,13 +86,13 @@ def test_molfile_v3000_file_roundtrip():
 
 
 #============================================
-def test_molfile_v3000_invalid_input():
+def test_molfile_v3000_invalid_input() -> None:
 	with pytest.raises(ValueError):
 		rdkit_formats.molfile_v3000_text_to_mol("not a mol block")
 
 
 #============================================
-def test_molfile_macromolecule_error_message():
+def test_molfile_macromolecule_error_message() -> None:
 	"""Verify that macromolecule V3000 files produce a helpful error."""
 	# fake V3000 mol block with TEMPLATE marker
 	fake_macro = (
@@ -114,7 +114,7 @@ def test_molfile_macromolecule_error_message():
 # ===================================================================
 
 #============================================
-def test_sdf_roundtrip():
+def test_sdf_roundtrip() -> None:
 	mol = _make_ethanol()
 	text = rdkit_formats.sdf_mol_to_text(mol)
 	assert "$$$$" in text
@@ -124,7 +124,7 @@ def test_sdf_roundtrip():
 
 
 #============================================
-def test_sdf_file_roundtrip():
+def test_sdf_file_roundtrip() -> None:
 	mol = _make_ethanol()
 	out = io.BytesIO()
 	rdkit_formats.sdf_mol_to_file(mol, out)
@@ -135,7 +135,7 @@ def test_sdf_file_roundtrip():
 
 
 #============================================
-def test_sdf_multi_molecule():
+def test_sdf_multi_molecule() -> None:
 	"""Write two separate molecules, read back, verify both present."""
 	mol1 = _make_simple_mol()
 	mol2 = _make_ethanol()
@@ -151,7 +151,7 @@ def test_sdf_multi_molecule():
 
 
 #============================================
-def test_sdf_empty_raises():
+def test_sdf_empty_raises() -> None:
 	with pytest.raises(ValueError):
 		rdkit_formats.sdf_text_to_mol("")
 
@@ -161,7 +161,7 @@ def test_sdf_empty_raises():
 # ===================================================================
 
 #============================================
-def test_sdf_v3000_roundtrip():
+def test_sdf_v3000_roundtrip() -> None:
 	mol = _make_simple_mol()
 	text = rdkit_formats.sdf_v3000_mol_to_text(mol)
 	assert "V3000" in text
@@ -170,7 +170,7 @@ def test_sdf_v3000_roundtrip():
 
 
 #============================================
-def test_sdf_v3000_file_roundtrip():
+def test_sdf_v3000_file_roundtrip() -> None:
 	mol = _make_simple_mol()
 	out = io.BytesIO()
 	rdkit_formats.sdf_v3000_mol_to_file(mol, out)
@@ -184,7 +184,7 @@ def test_sdf_v3000_file_roundtrip():
 # ===================================================================
 
 #============================================
-def test_smarts_export():
+def test_smarts_export() -> None:
 	mol = _make_simple_mol()
 	text = rdkit_formats.smarts_mol_to_text(mol)
 	assert isinstance(text, str)
@@ -192,7 +192,7 @@ def test_smarts_export():
 
 
 #============================================
-def test_smarts_file_export():
+def test_smarts_file_export() -> None:
 	mol = _make_simple_mol()
 	out = io.BytesIO()
 	rdkit_formats.smarts_mol_to_file(mol, out)
@@ -205,7 +205,7 @@ def test_smarts_file_export():
 # ===================================================================
 
 #============================================
-def test_inchi_roundtrip():
+def test_inchi_roundtrip() -> None:
 	mol = _make_ethanol()
 	text = rdkit_formats.inchi_mol_to_text(mol)
 	assert text.startswith("InChI=")
@@ -215,7 +215,7 @@ def test_inchi_roundtrip():
 
 
 #============================================
-def test_inchi_file_roundtrip():
+def test_inchi_file_roundtrip() -> None:
 	mol = _make_ethanol()
 	out = io.BytesIO()
 	rdkit_formats.inchi_mol_to_file(mol, out)
@@ -224,7 +224,7 @@ def test_inchi_file_roundtrip():
 
 
 #============================================
-def test_inchi_and_key_generation():
+def test_inchi_and_key_generation() -> None:
 	mol = _make_ethanol()
 	inchi, key, warnings = rdkit_formats.generate_inchi_and_inchikey(mol)
 	assert inchi.startswith("InChI=")
@@ -234,7 +234,7 @@ def test_inchi_and_key_generation():
 
 
 #============================================
-def test_inchi_empty_raises():
+def test_inchi_empty_raises() -> None:
 	with pytest.raises(ValueError):
 		rdkit_formats.inchi_text_to_mol("")
 
@@ -244,7 +244,7 @@ def test_inchi_empty_raises():
 # ===================================================================
 
 #============================================
-def test_molfile_v2000_roundtrip():
+def test_molfile_v2000_roundtrip() -> None:
 	mol = _make_ethanol()
 	text = rdkit_formats.molfile_mol_to_text(mol)
 	assert "V2000" in text
@@ -254,7 +254,7 @@ def test_molfile_v2000_roundtrip():
 
 
 #============================================
-def test_molfile_v2000_file_roundtrip():
+def test_molfile_v2000_file_roundtrip() -> None:
 	mol = _make_ethanol()
 	out = io.BytesIO()
 	rdkit_formats.molfile_mol_to_file(mol, out)
@@ -270,7 +270,7 @@ def test_molfile_v2000_file_roundtrip():
 # ===================================================================
 
 #============================================
-def test_smiles_roundtrip():
+def test_smiles_roundtrip() -> None:
 	mol = _make_ethanol()
 	text = rdkit_formats.smiles_mol_to_text(mol)
 	assert isinstance(text, str)
@@ -281,7 +281,7 @@ def test_smiles_roundtrip():
 
 
 #============================================
-def test_smiles_file_roundtrip():
+def test_smiles_file_roundtrip() -> None:
 	mol = _make_ethanol()
 	out = io.BytesIO()
 	rdkit_formats.smiles_mol_to_file(mol, out)
@@ -292,13 +292,13 @@ def test_smiles_file_roundtrip():
 
 
 #============================================
-def test_smiles_empty_raises():
+def test_smiles_empty_raises() -> None:
 	with pytest.raises(ValueError):
 		rdkit_formats.smiles_text_to_mol("")
 
 
 #============================================
-def test_smiles_benzene():
+def test_smiles_benzene() -> None:
 	"""Verify aromatic SMILES roundtrip preserves atom and bond counts."""
 	mol = rdkit_formats.smiles_text_to_mol("c1ccccc1")
 	assert len(mol.atoms) == 6
@@ -342,7 +342,7 @@ for write_fmt in _codec_names:
 
 #============================================
 @pytest.fixture(scope="module")
-def cholesterol_mol():
+def cholesterol_mol() -> None:
 	"""Parse cholesterol once for the whole test module."""
 	mol = rdkit_formats.smiles_text_to_mol(CHOLESTEROL_SMILES, calc_coords=1)
 	assert len(mol.atoms) == CHOLESTEROL_HEAVY_ATOMS
@@ -352,7 +352,7 @@ def cholesterol_mol():
 
 #============================================
 @pytest.mark.parametrize("write_fmt", sorted(_ROUNDTRIP_CODECS.keys()))
-def test_cholesterol_single_roundtrip(cholesterol_mol, write_fmt):
+def test_cholesterol_single_roundtrip(cholesterol_mol: object, write_fmt: object) -> None:
 	"""Write cholesterol to format, read back, verify atom/bond counts."""
 	write_func, read_func = _ROUNDTRIP_CODECS[write_fmt]
 	text = write_func(cholesterol_mol)
@@ -369,7 +369,7 @@ def test_cholesterol_single_roundtrip(cholesterol_mol, write_fmt):
 #============================================
 @pytest.mark.parametrize("write_fmt,read_fmt", _NXN_PAIRS,
 	ids=[f"{w}->{r}" for w, r in _NXN_PAIRS])
-def test_cholesterol_nxn_roundtrip(cholesterol_mol, write_fmt, read_fmt):
+def test_cholesterol_nxn_roundtrip(cholesterol_mol: object, write_fmt: object, read_fmt: object) -> None:
 	"""NxN roundtrip: write cholesterol in format A, read back, write in
 	format B, read back, verify atom/bond counts survive both hops.
 
@@ -396,7 +396,7 @@ def test_cholesterol_nxn_roundtrip(cholesterol_mol, write_fmt, read_fmt):
 
 
 #============================================
-def test_cholesterol_smarts_export(cholesterol_mol):
+def test_cholesterol_smarts_export(cholesterol_mol: object) -> None:
 	"""Verify SMARTS export produces a non-empty string."""
 	text = rdkit_formats.smarts_mol_to_text(cholesterol_mol)
 	assert isinstance(text, str)
@@ -408,7 +408,7 @@ def test_cholesterol_smarts_export(cholesterol_mol):
 # ===================================================================
 
 #============================================
-def test_new_codecs_in_registry():
+def test_new_codecs_in_registry() -> None:
 	oasa.codec_registry.reset_registry()
 	codecs = oasa.codec_registry.list_codecs()
 	assert "molfile_v3000" in codecs
@@ -418,28 +418,28 @@ def test_new_codecs_in_registry():
 
 
 #============================================
-def test_sdf_extension_resolves():
+def test_sdf_extension_resolves() -> None:
 	oasa.codec_registry.reset_registry()
 	codec = oasa.codec_registry.get_codec_by_extension(".sdf")
 	assert codec.name == "sdf"
 
 
 #============================================
-def test_sma_extension_resolves():
+def test_sma_extension_resolves() -> None:
 	oasa.codec_registry.reset_registry()
 	codec = oasa.codec_registry.get_codec_by_extension(".sma")
 	assert codec.name == "smarts"
 
 
 #============================================
-def test_v3000_alias_resolves():
+def test_v3000_alias_resolves() -> None:
 	oasa.codec_registry.reset_registry()
 	codec = oasa.codec_registry.get_codec("v3000")
 	assert codec.name == "molfile_v3000"
 
 
 #============================================
-def test_sdf_v3000_alias_resolves():
+def test_sdf_v3000_alias_resolves() -> None:
 	oasa.codec_registry.reset_registry()
 	codec = oasa.codec_registry.get_codec("sdf-v3000")
 	assert codec.name == "sdf_v3000"

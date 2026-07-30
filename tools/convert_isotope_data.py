@@ -29,7 +29,7 @@ SOURCE_URL = (
 
 
 #============================================
-def parse_args():
+def parse_args() -> object:
 	"""Parse command-line arguments."""
 	parser = argparse.ArgumentParser(
 		description="Convert NIST isotope HTML output into OASA JSON data."
@@ -52,7 +52,7 @@ def parse_args():
 
 
 #============================================
-def download_source(url):
+def download_source(url: object) -> object:
 	"""Download isotope HTML data from the NIST source URL."""
 	parsed = urllib.parse.urlparse(url)
 	if parsed.scheme not in ("http", "https"):
@@ -69,7 +69,7 @@ def download_source(url):
 
 
 #============================================
-def extract_pre_text(html_text):
+def extract_pre_text(html_text: object) -> object:
 	"""Extract the <pre> block from the raw HTML."""
 	start_token = "<pre>"
 	end_token = "</pre>"
@@ -87,7 +87,7 @@ def extract_pre_text(html_text):
 
 
 #============================================
-def parse_number(text):
+def parse_number(text: object) -> object:
 	"""Parse a numeric string with optional uncertainty in parentheses."""
 	value = text.strip()
 	if not value:
@@ -99,7 +99,7 @@ def parse_number(text):
 
 
 #============================================
-def parse_standard_atomic_weight(text):
+def parse_standard_atomic_weight(text: object) -> object:
 	"""Parse standard atomic weight values or ranges."""
 	value = text.strip()
 	if not value:
@@ -111,7 +111,7 @@ def parse_standard_atomic_weight(text):
 
 
 #============================================
-def parse_isotopic_composition(text):
+def parse_isotopic_composition(text: object) -> object:
 	"""Parse isotopic composition and convert to percent."""
 	value = parse_number(text)
 	if value == "":
@@ -120,7 +120,7 @@ def parse_isotopic_composition(text):
 
 
 #============================================
-def parse_records(pre_text):
+def parse_records(pre_text: object) -> object:
 	"""Parse key/value records from the preformatted text."""
 	records = []
 	current = {}
@@ -141,7 +141,7 @@ def parse_records(pre_text):
 
 
 #============================================
-def build_isotope_map(records):
+def build_isotope_map(records: object) -> object:
 	"""Build the nested isotope mapping from parsed records."""
 	isotopes = {}
 	for record in records:
@@ -168,7 +168,7 @@ def build_isotope_map(records):
 
 
 #============================================
-def order_isotopes(isotopes):
+def order_isotopes(isotopes: object) -> object:
 	"""Order isotopes by atomic number then mass number."""
 	ordered = {}
 	for atomic_number in sorted(isotopes):
@@ -181,14 +181,14 @@ def order_isotopes(isotopes):
 
 
 #============================================
-def write_json(data, output_path):
+def write_json(data: object, output_path: object) -> None:
 	"""Write compact JSON data to disk."""
 	with open(output_path, "w") as handle:
 		json.dump(data, handle, separators=(",", ":"))
 
 
 #============================================
-def main():
+def main() -> None:
 	"""Run the conversion process."""
 	args = parse_args()
 	if args.input_path:

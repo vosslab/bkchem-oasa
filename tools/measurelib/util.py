@@ -85,7 +85,7 @@ def display_float(value: float | None, decimals: int = 3) -> float | None:
 
 
 #============================================
-def display_point(point, decimals: int = 3):
+def display_point(point: object, decimals: int = 3) -> object:
 	"""Return rounded [x, y] point for human-facing report data points."""
 	if point is None:
 		return None
@@ -279,7 +279,7 @@ def point_to_glyph_primitives_distance(point: tuple[float, float], primitives: l
 #============================================
 def point_in_target_closed(
 		point: tuple[float, float],
-		target,
+		target: object,
 		tol: float = 1e-6) -> bool:
 	"""Return True when one point is inside one attach target."""
 	if target.kind == "box":
@@ -300,7 +300,7 @@ def point_in_target_closed(
 
 
 #============================================
-def point_to_target_distance(point: tuple[float, float], target) -> float:
+def point_to_target_distance(point: tuple[float, float], target: object) -> float:
 	"""Return minimal point distance to one attach target."""
 	if target.kind == "box":
 		return point_to_box_distance(point, target.box)
@@ -329,7 +329,7 @@ def point_to_target_distance(point: tuple[float, float], target) -> float:
 
 
 #============================================
-def point_to_target_signed_distance(point: tuple[float, float], target) -> float:
+def point_to_target_signed_distance(point: tuple[float, float], target: object) -> float:
 	"""Return signed point distance to one target (negative means inside)."""
 	if target.kind == "box":
 		x1, y1, x2, y2 = target.box

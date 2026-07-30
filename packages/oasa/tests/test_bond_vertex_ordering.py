@@ -8,7 +8,7 @@ from oasa import bond_semantics
 
 
 #============================================
-def _make_atoms(y_front=10.0, y_back=0.0):
+def _make_atoms(y_front: float = 10.0, y_back: float = 0.0) -> tuple:
 	"""Create two atoms with deterministic coordinates."""
 	a1 = oasa.atom_lib.Atom(symbol="C")
 	a2 = oasa.atom_lib.Atom(symbol="C")
@@ -20,7 +20,7 @@ def _make_atoms(y_front=10.0, y_back=0.0):
 
 
 #============================================
-def test_canonicalize_wedge_vertices_by_geometry():
+def test_canonicalize_wedge_vertices_by_geometry() -> None:
 	a1, a2 = _make_atoms()
 	b = oasa.bond_lib.Bond(order=1, type="w")
 	b.set_vertices((a1, a2))
@@ -29,7 +29,7 @@ def test_canonicalize_wedge_vertices_by_geometry():
 
 
 #============================================
-def test_canonicalize_hashed_vertices_by_geometry():
+def test_canonicalize_hashed_vertices_by_geometry() -> None:
 	a1, a2 = _make_atoms()
 	b = oasa.bond_lib.Bond(order=1, type="h")
 	b.set_vertices((a1, a2))
@@ -38,7 +38,7 @@ def test_canonicalize_hashed_vertices_by_geometry():
 
 
 #============================================
-def test_canonicalize_respects_front_vertices():
+def test_canonicalize_respects_front_vertices() -> None:
 	a1, a2 = _make_atoms(y_front=5.0, y_back=10.0)
 	b = oasa.bond_lib.Bond(order=1, type="w")
 	b.set_vertices((a1, a2))
@@ -50,7 +50,7 @@ def test_canonicalize_respects_front_vertices():
 
 
 #============================================
-def test_canonicalize_skips_non_wedge_types():
+def test_canonicalize_skips_non_wedge_types() -> None:
 	a1, a2 = _make_atoms()
 	b = oasa.bond_lib.Bond(order=1, type="n")
 	b.set_vertices((a1, a2))
@@ -60,7 +60,7 @@ def test_canonicalize_skips_non_wedge_types():
 
 
 #============================================
-def test_parse_cdml_bond_type_normalizes_legacy():
+def test_parse_cdml_bond_type_normalizes_legacy() -> None:
 	bond_type, order, legacy = bond_semantics.parse_cdml_bond_type("l1")
 	assert bond_type == "h"
 	assert order == 1

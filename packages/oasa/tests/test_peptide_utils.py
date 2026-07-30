@@ -28,7 +28,7 @@ def _random_sequence(length: int) -> str:
 
 
 #============================================
-def test_sequence_to_smiles_ankle():
+def test_sequence_to_smiles_ankle() -> None:
 	"""ANKLE should produce a valid SMILES that OASA can parse."""
 	smiles_text = peptide_utils.sequence_to_smiles('ANKLE')
 	assert smiles_text, "SMILES string should not be empty"
@@ -41,7 +41,7 @@ def test_sequence_to_smiles_ankle():
 
 
 #============================================
-def test_sequence_to_smiles_random_9():
+def test_sequence_to_smiles_random_9() -> None:
 	"""A random 9-residue sequence should produce parseable SMILES."""
 	sequence = _random_sequence(9)
 	smiles_text = peptide_utils.sequence_to_smiles(sequence)
@@ -57,7 +57,7 @@ def test_sequence_to_smiles_random_9():
 
 
 #============================================
-def test_sequence_to_smiles_single_residue():
+def test_sequence_to_smiles_single_residue() -> None:
 	"""Each supported amino acid should work as a single residue."""
 	for aa in sorted(peptide_utils.AMINO_ACID_SMILES.keys()):
 		smiles_text = peptide_utils.sequence_to_smiles(aa)
@@ -68,21 +68,21 @@ def test_sequence_to_smiles_single_residue():
 
 
 #============================================
-def test_invalid_residue_raises():
+def test_invalid_residue_raises() -> None:
 	"""Unknown amino acid letters should raise ValueError."""
 	with pytest.raises(ValueError, match="Unknown amino acid"):
 		peptide_utils.sequence_to_smiles('ANKXLE')
 
 
 #============================================
-def test_proline_raises():
+def test_proline_raises() -> None:
 	"""Proline (P) should raise ValueError with a clear message."""
 	with pytest.raises(ValueError, match="Proline"):
 		peptide_utils.sequence_to_smiles('APE')
 
 
 #============================================
-def test_lowercase_input():
+def test_lowercase_input() -> None:
 	"""Lowercase input should be accepted and uppercased."""
 	smiles_lower = peptide_utils.sequence_to_smiles('ankle')
 	smiles_upper = peptide_utils.sequence_to_smiles('ANKLE')
@@ -90,7 +90,7 @@ def test_lowercase_input():
 
 
 #============================================
-def test_no_placeholder_leaks():
+def test_no_placeholder_leaks() -> None:
 	"""Generated SMILES should never contain R-group placeholder text."""
 	sequence = _random_sequence(9)
 	smiles_text = peptide_utils.sequence_to_smiles(sequence)

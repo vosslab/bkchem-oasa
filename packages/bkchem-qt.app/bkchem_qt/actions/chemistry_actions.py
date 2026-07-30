@@ -4,20 +4,32 @@
 import collections
 
 # PIP3 modules
+import PySide6.QtCore
 import PySide6.QtWidgets
 
 # local repo modules
+import oasa.cdml_document
 import oasa.periodic_table
 import oasa.peptide_utils
+import oasa.render_ops
+import bkchem_qt.canvas.items.atom_item
 import bkchem_qt.io.format_bridge
-import bkchem_qt.bridge.oasa_bridge
-import bkchem_qt.actions.file_actions
+import bkchem_qt.bridge.insertion_placement
+import bkchem_qt.bridge.worker
+import bkchem_qt.models.fragment_model
+import bkchem_qt.models.document_session
 import bkchem_qt.undo.commands
 from bkchem_qt.actions.action_registry import MenuAction
 
 
+# Legacy linear-form fragments use this compact display spacing in scene units.
+_LINEAR_FORM_BOND_LENGTH = 10.0
+_LINEAR_FORM_PROPERTY_TYPE = "IntType"
+_LINEAR_FORM_LABEL_PADDING = 2.0
+
+
 #============================================
-def _get_mols_for_info(app) -> list:
+def _get_mols_for_info(app: object) -> list:
 	"""Return selected molecules, or all document molecules if none selected.
 
 	Args:
@@ -33,7 +45,7 @@ def _get_mols_for_info(app) -> list:
 
 
 #============================================
-def _compute_formula(mol) -> str:
+def _compute_formula(mol: object) -> str:
 	"""Compute the molecular formula string for a MoleculeModel.
 
 	Uses Hill system ordering: C first, H second, then alphabetical.
@@ -71,7 +83,7 @@ def _compute_formula(mol) -> str:
 
 
 #============================================
-def _compute_molecular_weight(mol) -> float:
+def _compute_molecular_weight(mol: object) -> float:
 	"""Compute the molecular weight for a MoleculeModel.
 
 	Sums atomic weights from the OASA periodic table for each atom.
@@ -94,7 +106,7 @@ def _compute_molecular_weight(mol) -> float:
 
 
 #============================================
-def _chemistry_info(app) -> None:
+def _chemistry_info(app: object) -> None:
 	"""Display summary info on selected (or all) molecules.
 
 	Shows atom count, bond count, formula, and molecular weight for
@@ -130,7 +142,7 @@ def _chemistry_info(app) -> None:
 
 
 #============================================
-def _chemistry_check(app) -> None:
+def _chemistry_check(app: object) -> None:
 	"""Check selected molecules for valency violations.
 
 	For each selected molecule, checks each atom's free_valency.
@@ -167,7 +179,7 @@ def _chemistry_check(app) -> None:
 
 
 #============================================
-def _expand_groups(app) -> None:
+def _expand_groups(app: object) -> None:
 	"""Show placeholder dialog for group expansion.
 
 	Args:
@@ -212,7 +224,7 @@ def _int_to_roman_oxidation(n: int) -> str:
 
 
 #============================================
-def _oxidation_number(app) -> None:
+def _oxidation_number(app: object) -> None:
 	"""Compute and display oxidation numbers for atoms in selected molecules.
 
 	For each selected molecule, iterates atoms and computes the oxidation
@@ -245,7 +257,7 @@ def _oxidation_number(app) -> None:
 
 
 #============================================
-def _read_smiles(app) -> None:
+def _read_smiles(app: object) -> None:
 	"""Prompt for a SMILES string and import as a molecule.
 
 	Parses the SMILES via OASA, generates 2D coordinates, converts
@@ -260,34 +272,236 @@ def _read_smiles(app) -> None:
 	if not ok or not text.strip():
 		return
 	smiles_string = text.strip()
-	# parse via OASA smiles_lib
-	try:
-		from oasa import smiles_lib
-		oasa_mol = smiles_lib.text_to_mol(smiles_string)
-	except Exception as exc:
-		PySide6.QtWidgets.QMessageBox.warning(
-			app, "SMILES Error",
-			f"Failed to parse SMILES:\n{exc}"
-		)
-		return
-	# generate 2D coordinates
-	try:
-		from oasa import coords_generator
-		coords_generator.calculate_coords(oasa_mol, bond_length=1.0, force=1)
-	except Exception as exc:
-		PySide6.QtWidgets.QMessageBox.warning(
-			app, "Coordinate Error",
-			f"Failed to generate coordinates:\n{exc}"
-		)
-		return
-	# convert and add to scene
-	mol_model = bkchem_qt.bridge.oasa_bridge.oasa_mol_to_qt_mol(oasa_mol)
-	bkchem_qt.actions.file_actions._add_molecules_to_scene(app, [mol_model])
-	app.statusBar().showMessage("Imported SMILES molecule", 3000)
+	_start_text_import(
+		app,
+		"smiles",
+		smiles_string,
+		"SMILES",
+		"Imported SMILES molecule",
+		_show_smiles_import_error,
+	)
 
 
 #============================================
-def _read_inchi(app) -> None:
+class _MoleculeInsertionResultRelay(PySide6.QtCore.QObject):
+	"""Deliver one plain molecule proposal only to its live source tab."""
+
+	#============================================
+	def __init__(
+			self, target: object, worker: PySide6.QtCore.QThread,
+			delivery: "MoleculeInsertionDelivery",
+			) -> None:
+		"""Retain frontend lifecycle facts until the worker has stopped."""
+		super().__init__(delivery.app)
+		self._target = target
+		self._worker = worker
+		self._delivery = delivery
+
+	#============================================
+	@PySide6.QtCore.Slot(object)
+	def on_result(self, prepared: object) -> None:
+		"""Submit one immutable proposal through the public session operation seam."""
+		self._delivery.deliver(prepared)
+
+	#============================================
+	@PySide6.QtCore.Slot(object)
+	def on_error(self, message: object) -> None:
+		"""Show preparation failure only while the source request remains current."""
+		self._delivery.report_error(message)
+
+	#============================================
+	@PySide6.QtCore.Slot()
+	def on_thread_finished(self) -> None:
+		"""Release through the window's terminal-safe worker owner."""
+		self._delivery.app._release_import_worker(self._worker)
+		self.deleteLater()
+
+
+#============================================
+def _start_text_import(
+		app: object, codec_name: str, source_text: str, source_label: str,
+		success_message: str, error_handler: object,
+		) -> None:
+	"""Start one backend-authoritative text molecule insertion.
+
+	The source tab, revision, and scalar placement are captured before worker
+	startup.  The worker returns a frozen CDML proposal; delivery can therefore
+	commit only through the session's authoritative molecule-insertion route.
+	"""
+	target = app._active_session
+	try:
+		target_mean_bond_length, insertion_anchor = (
+			bkchem_qt.bridge.insertion_placement.capture_insertion_placement(target)
+		)
+	except ValueError as error:
+		error_handler(app, error)
+		return
+	request_token = target.begin_import_request()
+	expected_revision = target.backend_snapshot.revision
+	token_stem = "%s-r%s-i%s" % (codec_name, expected_revision, request_token)
+	worker = bkchem_qt.bridge.worker.TextMoleculeInsertionWorker(
+		codec_name, source_text, expected_revision, token_stem,
+		target_mean_bond_length, insertion_anchor, success_message,
+	)
+	delivery = MoleculeInsertionDelivery(
+		app, target, request_token, expected_revision, source_label,
+		success_message, error_handler,
+	)
+	relay = _MoleculeInsertionResultRelay(target, worker, delivery)
+	worker._result_relay = relay
+	connection_type = PySide6.QtCore.Qt.ConnectionType.QueuedConnection
+	worker.result.connect(relay.on_result, connection_type)
+	worker.error.connect(relay.on_error, connection_type)
+	worker.finished.connect(relay.on_thread_finished, connection_type)
+	target.track_import_worker(worker)
+	app.statusBar().showMessage("Loading %s..." % source_label, 0)
+	worker.start()
+
+
+#============================================
+class MoleculeInsertionDelivery:
+	"""Deliver one text-derived proposal to its captured backend session.
+
+	This frontend-local controller owns the request-generation and source-tab
+	fence.  It intentionally exposes only persistent-operation outcomes, never
+	backend handles or OASA graph objects.
+	"""
+
+	#============================================
+	def __init__(
+			self, app: object, target: object, request_token: int,
+			expected_revision: int, source_label: str, success_message: str,
+			error_handler: object,
+			) -> None:
+		"""Capture one source tab and immutable preparation generation."""
+		self.app = app
+		self._target = target
+		self._request_token = request_token
+		self._expected_revision = expected_revision
+		self._source_label = source_label
+		self._success_message = success_message
+		self._error_handler = error_handler
+
+	#============================================
+	def is_current(self) -> bool:
+		"""Return whether this request may still affect its source tab."""
+		return (
+			self._target in self.app.sessions
+			and self._target.import_request_is_current(self._request_token)
+		)
+
+	#============================================
+	def _discarded_outcome(
+			self, message: str,
+			) -> bkchem_qt.models.document_session.PersistentActionOutcome:
+		"""Return a uniform inert result for a stale source request."""
+		return bkchem_qt.models.document_session.PersistentActionOutcome(
+			"discarded", message, None, False,
+		)
+
+	#============================================
+	def deliver(
+			self, prepared: object,
+			) -> bkchem_qt.models.document_session.PersistentActionOutcome:
+		"""Submit one current plain proposal through the persistent action seam."""
+		if not self.is_current():
+			return self._discarded_outcome(
+				"%s import request is no longer current" % self._source_label,
+			)
+		if not isinstance(
+				prepared, bkchem_qt.bridge.worker.PreparedMoleculeInsertion,
+			):
+			message = "%s preparation returned invalid data" % self._source_label
+			self._error_handler(self.app, message)
+			return bkchem_qt.models.document_session.PersistentActionOutcome(
+				"rejected", message, None, False,
+			)
+		if prepared.expected_revision != self._expected_revision:
+			message = "%s preparation revision changed" % self._source_label
+			self._error_handler(self.app, message)
+			return bkchem_qt.models.document_session.PersistentActionOutcome(
+				"rejected", message, None, False,
+			)
+		request = bkchem_qt.models.document_session.PersistentOperationRequest(
+			operation_key="molecule.insert",
+			label=prepared.label or self._success_message,
+			payload=(
+				("expected_revision", prepared.expected_revision),
+				("proposal_cdml", prepared.proposal_cdml),
+			),
+			target_keys=frozenset(),
+		)
+		outcome = self._target.submit_persistent_operation(request)
+		if outcome.status == "accepted":
+			self.app.statusBar().showMessage(outcome.message, 3000)
+		elif outcome.submitted:
+			self.app.statusBar().showMessage(outcome.message, 5000)
+		elif outcome.status == "rejected":
+			self._error_handler(self.app, outcome.message)
+		return outcome
+
+	#============================================
+	def report_error(self, message: object) -> bool:
+		"""Show one worker error only while its source request remains current."""
+		if not self.is_current():
+			return False
+		self._error_handler(self.app, message)
+		return True
+
+
+#============================================
+def _show_smiles_import_error(app: object, message: object) -> None:
+	"""Report a current worker failure through the SMILES dialog vocabulary."""
+	PySide6.QtWidgets.QMessageBox.warning(
+		app, "SMILES Error", f"Failed to parse SMILES:\n{message}",
+	)
+
+
+#============================================
+def _show_inchi_import_error(app: object, message: object) -> None:
+	"""Report an InChI preparation error with the legacy dialog vocabulary."""
+	stage, detail = _text_import_error_stage(message)
+	if stage == "coordinates":
+		title = "Coordinate Error"
+		body = "Failed to generate coordinates:\n%s" % detail
+	else:
+		title = "InChI Error"
+		body = "Failed to parse InChI:\n%s" % detail
+	PySide6.QtWidgets.QMessageBox.warning(app, title, body)
+
+
+#============================================
+def _show_peptide_import_error(app: object, message: object) -> None:
+	"""Report peptide preparation errors with parser-specific labels."""
+	stage, detail = _text_import_error_stage(message)
+	if stage == "coordinates":
+		title = "Coordinate Error"
+		body = "Failed to generate coordinates:\n%s" % detail
+	elif stage == "peptide-smiles":
+		title = "SMILES Error"
+		body = "Failed to parse peptide SMILES:\n%s" % detail
+	elif stage == "peptide":
+		title = "Peptide Sequence Error"
+		body = "Failed to convert peptide sequence:\n%s" % detail
+	elif stage == "peptide-validation":
+		title = "Peptide Sequence Error"
+		body = detail
+	else:
+		title = "Peptide Sequence Error"
+		body = "Failed to import peptide sequence:\n%s" % detail
+	PySide6.QtWidgets.QMessageBox.warning(app, title, body)
+
+
+#============================================
+def _text_import_error_stage(message: object) -> tuple[str, str]:
+	"""Recover a preparation stage carried by a worker exception string."""
+	if isinstance(message, bkchem_qt.bridge.worker.TextImportPreparationError):
+		return message.stage, str(message)
+	return "unknown", str(message)
+
+
+#============================================
+def _read_inchi(app: object) -> None:
 	"""Prompt for an InChI string and import as a molecule.
 
 	Parses the InChI via OASA, generates 2D coordinates, converts
@@ -301,35 +515,18 @@ def _read_inchi(app) -> None:
 	)
 	if not ok or not text.strip():
 		return
-	inchi_string = text.strip()
-	# parse via OASA inchi_lib
-	try:
-		from oasa import inchi_lib
-		oasa_mol = inchi_lib.text_to_mol(inchi_string)
-	except Exception as exc:
-		PySide6.QtWidgets.QMessageBox.warning(
-			app, "InChI Error",
-			f"Failed to parse InChI:\n{exc}"
-		)
-		return
-	# generate 2D coordinates
-	try:
-		from oasa import coords_generator
-		coords_generator.calculate_coords(oasa_mol, bond_length=1.0, force=1)
-	except Exception as exc:
-		PySide6.QtWidgets.QMessageBox.warning(
-			app, "Coordinate Error",
-			f"Failed to generate coordinates:\n{exc}"
-		)
-		return
-	# convert and add to scene
-	mol_model = bkchem_qt.bridge.oasa_bridge.oasa_mol_to_qt_mol(oasa_mol)
-	bkchem_qt.actions.file_actions._add_molecules_to_scene(app, [mol_model])
-	app.statusBar().showMessage("Imported InChI molecule", 3000)
+	_start_text_import(
+		app,
+		"inchi",
+		text.strip(),
+		"InChI",
+		"Imported InChI molecule",
+		_show_inchi_import_error,
+	)
 
 
 #============================================
-def _read_peptide(app) -> None:
+def _read_peptide(app: object) -> None:
 	"""Prompt for a peptide sequence and import as a molecule.
 
 	Validates single-letter amino acid codes, converts the sequence
@@ -351,60 +548,46 @@ def _read_peptide(app) -> None:
 	)
 	if not ok or not text.strip():
 		return
-	# validate input letters before sending to OASA
+	# Normalization is UI-only; validation, conversion, parsing, and layout run
+	# together in the session-owned OASA worker.
 	sequence = text.strip().upper()
-	bad_letters = [
-		aa for aa in sequence
-		if aa not in oasa.peptide_utils.AMINO_ACID_SMILES
-	]
-	if bad_letters:
-		unique_bad = ", ".join(sorted(set(bad_letters)))
-		PySide6.QtWidgets.QMessageBox.warning(
-			app, "Peptide Sequence Error",
-			f"Unrecognized amino acid code(s): {unique_bad}\n"
-			f"Supported: {supported_str}"
-		)
-		return
-	# convert peptide sequence to SMILES
-	try:
-		smiles_string = oasa.peptide_utils.sequence_to_smiles(sequence)
-	except ValueError as exc:
-		PySide6.QtWidgets.QMessageBox.warning(
-			app, "Peptide Sequence Error",
-			f"Failed to convert peptide sequence:\n{exc}"
-		)
-		return
-	# parse SMILES via OASA smiles_lib
-	try:
-		from oasa import smiles_lib
-		oasa_mol = smiles_lib.text_to_mol(smiles_string)
-	except Exception as exc:
-		PySide6.QtWidgets.QMessageBox.warning(
-			app, "SMILES Error",
-			f"Failed to parse peptide SMILES:\n{exc}"
-		)
-		return
-	# generate 2D coordinates
-	try:
-		from oasa import coords_generator
-		coords_generator.calculate_coords(oasa_mol, bond_length=1.0, force=1)
-	except Exception as exc:
-		PySide6.QtWidgets.QMessageBox.warning(
-			app, "Coordinate Error",
-			f"Failed to generate coordinates:\n{exc}"
-		)
-		return
-	# convert and add to scene
-	mol_model = bkchem_qt.bridge.oasa_bridge.oasa_mol_to_qt_mol(oasa_mol)
-	bkchem_qt.actions.file_actions._add_molecules_to_scene(app, [mol_model])
-	app.statusBar().showMessage(
-		f"Imported peptide sequence '{sequence}'", 3000
+	_start_text_import(
+		app,
+		"peptide",
+		sequence,
+		"Peptide Sequence",
+		f"Imported peptide sequence '{sequence}'",
+		_show_peptide_import_error,
 	)
 
 
 #============================================
-def _gen_smiles(app) -> None:
-	"""Export SMILES for the single selected molecule.
+def _active_smiles_document_session(app: object) -> object | None:
+	"""Return the live registered session that owns the active projection."""
+	session = getattr(app, "_active_session", None)
+	document = getattr(app, "document", None)
+	scene = getattr(app, "scene", None)
+	view = getattr(app, "view", None)
+	sessions = getattr(app, "sessions", ())
+	if session is None or document is None or scene is None or view is None:
+		return None
+	if session.is_disposed or session not in sessions:
+		return None
+	if (
+		session.document is not document
+		or session.scene is not scene
+		or session.view is not view
+	):
+		return None
+	return session
+
+
+#============================================
+def _gen_smiles(app: object) -> None:
+	"""Export one selected direct-root molecule through authoritative CDML.
+
+	A selected compatibility child may resolve its durable direct-root molecule,
+	but the request never contains a child identifier.
 
 	Copies the SMILES string to the clipboard and displays it
 	in a dialog.
@@ -412,22 +595,54 @@ def _gen_smiles(app) -> None:
 	Args:
 		app: MainWindow instance.
 	"""
-	mols = app.document.selected_mols
-	if len(mols) != 1:
+	session = _active_smiles_document_session(app)
+	if session is None:
 		PySide6.QtWidgets.QMessageBox.warning(
 			app, "Export SMILES",
-			"Please select exactly one molecule."
+			"SMILES export requires an active synchronized document session.",
 		)
 		return
-	mol = mols[0]
+	if not session.can_write_authoritative_snapshot:
+		PySide6.QtWidgets.QMessageBox.warning(
+			app, "Export SMILES",
+			"SMILES export is unavailable until the document projection recovers.",
+		)
+		return
+	molecule_ids = session.document.selected_direct_root_molecule_ids
+	if len(molecule_ids) != 1:
+		PySide6.QtWidgets.QMessageBox.warning(
+			app, "Export SMILES",
+			"Please select exactly one molecule and no presentation objects."
+		)
+		return
+	snapshot = session.backend_snapshot
 	try:
-		smiles_str = bkchem_qt.io.format_bridge.export_smiles(mol)
-	except Exception as exc:
+		result = session.query_molecule_smiles(snapshot.revision, molecule_ids[0])
+	except bkchem_qt.models.document_session.BackendProjectionOutOfSyncError as exc:
+		PySide6.QtWidgets.QMessageBox.warning(
+			app, "Export SMILES",
+			f"SMILES export is unavailable until the document projection recovers:\n{exc}"
+		)
+		return
+	except oasa.cdml_document.CDMLRevisionConflictError as exc:
+		PySide6.QtWidgets.QMessageBox.warning(
+			app, "Export SMILES",
+			f"SMILES export used an older document revision. Please try again:\n{exc}"
+		)
+		return
+	except oasa.cdml_document.CDMLMoleculeSmilesUnavailableError as exc:
+		PySide6.QtWidgets.QMessageBox.warning(
+			app, "Export SMILES",
+			f"SMILES export is unavailable for this molecule:\n{exc}"
+		)
+		return
+	except (oasa.cdml_document.CDMLDocumentError, RuntimeError, ValueError) as exc:
 		PySide6.QtWidgets.QMessageBox.warning(
 			app, "SMILES Export Error",
 			f"Failed to generate SMILES:\n{exc}"
 		)
 		return
+	smiles_str = result.smiles
 	# copy to clipboard
 	clipboard = PySide6.QtWidgets.QApplication.clipboard()
 	clipboard.setText(smiles_str)
@@ -439,66 +654,31 @@ def _gen_smiles(app) -> None:
 
 
 #============================================
-def _gen_inchi(app) -> None:
-	"""Export InChI for the single selected molecule.
-
-	Copies the InChI string to the clipboard and displays InChI
-	and InChIKey in a dialog.
-
-	Args:
-		app: MainWindow instance.
-	"""
-	mols = app.document.selected_mols
-	if len(mols) != 1:
-		PySide6.QtWidgets.QMessageBox.warning(
-			app, "Export InChI",
-			"Please select exactly one molecule."
-		)
-		return
-	mol = mols[0]
-	try:
-		inchi_str, inchikey_str, warnings = (
-			bkchem_qt.io.format_bridge.export_inchi(mol)
-		)
-	except Exception as exc:
-		PySide6.QtWidgets.QMessageBox.warning(
-			app, "InChI Export Error",
-			f"Failed to generate InChI:\n{exc}"
-		)
-		return
-	# copy InChI to clipboard
-	clipboard = PySide6.QtWidgets.QApplication.clipboard()
-	clipboard.setText(inchi_str)
-	# build display message
-	lines = [
-		f"InChI (copied to clipboard):\n{inchi_str}",
-		f"\nInChIKey:\n{inchikey_str}",
-	]
-	if warnings:
-		lines.append(f"\nWarnings:\n{', '.join(warnings)}")
-	info_text = "\n".join(lines)
-	PySide6.QtWidgets.QMessageBox.information(
-		app, "Export InChI", info_text
-	)
-
-
-#============================================
-def _set_name(app) -> None:
-	"""Set the name of the single selected molecule via input dialog.
-
-	Uses ChangePropertyCommand for undo support.
-
-	Args:
-		app: MainWindow instance.
-	"""
-	mols = app.document.selected_mols
-	if len(mols) != 1:
+def _set_name(app: object) -> None:
+	"""Set one selected direct-root molecule name through its backend session."""
+	session = _active_smiles_document_session(app)
+	if session is None or not session.can_write_authoritative_snapshot:
 		PySide6.QtWidgets.QMessageBox.warning(
 			app, "Set Molecule Name",
-			"Please select exactly one molecule."
+			"Set molecule name requires an active synchronized document session.",
 		)
 		return
-	mol = mols[0]
+	molecule_ids = session.document.selected_direct_root_molecule_ids
+	if len(molecule_ids) != 1:
+		PySide6.QtWidgets.QMessageBox.warning(
+			app, "Set Molecule Name", "Please select exactly one molecule.",
+		)
+		return
+	molecule_id = molecule_ids[0]
+	mol = next(
+		(molecule for molecule in session.document.molecules if molecule.mol_id == molecule_id),
+		None,
+	)
+	if mol is None:
+		PySide6.QtWidgets.QMessageBox.warning(
+			app, "Set Molecule Name", "Selected molecule is unavailable in this projection.",
+		)
+		return
 	current_name = mol.name or ""
 	new_name, ok = PySide6.QtWidgets.QInputDialog.getText(
 		app, "Set Molecule Name", "Molecule name:",
@@ -506,88 +686,433 @@ def _set_name(app) -> None:
 	)
 	if not ok:
 		return
-	# push undoable command
-	cmd = bkchem_qt.undo.commands.ChangePropertyCommand(
-		mol, "name", current_name, new_name, "Set Molecule Name"
+	snapshot = session.backend_snapshot
+	request = bkchem_qt.models.document_session.build_molecule_name_request(
+		snapshot.revision, molecule_id, new_name,
 	)
-	app.document.undo_stack.push(cmd)
+	outcome = session.submit_persistent_operation(request)
+	if outcome.status != "accepted":
+		PySide6.QtWidgets.QMessageBox.warning(
+			app, "Set Molecule Name", outcome.message,
+		)
 
 
 #============================================
-def _set_id(app) -> None:
-	"""Set the ID of the single selected molecule via input dialog.
-
-	Uses ChangePropertyCommand for undo support.
+def _create_fragment(app: object) -> None:
+	"""Create durable metadata for one selected molecular subgraph.
 
 	Args:
 		app: MainWindow instance.
 	"""
-	mols = app.document.selected_mols
-	if len(mols) != 1:
+	atom_items = app.document.selected_atoms
+	bond_items = app.document.selected_bonds
+	selected_items = [*atom_items, *bond_items]
+	molecules = {
+		app.document.molecule_for_graphics_item(item)
+		for item in selected_items
+	}
+	if not selected_items or None in molecules or len(molecules) != 1:
 		PySide6.QtWidgets.QMessageBox.warning(
-			app, "Set Molecule ID",
-			"Please select exactly one molecule."
+			app, "Create Fragment",
+			"Select atoms and bonds from exactly one molecule."
 		)
 		return
-	mol = mols[0]
-	current_id = mol.mol_id or ""
-	new_id, ok = PySide6.QtWidgets.QInputDialog.getText(
-		app, "Set Molecule ID", "Molecule ID:",
-		text=current_id
-	)
-	if not ok:
+	molecule = next(iter(molecules))
+	atom_models = {item.atom_model for item in atom_items}
+	bond_models = {item.bond_model for item in bond_items}
+	for bond_model in bond_models:
+		if bond_model.atom1 is not None:
+			atom_models.add(bond_model.atom1)
+		if bond_model.atom2 is not None:
+			atom_models.add(bond_model.atom2)
+	if not atom_models:
+		PySide6.QtWidgets.QMessageBox.warning(
+			app, "Create Fragment", "A fragment must contain at least one atom."
+		)
 		return
-	# push undoable command
-	cmd = bkchem_qt.undo.commands.ChangePropertyCommand(
-		mol, "mol_id", current_id, new_id, "Set Molecule ID"
+	name, accepted = PySide6.QtWidgets.QInputDialog.getText(
+		app, "Create Fragment", "Fragment name:"
 	)
-	app.document.undo_stack.push(cmd)
+	if not accepted or not name.strip():
+		return
+	fragment_type, accepted = PySide6.QtWidgets.QInputDialog.getItem(
+		app, "Create Fragment", "Fragment type:",
+		["explicit", "implicit"], 0, False,
+	)
+	if not accepted:
+		return
+	atom_id_changes, bond_id_changes = app.document.planned_fragment_id_changes(
+		molecule,
+	)
+	fragment = bkchem_qt.models.fragment_model.FragmentModel(
+		fragment_id=app.document.unique_cdml_id("fragment"),
+		fragment_type=fragment_type,
+		name=name.strip(),
+		atom_ids=tuple(
+			after_id for atom_model, _before_id, after_id in atom_id_changes
+			if atom_model in atom_models
+		),
+		bond_ids=tuple(
+			after_id for bond_model, _before_id, after_id in bond_id_changes
+			if bond_model in bond_models
+		),
+	)
+	app.document.undo_stack.push(bkchem_qt.undo.commands.AddFragmentCommand(
+		molecule, fragment, atom_id_changes, bond_id_changes,
+	))
 
 
 #============================================
-def _create_fragment(app) -> None:
-	"""Show placeholder dialog for fragment creation.
+def _view_fragments(app: object) -> None:
+	"""Display one molecule's fragments and delete editable metadata on request.
 
 	Args:
 		app: MainWindow instance.
 	"""
-	PySide6.QtWidgets.QMessageBox.information(
-		app, "Create Fragment",
-		"Fragment operations require OASA fragment library support.\n"
-		"This feature will be available in a future release."
+	choices = []
+	raw_entries = []
+	for molecule_position, molecule in enumerate(app.document.molecules, start=1):
+		molecule_label = molecule.name or molecule.mol_id or "Molecule %d" % molecule_position
+		for fragment in molecule.fragments:
+			label = "%s: %s [%s; %s]" % (
+				molecule_label, fragment.name or "unnamed", fragment.fragment_type,
+				fragment.fragment_id,
+			)
+			choices.append((label, molecule, fragment))
+		for raw_xml in molecule.unsupported_fragment_xml:
+			raw_entries.append("%s: %s" % (molecule_label, raw_xml))
+	if not choices:
+		message = "No editable fragments are defined."
+		if raw_entries:
+			message += "\n\nRetained imported fragments are read-only:\n%s" % (
+				"\n".join(raw_entries),
+			)
+		PySide6.QtWidgets.QMessageBox.information(app, "View Fragments", message)
+		return
+	choice_map = {
+			label: (molecule, fragment)
+			for label, molecule, fragment in choices
+	}
+	labels = ["Keep fragments unchanged", *choice_map]
+	prompt = "Choose a fragment to delete:"
+	if raw_entries:
+		prompt += "\n\nRead-only imported fragments:\n%s" % "\n".join(raw_entries)
+	choice, accepted = PySide6.QtWidgets.QInputDialog.getItem(
+		app, "View Fragments", prompt, labels, 0, False,
 	)
+	if not accepted or choice == labels[0]:
+		return
+	molecule, fragment = choice_map[choice]
+	app.document.undo_stack.push(bkchem_qt.undo.commands.RemoveFragmentCommand(
+		molecule, fragment.fragment_id,
+	))
 
 
 #============================================
-def _view_fragments(app) -> None:
-	"""Show placeholder dialog for viewing fragments.
+def _convert_to_linear(app: object) -> None:
+	"""Convert one selected unbranched component into a linear fragment.
+
+	The legacy action records a ``linear_form`` fragment rather than replacing
+	the molecular graph.  Qt keeps that contract, but computes every affected
+	coordinate before it pushes a macro so an invalid selection cannot leave a
+	partly moved molecule behind.
 
 	Args:
 		app: MainWindow instance.
 	"""
-	PySide6.QtWidgets.QMessageBox.information(
-		app, "View Fragments",
-		"Fragment operations require OASA fragment library support.\n"
-		"This feature will be available in a future release."
+	selection = _linear_selection(app)
+	if selection is None:
+		return
+	molecule, path, path_bonds = selection
+	coordinate_plan = _linear_coordinate_changes(molecule, path, path_bonds)
+	if coordinate_plan is None:
+		_linear_warning(
+			app, "The selected chain has an external component attached to more than one selected atom.",
+		)
+		return
+	atom_changes, bond_length = coordinate_plan
+	atom_id_changes, bond_id_changes = app.document.planned_fragment_id_changes(
+		molecule,
 	)
+	if not _linear_id_normalization_is_safe(
+		molecule, atom_id_changes, bond_id_changes,
+	):
+		_linear_warning(
+			app, "This conversion would renumber atoms or bonds referenced by an existing fragment.",
+		)
+		return
+	atom_ids = _fragment_ids_for_models(path, atom_id_changes)
+	bond_ids = _fragment_ids_for_models(path_bonds, bond_id_changes)
+	fragment = bkchem_qt.models.fragment_model.FragmentModel(
+		fragment_id=app.document.unique_cdml_id("fragment"),
+		fragment_type="linear_form",
+		name="",
+		atom_ids=atom_ids,
+		bond_ids=bond_ids,
+		properties=(bkchem_qt.models.fragment_model.FragmentProperty(
+				name="bond_length", value=f"{bond_length:.6f}",
+				type_name=_LINEAR_FORM_PROPERTY_TYPE,
+		),),
+	)
+	# A macro makes geometry, explicit-hydrogen display, stable IDs, and the
+	# fragment metadata one undo/redo operation and one dirty transition.
+	undo_stack = app.document.undo_stack
+	undo_stack.beginMacro("Convert to Linear Form")
+	if atom_changes:
+		undo_stack.push(bkchem_qt.undo.commands.TransformGeometryCommand(
+				atom_changes, [], "Linear Form Geometry",
+		))
+	for atom_model in path:
+		if not atom_model.show_hydrogens:
+			undo_stack.push(bkchem_qt.undo.commands.ChangePropertyCommand(
+					atom_model, "show_hydrogens", False, True,
+					"Show Linear Form Hydrogens",
+			))
+	undo_stack.push(bkchem_qt.undo.commands.AddFragmentCommand(
+			molecule, fragment, atom_id_changes, bond_id_changes,
+			"Create Linear Form Fragment",
+	))
+	undo_stack.endMacro()
+	app.statusBar().showMessage("Converted selection to linear form", 3000)
 
 
 #============================================
-def _convert_to_linear(app) -> None:
-	"""Show placeholder dialog for linear form conversion.
+def _linear_warning(app: object, message: str) -> None:
+	"""Show one safe, non-mutating conversion rejection message."""
+	PySide6.QtWidgets.QMessageBox.warning(app, "Convert to Linear Form", message)
 
-	Args:
-		app: MainWindow instance.
+
+#============================================
+def _linear_selection(app: object) -> tuple[object, tuple[object, ...], tuple[object, ...]] | None:
+	"""Return one selected path and its induced bonds, or report why not.
+
+	Selected bonds contribute both endpoints, matching the legacy selection
+	semantics.  The selected vertices must induce a single unbranched path (or
+	a single atom); a ring and a fork cannot safely become a linear formula.
 	"""
-	PySide6.QtWidgets.QMessageBox.information(
-		app, "Convert to Linear Form",
-		"Fragment operations require OASA fragment library support.\n"
-		"This feature will be available in a future release."
+	atom_items = app.document.selected_atoms
+	bond_items = app.document.selected_bonds
+	items = [*atom_items, *bond_items]
+	molecules = {
+		app.document.molecule_for_graphics_item(item)
+		for item in items
+	}
+	if not items or None in molecules or len(molecules) != 1:
+		_linear_warning(app, "Select atoms and bonds from exactly one molecule.")
+		return None
+	molecule = next(iter(molecules))
+	selected_atoms = {item.atom_model for item in atom_items}
+	for item in bond_items:
+		if item.bond_model.atom1 is not None:
+			selected_atoms.add(item.bond_model.atom1)
+		if item.bond_model.atom2 is not None:
+			selected_atoms.add(item.bond_model.atom2)
+	if not selected_atoms:
+		_linear_warning(app, "Select at least one atom or bond to make a linear form.")
+		return None
+	induced_bonds = tuple(
+		bond for bond in molecule.bonds
+		if bond.atom1 in selected_atoms and bond.atom2 in selected_atoms
 	)
+	neighbors = {atom: [] for atom in selected_atoms}
+	for bond in induced_bonds:
+		neighbors[bond.atom1].append(bond.atom2)
+		neighbors[bond.atom2].append(bond.atom1)
+	if any(len(atom_neighbors) > 2 for atom_neighbors in neighbors.values()):
+		_linear_warning(app, "The selection is not linear because it contains a branch.")
+		return None
+	path = _ordered_linear_path(neighbors)
+	if path is None:
+		_linear_warning(
+			app, "The selected atoms must form one connected chain, not a ring or split selection.",
+		)
+		return None
+	path_bonds = _ordered_path_bonds(path, induced_bonds)
+	return molecule, path, path_bonds
 
 
 #============================================
-def register_chemistry_actions(registry, app) -> None:
+def _ordered_linear_path(neighbors: dict[object, list[object]]) -> tuple[object, ...] | None:
+	"""Order a connected path from its leftmost endpoint without mutation."""
+	if len(neighbors) == 1:
+		path = tuple(neighbors)
+		return path
+	ends = [atom for atom, atom_neighbors in neighbors.items()
+			if len(atom_neighbors) == 1]
+	if len(ends) != 2:
+		return None
+	start = min(ends, key=lambda atom: (atom.x, atom.y, id(atom)))
+	path = []
+	previous = None
+	current = start
+	while current is not None:
+		path.append(current)
+		next_atoms = [atom for atom in neighbors[current] if atom is not previous]
+		if len(next_atoms) > 1:
+			return None
+		previous, current = current, next_atoms[0] if next_atoms else None
+	if len(path) != len(neighbors):
+		return None
+	return tuple(path)
+
+
+#============================================
+def _ordered_path_bonds(
+		path: tuple[object, ...], bonds: tuple[object, ...],
+		) -> tuple[object, ...]:
+	"""Return path edges in the same semantic order as their vertices."""
+	ordered = []
+	for first, second in zip(path, path[1:]):
+		for bond in bonds:
+			if {bond.atom1, bond.atom2} == {first, second}:
+				ordered.append(bond)
+				break
+		else:
+			raise ValueError("linear path is missing an induced bond")
+	result = tuple(ordered)
+	return result
+
+
+#============================================
+def _linear_id_normalization_is_safe(
+		molecule: object, atom_id_changes: tuple[tuple[object, str, str], ...],
+		bond_id_changes: tuple[tuple[object, str, str], ...],
+		) -> bool:
+	"""Reject ID rewrites that could invalidate pre-existing fragment XML.
+
+	``AddFragmentCommand`` changes atom and bond IDs atomically with the new
+	fragment.  Existing editable or losslessly retained fragment metadata may
+	refer to those IDs, however, so this action refuses the conversion before
+	any command is pushed instead of creating dangling references.
+	"""
+	id_changes = [*atom_id_changes, *bond_id_changes]
+	requires_rewrite = any(before != after for _model, before, after in id_changes)
+	if not requires_rewrite:
+		return True
+	safe = not molecule.fragments and not molecule.unsupported_fragment_xml
+	return safe
+
+
+#============================================
+def _linear_coordinate_changes(
+		molecule: object, path: tuple[object, ...], path_bonds: tuple[object, ...],
+		) -> tuple[list[tuple[object, tuple[float, float], tuple[float, float]]], float] | None:
+	"""Plan linear-path and attached-component translations without mutation."""
+	path_set = set(path)
+	path_bond_set = set(path_bonds)
+	start_x, start_y = path[0].x, path[0].y
+	bond_length = _linear_label_safe_spacing(path)
+	deltas = {
+		atom: (
+			start_x + index * bond_length - atom.x,
+			start_y - atom.y,
+		)
+		for index, atom in enumerate(path)
+	}
+	# Every external component can follow exactly one selected anchor.  An
+	# external bridge between two selected atoms has no single coherent offset.
+	component_offsets: dict[object, tuple[float, float]] = {}
+	visited_external = set()
+	for anchor in path:
+		for bond in molecule.bonds:
+			if bond in path_bond_set:
+				continue
+			other = _other_bond_atom(bond, anchor)
+			if other is None or other in path_set:
+				continue
+			component = _external_component(molecule, other, path_set)
+			component_key = frozenset(component)
+			if component_key in visited_external:
+				if any(component_offsets[atom] != deltas[anchor] for atom in component):
+					return None
+				continue
+			visited_external.add(component_key)
+			for atom in component:
+				component_offsets[atom] = deltas[anchor]
+	changes = []
+	for atom in [*path, *component_offsets]:
+		before = (atom.x, atom.y)
+		dx, dy = deltas[atom] if atom in path_set else component_offsets[atom]
+		after = (before[0] + dx, before[1] + dy)
+		if after != before:
+			changes.append((atom, before, after))
+	return changes, bond_length
+
+
+#============================================
+def _linear_label_safe_spacing(path: tuple[object, ...]) -> float:
+	"""Return uniform spacing that keeps adjacent rendered atom labels apart."""
+	spacing = _LINEAR_FORM_BOND_LENGTH
+	for first, second in zip(path, path[1:]):
+		_first_left, first_right = _linear_label_bounds(first)
+		second_left, _second_right = _linear_label_bounds(second)
+		required = first_right - second_left + _LINEAR_FORM_LABEL_PADDING
+		if required > spacing:
+			spacing = required
+	return spacing
+
+
+#============================================
+def _linear_label_bounds(atom_model: object) -> tuple[float, float]:
+	"""Measure one atom label's horizontal glyph bounds relative to its atom."""
+	left = 0.0
+	right = 0.0
+	for op in bkchem_qt.canvas.items.atom_item._build_atom_ops(
+			atom_model._chem_atom, atom_model,
+	):
+		if not isinstance(op, oasa.render_ops.TextOp):
+			continue
+		width = bkchem_qt.canvas.items.atom_item._measure_text_op_width(op)
+		text_left = op.x - atom_model.x
+		if op.anchor == "middle":
+			text_left -= width / 2.0
+		elif op.anchor == "end":
+			text_left -= width
+		text_right = text_left + width
+		left = min(left, text_left)
+		right = max(right, text_right)
+	return left, right
+
+
+#============================================
+def _other_bond_atom(bond: object, atom: object) -> object | None:
+	"""Return the opposite endpoint when ``bond`` touches ``atom``."""
+	if bond.atom1 is atom:
+		return bond.atom2
+	if bond.atom2 is atom:
+		return bond.atom1
+	return None
+
+
+#============================================
+def _external_component(molecule: object, start: object, selected: set[object]) -> set[object]:
+	"""Return unselected atoms reachable from one selected-path attachment."""
+	component = set()
+	pending = [start]
+	while pending:
+		atom = pending.pop()
+		if atom in component or atom in selected:
+			continue
+		component.add(atom)
+		for bond in molecule.bonds:
+			other = _other_bond_atom(bond, atom)
+			if other is not None and other not in component and other not in selected:
+				pending.append(other)
+	return component
+
+
+#============================================
+def _fragment_ids_for_models(
+		models: tuple[object, ...], id_changes: tuple[tuple[object, str, str], ...],
+		) -> tuple[str, ...]:
+	"""Return each selected model's planned durable CDML identifier."""
+	planned_ids = {model: after for model, _before, after in id_changes}
+	ids = tuple(planned_ids[model] for model in models)
+	return ids
+
+
+#============================================
+def register_chemistry_actions(registry: object, app: object) -> None:
 	"""Register all Chemistry menu actions.
 
 	Args:
@@ -595,13 +1120,26 @@ def register_chemistry_actions(registry, app) -> None:
 		app: The main BKChem-Qt application object providing handler methods.
 	"""
 	# predicates
-	def has_selection():
+	def has_selection() -> bool:
 		"""Return True when the document has selected items."""
-		return app.document.has_selection
+		return app.document is not None and app.document.has_selection
 
-	def one_mol_selected():
+	def one_mol_selected() -> bool:
 		"""Return True when exactly one molecule is selected."""
-		return app.document.one_mol_selected
+		return app.document is not None and app.document.one_mol_selected
+
+	def one_synchronized_direct_root_molecule_selected() -> bool:
+		"""Return whether a root-only molecule operation has one durable target."""
+		session = _active_smiles_document_session(app)
+		return bool(
+			session is not None
+			and session.can_write_authoritative_snapshot
+			and len(session.document.selected_direct_root_molecule_ids) == 1
+		)
+
+	def groups_selected() -> bool:
+		"""Return True when a native CDML group is selected."""
+		return app.document is not None and app.document.groups_selected
 
 	# display summary info on selected molecules
 	registry.register(MenuAction(
@@ -630,7 +1168,7 @@ def register_chemistry_actions(registry, app) -> None:
 		help_key='Expand all selected groups to their structures',
 		accelerator=None,
 		handler=lambda: _expand_groups(app),
-		enabled_when=has_selection,
+		enabled_when=groups_selected,
 	))
 
 	# compute and display oxidation number
@@ -680,17 +1218,7 @@ def register_chemistry_actions(registry, app) -> None:
 		help_key='Export SMILES for the selected structure',
 		accelerator=None,
 		handler=lambda: _gen_smiles(app),
-		enabled_when=one_mol_selected,
-	))
-
-	# export InChI for the selected structure
-	registry.register(MenuAction(
-		id='chemistry.gen_inchi',
-		label_key='Export InChI',
-		help_key='Export an InChI for the selected structure by calling the InChI program',
-		accelerator=None,
-		handler=lambda: _gen_inchi(app),
-		enabled_when=one_mol_selected,
+		enabled_when=one_synchronized_direct_root_molecule_selected,
 	))
 
 	# set the name of the selected molecule
@@ -700,17 +1228,7 @@ def register_chemistry_actions(registry, app) -> None:
 		help_key='Set the name of the selected molecule',
 		accelerator=None,
 		handler=lambda: _set_name(app),
-		enabled_when=one_mol_selected,
-	))
-
-	# set the ID of the selected molecule
-	registry.register(MenuAction(
-		id='chemistry.set_id',
-		label_key='Set molecule ID',
-		help_key='Set the ID of the selected molecule',
-		accelerator=None,
-		handler=lambda: _set_id(app),
-		enabled_when=one_mol_selected,
+		enabled_when=one_synchronized_direct_root_molecule_selected,
 	))
 
 	# create a fragment from the selected part of the molecule

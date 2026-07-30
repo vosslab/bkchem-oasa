@@ -31,9 +31,7 @@ from oasa.transform_lib import Transform
 
 import oasa
 import oasa.atom_lib
-import oasa.oasa_config
 import oasa.smiles_lib
-from oasa.molecule_lib import Molecule as oasa_molecule_class
 
 from bkchem import bkchem_config
 from bkchem import os_support
@@ -44,7 +42,7 @@ from bkchem.singleton_store import Store, Screen
 
 
 #============================================
-def _choose_anchor_atom(mol):
+def _choose_anchor_atom(mol: object) -> object:
 	"""Pick a deterministic anchor atom for template placement.
 
 	Args:
@@ -57,7 +55,7 @@ def _choose_anchor_atom(mol):
 
 
 #============================================
-def _choose_anchor_neighbor(anchor):
+def _choose_anchor_neighbor(anchor: object) -> object:
 	"""Pick a deterministic neighbor for the anchor bond.
 
 	Args:
@@ -72,7 +70,7 @@ def _choose_anchor_neighbor(anchor):
 
 
 #============================================
-def _normalize_coordinates(atoms):
+def _normalize_coordinates(atoms: object) -> object:
 	"""Shift atoms so all coordinates are positive and start near 1 cm.
 
 	Args:
@@ -88,7 +86,7 @@ def _normalize_coordinates(atoms):
 
 
 #============================================
-def _build_cdml_string(name, mol, anchor, neighbor, template_atom):
+def _build_cdml_string(name: object, mol: object, anchor: object, neighbor: object, template_atom: object) -> object:
 	"""Build a CDML XML string for a biomolecule template.
 
 	Args:
@@ -111,7 +109,11 @@ def _build_cdml_string(name, mol, anchor, neighbor, template_atom):
 	)
 	# info block
 	info = ElementTree.SubElement(root, "info")
-	author = ElementTree.SubElement(info, "author_program", {"version": cdml_version})
+	author = ElementTree.SubElement(
+		info,
+		"author_program",
+		{"version": bkchem_config.current_BKChem_version},
+	)
 	author.text = "BKchem"
 	# paper and viewport
 	ElementTree.SubElement(root, "paper", {
@@ -204,7 +206,7 @@ def _build_cdml_string(name, mol, anchor, neighbor, template_atom):
 class template_manager(object):
 	templates = []
 
-	def __init__( self):
+	def __init__( self) -> None:
 		self.templates = []
 		self._prepared_templates = []
 		self._template_names = []
@@ -212,7 +214,7 @@ class template_manager(object):
 		self._smiles_registry = {}
 
 
-	def add_template_from_CDML( self, file, name_override=None):
+	def add_template_from_CDML( self, file: object, name_override: object=None) -> object:
 		if not os.path.isfile( file):
 			file = os_support.get_path( file, "template")
 			if not file:
@@ -278,16 +280,9 @@ class template_manager(object):
 		smiles = self._smiles_registry[n]
 		name = self._template_names[n]
 
-		# temporarily restore oasa.molecule as the molecule class so
-		# text_to_mol creates pure OASA molecules (BKChem overrides
-		# Config.molecule_class with its own molecule which lacks
-		# chemistry-only methods like remove_unimportant_hydrogens)
-		saved_class = oasa.oasa_config.Config.molecule_class
-		oasa.oasa_config.Config.molecule_class = oasa_molecule_class
-		# parse SMILES and generate 2D coordinates
+		# The modern RDKit-backed converter always creates a pure OASA graph.
+		# It does not consult the legacy process-wide Config.molecule_class.
 		mol = oasa.smiles_lib.text_to_mol(smiles, calc_coords=1)
-		# restore the BKChem molecule class
-		oasa.oasa_config.Config.molecule_class = saved_class
 		if not mol:
 			warn(f"Failed to parse SMILES for template '{name}': {smiles}")
 			return
@@ -327,21 +322,21 @@ class template_manager(object):
 		Store.app.paper.onread_id_sandbox_finish(apply_to=[])
 
 
-	def get_template( self, n):
+	def get_template( self, n: object) -> object:
 		self._ensure_template_ready(n)
 		return self.templates[n]
 
 
-	def get_templates_valency( self, name):
+	def get_templates_valency( self, name: object) -> object:
 		self._ensure_template_ready(name)
 		return self._prepared_templates[ name].next_to_t_atom.occupied_valency -1
 
 
-	def get_template_names( self):
+	def get_template_names( self) -> object:
 		return list(self._template_names)
 
 
-	def get_transformed_template( self, n, coords, type='empty', paper=None):
+	def get_transformed_template( self, n: object, coords: object, type: object='empty', paper: object=None) -> object:
 		"""type is type of connection - 'bond', 'atom1'(for single atom), 'atom2'(for atom with more than 1 bond), 'empty'"""
 		self._ensure_template_ready(n)
 		pap = paper or Store.app.paper
@@ -398,7 +393,7 @@ class template_manager(object):
 		return current
 
 
-	def transform_template( self, temp, trans):
+	def transform_template( self, temp: object, trans: object) -> object:
 		for a in temp.atoms:
 			a.x, a.y = trans.transform_xy( a.x, a.y)
 			a.scale_font( self._scale_ratio)

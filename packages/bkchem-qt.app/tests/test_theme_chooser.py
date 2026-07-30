@@ -5,7 +5,7 @@ import bkchem_qt.dialogs.theme_chooser_dialog
 
 
 #============================================
-def test_theme_dialog_lists_themes(main_window):
+def test_theme_dialog_lists_themes(main_window: object) -> None:
 	"""Create a ThemeChooserDialog and verify themes are listed."""
 	dialog = bkchem_qt.dialogs.theme_chooser_dialog.ThemeChooserDialog(
 		"light", parent=main_window,
@@ -17,7 +17,7 @@ def test_theme_dialog_lists_themes(main_window):
 
 
 #============================================
-def test_theme_dialog_preselects_current(main_window):
+def test_theme_dialog_preselects_current(main_window: object) -> None:
 	"""Create dialog with current='light' and verify it is preselected."""
 	dialog = bkchem_qt.dialogs.theme_chooser_dialog.ThemeChooserDialog(
 		"light", parent=main_window,
@@ -32,7 +32,7 @@ def test_theme_dialog_preselects_current(main_window):
 
 
 #============================================
-def test_theme_apply_changes_theme(main_window, monkeypatch):
+def test_theme_apply_changes_theme(main_window: object, monkeypatch: object) -> None:
 	"""Monkeypatch choose_theme to return opposite theme, verify change."""
 	tm = main_window._theme_manager
 	# determine target theme (opposite of current)
@@ -57,7 +57,7 @@ def test_theme_apply_changes_theme(main_window, monkeypatch):
 
 
 #============================================
-def test_theme_cancel_no_change(main_window, monkeypatch):
+def test_theme_cancel_no_change(main_window: object, monkeypatch: object) -> None:
 	"""Monkeypatch choose_theme to return None, verify no change."""
 	tm = main_window._theme_manager
 	original = tm.current_theme

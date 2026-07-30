@@ -34,7 +34,7 @@ DELAY_BASE = 1.0
 class AnchorCollector(html.parser.HTMLParser):
 	"""Collect anchor tags with href/title/text content."""
 
-	def __init__(self):
+	def __init__(self) -> None:
 		super().__init__()
 		self.anchors = []
 		self._current_href = ""
@@ -42,7 +42,7 @@ class AnchorCollector(html.parser.HTMLParser):
 		self._current_text = []
 		self._in_anchor = False
 
-	def handle_starttag(self, tag, attrs):
+	def handle_starttag(self, tag: object, attrs: object) -> None:
 		if tag.lower() != "a":
 			return
 		attr_map = dict(attrs)
@@ -51,11 +51,11 @@ class AnchorCollector(html.parser.HTMLParser):
 		self._current_text = []
 		self._in_anchor = True
 
-	def handle_data(self, data):
+	def handle_data(self, data: object) -> None:
 		if self._in_anchor:
 			self._current_text.append(data)
 
-	def handle_endtag(self, tag):
+	def handle_endtag(self, tag: object) -> None:
 		if tag.lower() != "a" or not self._in_anchor:
 			return
 		self.anchors.append(
@@ -72,7 +72,7 @@ class AnchorCollector(html.parser.HTMLParser):
 
 
 #============================================
-def parse_args():
+def parse_args() -> object:
 	"""Parse command-line arguments."""
 	parser = argparse.ArgumentParser(
 		description="Download Haworth-like files from User:NEUROtiker archive pages."
@@ -100,7 +100,7 @@ def parse_args():
 
 
 #============================================
-def _validate_url(url, allowed_hosts, allowed_path_prefix=None):
+def _validate_url(url: object, allowed_hosts: object, allowed_path_prefix: object=None) -> object:
 	"""Validate URL scheme/host and optional path prefix."""
 	parsed = urllib.parse.urlparse(url)
 	if parsed.scheme not in ("http", "https"):
@@ -114,7 +114,7 @@ def _validate_url(url, allowed_hosts, allowed_path_prefix=None):
 
 
 #============================================
-def _validate_archive_url(url):
+def _validate_archive_url(url: object) -> object:
 	"""Validate archive URL points to User:NEUROtiker gallery archive# page."""
 	_validate_url(url, {"commons.wikimedia.org"})
 	parsed = urllib.parse.urlparse(url)
@@ -127,7 +127,7 @@ def _validate_archive_url(url):
 
 
 #============================================
-def _archive_raw_url(archive_url):
+def _archive_raw_url(archive_url: object) -> object:
 	"""Build MediaWiki raw-content URL from archive page URL."""
 	parsed = urllib.parse.urlparse(archive_url)
 	title = ""
@@ -147,13 +147,13 @@ def _archive_raw_url(archive_url):
 
 
 #============================================
-def _sleep_between_requests(delay_base):
+def _sleep_between_requests(delay_base: object) -> None:
 	"""Sleep before each request with random jitter."""
 	time.sleep(delay_base + random.random())
 
 
 #============================================
-def _retry_wait_seconds(http_error, attempt, delay_base):
+def _retry_wait_seconds(http_error: object, attempt: object, delay_base: object) -> object:
 	"""Compute wait seconds for transient retry attempts."""
 	retry_after = http_error.headers.get("Retry-After", "").strip()
 	if retry_after.isdigit():
@@ -162,7 +162,7 @@ def _retry_wait_seconds(http_error, attempt, delay_base):
 
 
 #============================================
-def _urlopen_with_retries(request, timeout, max_retries, delay_base):
+def _urlopen_with_retries(request: object, timeout: object, max_retries: object, delay_base: object) -> object:
 	"""Open URL with polite delay and retry on transient errors."""
 	attempt = 0
 	while True:
@@ -186,7 +186,7 @@ def _urlopen_with_retries(request, timeout, max_retries, delay_base):
 
 
 #============================================
-def fetch_text(url, max_retries, delay_base):
+def fetch_text(url: object, max_retries: object, delay_base: object) -> object:
 	"""Download UTF-8 text from a validated URL."""
 	_validate_url(url, {"commons.wikimedia.org"})
 	request = urllib.request.Request(
@@ -203,7 +203,7 @@ def fetch_text(url, max_retries, delay_base):
 
 
 #============================================
-def fetch_json(url, max_retries, delay_base):
+def fetch_json(url: object, max_retries: object, delay_base: object) -> object:
 	"""Download JSON from a validated URL."""
 	_validate_url(url, {"commons.wikimedia.org"})
 	request = urllib.request.Request(
@@ -221,7 +221,7 @@ def fetch_json(url, max_retries, delay_base):
 
 
 #============================================
-def download_binary(url, max_retries, delay_base):
+def download_binary(url: object, max_retries: object, delay_base: object) -> object:
 	"""Download binary content from upload.wikimedia/commons.wikimedia."""
 	_validate_url(url, ALLOWED_HOSTS)
 	request = urllib.request.Request(
@@ -237,7 +237,7 @@ def download_binary(url, max_retries, delay_base):
 
 
 #============================================
-def _dedupe_preserve_order(values):
+def _dedupe_preserve_order(values: object) -> object:
 	"""Return unique values preserving first-seen order."""
 	seen = set()
 	ordered = []
@@ -250,7 +250,7 @@ def _dedupe_preserve_order(values):
 
 
 #============================================
-def _normalize_file_title(text):
+def _normalize_file_title(text: object) -> object:
 	"""Normalize File: title to MediaWiki-style title with spaces."""
 	title = text.strip().replace("_", " ")
 	if not title.lower().startswith("file:"):
@@ -259,7 +259,7 @@ def _normalize_file_title(text):
 
 
 #============================================
-def _line_matches_terms(text, terms):
+def _line_matches_terms(text: object, terms: object) -> bool:
 	"""Return True if line/corpus contains any configured search term."""
 	if not terms:
 		return True
@@ -271,7 +271,7 @@ def _line_matches_terms(text, terms):
 
 
 #============================================
-def find_haworth_file_titles_from_wikitext(archive_wikitext, keyword_terms):
+def find_haworth_file_titles_from_wikitext(archive_wikitext: object, keyword_terms: object) -> object:
 	"""Extract File: titles from archive wikitext line/caption keyword matches."""
 	matches = []
 	for line in archive_wikitext.splitlines():
@@ -288,7 +288,7 @@ def find_haworth_file_titles_from_wikitext(archive_wikitext, keyword_terms):
 
 
 #============================================
-def find_haworth_file_titles_from_html(archive_html, keyword_terms):
+def find_haworth_file_titles_from_html(archive_html: object, keyword_terms: object) -> object:
 	"""Extract unique File: titles matching keyword from archive HTML anchors."""
 	collector = AnchorCollector()
 	collector.feed(archive_html)
@@ -308,14 +308,14 @@ def find_haworth_file_titles_from_html(archive_html, keyword_terms):
 
 
 #============================================
-def chunked(items, chunk_size):
+def chunked(items: object, chunk_size: object) -> object:
 	"""Yield fixed-size chunks from a list."""
 	for index in range(0, len(items), chunk_size):
 		yield items[index:index + chunk_size]
 
 
 #============================================
-def resolve_imageinfo(file_titles, max_retries, delay_base):
+def resolve_imageinfo(file_titles: object, max_retries: object, delay_base: object) -> object:
 	"""Resolve original file URLs and metadata for file titles via MediaWiki API."""
 	resolved = []
 	for title_chunk in chunked(file_titles, 50):
@@ -359,20 +359,20 @@ def resolve_imageinfo(file_titles, max_retries, delay_base):
 
 
 #============================================
-def filename_from_url(url):
+def filename_from_url(url: object) -> object:
 	"""Get decoded basename from file URL path."""
 	parsed = urllib.parse.urlparse(url)
 	return urllib.parse.unquote(os.path.basename(parsed.path))
 
 
 #============================================
-def ensure_dir(path):
+def ensure_dir(path: object) -> None:
 	"""Create directory if needed."""
 	os.makedirs(path, exist_ok=True)
 
 
 #============================================
-def write_manifest(manifest_path, payload):
+def write_manifest(manifest_path: object, payload: object) -> None:
 	"""Write manifest JSON with deterministic formatting."""
 	with open(manifest_path, "w", encoding="utf-8") as handle:
 		json.dump(payload, handle, indent=2, sort_keys=True)
@@ -380,7 +380,7 @@ def write_manifest(manifest_path, payload):
 
 
 #============================================
-def run():
+def run() -> None:
 	"""Run archive scan and optional download for default archives or inputs."""
 	args = parse_args()
 	archive_urls = args.archive_urls

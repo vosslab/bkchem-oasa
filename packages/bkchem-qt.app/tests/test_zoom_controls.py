@@ -3,7 +3,6 @@
 # Standard Library
 import io
 import math
-import time
 
 # PIP3 modules
 import pytest
@@ -19,7 +18,6 @@ _CHOLESTEROL_SMILES = (
 	"CC(C)CCCC(C)C1CCC2C3CC=C4C[C@H](O)CC[C@]4(C)C3CC[C@]12C"
 )
 _SWEEP_PERCENT_LEVELS = tuple(list(range(25, 396, 10)) + [400])
-_SWEEP_PERCENT_LEVELS_FULL = tuple(range(10, 1001, 10))
 
 
 #============================================
@@ -29,14 +27,14 @@ def _flush_events() -> None:
 
 
 #============================================
-def _viewport_center_scene(view):
+def _viewport_center_scene(view: object) -> object:
 	"""Return viewport center mapped into scene coordinates."""
 	center_px = view.viewport().rect().center()
 	return view.mapToScene(center_px)
 
 
 #============================================
-def _import_cholesterol_from_smiles(main_window):
+def _import_cholesterol_from_smiles(main_window: object) -> object:
 	"""Import cholesterol via SMILES into the Qt document/scene."""
 	smiles_file = io.StringIO(_CHOLESTEROL_SMILES + "\n")
 	molecules = bkchem_qt.bridge.oasa_bridge.read_codec_file("smiles", smiles_file)
@@ -48,7 +46,7 @@ def _import_cholesterol_from_smiles(main_window):
 
 
 #============================================
-def _first_molecule(main_window):
+def _first_molecule(main_window: object) -> object:
 	"""Return the first molecule in the document."""
 	if not main_window.document.molecules:
 		raise AssertionError("Expected at least one molecule in the document.")
@@ -56,13 +54,13 @@ def _first_molecule(main_window):
 
 
 #============================================
-def _capture_model_coords(molecule):
+def _capture_model_coords(molecule: object) -> list:
 	"""Capture atom model coordinates as a list of tuples."""
 	return [(atom.x, atom.y) for atom in molecule.atoms]
 
 
 #============================================
-def _fixed_atom_pair_scene_points(molecule):
+def _fixed_atom_pair_scene_points(molecule: object) -> tuple:
 	"""Choose two stable molecule points (leftmost and rightmost atoms)."""
 	if len(molecule.atoms) < 2:
 		raise AssertionError("Need at least two atoms to track fixed points.")
@@ -74,7 +72,9 @@ def _fixed_atom_pair_scene_points(molecule):
 
 
 #============================================
-def _augment_snapshot_with_fixed_pair(snapshot: dict, view, p1_scene, p2_scene) -> dict:
+def _augment_snapshot_with_fixed_pair(
+	snapshot: dict, view: object, p1_scene: object, p2_scene: object,
+) -> dict:
 	"""Add viewport coordinates and vector metrics for two fixed scene points."""
 	p1_view = view.mapFromScene(p1_scene[0], p1_scene[1])
 	p2_view = view.mapFromScene(p2_scene[0], p2_scene[1])
@@ -91,7 +91,7 @@ def _augment_snapshot_with_fixed_pair(snapshot: dict, view, p1_scene, p2_scene) 
 
 
 #============================================
-def _snapshot_zoom_state(main_window, label: str) -> dict:
+def _snapshot_zoom_state(main_window: object, label: str) -> dict:
 	"""Capture zoom and viewport center for diagnostics."""
 	view = main_window.view
 	vp_center = _viewport_center_scene(view)
@@ -160,12 +160,12 @@ def _print_fixed_pair_table(title: str, snapshots: list) -> None:
 
 #============================================
 def _run_percent_sweep_with_fixed_pair(
-	main_window,
+	main_window: object,
 	percents: list,
 	label_prefix: str,
-	p1_scene,
-	p2_scene,
-):
+	p1_scene: object,
+	p2_scene: object,
+) -> list:
 	"""Run zoom percent sweep while tracking a fixed molecule point pair."""
 	snapshots = []
 	base_pair_dx = None
@@ -173,7 +173,6 @@ def _run_percent_sweep_with_fixed_pair(
 	prev_pair_len = None
 	is_increasing = percents[-1] > percents[0]
 	for percent in percents:
-		time.sleep(0.01)
 		main_window.view.set_zoom_percent(float(percent))
 		_flush_events()
 		snap = _snapshot_zoom_state(main_window, f"{label_prefix}{percent}%")
@@ -324,7 +323,7 @@ def _assert_up_down_coordinate_symmetry(
 
 
 #============================================
-def test_zoom_in_increases_percent(main_window):
+def test_zoom_in_increases_percent(main_window: object) -> None:
 	"""Calling on_zoom_in raises zoom on visible cholesterol content."""
 	_import_cholesterol_from_smiles(main_window)
 	main_window.on_zoom_to_content()
@@ -335,14 +334,14 @@ def test_zoom_in_increases_percent(main_window):
 
 
 #============================================
-def test_zoom_out_decreases_percent(main_window):
+def test_zoom_out_decreases_percent(main_window: object) -> None:
 	"""Calling on_zoom_out lowers the zoom percent below 100."""
 	main_window.on_zoom_out()
 	assert main_window.view.zoom_percent < 100
 
 
 #============================================
-def test_reset_zoom_returns_100(main_window):
+def test_reset_zoom_returns_100(main_window: object) -> None:
 	"""Zoom in then reset returns zoom percent to 100."""
 	main_window.on_zoom_in()
 	assert main_window.view.zoom_percent != 100
@@ -351,7 +350,7 @@ def test_reset_zoom_returns_100(main_window):
 
 
 #============================================
-def test_zoom_to_fit_no_crash(main_window):
+def test_zoom_to_fit_no_crash(main_window: object) -> None:
 	"""zoom_to_fit should run and land on the configured snap ladder."""
 	main_window.on_zoom_to_fit()
 	assert any(
@@ -364,20 +363,20 @@ def test_zoom_to_fit_no_crash(main_window):
 
 
 #============================================
-def test_zoom_to_content_no_crash(main_window):
+def test_zoom_to_content_no_crash(main_window: object) -> None:
 	"""Calling on_zoom_to_content does not raise an exception."""
 	main_window.on_zoom_to_content()
 
 
 #============================================
-def test_set_zoom_percent(main_window):
+def test_set_zoom_percent(main_window: object) -> None:
 	"""set_zoom_percent should honor exact user-entered percentages."""
 	main_window.view.set_zoom_percent(173.91)
 	assert main_window.view.zoom_percent == pytest.approx(173.91, abs=0.01)
 
 
 #============================================
-def test_zoom_controls_widget_exists(main_window):
+def test_zoom_controls_widget_exists(main_window: object) -> None:
 	"""MainWindow has a _zoom_controls attribute that is a ZoomControls."""
 	assert hasattr(main_window, "_zoom_controls")
 	assert isinstance(
@@ -387,7 +386,7 @@ def test_zoom_controls_widget_exists(main_window):
 
 
 #============================================
-def test_zoom_controls_label_updates(main_window):
+def test_zoom_controls_label_updates(main_window: object) -> None:
 	"""After zooming in, the zoom controls label no longer reads 100%."""
 	main_window.on_zoom_in()
 	label_text = main_window._zoom_controls._label.text()
@@ -395,7 +394,7 @@ def test_zoom_controls_label_updates(main_window):
 
 
 #============================================
-def test_zoom_diagnostic_with_cholesterol(main_window):
+def test_zoom_diagnostic_with_cholesterol(main_window: object) -> None:
 	"""Run a cholesterol-backed zoom diagnostic with round-trip checks."""
 	_import_cholesterol_from_smiles(main_window)
 	main_window.on_zoom_to_content()
@@ -455,7 +454,7 @@ def test_zoom_diagnostic_with_cholesterol(main_window):
 
 
 #============================================
-def test_zoom_model_coords_stable_with_cholesterol(main_window):
+def test_zoom_model_coords_stable_with_cholesterol(main_window: object) -> None:
 	"""Model coordinates must remain unchanged across extreme zoom operations."""
 	_import_cholesterol_from_smiles(main_window)
 	molecule = _first_molecule(main_window)
@@ -499,7 +498,7 @@ def test_zoom_model_coords_stable_with_cholesterol(main_window):
 
 
 #============================================
-def test_zoom_roundtrip_symmetry_with_cholesterol(main_window):
+def test_zoom_roundtrip_symmetry_with_cholesterol(main_window: object) -> None:
 	"""Zoom out from high zoom and back; viewport center should round-trip."""
 	_import_cholesterol_from_smiles(main_window)
 	main_window.on_zoom_to_content()
@@ -541,7 +540,7 @@ def test_zoom_roundtrip_symmetry_with_cholesterol(main_window):
 
 
 #============================================
-def test_zoom_sweep_25_to_400_and_400_to_25_no_inversion(main_window):
+def test_zoom_sweep_25_to_400_and_400_to_25_no_inversion(main_window: object) -> None:
 	"""Sweep fixed direct-set zoom levels and verify no orientation inversion."""
 	molecule = _import_cholesterol_from_smiles(main_window)
 	p1_scene, p2_scene = _fixed_atom_pair_scene_points(molecule)
@@ -563,33 +562,5 @@ def test_zoom_sweep_25_to_400_and_400_to_25_no_inversion(main_window):
 	_print_fixed_pair_table("QT FIXED-PAIR TABLE (25% -> 400%)", up_snapshots)
 	_print_diagnostic_table(down_snapshots)
 	_print_fixed_pair_table("QT FIXED-PAIR TABLE (400% -> 25%)", down_snapshots)
-	_print_up_down_coordinate_comparison(up_snapshots, down_snapshots)
-	_assert_up_down_coordinate_symmetry(up_snapshots, down_snapshots)
-
-
-#============================================
-def test_zoom_sweep_10_to_1000_and_1000_to_10_no_inversion(main_window):
-	return
-	"""Sweep full direct-set range and verify no orientation inversion."""
-	molecule = _import_cholesterol_from_smiles(main_window)
-	p1_scene, p2_scene = _fixed_atom_pair_scene_points(molecule)
-	main_window.on_zoom_to_content()
-	_flush_events()
-	assert any(
-		level not in bkchem_qt.canvas.view.ZOOM_SNAP_LEVELS
-		for level in _SWEEP_PERCENT_LEVELS_FULL
-	), "Full sweep levels must include non-snapped values."
-	up_percents = list(_SWEEP_PERCENT_LEVELS_FULL)
-	down_percents = list(reversed(up_percents))
-	up_snapshots = _run_percent_sweep_with_fixed_pair(
-		main_window, up_percents, "up ", p1_scene, p2_scene
-	)
-	down_snapshots = _run_percent_sweep_with_fixed_pair(
-		main_window, down_percents, "dn ", p1_scene, p2_scene
-	)
-	_print_diagnostic_table(up_snapshots)
-	_print_fixed_pair_table("QT FIXED-PAIR TABLE (10% -> 1000%)", up_snapshots)
-	_print_diagnostic_table(down_snapshots)
-	_print_fixed_pair_table("QT FIXED-PAIR TABLE (1000% -> 10%)", down_snapshots)
 	_print_up_down_coordinate_comparison(up_snapshots, down_snapshots)
 	_assert_up_down_coordinate_symmetry(up_snapshots, down_snapshots)

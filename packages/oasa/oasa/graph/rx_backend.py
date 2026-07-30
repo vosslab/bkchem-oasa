@@ -29,7 +29,7 @@ class RxBackend:
 	"""
 
 	#============================================
-	def __init__(self):
+	def __init__(self) -> None:
 		"""Create an empty backend with no nodes or edges."""
 		self.rx = rustworkx.PyGraph(multigraph=False)
 		self.v_to_i = {}
@@ -39,12 +39,12 @@ class RxBackend:
 		self._dirty = True
 
 	#============================================
-	def mark_dirty(self):
+	def mark_dirty(self) -> object:
 		"""Mark the backend as needing a rebuild before next algorithm call."""
 		self._dirty = True
 
 	#============================================
-	def invalidate(self):
+	def invalidate(self) -> object:
 		"""Clear all state and mark dirty for a full rebuild."""
 		self.rx = rustworkx.PyGraph(multigraph=False)
 		self.v_to_i.clear()
@@ -54,7 +54,7 @@ class RxBackend:
 		self._dirty = True
 
 	#============================================
-	def rebuild_from_graph(self, graph):
+	def rebuild_from_graph(self, graph: object) -> object:
 		"""Rebuild the entire rustworkx graph from an OASA Graph.
 
 		Clears all existing state and repopulates maps from the graph's
@@ -86,7 +86,7 @@ class RxBackend:
 		self._dirty = False
 
 	#============================================
-	def ensure_synced(self, graph):
+	def ensure_synced(self, graph: object) -> object:
 		"""Lazily rebuild the rustworkx graph if dirty.
 
 		Called automatically before any algorithm delegate. If the
@@ -104,7 +104,7 @@ class RxBackend:
 	# ------------------------------------------------------------------
 
 	#============================================
-	def get_connected_components(self, graph) -> list:
+	def get_connected_components(self, graph: object) -> list:
 		"""Return connected components as list of sets of OASA Vertex objects.
 
 		Args:
@@ -126,7 +126,7 @@ class RxBackend:
 		return result
 
 	#============================================
-	def is_connected(self, graph) -> bool:
+	def is_connected(self, graph: object) -> bool:
 		"""Test whether the graph is connected.
 
 		Args:
@@ -142,7 +142,7 @@ class RxBackend:
 		return rustworkx.is_connected(self.rx)
 
 	#============================================
-	def has_path(self, graph, v1, v2) -> bool:
+	def has_path(self, graph: object, v1: object, v2: object) -> bool:
 		"""Test whether a path exists between two vertices.
 
 		Args:
@@ -159,7 +159,7 @@ class RxBackend:
 		return rustworkx.has_path(self.rx, i1, i2)
 
 	#============================================
-	def get_diameter(self, graph) -> int:
+	def get_diameter(self, graph: object) -> int:
 		"""Compute graph diameter (longest shortest path).
 
 		Args:
@@ -183,7 +183,7 @@ class RxBackend:
 		return int(numpy.max(dist_matrix[finite_mask]))
 
 	#============================================
-	def cycle_basis(self, graph) -> list:
+	def cycle_basis(self, graph: object) -> list:
 		"""Return a set of independent cycles as sets of OASA Vertex objects.
 
 		Uses root=0 for deterministic results. Without a fixed root,
@@ -213,7 +213,7 @@ class RxBackend:
 		return result
 
 	#============================================
-	def bridges(self, graph) -> set:
+	def bridges(self, graph: object) -> set:
 		"""Return all bridge edges as a set of OASA Edge objects.
 
 		A bridge is an edge whose removal disconnects the graph.
@@ -250,7 +250,7 @@ class RxBackend:
 		return result
 
 	#============================================
-	def _find_edge_between(self, v1, v2):
+	def _find_edge_between(self, v1: object, v2: object) -> object:
 		"""Find the OASA Edge connecting two vertices.
 
 		Args:
@@ -266,7 +266,7 @@ class RxBackend:
 		return None
 
 	#============================================
-	def distance_from(self, graph, vertex) -> int:
+	def distance_from(self, graph: object, vertex: object) -> int:
 		"""Compute BFS distances from a vertex, writing to properties_['d'].
 
 		Matches the OASA side-effect contract: each reachable vertex gets
@@ -302,8 +302,8 @@ class RxBackend:
 		return max_d
 
 	#============================================
-	def find_path_between(self, graph, start, end,
-							dont_go_through=None) -> list:
+	def find_path_between(self, graph: object, start: object, end: object,
+							dont_go_through: object=None) -> list:
 		"""Find a path between two vertices, optionally avoiding some.
 
 		Args:
@@ -382,7 +382,7 @@ class RxBackend:
 
 
 	#============================================
-	def max_matching(self, graph) -> tuple:
+	def max_matching(self, graph: object) -> tuple:
 		"""Compute maximum cardinality matching using rustworkx.
 
 		Returns the result in OASA's (mate, nrex) format where mate is a
@@ -411,7 +411,7 @@ class RxBackend:
 		return mate, nrex
 
 	#============================================
-	def cycle_basis_edges(self, graph) -> set:
+	def cycle_basis_edges(self, graph: object) -> set:
 		"""Return smallest independent cycles as frozensets of OASA Edge objects.
 
 		Computes vertex-based cycle basis via rustworkx, then converts
@@ -436,7 +436,7 @@ class RxBackend:
 		return result
 
 	#============================================
-	def dijkstra_shortest_paths(self, graph, source, target=None) -> dict:
+	def dijkstra_shortest_paths(self, graph: object, source: object, target: object=None) -> dict:
 		"""Compute shortest paths from source to all (or one) target.
 
 		Args:
@@ -473,7 +473,7 @@ class RxBackend:
 	# ------------------------------------------------------------------
 
 	#============================================
-	def vertex_to_index(self, v) -> int:
+	def vertex_to_index(self, v: object) -> int:
 		"""Convert an OASA Vertex to its rustworkx node index.
 
 		Args:
@@ -485,7 +485,7 @@ class RxBackend:
 		return self.v_to_i[v]
 
 	#============================================
-	def index_to_vertex(self, i):
+	def index_to_vertex(self, i: object) -> object:
 		"""Convert a rustworkx node index to its OASA Vertex.
 
 		Args:
@@ -497,7 +497,7 @@ class RxBackend:
 		return self.i_to_v[i]
 
 	#============================================
-	def edge_to_index(self, e) -> int:
+	def edge_to_index(self, e: object) -> int:
 		"""Convert an OASA Edge to its rustworkx edge index.
 
 		Args:
@@ -509,7 +509,7 @@ class RxBackend:
 		return self.e_to_i[e]
 
 	#============================================
-	def index_to_edge(self, i):
+	def index_to_edge(self, i: object) -> object:
 		"""Convert a rustworkx edge index to its OASA Edge.
 
 		Args:

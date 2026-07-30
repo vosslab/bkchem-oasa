@@ -24,7 +24,7 @@ Keep documentation concise, scannable, and consistent.
 - Use relative links inside the repo.
 - Prefer descriptive link text, not raw URLs.
 - When referencing another doc, always link it (avoid bare filenames).
-- Example: [docs/FORMAT.md](docs/FORMAT.md), [docs/CLI.md](docs/CLI.md)
+- Example: [CODE_ARCHITECTURE.md](CODE_ARCHITECTURE.md), [FILE_STRUCTURE.md](FILE_STRUCTURE.md)
 
 ## Examples
 - Show a minimal example before a complex one.

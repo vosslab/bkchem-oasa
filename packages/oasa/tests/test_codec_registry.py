@@ -15,7 +15,7 @@ import oasa.codec_registry
 
 
 #============================================
-def _make_simple_mol():
+def _make_simple_mol() -> object:
 	mol = oasa.molecule_lib.Molecule()
 	a1 = oasa.atom_lib.Atom(symbol="C")
 	a1.x = 0.0
@@ -32,7 +32,7 @@ def _make_simple_mol():
 
 
 #============================================
-def test_codec_registry_defaults():
+def test_codec_registry_defaults() -> None:
 	oasa.codec_registry.reset_registry()
 	codecs = oasa.codec_registry.list_codecs()
 	assert "smiles" in codecs
@@ -72,7 +72,7 @@ def test_codec_registry_defaults():
 
 
 #============================================
-def test_codec_registry_smiles_roundtrip():
+def test_codec_registry_smiles_roundtrip() -> None:
 	oasa.codec_registry.reset_registry()
 	codec = oasa.codec_registry.get_codec("smiles")
 	mol = _make_simple_mol()
@@ -84,7 +84,7 @@ def test_codec_registry_smiles_roundtrip():
 
 
 #============================================
-def test_codec_registry_cdml_roundtrip():
+def test_codec_registry_cdml_roundtrip() -> None:
 	oasa.codec_registry.reset_registry()
 	codec = oasa.codec_registry.get_codec("cdml")
 	mol = _make_simple_mol()
@@ -97,7 +97,7 @@ def test_codec_registry_cdml_roundtrip():
 
 
 #============================================
-def test_codec_registry_cml_import_only():
+def test_codec_registry_cml_import_only() -> None:
 	oasa.codec_registry.reset_registry()
 	codec = oasa.codec_registry.get_codec("cml")
 	assert codec.writes_text is False
@@ -118,7 +118,7 @@ def test_codec_registry_cml_import_only():
 
 
 #============================================
-def test_codec_registry_cml2_import_only():
+def test_codec_registry_cml2_import_only() -> None:
 	oasa.codec_registry.reset_registry()
 	codec = oasa.codec_registry.get_codec("cml2")
 	assert codec.writes_text is False
@@ -139,7 +139,7 @@ def test_codec_registry_cml2_import_only():
 
 
 #============================================
-def test_codec_registry_cdxml_roundtrip():
+def test_codec_registry_cdxml_roundtrip() -> None:
 	oasa.codec_registry.reset_registry()
 	codec = oasa.codec_registry.get_codec("cdxml")
 	mol = _make_simple_mol()
@@ -151,7 +151,7 @@ def test_codec_registry_cdxml_roundtrip():
 
 
 #============================================
-def test_codec_registry_file_fallback():
+def test_codec_registry_file_fallback() -> None:
 	oasa.codec_registry.reset_registry()
 	codec = oasa.codec_registry.get_codec("smiles")
 	stream = io.StringIO("C")
@@ -160,7 +160,7 @@ def test_codec_registry_file_fallback():
 
 
 #============================================
-def test_codec_registry_pdf_write_file_non_empty():
+def test_codec_registry_pdf_write_file_non_empty() -> None:
 	oasa.codec_registry.reset_registry()
 	codec = oasa.codec_registry.get_codec("pdf")
 	out = io.BytesIO()
@@ -169,7 +169,7 @@ def test_codec_registry_pdf_write_file_non_empty():
 
 
 #============================================
-def test_codec_registry_render_write_file_non_empty_for_png_and_ps():
+def test_codec_registry_render_write_file_non_empty_for_png_and_ps() -> None:
 	oasa.codec_registry.reset_registry()
 	for codec_name in ("png", "ps"):
 		codec = oasa.codec_registry.get_codec(codec_name)
@@ -179,7 +179,7 @@ def test_codec_registry_render_write_file_non_empty_for_png_and_ps():
 
 
 #============================================
-def test_codec_registry_svg_write_file_non_empty():
+def test_codec_registry_svg_write_file_non_empty() -> None:
 	oasa.codec_registry.reset_registry()
 	codec = oasa.codec_registry.get_codec("svg")
 	out = io.BytesIO()
@@ -189,7 +189,7 @@ def test_codec_registry_svg_write_file_non_empty():
 
 
 #============================================
-def test_codec_registry_cdsvg_roundtrip_and_safe_export():
+def test_codec_registry_cdsvg_roundtrip_and_safe_export() -> None:
 	oasa.codec_registry.reset_registry()
 	codec = oasa.codec_registry.get_codec("cdsvg")
 	mol = _make_simple_mol()
@@ -206,7 +206,7 @@ def test_codec_registry_cdsvg_roundtrip_and_safe_export():
 
 
 #============================================
-def test_codec_registry_cdsvg_forwards_cdml_writer_kwargs():
+def test_codec_registry_cdsvg_forwards_cdml_writer_kwargs() -> None:
 	oasa.codec_registry.reset_registry()
 	codec = oasa.codec_registry.get_codec("cdsvg")
 	mol = _make_simple_mol()
@@ -220,7 +220,7 @@ def test_codec_registry_cdsvg_forwards_cdml_writer_kwargs():
 
 
 #============================================
-def test_registry_snapshot_contains_capabilities():
+def test_registry_snapshot_contains_capabilities() -> None:
 	oasa.codec_registry.reset_registry()
 	snapshot = oasa.codec_registry.get_registry_snapshot()
 	assert "smiles" in snapshot

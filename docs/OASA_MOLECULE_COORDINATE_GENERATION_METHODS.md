@@ -10,16 +10,16 @@ lengths are uniform.
 
 OASA delegates all 2D coordinate generation to RDKit's `Compute2DCoords`
 algorithm via the bridge module
-[packages/oasa/oasa/rdkit_bridge.py](../packages/oasa/oasa/rdkit_bridge.py).
+[rdkit_bridge.py](../packages/oasa/oasa/rdkit_bridge.py).
 RDKit is a required dependency declared in
-[packages/oasa/pyproject.toml](../packages/oasa/pyproject.toml).
+[pyproject.toml](../packages/oasa/pyproject.toml).
 
 ---
 
 ## Public API
 
 The entry point for callers is `calculate_coords()` in
-[packages/oasa/oasa/coords_generator.py](../packages/oasa/oasa/coords_generator.py):
+[coords_generator.py](../packages/oasa/oasa/coords_generator.py):
 
 ```python
 def calculate_coords(mol, bond_length: float = 0, force: int = 0) -> None
@@ -71,21 +71,21 @@ The coordinate generation pipeline works as follows:
 
 | Caller | Import | Usage |
 | --- | --- | --- |
-| [packages/oasa/oasa/smiles_lib.py](../packages/oasa/oasa/smiles_lib.py) | `from oasa import coords_generator` | SMILES parsing with coord generation |
-| [packages/oasa/oasa/inchi_lib.py](../packages/oasa/oasa/inchi_lib.py) | `from oasa import coords_generator` | InChI parsing with coord generation |
-| [packages/oasa/oasa/cdml.py](../packages/oasa/oasa/cdml.py) | `from oasa.coords_generator import calculate_coords` | CDML loading with `bond_length=-1` |
-| [packages/oasa/oasa/linear_formula.py](../packages/oasa/oasa/linear_formula.py) | `from oasa import coords_generator` | Linear formula parsing |
-| [packages/oasa/oasa/haworth/fragment_layout.py](../packages/oasa/oasa/haworth/fragment_layout.py) | `from oasa import coords_generator` | Haworth substituent layout |
-| [packages/bkchem-app/bkchem/oasa_bridge.py](../packages/bkchem-app/bkchem/oasa_bridge.py) | `from oasa import coords_generator` | BKChem GUI bridge |
-| [packages/bkchem-app/bkchem/group_lib.py](../packages/bkchem-app/bkchem/group_lib.py) | `oasa.coords_generator` | Group template loading |
-| [packages/bkchem-app/bkchem/paper_lib/paper_layout.py](../packages/bkchem-app/bkchem/paper_lib/paper_layout.py) | `import oasa.coords_generator` | Paper layout with `force=0, bond_length=-1` |
+| [smiles_lib.py](../packages/oasa/oasa/smiles_lib.py) | `from oasa import coords_generator` | SMILES parsing with coord generation |
+| [inchi_lib.py](../packages/oasa/oasa/inchi_lib.py) | `from oasa import coords_generator` | InChI parsing with coord generation |
+| [cdml.py](../packages/oasa/oasa/cdml.py) | `from oasa.coords_generator import calculate_coords` | CDML loading with `bond_length=-1` |
+| [linear_formula.py](../packages/oasa/oasa/linear_formula.py) | `from oasa import coords_generator` | Linear formula parsing |
+| [fragment_layout.py](../packages/oasa/oasa/haworth/fragment_layout.py) | `from oasa import coords_generator` | Haworth substituent layout |
+| [oasa_bridge.py](../packages/bkchem-app/bkchem/oasa_bridge.py) | `from oasa import coords_generator` | BKChem GUI bridge |
+| [group_lib.py](../packages/bkchem-app/bkchem/group_lib.py) | `oasa.coords_generator` | Group template loading |
+| [paper_layout.py](../packages/bkchem-app/bkchem/paper_lib/paper_layout.py) | `import oasa.coords_generator` | Paper layout with `force=0, bond_length=-1` |
 
 ---
 
 ## Testing strategy
 
 **Pytest unit tests.**
-[packages/oasa/tests/test_coords_generator2.py](../packages/oasa/tests/test_coords_generator2.py)
+[test_coords_generator2.py](../packages/oasa/tests/test_coords_generator2.py)
 covers the coordinate generator with molecules parsed from SMILES:
 
 - Single atom, single bond, linear chains, branched molecules, ring systems.
@@ -102,7 +102,7 @@ source source_me.sh && python -m pytest packages/oasa/tests/test_coords_generato
 ```
 
 **RDKit bridge tests.**
-[packages/oasa/tests/test_rdkit_bridge.py](../packages/oasa/tests/test_rdkit_bridge.py)
+[test_rdkit_bridge.py](../packages/oasa/tests/test_rdkit_bridge.py)
 tests the OASA-to-RDKit conversion roundtrip and coordinate generation directly.
 
 Run with:

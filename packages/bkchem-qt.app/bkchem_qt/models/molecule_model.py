@@ -9,6 +9,8 @@ import oasa.bond_lib
 import oasa.molecule_lib
 import bkchem_qt.models.atom_model
 import bkchem_qt.models.bond_model
+import bkchem_qt.models.fragment_model
+import bkchem_qt.models.group_model
 
 
 #============================================
@@ -34,7 +36,8 @@ class MoleculeModel(PySide6.QtCore.QObject):
 	bond_removed = PySide6.QtCore.Signal(object)
 
 	#============================================
-	def __init__(self, oasa_mol: oasa.molecule_lib.Molecule = None, parent: PySide6.QtCore.QObject = None):
+	def __init__(self, oasa_mol: oasa.molecule_lib.Molecule | None = None,
+			parent: PySide6.QtCore.QObject | None = None) -> None:
 		"""Initialize the molecule model.
 
 		Args:
@@ -51,6 +54,14 @@ class MoleculeModel(PySide6.QtCore.QObject):
 		# metadata properties
 		self._name = ""
 		self._mol_id = ""
+		self._cdml_source_xml = None
+		# Fragments are presentation metadata, but their atom/bond references
+		# are stable CDML IDs rather than live OASA graph objects.
+		self._fragments: list[bkchem_qt.models.fragment_model.FragmentModel] = []
+		self._unsupported_fragment_xml: list[str] = []
+		# CDML groups are pseudo-vertices owned by the frontend.  They remain
+		# outside OASA until an explicit future expansion command converts them.
+		self._groups: list[bkchem_qt.models.group_model.GroupModel] = []
 		# template attachment points
 		self._t_bond_first = None
 		self._t_bond_second = None
@@ -88,7 +99,7 @@ class MoleculeModel(PySide6.QtCore.QObject):
 
 	#============================================
 	@name.setter
-	def name(self, value: str):
+	def name(self, value: str) -> None:
 		self._name = str(value)
 
 	#============================================
@@ -99,15 +110,226 @@ class MoleculeModel(PySide6.QtCore.QObject):
 
 	#============================================
 	@mol_id.setter
-	def mol_id(self, value: str):
+	def mol_id(self, value: str) -> None:
 		self._mol_id = str(value)
+
+	#============================================
+	@property
+	def cdml_source_xml(self) -> str | None:
+		"""Original molecule XML retained for CDML fidelity checks."""
+		return self._cdml_source_xml
+
+	#============================================
+	@cdml_source_xml.setter
+	def cdml_source_xml(self, value: str | None) -> None:
+		"""Store the original molecule XML, or clear the retained source."""
+		self._cdml_source_xml = value
+
+	#============================================
+	@property
+	def fragments(self) -> tuple[bkchem_qt.models.fragment_model.FragmentModel, ...]:
+		"""Return ordered, valid fragment metadata for this molecule."""
+		return tuple(self._fragments)
+
+	#============================================
+	@property
+	def unsupported_fragment_xml(self) -> tuple[str, ...]:
+		"""Return retained fragment XML that cannot safely become editable."""
+		return tuple(self._unsupported_fragment_xml)
+
+	#============================================
+	@property
+	def groups(self) -> tuple[bkchem_qt.models.group_model.GroupModel, ...]:
+		"""Return ordered native CDML group pseudo-vertices for this molecule."""
+		return tuple(self._groups)
+
+	#============================================
+	def add_group(self, group: bkchem_qt.models.group_model.GroupModel) -> None:
+		"""Own a group with a molecule-local, stable CDML identifier."""
+		if any(existing.group_id == group.group_id for existing in self._groups):
+			raise ValueError("group ID must be unique within a molecule")
+		group.setParent(self)
+		self._groups.append(group)
+
+	#============================================
+	def add_fragment(self, fragment: bkchem_qt.models.fragment_model.FragmentModel) -> None:
+		"""Add a fragment whose stable references currently resolve.
+
+		Raises:
+			ValueError: The fragment is not representable by this molecule.
+		"""
+		if not self._fragment_is_valid(fragment):
+			raise ValueError("fragment references atoms or bonds outside this molecule")
+		if any(existing.fragment_id == fragment.fragment_id for existing in self._fragments):
+			raise ValueError("fragment ID must be unique within a molecule")
+		self._fragments.append(fragment)
+
+	#============================================
+	def insert_fragment(
+			self, position: int,
+			fragment: bkchem_qt.models.fragment_model.FragmentModel,
+			) -> None:
+		"""Insert a valid fragment at its durable metadata position."""
+		if not self._fragment_is_valid(fragment):
+			raise ValueError("fragment references atoms or bonds outside this molecule")
+		if any(existing.fragment_id == fragment.fragment_id for existing in self._fragments):
+			raise ValueError("fragment ID must be unique within a molecule")
+		self._fragments.insert(position, fragment)
+
+	#============================================
+	def remove_fragment(self, fragment_id: str) -> tuple[
+			int, bkchem_qt.models.fragment_model.FragmentModel,
+			]:
+		"""Remove one editable fragment and return its original position."""
+		for position, fragment in enumerate(self._fragments):
+			if fragment.fragment_id == fragment_id:
+				self._fragments.pop(position)
+				return position, fragment
+		raise ValueError("fragment ID is not editable metadata for this molecule")
+
+	#============================================
+	def can_add_fragment(self, fragment: bkchem_qt.models.fragment_model.FragmentModel) -> bool:
+		"""Return whether a fragment is valid and has a unique stable ID."""
+		return (
+				self._fragment_is_valid(fragment)
+				and not any(existing.fragment_id == fragment.fragment_id
+							for existing in self._fragments)
+				)
+
+	#============================================
+	def retain_unsupported_fragment_xml(self, raw_xml: str) -> None:
+		"""Keep an unrepresentable fragment visible for lossless round-tripping."""
+		self._unsupported_fragment_xml.append(raw_xml)
+
+	#============================================
+	def fragment_snapshot(self) -> tuple[bkchem_qt.models.fragment_model.FragmentModel, ...]:
+		"""Return a durable ordered fragment snapshot for structural undo."""
+		return tuple(self._fragments)
+
+	#============================================
+	def restore_fragment_snapshot(
+			self, snapshot: tuple[bkchem_qt.models.fragment_model.FragmentModel, ...],
+			) -> None:
+		"""Restore a previously valid snapshot after undo restores graph objects."""
+		self._fragments = list(snapshot)
+
+	#============================================
+	def prune_invalid_fragments(self) -> tuple[bkchem_qt.models.fragment_model.FragmentModel, ...]:
+		"""Remove fragments whose references or linear-form geometry are stale."""
+		removed = tuple(fragment for fragment in self._fragments
+						if not self._fragment_is_valid(fragment)
+						or not self._linear_fragment_is_current(fragment))
+		self._fragments = [fragment for fragment in self._fragments
+						if self._fragment_is_valid(fragment)
+						and self._linear_fragment_is_current(fragment)]
+		return removed
+
+	#============================================
+	def linear_fragment_snapshot_after_geometry(
+			self, coordinates: dict[object, tuple[float, float]],
+			) -> tuple[bkchem_qt.models.fragment_model.FragmentModel, ...]:
+		"""Return fragments that remain valid after a planned coordinate change.
+
+		Linear-form metadata is a compact rendering contract, not a free-form
+		selection tag.  Commands use this snapshot to remove a linear fragment
+		when a later edit bends, spaces, or disconnects its represented chain.
+		"""
+		snapshot = tuple(
+			fragment for fragment in self._fragments
+			if self._linear_fragment_is_current(fragment, coordinates)
+		)
+		return snapshot
+
+	#============================================
+	def _fragment_is_valid(self, fragment: bkchem_qt.models.fragment_model.FragmentModel) -> bool:
+		"""Return whether all fragment references target present stable IDs."""
+		atom_ids = {str(getattr(atom._chem_atom, "id", "")) for atom in self.atoms}
+		bond_ids = {str(getattr(bond._chem_bond, "id", "")) for bond in self.bonds}
+		return set(fragment.atom_ids).issubset(atom_ids) and set(fragment.bond_ids).issubset(bond_ids)
+
+	#============================================
+	def _linear_fragment_is_current(
+			self, fragment: bkchem_qt.models.fragment_model.FragmentModel,
+			coordinates: dict[object, tuple[float, float]] | None = None,
+			) -> bool:
+		"""Return whether a linear form still has its declared path geometry."""
+		if fragment.fragment_type != "linear_form":
+			return True
+		bond_length_text = None
+		for property_model in fragment.properties:
+			if property_model.name == "bond_length":
+				bond_length_text = property_model.value
+				break
+		if bond_length_text is None:
+			return False
+		try:
+			bond_length = float(bond_length_text)
+		except ValueError:
+			return False
+		if bond_length <= 0.0:
+			return False
+		atoms_by_id = {
+			str(getattr(atom._chem_atom, "id", "")): atom
+			for atom in self.atoms
+		}
+		bonds_by_id = {
+			str(getattr(bond._chem_bond, "id", "")): bond
+			for bond in self.bonds
+		}
+		if len(fragment.atom_ids) != len(set(fragment.atom_ids)):
+			return False
+		if len(fragment.bond_ids) != len(set(fragment.bond_ids)):
+			return False
+		if not fragment.atom_ids:
+			return False
+		if not set(fragment.atom_ids).issubset(atoms_by_id):
+			return False
+		if not set(fragment.bond_ids).issubset(bonds_by_id):
+			return False
+		atoms = [atoms_by_id[atom_id] for atom_id in fragment.atom_ids]
+		bonds = [bonds_by_id[bond_id] for bond_id in fragment.bond_ids]
+		if len(bonds) != len(atoms) - 1:
+			return False
+		atom_set = set(atoms)
+		neighbors = {atom: [] for atom in atoms}
+		for bond in bonds:
+			if bond.atom1 not in atom_set or bond.atom2 not in atom_set:
+				return False
+			neighbors[bond.atom1].append(bond.atom2)
+			neighbors[bond.atom2].append(bond.atom1)
+		if any(len(atom_neighbors) > 2 for atom_neighbors in neighbors.values()):
+			return False
+		if len(atoms) > 1 and sum(
+				1 for atom_neighbors in neighbors.values() if len(atom_neighbors) == 1
+				) != 2:
+			return False
+		pending = [atoms[0]]
+		visited = set()
+		while pending:
+			atom = pending.pop()
+			if atom in visited:
+				continue
+			visited.add(atom)
+			pending.extend(neighbors[atom])
+		if len(visited) != len(atoms):
+			return False
+		positions = coordinates if coordinates is not None else {}
+		points = [positions.get(atom, (atom.x, atom.y)) for atom in atoms]
+		y_values = [point[1] for point in points]
+		if max(y_values) - min(y_values) > 0.001:
+			return False
+		x_values = sorted(point[0] for point in points)
+		for first, second in zip(x_values, x_values[1:]):
+			if abs((second - first) - bond_length) > 0.001:
+				return False
+		return True
 
 	# ------------------------------------------------------------------
 	# Graph mutation
 	# ------------------------------------------------------------------
 
 	#============================================
-	def add_atom(self, atom_model: bkchem_qt.models.atom_model.AtomModel):
+	def add_atom(self, atom_model: bkchem_qt.models.atom_model.AtomModel) -> None:
 		"""Add an atom to the molecule.
 
 		Registers the AtomModel's underlying OASA atom with the backend
@@ -119,10 +341,11 @@ class MoleculeModel(PySide6.QtCore.QObject):
 		oasa_atom = atom_model._chem_atom
 		self._chem_mol.add_vertex(oasa_atom)
 		self._atom_models[id(oasa_atom)] = atom_model
+		atom_model._molecule_model = self
 		self.atom_added.emit(atom_model)
 
 	#============================================
-	def remove_atom(self, atom_model: bkchem_qt.models.atom_model.AtomModel):
+	def remove_atom(self, atom_model: bkchem_qt.models.atom_model.AtomModel) -> None:
 		"""Remove an atom and all its bonds from the molecule.
 
 		Also removes any BondModels connected to this atom.
@@ -141,12 +364,14 @@ class MoleculeModel(PySide6.QtCore.QObject):
 		# remove the atom from the backend
 		self._chem_mol.remove_vertex(oasa_atom)
 		self._atom_models.pop(id(oasa_atom), None)
+		atom_model._molecule_model = None
+		self.prune_invalid_fragments()
 		self.atom_removed.emit(atom_model)
 
 	#============================================
 	def add_bond(self, atom1_model: bkchem_qt.models.atom_model.AtomModel,
 					atom2_model: bkchem_qt.models.atom_model.AtomModel,
-					bond_model: bkchem_qt.models.bond_model.BondModel):
+					bond_model: bkchem_qt.models.bond_model.BondModel) -> None:
 		"""Add a bond between two atoms.
 
 		Registers the BondModel's underlying OASA bond as an edge in the
@@ -170,7 +395,7 @@ class MoleculeModel(PySide6.QtCore.QObject):
 		self.bond_added.emit(bond_model)
 
 	#============================================
-	def remove_bond(self, bond_model: bkchem_qt.models.bond_model.BondModel):
+	def remove_bond(self, bond_model: bkchem_qt.models.bond_model.BondModel) -> None:
 		"""Remove a bond from the molecule.
 
 		Disconnects the OASA edge and clears the BondModel's endpoint
@@ -185,11 +410,48 @@ class MoleculeModel(PySide6.QtCore.QObject):
 		# clear endpoint references
 		bond_model._atom1 = None
 		bond_model._atom2 = None
+		self.prune_invalid_fragments()
 		self.bond_removed.emit(bond_model)
 
 	# ------------------------------------------------------------------
-	# Graph queries (delegated to _chem_mol)
+# Graph queries
 	# ------------------------------------------------------------------
+
+	#============================================
+	def connected_display_atoms(
+			self,
+			atom_model: bkchem_qt.models.atom_model.AtomModel,
+			) -> tuple[tuple[bkchem_qt.models.atom_model.AtomModel, int], ...]:
+		"""Return displayed neighbors and bond orders in bond insertion order.
+
+		Args:
+			atom_model: Displayed atom belonging to this molecule.
+
+		Returns:
+			Immutable ``(AtomModel, bond_order)`` pairs for incident displayed bonds.
+
+		Raises:
+			ValueError: The atom does not belong to this molecule, or a displayed
+				bond is not fully wired to atoms in this molecule.
+		"""
+		# Membership is identity-based because projection wrappers are QObject values.
+		atoms = self.atoms
+		if not any(display_atom is atom_model for display_atom in atoms):
+			raise ValueError("atom_model does not belong to this molecule")
+		connections = []
+		for bond_model in self.bonds:
+			atom1_model = bond_model.atom1
+			atom2_model = bond_model.atom2
+			# A displayed bond must have two displayed endpoints in this projection.
+			if (atom1_model is None or atom2_model is None
+					or not any(display_atom is atom1_model for display_atom in atoms)
+					or not any(display_atom is atom2_model for display_atom in atoms)):
+				raise ValueError("bond endpoints do not belong to this molecule")
+			if atom1_model is atom_model:
+				connections.append((atom2_model, bond_model.order))
+			elif atom2_model is atom_model:
+				connections.append((atom1_model, bond_model.order))
+		return tuple(connections)
 
 	#============================================
 	def is_connected(self) -> bool:
@@ -263,35 +525,35 @@ class MoleculeModel(PySide6.QtCore.QObject):
 
 	#============================================
 	@property
-	def t_bond_first(self):
+	def t_bond_first(self) -> object | None:
 		"""First template attachment bond (BondModel or None)."""
 		return self._t_bond_first
 
 	#============================================
 	@t_bond_first.setter
-	def t_bond_first(self, value):
+	def t_bond_first(self, value: object | None) -> None:
 		self._t_bond_first = value
 
 	#============================================
 	@property
-	def t_bond_second(self):
+	def t_bond_second(self) -> object | None:
 		"""Second template attachment bond (BondModel or None)."""
 		return self._t_bond_second
 
 	#============================================
 	@t_bond_second.setter
-	def t_bond_second(self, value):
+	def t_bond_second(self, value: object | None) -> None:
 		self._t_bond_second = value
 
 	#============================================
 	@property
-	def t_atom(self):
+	def t_atom(self) -> object | None:
 		"""Template attachment atom (AtomModel or None)."""
 		return self._t_atom
 
 	#============================================
 	@t_atom.setter
-	def t_atom(self, value):
+	def t_atom(self, value: object | None) -> None:
 		self._t_atom = value
 
 	#============================================

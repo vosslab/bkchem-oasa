@@ -1,29 +1,40 @@
 # Refactor progress
 
-Last updated: 2026-02-15
+Last updated: 2026-07-27
 
 ## Snapshot
+- Qt completion: data integrity, real `DocumentSession` tabs, supported
+  full-document CDML, and verified clipboard/repair/keybinding/configure slices
+  are implemented. Current work is broader action parity and
+  installed-distribution smoke coverage; see
+  [docs/active_plans/active/BKCHEM_QT_COMPLETION_PLAN_2026-07-27.md](docs/active_plans/active/BKCHEM_QT_COMPLETION_PLAN_2026-07-27.md)
+  and [docs/QT_CONTRACT.md](docs/QT_CONTRACT.md).
 - Registry refactor: OASA codec registry is implemented and in use by the CLI.
 - Rendering refactor: SVG/Cairo unified via render ops, rounded wedges default.
-- CDML refactor: OASA CDML writer is the only BKChem serialization path.
+- CDML refactor: OASA serializes molecule chemistry; the Qt document codec
+  serializes the CDML document envelope around OASA molecule payloads, including
+  supported presentation objects and retained unknown XML. Prefix-qualified
+  core CDML remains an explicit expected limitation.
 - Haworth CLI: batch SMILES rendering is available via `packages/oasa/oasa_cli.py`.
-- Menu refactor: [docs/active_plans/MENU_REFACTOR_SUMMARY.md](docs/active_plans/MENU_REFACTOR_SUMMARY.md) is
-  the master plan; implementation is not started.
+- Menu refactor: the Qt YAML ActionRegistry now builds menus, reports
+  contextual registration/lookup errors, and supplies active-session shortcuts.
+  The archived menu plan remains useful for the still-open breadth/parity work.
 - PubChem integration: plan is documented; implementation not started.
 - Data reorg: OASA isotope data moved to JSON and legacy data sources removed.
 
 ## Not started
-- [docs/active_plans/SMILES_CDML_IMPORT_PLAN.md](docs/active_plans/SMILES_CDML_IMPORT_PLAN.md):
+- [docs/archive/SMILES_CDML_IMPORT_PLAN.md](docs/archive/SMILES_CDML_IMPORT_PLAN.md):
   Route SMILES/IsoSMILES import through CDML instead of direct bridge; plan
   documented, implementation not started.
-- Menu refactor implementation:
-  [docs/active_plans/MENU_REFACTOR_SUMMARY.md](docs/active_plans/MENU_REFACTOR_SUMMARY.md) and the supporting
-  docs define the plan, but no code migration has landed yet.
-- [docs/active_plans/BKCHEM_GUI_MENU_REFACTOR.md](docs/active_plans/BKCHEM_GUI_MENU_REFACTOR.md):
+- Broad menu/action parity implementation:
+  [docs/archive/MENU_REFACTOR_SUMMARY.md](docs/archive/MENU_REFACTOR_SUMMARY.md) and the supporting
+  docs define remaining transform, chemistry, and legacy-workflow breadth beyond
+  the implemented YAML ActionRegistry menus.
+- [docs/archive/BKCHEM_GUI_MENU_REFACTOR.md](docs/archive/BKCHEM_GUI_MENU_REFACTOR.md):
   Implementation work not started; docs describe the refactor scope and plan.
-- [docs/active_plans/MENU_REFACTOR_ANALYSIS.md](docs/active_plans/MENU_REFACTOR_ANALYSIS.md):
+- [docs/archive/MENU_REFACTOR_ANALYSIS.md](docs/archive/MENU_REFACTOR_ANALYSIS.md):
   Analysis complete; implementation not started.
-- [docs/active_plans/MODULAR_MENU_ARCHITECTURE.md](docs/active_plans/MODULAR_MENU_ARCHITECTURE.md):
+- [docs/archive/MODULAR_MENU_ARCHITECTURE.md](docs/archive/MODULAR_MENU_ARCHITECTURE.md):
   Tool registry and migration are planned but not implemented.
 - [docs/active_plans/PUBCHEM_API_PLAN.md](docs/active_plans/PUBCHEM_API_PLAN.md):
   PubChem lookups are planned with no code landed yet.
@@ -38,12 +49,23 @@ Last updated: 2026-02-15
   Publish OASA to PyPI, plan BKChem binary distribution, mirror OASA packaging
   metadata + version reporting for BKChem, decide BKChem mypy scope and add a
   runner, reconcile licensing guidance, and document runtime dependencies.
-- [docs/active_plans/RELEASE_DISTRIBUTION.md](docs/RELEASE_DISTRIBUTION.md):
+- [docs/active_plans/RELEASE_DISTRIBUTION.md](docs/active_plans/RELEASE_DISTRIBUTION.md):
   Automated installer tooling is planned for macOS dmg, Windows installer, and
   Linux Flatpak builds.
 
 ## In progress
-- [docs/active_plans/OASA-Wide_Glyph-Bond_Awareness.md](docs/active_plans/OASA-Wide_Glyph-Bond_Awareness.md):
+- [docs/active_plans/active/BKCHEM_QT_COMPLETION_PLAN_2026-07-27.md](docs/active_plans/active/BKCHEM_QT_COMPLETION_PLAN_2026-07-27.md):
+  M1 chemistry fields, structural undo, property/template commands, and
+  crash-safe teardown are implemented. M2 real document sessions, per-tab
+  save/close/import state, duplicate-path activation, and CLI file opening are
+  complete. M3 preserves supported full-document CDML, including presentation
+  objects, paper, marks, reactions, external data, and unknown XML. The strict
+  prefix-qualified core-CDML case remains an expected xfail. M4 action parity
+  is active; top-level clipboard, OASA repair, active-session keybindings, and
+  undo-safe Configure dialogs have focused runtime coverage, but broad parity
+  and M5 installed-launch smoke coverage remain open. The published M4 inventory
+  records the supported release set and the remaining deliberately partial areas.
+- [docs/archive/OASA-Wide_Glyph-Bond_Awareness.md](docs/archive/OASA-Wide_Glyph-Bond_Awareness.md):
   Phases 0-4 implemented and unit-tested (40 render_geometry, 11 connector
   clipping, 45 phase4 known failures, 9 pipeline parity tests all green).
   Phase 4 wires shared `AttachConstraints` with `ATTACH_GAP_TARGET` and
@@ -52,25 +74,25 @@ Last updated: 2026-02-15
   (2026-02-15) shows Haworth corpus unchanged at baseline (0/362 aligned under
   strict spec); BKChem and OASA generic corpus buckets are empty so consumer
   impact is not yet measurable. Phases 5-6 not started.
-- [docs/active_plans/BOND_LABEL_GLYPH_CONTRACT_PLAN.md](docs/active_plans/BOND_LABEL_GLYPH_CONTRACT_PLAN.md):
+- [docs/archive/BOND_LABEL_GLYPH_CONTRACT_PLAN.md](docs/archive/BOND_LABEL_GLYPH_CONTRACT_PLAN.md):
   Phases 3 and 4 are complete in runtime/tests and matrix validation,
   including manager checklist fixture coverage plus straightness/lattice
   geometry gates; independent measurement gate is green (`--fail-on-miss`,
   alignment rate `100.00%`); latest closure reruns are green
   (`Strict-overlap failures: 0`, `524 passed, 6 skipped` twice consecutively);
   Phase 5 rollout and close-out is next and not started.
-- [docs/active_plans/HAWORTH_IMPLEMENTATION_PLAN_attempt2.md](docs/active_plans/HAWORTH_IMPLEMENTATION_PLAN_attempt2.md):
+- [docs/archive/HAWORTH_IMPLEMENTATION_PLAN_attempt2.md](docs/archive/HAWORTH_IMPLEMENTATION_PLAN_attempt2.md):
   Phase 0 work is complete; future Phases 6/7 remain planned.
-- [docs/active_plans/LICENSE_MIGRATION.md](docs/LICENSE_MIGRATION.md):
+- [docs/active_plans/LICENSE_MIGRATION.md](docs/active_plans/LICENSE_MIGRATION.md):
   Active policy; continue enforcing SPDX headers on new files.
 - [docs/TODO_CODE.md](docs/TODO_CODE.md):
   Still relevant backlog; needs updates for plugin/addon removal work.
 - OASA CLI expansion: Planned next step is to broaden `packages/oasa/oasa_cli.py` once the public CLI surface is finalized.
 
 ## Completed
-- [docs/active_plans/CODER_GUIDE_FEB_10.md](docs/active_plans/CODER_GUIDE_FEB_10.md):
+- [docs/archive/CODER_GUIDE_FEB_10.md](docs/archive/CODER_GUIDE_FEB_10.md):
   Marked legacy and superseded by
-  [docs/active_plans/BOND_LABEL_GLYPH_CONTRACT_PLAN.md](docs/active_plans/BOND_LABEL_GLYPH_CONTRACT_PLAN.md).
+  [docs/archive/BOND_LABEL_GLYPH_CONTRACT_PLAN.md](docs/archive/BOND_LABEL_GLYPH_CONTRACT_PLAN.md).
 - [docs/archive/RENDER_BACKEND_UNIFICATION.md](docs/archive/RENDER_BACKEND_UNIFICATION.md):
   Render ops, SVG/Cairo thin painters, ops snapshots, and drift tests are in place.
 - [docs/archive/ROUNDED_WEDGES_PLAN.md](docs/archive/ROUNDED_WEDGES_PLAN.md):
@@ -83,7 +105,7 @@ Last updated: 2026-02-15
   Phases 0-5 complete; Phase 4 optional. Bond semantics normalized with tests.
 - [docs/archive/CDML_ARCHITECTURE_PLAN.md](docs/archive/CDML_ARCHITECTURE_PLAN.md):
   Phases 1-2 complete; Phase 3 optional. OASA CDML writer is default path.
-- [docs/archive/BKCHEM_FORMAT_SPEC.md](docs/BKCHEM_FORMAT_SPEC.md):
+- [docs/archive/BKCHEM_FORMAT_SPEC.md](docs/archive/BKCHEM_FORMAT_SPEC.md):
   Updated for normalized hashed bonds and current bond type list.
 - [docs/archive/CODEC_REGISTRY_PLAN.md](docs/archive/CODEC_REGISTRY_PLAN.md):
   Phase 1-5 complete; registry used by CLI and BKChem oasa_bridge.
@@ -92,13 +114,13 @@ Last updated: 2026-02-15
   files removed, and `tools/convert_isotope_data.py` added for refresh.
 
 ## Reference docs
-- [docs/active_plans/BKCHEM_GUI_MENU_REFACTOR.md](docs/active_plans/BKCHEM_GUI_MENU_REFACTOR.md)
-- [docs/active_plans/BOND_LABEL_ATTACHMENT_IMPROVEMENT_PLAN.md](docs/active_plans/BOND_LABEL_ATTACHMENT_IMPROVEMENT_PLAN.md)
+- [docs/archive/BKCHEM_GUI_MENU_REFACTOR.md](docs/archive/BKCHEM_GUI_MENU_REFACTOR.md)
+- [docs/archive/BOND_LABEL_ATTACHMENT_IMPROVEMENT_PLAN.md](docs/archive/BOND_LABEL_ATTACHMENT_IMPROVEMENT_PLAN.md)
 - [docs/archive/COMPLETE_BOND_LABEL_PLAN.md](docs/archive/COMPLETE_BOND_LABEL_PLAN.md)
-- [docs/active_plans/HAWORTH_IMPLEMENTATION_PLAN_attempt2.md](docs/active_plans/HAWORTH_IMPLEMENTATION_PLAN_attempt2.md)
-- [docs/active_plans/MENU_REFACTOR_ANALYSIS.md](docs/active_plans/MENU_REFACTOR_ANALYSIS.md)
-- [docs/active_plans/MENU_REFACTOR_SUMMARY.md](docs/active_plans/MENU_REFACTOR_SUMMARY.md)
-- [docs/active_plans/MODULAR_MENU_ARCHITECTURE.md](docs/active_plans/MODULAR_MENU_ARCHITECTURE.md)
+- [docs/archive/HAWORTH_IMPLEMENTATION_PLAN_attempt2.md](docs/archive/HAWORTH_IMPLEMENTATION_PLAN_attempt2.md)
+- [docs/archive/MENU_REFACTOR_ANALYSIS.md](docs/archive/MENU_REFACTOR_ANALYSIS.md)
+- [docs/archive/MENU_REFACTOR_SUMMARY.md](docs/archive/MENU_REFACTOR_SUMMARY.md)
+- [docs/archive/MODULAR_MENU_ARCHITECTURE.md](docs/archive/MODULAR_MENU_ARCHITECTURE.md)
 - [docs/active_plans/PUBCHEM_API_PLAN.md](docs/active_plans/PUBCHEM_API_PLAN.md)
 - [docs/active_plans/RENDERER_CAPABILITIES_SHEET_PLAN.md](docs/active_plans/RENDERER_CAPABILITIES_SHEET_PLAN.md)
 - [docs/archive/BACKEND_CODE_REVIEW.md](docs/archive/BACKEND_CODE_REVIEW.md)

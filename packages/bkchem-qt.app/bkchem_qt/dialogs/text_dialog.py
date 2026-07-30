@@ -19,7 +19,8 @@ class TextDialog(PySide6.QtWidgets.QDialog):
 	"""
 
 	#============================================
-	def __init__(self, text="", font_size=12, parent=None):
+	def __init__(self, text: str = "", font_size: int = 12,
+			parent: object | None = None) -> None:
 		"""Initialize the text dialog.
 
 		Args:
@@ -115,7 +116,8 @@ class TextDialog(PySide6.QtWidgets.QDialog):
 
 	#============================================
 	@staticmethod
-	def get_text_input(text="", font_size=12, parent=None) -> dict:
+	def get_text_input(text: str = "", font_size: int = 12,
+			parent: object | None = None) -> dict:
 		"""Convenience method to show the dialog and return results.
 
 		Args:

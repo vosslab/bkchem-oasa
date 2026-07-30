@@ -203,7 +203,7 @@ def _parse_config_and_terminal(remainder: str, footnotes: dict) -> tuple[list, s
   `nC=<state>(<attachment1>,...)` (for example `2C=C3(EPO3)`); this is the
   only valid way to combine carbon-state and attached-group data for one
   backbone position
-- Validate parser-level syntax per [docs/SUGAR_CODE_SPEC.md](docs/SUGAR_CODE_SPEC.md):
+- Validate parser-level syntax per [SUGAR_CODE_SPEC.md](../SUGAR_CODE_SPEC.md):
   - all digits must have definitions
   - numeric definitions must reference only digits present in the body
   - definitions are emitted in ascending digit order
@@ -864,7 +864,7 @@ regardless of side, but the "HO" convention has chemical advantages and was reta
 ### Connector endpoint policy (superseded)
 
 This section is superseded by the closed bond-label cutover in
-[docs/archive/COMPLETE_BOND_LABEL_PLAN.md](../archive/COMPLETE_BOND_LABEL_PLAN.md).
+[COMPLETE_BOND_LABEL_PLAN.md](COMPLETE_BOND_LABEL_PLAN.md).
 
 Current policy is shared target/constraint attachment resolution, not
 hydroxyl-specific endpoint branching:
@@ -962,7 +962,7 @@ def sugar_code_to_smiles(code_string: str, ring_type: str, anomeric: str) -> str
 
     Example:
         sugar_code_to_smiles("ARLRDM", "pyranose", "alpha")
-        -> "OC[C@@H]1OC(O)[C@@H](O)[C@H](O)[C@@H]1O"
+        -> "OC[C@@H]1OC(O)`O``O`[C@@H]1O"
     """
 ```
 
@@ -1063,9 +1063,9 @@ raise SugarCodeError(
     "Supported inputs are monosaccharides with a single pyranose or furanose ring.\n"
     "\n"
     "Examples of supported SMILES:\n"
-    "  OC[C@@H]1OC(O)[C@@H](O)[C@H](O)[C@@H]1O   (alpha-D-glucopyranose)\n"
-    "  OC[C@H]1OC(O)[C@@H](O)[C@@H]1O              (beta-D-ribofuranose)\n"
-    "  OC[C@@H]1OC(O)(CO)[C@H](O)[C@@H]1O          (beta-D-fructofuranose)\n"
+    "  OC[C@@H]1OC(O)`O``O`[C@@H]1O   (alpha-D-glucopyranose)\n"
+    "  OC[C@H]1OC(O)`O`[C@@H]1O              (beta-D-ribofuranose)\n"
+    "  OC[C@@H]1OC(O)(CO)`O`[C@@H]1O          (beta-D-fructofuranose)\n"
 )
 ```
 

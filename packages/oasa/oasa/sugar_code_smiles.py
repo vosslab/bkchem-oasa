@@ -60,7 +60,7 @@ def sugar_code_to_smiles(code_string: str, ring_type: str, anomeric: str) -> str
 
 	parsed = sugar_code.parse(code_string)
 
-	# Only ALDO and KETO prefixes are supported
+	# Ring rules define the supported ALDO, KETO, and 3-KETO prefixes.
 	prefix_rules = haworth_spec._RING_RULES.get(parsed.prefix)
 	if prefix_rules is None:
 		raise ValueError(
@@ -335,14 +335,21 @@ def _pre_anomeric_smiles(
 		anomeric_c: int) -> str:
 	"""Return SMILES for the pre-anomeric branch in ketoses.
 
-	For KETO prefix, C1 is an exocyclic CH2OH branch on C2.
+	KETO rings have a C1 hydroxymethyl branch on anomeric C2.  3-KETO
+	rings instead have the stereogenic C2--C1 chain on anomeric C3.
 	"""
-	# C1 is always position 0 (token 'M' = hydroxymethyl)
 	c1_token = parsed.positions[0][0]
-	if c1_token == "M":
-		return "CO"
-	# Fallback
-	return "CO"
+	c1_smiles = _TERMINAL_SMILES[c1_token]
+	if parsed.prefix != "3-KETO":
+		return c1_smiles
+
+	c2_carbon = anomeric_c - 1
+	c2_token = parsed.positions[c2_carbon - 1][0]
+	sub_dir, sub_smi = _resolve_carbon_sub(c2_token, c2_carbon, parsed)
+	if sub_dir is None:
+		return f"C{c1_smiles}"
+	chiral = _chirality_marker(sub_dir, "interior")
+	return f"[C{chiral}H]({sub_smi}){c1_smiles}"
 
 
 #============================================

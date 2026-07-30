@@ -36,7 +36,7 @@ _ = builtins.__dict__.get( '_', lambda m: m)
 
 class bondalign_mode( edit_mode):
 
-	def __init__( self):
+	def __init__( self) -> None:
 		edit_mode.__init__( self)
 		# submodes, name loaded from YAML
 		self._rotated_mol = None
@@ -44,7 +44,7 @@ class bondalign_mode( edit_mode):
 		self._needs_two_atoms = [1,1,0,1,-1]  #-1 is for those that accept only bonds
 
 
-	def mouse_down( self, event, modifiers = []):
+	def mouse_down( self, event: object, modifiers: object = []) -> None:
 		if not self.focused:
 			return
 		if not (bkchem.chem_compat.is_chemistry_vertex(self.focused) or isinstance(self.focused, BkBond)):
@@ -108,7 +108,7 @@ class bondalign_mode( edit_mode):
 #      self.focused = None
 
 
-	def _transform_tohoriz( self, coords):
+	def _transform_tohoriz( self, coords: object) -> object:
 		x1, y1, x2, y2 = coords
 		centerx = ( x1 + x2) / 2
 		centery = ( y1 + y2) / 2
@@ -130,7 +130,7 @@ class bondalign_mode( edit_mode):
 		return tr
 
 
-	def _transform_tovert( self, coords):
+	def _transform_tovert( self, coords: object) -> object:
 		x1, y1, x2, y2 = coords
 		centerx = ( x1 + x2) / 2
 		centery = ( y1 + y2) / 2
@@ -150,7 +150,7 @@ class bondalign_mode( edit_mode):
 		return tr
 
 
-	def _transform_invertthrough( self, coords):
+	def _transform_invertthrough( self, coords: object) -> object:
 		if len( coords) == 4:
 			x1, y1, x2, y2 = coords
 			x = ( x1 +x2) /2.0
@@ -164,7 +164,7 @@ class bondalign_mode( edit_mode):
 		return tr
 
 
-	def _transform_mirrorthrough( self, coords):
+	def _transform_mirrorthrough( self, coords: object) -> object:
 		x1, y1, x2, y2 = coords
 		centerx = ( x1 + x2) / 2
 		centery = ( y1 + y2) / 2
@@ -180,11 +180,11 @@ class bondalign_mode( edit_mode):
 		return tr
 
 
-	def _transform_freerotation( self, coords):
+	def _transform_freerotation( self, coords: object) -> object:
 		return self._transform_mirrorthrough( coords)
 
 
-	def _apply_to_freerotation( self):
+	def _apply_to_freerotation( self) -> object:
 		assert isinstance( self.focused, BkBond)
 		b = self.focused
 		mol = b.molecule
@@ -202,22 +202,22 @@ class bondalign_mode( edit_mode):
 			return to_use + [b for b in mol.bonds if b.atom1 in to_use and b.atom2 in to_use]
 
 
-	def cleanup( self):
+	def cleanup( self) -> None:
 		edit_mode.cleanup( self)
 		if self.first_atom_selected:
 			self.first_atom_selected.unselect()
 			self.first_atom_selected = None
 
 
-	def mouse_click( self, event):
+	def mouse_click( self, event: object) -> None:
 		pass
 
 
-	def mouse_up( self, event):
+	def mouse_up( self, event: object) -> None:
 		pass
 
 
-	def mouse_drag( self, event):
+	def mouse_drag( self, event: object) -> None:
 		pass
 
 # backwards-compatible alias

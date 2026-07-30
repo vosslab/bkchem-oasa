@@ -4,16 +4,17 @@
 import math
 
 # local repo modules
-from oasa import coords_generator
+from oasa import repair_ops
 import bkchem_qt.canvas.items.atom_item
 import bkchem_qt.bridge.oasa_bridge
 import bkchem_qt.config.geometry_units
+import bkchem_qt.models.molecule_model
 import bkchem_qt.undo.commands
 from bkchem_qt.actions.action_registry import MenuAction
 
 
 #============================================
-def _resolve_target_bond_length_pt(app) -> float:
+def _resolve_target_bond_length_pt(app: object) -> float:
 	"""Resolve canonical target bond length in scene-space points."""
 	scene = getattr(app, "_scene", None)
 	if scene is not None and hasattr(scene, "grid_spacing_pt"):
@@ -22,21 +23,35 @@ def _resolve_target_bond_length_pt(app) -> float:
 
 
 #============================================
-def _get_target_mols_and_items(app) -> list:
+def _get_target_mols_and_items(
+		app: object,
+		target_molecule: bkchem_qt.models.molecule_model.MoleculeModel | None = None,
+		) -> list:
 	"""Get molecules to operate on and their AtomItem mappings.
 
-	Uses selected molecules if any, otherwise all molecules in the
-	document. Builds a mapping from AtomModel identity to the
+	Uses an explicit target when supplied, otherwise selected top-level
+	molecules, and finally all document molecules. Builds a mapping from
+	AtomModel identity to the
 	corresponding AtomItem in the scene for each molecule.
 
 	Args:
 		app: The main BKChem-Qt application object.
+		target_molecule: Optional molecule supplied by an interaction mode.
 
 	Returns:
 		List of (MoleculeModel, {AtomModel_id: AtomItem}) pairs.
 		Empty list when no molecules are available.
 	"""
-	mols = app.document.selected_mols
+	if target_molecule is not None:
+		mols = [target_molecule]
+	else:
+		mols = [
+			object_model for object_model in app.document.selected_top_level_objects
+			if isinstance(
+				object_model,
+				bkchem_qt.models.molecule_model.MoleculeModel,
+			)
+		]
 	if not mols:
 		mols = app.document.molecules
 	if not mols:
@@ -58,33 +73,19 @@ def _get_target_mols_and_items(app) -> list:
 
 
 #============================================
-def _build_adjacency(mol_model) -> dict:
-	"""Build an adjacency dict from bond endpoint pairs.
+class _RepairMoveAtomsCommand(bkchem_qt.undo.commands.MoveAtomsCommand):
+	"""Keep one complete repair operation as one undo history entry."""
 
-	Maps each AtomModel id to a list of neighbor AtomModels connected
-	by bonds in the molecule.
-
-	Args:
-		mol_model: MoleculeModel to extract adjacency from.
-
-	Returns:
-		Dict mapping AtomModel id -> list of neighbor AtomModel objects.
-	"""
-	adj = {}
-	for am in mol_model.atoms:
-		adj[id(am)] = []
-	for bm in mol_model.bonds:
-		a1 = bm.atom1
-		a2 = bm.atom2
-		if a1 is None or a2 is None:
-			continue
-		adj.setdefault(id(a1), []).append(a2)
-		adj.setdefault(id(a2), []).append(a1)
-	return adj
+	#============================================
+	def id(self) -> int:
+		"""Disable drag-command merging for a discrete repair action."""
+		return -1
 
 
 #============================================
-def _apply_moves_with_undo(app, items_and_offsets, description) -> None:
+def _apply_moves_with_undo(
+		app: object, items_and_offsets: list, description: str,
+		) -> None:
 	"""Push a MoveAtomsCommand to the undo stack for a batch of atom moves.
 
 	The atoms have already been moved in-place before this call. The
@@ -97,7 +98,7 @@ def _apply_moves_with_undo(app, items_and_offsets, description) -> None:
 	"""
 	if not items_and_offsets:
 		return
-	cmd = bkchem_qt.undo.commands.MoveAtomsCommand(
+	cmd = _RepairMoveAtomsCommand(
 		items_and_offsets, text=description,
 	)
 	# first redo is skipped because atoms are already at new positions
@@ -105,391 +106,226 @@ def _apply_moves_with_undo(app, items_and_offsets, description) -> None:
 
 
 #============================================
-def _handle_clean_geometry(app) -> None:
-	"""Full coordinate regeneration via OASA for target molecules.
+def _apply_oasa_repair(
+		app: object, operation: object, description: str, success_message: str,
+		needs_bond_length: bool = True,
+		target_molecule: bkchem_qt.models.molecule_model.MoleculeModel | None = None,
+		) -> None:
+	"""Run one OASA repair operation and commit its coordinate delta once.
 
-	Converts each molecule to an OASA molecule, calls the OASA
-	coordinate generator to recompute 2D layout, then maps the
-	fresh coordinates back to the existing AtomModels.
+	The OASA bridge creates an isolated graph, so repair algorithms can move
+	whole substituent subtrees without altering the live document until their
+	complete result is available.  The bridge preserves atom order, which
+	provides a stable one-to-one coordinate mapping back to the Qt wrappers.
 
 	Args:
-		app: The main BKChem-Qt application object.
+		app: Main window exposing the active document and scene.
+		operation: OASA repair function operating on one molecule.
+		description: Undo-stack label for this repair operation.
+		success_message: Status-bar format string with one atom-count field.
+		needs_bond_length: Whether ``operation`` takes the scene bond length.
+		target_molecule: Optional molecule supplied by an interaction mode.
 	"""
-	targets = _get_target_mols_and_items(app)
+	targets = _get_target_mols_and_items(app, target_molecule)
 	if not targets:
-		app.statusBar().showMessage("No molecules to clean", 3000)
+		app.statusBar().showMessage("No molecules to repair", 3000)
 		return
-	all_offsets = []
+	for mol_model, mol_items in targets:
+		if len(mol_items) != len(mol_model.atoms):
+			app.statusBar().showMessage(
+				"Repair requires every target atom to be projected", 5000
+			)
+			return
 	target_bond_length_pt = _resolve_target_bond_length_pt(app)
+	all_offsets = []
 	for mol_model, mol_items in targets:
 		if not mol_model.atoms:
 			continue
-		# convert to OASA molecule
-		try:
-			oasa_mol = bkchem_qt.bridge.oasa_bridge.qt_mol_to_oasa_mol(
-				mol_model
-			)
-			# regenerate coordinates with force=1
-			coords_generator.calculate_coords(
-				oasa_mol, bond_length=1.0, force=1
-			)
-		except Exception as exc:
-			app.statusBar().showMessage(
-				f"Clean geometry failed: {exc}", 5000
-			)
-			return
-		# convert back to get fresh coordinates with proper scaling
-		temp_model = bkchem_qt.bridge.oasa_bridge.oasa_mol_to_qt_mol(
-			oasa_mol, bond_length_pt=target_bond_length_pt,
-		)
-		# map fresh coords back by atom index (vertex order preserved)
-		orig_atoms = mol_model.atoms
-		temp_atoms = temp_model.atoms
-		count = min(len(orig_atoms), len(temp_atoms))
-		for i in range(count):
-			orig_am = orig_atoms[i]
-			temp_am = temp_atoms[i]
-			old_x = orig_am.x
-			old_y = orig_am.y
-			new_x = temp_am.x
-			new_y = temp_am.y
+		oasa_mol = bkchem_qt.bridge.oasa_bridge.qt_mol_to_oasa_mol(mol_model)
+		if needs_bond_length:
+			operation(oasa_mol, target_bond_length_pt)
+		else:
+			operation(oasa_mol)
+		for atom_model, repaired_atom in zip(mol_model.atoms, oasa_mol.atoms):
+			old_x = atom_model.x
+			old_y = atom_model.y
+			new_x = repaired_atom.x
+			new_y = repaired_atom.y
 			dx = new_x - old_x
 			dy = new_y - old_y
-			# apply the move in-place
-			orig_am.x = new_x
-			orig_am.y = new_y
-			# record offset for undo
-			atom_item = mol_items.get(id(orig_am))
-			if atom_item is not None:
-				all_offsets.append((atom_item, dx, dy))
-	_apply_moves_with_undo(app, all_offsets, "Clean up geometry")
-	n_atoms = len(all_offsets)
-	app.statusBar().showMessage(
-		f"Regenerated coordinates for {n_atoms} atoms", 3000
-	)
-
-
-#============================================
-def _handle_normalize_bond_lengths(app) -> None:
-	"""Scale each molecule so its average bond length matches the target.
-
-	Computes the current average bond length, determines a uniform
-	scale factor, and repositions every atom relative to the molecule
-	centroid.
-
-	Args:
-		app: The main BKChem-Qt application object.
-	"""
-	targets = _get_target_mols_and_items(app)
-	if not targets:
-		app.statusBar().showMessage("No molecules to normalize", 3000)
-		return
-	all_offsets = []
-	target_bond_length_pt = _resolve_target_bond_length_pt(app)
-	for mol_model, mol_items in targets:
-		bonds = mol_model.bonds
-		atoms = mol_model.atoms
-		if not bonds or not atoms:
-			continue
-		# compute current average bond length
-		lengths = []
-		for bm in bonds:
-			a1 = bm.atom1
-			a2 = bm.atom2
-			if a1 is None or a2 is None:
-				continue
-			dx = a1.x - a2.x
-			dy = a1.y - a2.y
-			length = math.sqrt(dx * dx + dy * dy)
-			lengths.append(length)
-		if not lengths:
-			continue
-		avg_length = sum(lengths) / len(lengths)
-		# skip if already close to target
-		if avg_length < 1e-6:
-			continue
-		scale = target_bond_length_pt / avg_length
-		# skip if scale is trivially close to 1.0
-		if abs(scale - 1.0) < 0.001:
-			continue
-		# compute centroid
-		cx = sum(am.x for am in atoms) / len(atoms)
-		cy = sum(am.y for am in atoms) / len(atoms)
-		# scale each atom position relative to centroid
-		for am in atoms:
-			old_x = am.x
-			old_y = am.y
-			new_x = cx + (old_x - cx) * scale
-			new_y = cy + (old_y - cy) * scale
-			dx = new_x - old_x
-			dy = new_y - old_y
-			am.x = new_x
-			am.y = new_y
-			atom_item = mol_items.get(id(am))
-			if atom_item is not None:
-				all_offsets.append((atom_item, dx, dy))
-	_apply_moves_with_undo(app, all_offsets, "Normalize bond lengths")
-	n_atoms = len(all_offsets)
-	app.statusBar().showMessage(
-		f"Normalized bond lengths for {n_atoms} atoms", 3000
-	)
-
-
-#============================================
-def _handle_snap_to_hex_grid(app) -> None:
-	"""Move every atom in target molecules to the nearest hex grid point.
-
-	Uses the scene's ``snap_to_grid()`` method to find the closest
-	hex grid vertex for each atom position.
-
-	Args:
-		app: The main BKChem-Qt application object.
-	"""
-	targets = _get_target_mols_and_items(app)
-	if not targets:
-		app.statusBar().showMessage("No molecules to snap", 3000)
-		return
-	all_offsets = []
-	for mol_model, mol_items in targets:
-		for am in mol_model.atoms:
-			old_x = am.x
-			old_y = am.y
-			snapped_x, snapped_y = app._scene.snap_to_grid(old_x, old_y)
-			dx = snapped_x - old_x
-			dy = snapped_y - old_y
-			# skip atoms already on the grid
 			if abs(dx) < 0.01 and abs(dy) < 0.01:
 				continue
-			am.x = snapped_x
-			am.y = snapped_y
-			atom_item = mol_items.get(id(am))
-			if atom_item is not None:
-				all_offsets.append((atom_item, dx, dy))
-	_apply_moves_with_undo(app, all_offsets, "Snap to hex grid")
-	n_atoms = len(all_offsets)
-	app.statusBar().showMessage(
-		f"Snapped {n_atoms} atoms to hex grid", 3000
-	)
+			atom_model.x = new_x
+			atom_model.y = new_y
+			all_offsets.append((mol_items[id(atom_model)], dx, dy))
+	_apply_moves_with_undo(app, all_offsets, description)
+	message = success_message.format(len(all_offsets))
+	app.statusBar().showMessage(message, 3000)
 
 
 #============================================
-def _snap_angle_to_multiple(angle_rad, step_deg) -> float:
-	"""Snap an angle in radians to the nearest multiple of step_deg.
+def _submit_geometry_repair(
+		app: object, kind: str, label: str, unavailable_message: str,
+		target_molecule: bkchem_qt.models.molecule_model.MoleculeModel | None = None,
+		target_molecule_id: str | None = None,
+		) -> None:
+	"""Submit one immutable geometry repair through its owning session.
 
-	Args:
-		angle_rad: Angle in radians.
-		step_deg: Step size in degrees to snap to.
-
-	Returns:
-		Snapped angle in radians.
+	The helper converts projection state to durable molecule identifiers before
+	calling the synchronous backend boundary.  It intentionally drops all Qt
+	projection wrappers before that call because an accepted commit replaces the
+	complete projection.
 	"""
-	step_rad = math.radians(step_deg)
-	snapped = round(angle_rad / step_rad) * step_rad
-	return snapped
-
-
-#============================================
-def _handle_normalize_bond_angles(app) -> None:
-	"""Snap each bond angle to the nearest 30-degree multiple.
-
-	For every bond, computes the angle from atom1 to atom2, snaps
-	it to the nearest 30-degree direction, and adjusts atom2's
-	position to match while preserving the original bond length.
-
-	Args:
-		app: The main BKChem-Qt application object.
-	"""
-	targets = _get_target_mols_and_items(app)
-	if not targets:
-		app.statusBar().showMessage("No molecules to normalize", 3000)
+	if target_molecule is not None and target_molecule_id is not None:
+		raise ValueError("Geometry repair accepts one target representation")
+	session = getattr(app, "_active_session", None)
+	document = getattr(app, "document", None)
+	scene = getattr(app, "_scene", None)
+	view = getattr(app, "_view", None)
+	if (
+		session is None
+		or document is None
+		or scene is None
+		or view is None
+		or session.is_disposed
+		or session.document is not document
+		or session.scene is not scene
+		or session.view is not view
+	):
+		app.statusBar().showMessage(unavailable_message, 5000)
 		return
-	all_offsets = []
-	# track which atoms have already been moved to avoid double-moves
-	moved_atoms = set()
-	for mol_model, mol_items in targets:
-		adj = _build_adjacency(mol_model)
-		# process atoms with more neighbors first (ring junctions, etc.)
-		atoms_by_degree = sorted(
-			mol_model.atoms,
-			key=lambda am: len(adj.get(id(am), [])),
-			reverse=True,
+	if target_molecule_id is not None:
+		molecule_ids = (target_molecule_id,)
+	elif target_molecule is not None:
+		molecule_ids = (target_molecule.mol_id,)
+	else:
+		selected = tuple(
+			object_model for object_model in document.selected_top_level_objects
+			if isinstance(object_model, bkchem_qt.models.molecule_model.MoleculeModel)
 		)
-		for am in atoms_by_degree:
-			neighbors = adj.get(id(am), [])
-			if len(neighbors) < 1:
-				continue
-			for nbr in neighbors:
-				# only move the neighbor if it has not been pinned
-				if id(nbr) in moved_atoms:
-					continue
-				dx = nbr.x - am.x
-				dy = nbr.y - am.y
-				length = math.sqrt(dx * dx + dy * dy)
-				if length < 1e-6:
-					continue
-				# compute current angle and snap to 30-degree
-				angle = math.atan2(dy, dx)
-				snapped_angle = _snap_angle_to_multiple(angle, 30.0)
-				# compute new neighbor position
-				new_x = am.x + length * math.cos(snapped_angle)
-				new_y = am.y + length * math.sin(snapped_angle)
-				offset_x = new_x - nbr.x
-				offset_y = new_y - nbr.y
-				# skip if already close
-				if abs(offset_x) < 0.01 and abs(offset_y) < 0.01:
-					continue
-				nbr.x = new_x
-				nbr.y = new_y
-				atom_item = mol_items.get(id(nbr))
-				if atom_item is not None:
-					all_offsets.append((atom_item, offset_x, offset_y))
-			# mark this atom as anchored so it is not moved later
-			moved_atoms.add(id(am))
-	_apply_moves_with_undo(app, all_offsets, "Normalize bond angles")
-	n_atoms = len(all_offsets)
-	app.statusBar().showMessage(
-		f"Normalized bond angles for {n_atoms} atoms", 3000
-	)
-
-
-#============================================
-def _handle_normalize_rings(app) -> None:
-	"""Reshape each ring in target molecules to a regular polygon.
-
-	Uses OASA cycle detection to find rings, then computes regular
-	polygon positions centered at the ring centroid and maps the ring
-	atoms to the nearest polygon vertex to minimize total displacement.
-
-	Args:
-		app: The main BKChem-Qt application object.
-	"""
-	targets = _get_target_mols_and_items(app)
-	if not targets:
-		app.statusBar().showMessage("No molecules to normalize", 3000)
+		molecules = selected or tuple(document.molecules)
+		molecule_ids = tuple(molecule.mol_id for molecule in molecules)
+		del selected
+		del molecules
+	if (
+		not molecule_ids
+		or any(not isinstance(identifier, str) or not identifier for identifier in molecule_ids)
+		or len(set(molecule_ids)) != len(molecule_ids)
+	):
+		app.statusBar().showMessage(
+			"%s needs backend-identified molecules" % label, 5000,
+		)
 		return
-	all_offsets = []
-	for mol_model, mol_items in targets:
-		if not mol_model.contains_cycle():
-			continue
-		# get OASA cycles (lists of OASA vertex objects)
-		oasa_cycles = mol_model.get_smallest_independent_cycles()
-		if not oasa_cycles:
-			continue
-		# build OASA vertex id -> AtomModel mapping
-		oasa_to_am = {}
-		for am in mol_model.atoms:
-			oasa_to_am[id(am._chem_atom)] = am
-		# process each ring cycle
-		for cycle_verts in oasa_cycles:
-			# map OASA vertices to AtomModels
-			ring_atoms = []
-			for v in cycle_verts:
-				am = oasa_to_am.get(id(v))
-				if am is not None:
-					ring_atoms.append(am)
-			n = len(ring_atoms)
-			if n < 3:
-				continue
-			# compute centroid of current ring positions
-			cx = sum(am.x for am in ring_atoms) / n
-			cy = sum(am.y for am in ring_atoms) / n
-			# compute average radius from centroid
-			radii = []
-			for am in ring_atoms:
-				dx = am.x - cx
-				dy = am.y - cy
-				radii.append(math.sqrt(dx * dx + dy * dy))
-			avg_radius = sum(radii) / len(radii)
-			if avg_radius < 1e-6:
-				continue
-			# compute the starting angle from centroid to first atom
-			# to preserve overall ring orientation
-			start_angle = math.atan2(
-				ring_atoms[0].y - cy, ring_atoms[0].x - cx
-			)
-			# generate regular polygon vertices
-			polygon_pts = []
-			for i in range(n):
-				angle = start_angle + (2.0 * math.pi * i) / n
-				px = cx + avg_radius * math.cos(angle)
-				py = cy + avg_radius * math.sin(angle)
-				polygon_pts.append((px, py))
-			# assign ring atoms to polygon points in order
-			# (ring atoms from OASA are already in cycle traversal order)
-			for i, am in enumerate(ring_atoms):
-				new_x, new_y = polygon_pts[i]
-				dx = new_x - am.x
-				dy = new_y - am.y
-				if abs(dx) < 0.01 and abs(dy) < 0.01:
-					continue
-				am.x = new_x
-				am.y = new_y
-				atom_item = mol_items.get(id(am))
-				if atom_item is not None:
-					all_offsets.append((atom_item, dx, dy))
-	_apply_moves_with_undo(app, all_offsets, "Normalize ring structures")
-	n_atoms = len(all_offsets)
-	app.statusBar().showMessage(
-		f"Normalized rings for {n_atoms} atoms", 3000
-	)
-
-
-#============================================
-def _handle_straighten_bonds(app) -> None:
-	"""Snap terminal bonds to the nearest 30-degree direction.
-
-	For each terminal atom (degree 1), computes the angle from its
-	single neighbor to the terminal atom, snaps to the nearest
-	30-degree multiple, and repositions the terminal atom while
-	preserving bond length.
-
-	Args:
-		app: The main BKChem-Qt application object.
-	"""
-	targets = _get_target_mols_and_items(app)
-	if not targets:
-		app.statusBar().showMessage("No molecules to straighten", 3000)
+	target_spacing_pt = _resolve_target_bond_length_pt(app)
+	if not math.isfinite(target_spacing_pt) or target_spacing_pt <= 0:
+		app.statusBar().showMessage("Geometry repair needs a finite grid spacing", 5000)
 		return
-	all_offsets = []
-	for mol_model, mol_items in targets:
-		adj = _build_adjacency(mol_model)
-		for am in mol_model.atoms:
-			neighbors = adj.get(id(am), [])
-			# only process terminal atoms (degree 1)
-			if len(neighbors) != 1:
-				continue
-			anchor = neighbors[0]
-			# compute vector from anchor to terminal atom
-			dx = am.x - anchor.x
-			dy = am.y - anchor.y
-			length = math.sqrt(dx * dx + dy * dy)
-			if length < 1e-6:
-				continue
-			# compute angle and snap to 30-degree
-			angle = math.atan2(dy, dx)
-			snapped_angle = _snap_angle_to_multiple(angle, 30.0)
-			# compute new terminal atom position
-			new_x = anchor.x + length * math.cos(snapped_angle)
-			new_y = anchor.y + length * math.sin(snapped_angle)
-			offset_x = new_x - am.x
-			offset_y = new_y - am.y
-			# skip if already aligned
-			if abs(offset_x) < 0.01 and abs(offset_y) < 0.01:
-				continue
-			am.x = new_x
-			am.y = new_y
-			atom_item = mol_items.get(id(am))
-			if atom_item is not None:
-				all_offsets.append((atom_item, offset_x, offset_y))
-	_apply_moves_with_undo(app, all_offsets, "Straighten bonds")
-	n_atoms = len(all_offsets)
-	app.statusBar().showMessage(
-		f"Straightened {n_atoms} terminal bonds", 3000
+	snapshot = session.backend_snapshot
+	try:
+		submit = app.persistent_operation_capability_for(session)
+	except ValueError:
+		app.statusBar().showMessage(unavailable_message, 5000)
+		return
+	from bkchem_qt.models.document_session import PersistentOperationRequest
+	request = PersistentOperationRequest(
+		"geometry.repair", label,
+		(
+			("expected_revision", snapshot.revision),
+			("molecule_ids", molecule_ids),
+			("kind", kind),
+			("target_spacing_pt", target_spacing_pt),
+		),
+		frozenset(("molecule", identifier) for identifier in molecule_ids),
+	)
+	# The request and capability are plain/durable.  Release every old Qt
+	# projection wrapper before accepting a replacement projection.
+	del target_molecule
+	del document
+	del scene
+	del view
+	outcome = submit(request)
+	app.statusBar().showMessage(outcome.message, 5000)
+
+
+#============================================
+def _handle_clean_geometry(
+		app: object,
+		target_molecule: bkchem_qt.models.molecule_model.MoleculeModel | None = None,
+		target_molecule_id: str | None = None,
+		) -> None:
+	"""Submit clean geometry through the authoritative backend session."""
+	_submit_geometry_repair(
+		app, "clean-geometry", "Clean up geometry", "Clean geometry is unavailable",
+		target_molecule, target_molecule_id,
 	)
 
 
 #============================================
-def register_repair_actions(registry, app) -> None:
+def _handle_normalize_bond_lengths(
+		app: object,
+		target_molecule: bkchem_qt.models.molecule_model.MoleculeModel | None = None,
+		target_molecule_id: str | None = None,
+		) -> None:
+	"""Normalize durable molecules through the authoritative backend session."""
+	_submit_geometry_repair(
+		app, "normalize-bond-lengths", "Normalize bond lengths",
+		"Normalize bond lengths is unavailable", target_molecule, target_molecule_id,
+	)
+
+
+#============================================
+def _handle_snap_to_hex_grid(
+		app: object,
+		target_molecule: bkchem_qt.models.molecule_model.MoleculeModel | None = None,
+		target_molecule_id: str | None = None,
+		) -> None:
+	"""Snap durable molecules to the backend-owned hexagonal grid."""
+	_submit_geometry_repair(
+		app, "snap-to-hex-grid", "Snap to hex grid", "Snap to hex grid is unavailable",
+		target_molecule, target_molecule_id,
+	)
+
+
+#============================================
+def _handle_normalize_bond_angles(
+		app: object,
+		target_molecule: bkchem_qt.models.molecule_model.MoleculeModel | None = None,
+		target_molecule_id: str | None = None,
+		) -> None:
+	"""Normalize durable molecules through the authoritative backend session."""
+	_submit_geometry_repair(
+		app, "normalize-bond-angles", "Normalize bond angles",
+		"Normalize bond angles is unavailable", target_molecule, target_molecule_id,
+	)
+
+
+#============================================
+def _handle_normalize_rings(
+		app: object,
+		target_molecule: bkchem_qt.models.molecule_model.MoleculeModel | None = None,
+		) -> None:
+	"""Normalize rings with OASA while retaining attached substituents."""
+	_apply_oasa_repair(
+		app, repair_ops.normalize_rings, "Normalize ring structures",
+		"Normalized rings for {} atoms", target_molecule=target_molecule,
+	)
+
+
+#============================================
+def _handle_straighten_bonds(
+		app: object,
+		target_molecule: bkchem_qt.models.molecule_model.MoleculeModel | None = None,
+		) -> None:
+	"""Straighten terminal bonds with OASA's shared repair algorithm."""
+	_apply_oasa_repair(
+		app, repair_ops.straighten_bonds, "Straighten bonds",
+		"Straightened {} terminal bonds", needs_bond_length=False,
+		target_molecule=target_molecule,
+	)
+
+
+#============================================
+def register_repair_actions(registry: object, app: object) -> None:
 	"""Register all Repair menu actions.
 
 	Args:
@@ -497,9 +333,9 @@ def register_repair_actions(registry, app) -> None:
 		app: The main BKChem-Qt application object providing handler methods.
 	"""
 	# predicate: true when the document has any molecules to repair
-	def has_molecules():
+	def has_molecules() -> bool:
 		"""Check whether the document contains any molecules."""
-		return bool(app.document.molecules)
+		return app.document is not None and bool(app.document.molecules)
 
 	# set all bonds to the standard bond length
 	registry.register(MenuAction(
@@ -525,7 +361,7 @@ def register_repair_actions(registry, app) -> None:
 	registry.register(MenuAction(
 		id='repair.normalize_bond_angles',
 		label_key='Normalize bond angles',
-		help_key='Round bond angles to nearest 30-degree multiple',
+		help_key='Round bond angles to nearest 60-degree multiple',
 		accelerator=None,
 		handler=lambda: _handle_normalize_bond_angles(app),
 		enabled_when=has_molecules,

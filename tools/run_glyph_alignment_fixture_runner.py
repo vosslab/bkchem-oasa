@@ -75,7 +75,7 @@ def _repo_root() -> pathlib.Path:
 
 
 #============================================
-def _load_measure_tool(repo_root: pathlib.Path):
+def _load_measure_tool(repo_root: pathlib.Path) -> object:
 	"""Load tools/measure_glyph_bond_alignment.py as a module."""
 	tool_path = repo_root / "tools" / "measure_glyph_bond_alignment.py"
 	spec = importlib.util.spec_from_file_location("measure_glyph_bond_alignment", tool_path)
@@ -309,7 +309,9 @@ def _try_render_png(svg_path: pathlib.Path, png_path: pathlib.Path, scale: float
 
 
 #============================================
-def _run_fixture(module, svg_path: pathlib.Path, sidecar: dict, args: argparse.Namespace, output_dir: pathlib.Path) -> dict:
+def _run_fixture(
+		module: object, svg_path: pathlib.Path, sidecar: dict,
+		args: argparse.Namespace, output_dir: pathlib.Path) -> dict:
 	"""Run one fixture through measure tool and write outputs."""
 	fixture_dir = output_dir / svg_path.stem
 	diagnostic_dir = fixture_dir / "diagnostics"

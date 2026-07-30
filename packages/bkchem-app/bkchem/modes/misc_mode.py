@@ -34,7 +34,7 @@ class misc_mode( edit_mode):
 
 	wavy_width = 3
 
-	def __init__( self):
+	def __init__( self) -> None:
 		edit_mode.__init__( self)
 		# submodes, name loaded from YAML
 
@@ -42,7 +42,7 @@ class misc_mode( edit_mode):
 		self._line = None
 
 
-	def mouse_click( self, event):
+	def mouse_click( self, event: object) -> None:
 		if self.get_submode( 0) == "numbering":
 			if self.focused and hasattr( self.focused, 'number'):
 				self.focused.number = str( self._number)
@@ -52,11 +52,11 @@ class misc_mode( edit_mode):
 				Store.app.paper.start_new_undo_record()
 
 
-	def mouse_down( self, event, modifiers=None):
+	def mouse_down( self, event: object, modifiers: object = None) -> None:
 		edit_mode.mouse_down( self, event)
 
 
-	def mouse_drag( self, event):
+	def mouse_drag( self, event: object) -> None:
 		if self.get_submode( 0) == "numbering":
 			edit_mode.mouse_drag( self, event)
 		else:
@@ -67,7 +67,7 @@ class misc_mode( edit_mode):
 				self._line = Store.app.paper.create_line( *coords)
 
 
-	def mouse_up( self, event):
+	def mouse_up( self, event: object) -> None:
 		if self.get_submode( 0) == "numbering":
 			edit_mode.mouse_up( self, event)
 		elif self.get_submode( 0) == "wavy":
@@ -80,7 +80,7 @@ class misc_mode( edit_mode):
 			Store.app.paper.start_new_undo_record()
 
 
-	def _draw_wavy( self, coords):
+	def _draw_wavy( self, coords: object) -> None:
 		x1, y1, x2, y2 = coords
 		# main item
 		x, y, x0, y0 = geometry.find_parallel( x1, y1, x2, y2, self.wavy_width/2.0)
@@ -103,20 +103,20 @@ class misc_mode( edit_mode):
 		Store.app.paper.new_polyline( coords2).draw()
 
 
-	def cleanup( self):
+	def cleanup( self) -> None:
 		edit_mode.cleanup( self)
 		Store.app.paper.remove_bindings()
 		Store.app.paper.add_bindings()
 
 
-	def startup( self):
+	def startup( self) -> None:
 		Store.app.paper.remove_bindings()
 		Store.app.paper.add_bindings( active_names=('atom',))
 		Store.app.paper.unselect_all()
 		self._number = 1
 
 
-	def leave_object( self, event):
+	def leave_object( self, event: object) -> None:
 		if self.focused:
 			self.focused.unfocus()
 			self.focused = None

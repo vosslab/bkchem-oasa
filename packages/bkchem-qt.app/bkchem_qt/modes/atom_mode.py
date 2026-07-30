@@ -6,6 +6,7 @@ import PySide6.QtCore
 # local repo modules
 import bkchem_qt.modes.base_mode
 import bkchem_qt.canvas.items.atom_item
+import bkchem_qt.canvas.document_projection
 
 
 #============================================
@@ -21,7 +22,7 @@ class AtomMode(bkchem_qt.modes.base_mode.BaseMode):
 	"""
 
 	#============================================
-	def __init__(self, view, parent=None):
+	def __init__(self, view: object, parent: PySide6.QtCore.QObject | None = None) -> None:
 		"""Initialize the atom mode.
 
 		Args:
@@ -33,6 +34,14 @@ class AtomMode(bkchem_qt.modes.base_mode.BaseMode):
 		# the element symbol that will be applied on click
 		self._current_element = "C"
 		self._cursor = PySide6.QtCore.Qt.CursorShape.PointingHandCursor
+		self._persistent_operation = None
+
+	#============================================
+	def set_persistent_operation(self, operation: object | None) -> None:
+		"""Install the session-owned immutable persistent-operation callback."""
+		if operation is not None and not callable(operation):
+			raise TypeError("Atom persistent operation must be callable")
+		self._persistent_operation = operation
 
 	#============================================
 	@property
@@ -51,11 +60,12 @@ class AtomMode(bkchem_qt.modes.base_mode.BaseMode):
 		self.status_message.emit(f"Atom mode: {symbol}")
 
 	#============================================
-	def mouse_press(self, scene_pos: PySide6.QtCore.QPointF, event) -> None:
+	def mouse_press(self, scene_pos: PySide6.QtCore.QPointF, event: object) -> None:
 		"""Change the element of the atom under the cursor.
 
-		If the click lands on an AtomItem, changes its symbol to
-		the current element and triggers a visual update.
+		If the click lands on an AtomItem, submit its durable identity and
+		the selected element to the authoritative document session.  The
+		session owns the accepted commit, history, and replacement projection.
 
 		Args:
 			scene_pos: Position in scene coordinates.
@@ -64,9 +74,43 @@ class AtomMode(bkchem_qt.modes.base_mode.BaseMode):
 		item = self._item_at(scene_pos)
 		if not isinstance(item, bkchem_qt.canvas.items.atom_item.AtomItem):
 			return
-		# change the atom element
-		old_symbol = item.atom_model.symbol
-		item.atom_model.symbol = self._current_element
-		self.status_message.emit(
-			f"Changed {old_symbol} -> {self._current_element}"
+		atom_model = item.atom_model
+		old_symbol = atom_model.symbol
+		new_symbol = self._current_element
+		if old_symbol == new_symbol:
+			return
+		if self._persistent_operation is None:
+			self.status_message.emit("Document cannot accept a persistent edit")
+			return
+		molecule = self._env.find_molecule_for_atom(atom_model)
+		molecule_id = getattr(molecule, "mol_id", None)
+		atom_id = atom_model.backend_durable_id
+		if not molecule_id or not atom_id:
+			self.status_message.emit("Selected atom has no durable backend identity")
+			return
+		owner = getattr(self._persistent_operation, "__self__", None)
+		snapshot = getattr(owner, "backend_snapshot", None)
+		if snapshot is None:
+			self.status_message.emit("Document cannot accept a persistent edit")
+			return
+		from bkchem_qt.models import document_session
+		molecule_key = str(molecule_id)
+		atom_key = str(atom_id)
+		request = document_session.build_atom_element_request(
+			snapshot.revision, molecule_key, atom_key, new_symbol,
+		)
+		outcome = self._persistent_operation(request)
+		if getattr(outcome, "status", None) == "accepted":
+			self._select_fresh_atom(atom_key)
+		self.status_message.emit(outcome.message)
+
+	#============================================
+	def _select_fresh_atom(self, atom_id: str) -> None:
+		"""Restore selection only through the accepted projection's durable ID."""
+		scene = self._env.scene
+		if scene is None:
+			return
+		scene.clearSelection()
+		bkchem_qt.canvas.document_projection.select_projected_persistent_keys(
+			scene, frozenset({("atom", atom_id)}),
 		)

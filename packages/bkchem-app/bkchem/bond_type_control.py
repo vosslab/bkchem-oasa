@@ -12,7 +12,8 @@ from bkchem.singleton_store import Screen
 class BondTypeControlMixin:
   """Behavior-preserving bond type/order management methods."""
 
-  def toggle_type(self, only_shift=0, to_type='n', to_order=1, simple_double=1):
+  def toggle_type(self, only_shift: object = 0, to_type: object = 'n',
+                  to_order: object = 1, simple_double: object = 1) -> None:
     self.simple_double = simple_double
     if not only_shift:
       if to_type != self.type:
@@ -61,21 +62,21 @@ class BondTypeControlMixin:
         self.center = 1
     self.redraw()
 
-  def switch_to_type(self, type):
+  def switch_to_type(self, type: object) -> None:
     if type in "wha" and self.type not in "wha":
       self.wedge_width = Screen.any_to_px(self.paper.standard.wedge_width)
     elif type not in "wha" and self.type in "wha":
       self.bond_width = Screen.any_to_px(self.paper.standard.bond_width)
     self.type = type
 
-  def switch_to_order(self, order):
+  def switch_to_order(self, order: object) -> None:
     self.order = order
     if self.order == 3:
       self.center = 0
     if self.order > 1:
       self._decide_distance_and_center()
 
-  def _decide_distance_and_center(self):
+  def _decide_distance_and_center(self) -> None:
     """According to molecular geometry decide bond.center and bond.bond_width."""
     if not self.bond_width:
       self.bond_width = self.standard.bond_width
@@ -85,7 +86,7 @@ class BondTypeControlMixin:
     self.bond_width = self.auto_bond_sign * sign * abs(self.bond_width)
     self.center = center
 
-  def _get_3dtransform_for_drawing(self):
+  def _get_3dtransform_for_drawing(self) -> object:
     """Return transform3d rotating the bond onto x-axis and neighbors into plane."""
     x1, y1, z1 = self.atom1.get_xyz()
     x2, y2, z2 = self.atom2.get_xyz()
@@ -107,7 +108,7 @@ class BondTypeControlMixin:
     t.set_rotation_y(math.pi / 2.0)
     return t
 
-  def _compute_sign_and_center(self):
+  def _compute_sign_and_center(self) -> tuple:
     """Return tuple (sign, center) where sign is default sign of bond_width."""
     transform = None
     for n in self.atom1.neighbors + self.atom2.neighbors:
@@ -157,10 +158,10 @@ class BondTypeControlMixin:
         n.transform(inv)
     return ret
 
-  def get_atoms(self):
+  def get_atoms(self) -> list:
     return self.get_vertices()
 
-  def change_atoms(self, a1, a2):
+  def change_atoms(self, a1: object, a2: object) -> None:
     """Used in overlap situations, replace reference to atom a1 with a2."""
     if self.atom1 == a1:
       self.atom1 = a2

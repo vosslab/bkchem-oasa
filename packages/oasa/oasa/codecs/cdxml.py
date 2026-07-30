@@ -5,11 +5,14 @@
 """CDXML molecule import/export helpers for OASA."""
 
 # Standard Library
+import io
 import xml.dom.minidom
+
+# PIP3 modules
+import lxml.etree
 
 # local repo modules
 from oasa import dom_extensions
-from oasa import safe_xml
 from oasa.atom_lib import Atom as atom
 from oasa.bond_lib import Bond as bond
 from oasa.molecule_lib import Molecule as molecule
@@ -33,14 +36,14 @@ _BOND_TYPE_TO_DISPLAY = {
 
 
 #============================================
-def _safe_text(value):
+def _safe_text(value: object) -> str:
 	if value is None:
 		return ""
 	return str(value).strip()
 
 
 #============================================
-def _safe_float(value, default=0.0):
+def _safe_float(value: object, default: object=0.0) -> float:
 	text = _safe_text(value)
 	if not text:
 		return float(default)
@@ -51,7 +54,7 @@ def _safe_float(value, default=0.0):
 
 
 #============================================
-def _safe_int(value, default=0):
+def _safe_int(value: object, default: object=0) -> int:
 	text = _safe_text(value)
 	if not text:
 		return int(default)
@@ -62,7 +65,7 @@ def _safe_int(value, default=0):
 
 
 #============================================
-def _normalize_symbol(symbol_text):
+def _normalize_symbol(symbol_text: object) -> str:
 	text = _safe_text(symbol_text)
 	if not text:
 		return "C"
@@ -73,11 +76,71 @@ def _normalize_symbol(symbol_text):
 
 
 #============================================
-def _read_atom_label(atom_node):
+def _lxml_element_name(node: object) -> str:
+	"""Return an lxml element's local name without accepting non-elements."""
+	tag = getattr(node, "tag", None)
+	if not isinstance(tag, str):
+		return ""
+	if tag.startswith("{"):
+		return tag.rsplit("}", 1)[1]
+	return tag
+
+
+#============================================
+def _is_unprefixed_lxml_element(node: object, name: str) -> bool:
+	"""Match legacy minidom's unprefixed, case-sensitive CDXML name matching."""
+	return getattr(node, "prefix", None) is None and _lxml_element_name(node) == name
+
+
+#============================================
+def _cdxml_input_parser() -> object:
+	"""Create a fresh hardened lxml parser for one external CDXML input."""
+	parser = lxml.etree.XMLParser(
+		resolve_entities=False,
+		load_dtd=False,
+		no_network=True,
+		dtd_validation=False,
+		recover=False,
+		huge_tree=False,
+		remove_comments=False,
+		remove_pis=False,
+	)
+	return parser
+
+
+#============================================
+def _parse_cdxml_input(text: object) -> object:
+	"""Parse external CDXML and reject every DOCTYPE before import traversal.
+
+	Args:
+		text: CDXML supplied as text or UTF-8 bytes.
+
+	Raises:
+		ValueError: If the input contains any internal or external DOCTYPE.
+		lxml.etree.XMLSyntaxError: If the XML is malformed.
+	"""
+	if isinstance(text, bytes):
+		payload = text
+	else:
+		payload = str(text).encode("utf-8")
+	document = lxml.etree.parse(io.BytesIO(payload), _cdxml_input_parser())
+	if document.docinfo.doctype:
+		raise ValueError("CDXML DOCTYPE is not accepted")
+	root = document.getroot()
+	return root
+
+
+#============================================
+def _read_atom_label(atom_node: object) -> str:
+	"""Read the first nested, unprefixed CDXML text/style label."""
 	labels = []
-	for text_node in atom_node.getElementsByTagName("t"):
-		for style_node in text_node.getElementsByTagName("s"):
-			text_value = _safe_text(dom_extensions.getAllTextFromElement(style_node))
+	for text_node in atom_node.iter():
+		if not _is_unprefixed_lxml_element(text_node, "t"):
+			continue
+		for style_node in text_node.iter():
+			if not _is_unprefixed_lxml_element(style_node, "s"):
+				continue
+			text_value = _safe_text("".join(style_node.itertext()))
 			if text_value:
 				labels.append(text_value)
 	if labels:
@@ -86,16 +149,15 @@ def _read_atom_label(atom_node):
 
 
 #============================================
-def _parse_fragment(fragment_node):
+def _parse_fragment(fragment_node: object) -> object:
+	"""Create one OASA molecule from supported direct CDXML fragment children."""
 	out = molecule()
 	atom_id_map = {}
-	for node in fragment_node.childNodes:
-		if node.nodeType != node.ELEMENT_NODE:
+	for node in fragment_node:
+		if not _is_unprefixed_lxml_element(node, "n"):
 			continue
-		if node.nodeName != "n":
-			continue
-		atom_id = _safe_text(node.getAttribute("id"))
-		coords = _safe_text(node.getAttribute("p")).split()
+		atom_id = _safe_text(node.get("id"))
+		coords = _safe_text(node.get("p")).split()
 		x_value = _safe_float(coords[0] if len(coords) > 0 else 0.0)
 		y_value = _safe_float(coords[1] if len(coords) > 1 else 0.0)
 		label = _read_atom_label(node)
@@ -109,26 +171,24 @@ def _parse_fragment(fragment_node):
 		if atom_id:
 			atom_id_map[atom_id] = new_atom
 
-	for node in fragment_node.childNodes:
-		if node.nodeType != node.ELEMENT_NODE:
+	for node in fragment_node:
+		if not _is_unprefixed_lxml_element(node, "b"):
 			continue
-		if node.nodeName != "b":
-			continue
-		ref_begin = _safe_text(node.getAttribute("B"))
-		ref_end = _safe_text(node.getAttribute("E"))
+		ref_begin = _safe_text(node.get("B"))
+		ref_end = _safe_text(node.get("E"))
 		atom_1 = atom_id_map.get(ref_begin)
 		atom_2 = atom_id_map.get(ref_end)
 		if atom_1 is None or atom_2 is None:
 			continue
-		order = _safe_int(node.getAttribute("Order"), default=1)
-		bond_type = _DISPLAY_TO_BOND_TYPE.get(_safe_text(node.getAttribute("Display")), "n")
+		order = _safe_int(node.get("Order"), default=1)
+		bond_type = _DISPLAY_TO_BOND_TYPE.get(_safe_text(node.get("Display")), "n")
 		new_bond = bond(order=order, type=bond_type)
 		out.add_edge(atom_1, atom_2, new_bond)
 	return out
 
 
 #============================================
-def _merge_molecules(molecules):
+def _merge_molecules(molecules: object) -> object | None:
 	if not molecules:
 		return None
 	if len(molecules) == 1:
@@ -148,12 +208,15 @@ def _merge_molecules(molecules):
 
 
 #============================================
-def _collect_molecules(text):
-	document = safe_xml.parse_dom_from_string(text)
+def _collect_molecules(text: object) -> list:
+	"""Import direct page fragments from one hardened external CDXML input."""
+	root = _parse_cdxml_input(text)
 	molecules = []
-	for fragment_node in document.getElementsByTagName("fragment"):
-		parent_name = _safe_text(getattr(fragment_node.parentNode, "nodeName", ""))
-		if parent_name and parent_name != "page":
+	for fragment_node in root.iter():
+		if not _is_unprefixed_lxml_element(fragment_node, "fragment"):
+			continue
+		parent_node = fragment_node.getparent()
+		if not _is_unprefixed_lxml_element(parent_node, "page"):
 			continue
 		parsed = _parse_fragment(fragment_node)
 		if parsed and parsed.vertices:
@@ -162,18 +225,18 @@ def _collect_molecules(text):
 
 
 #============================================
-def text_to_mol(text):
+def text_to_mol(text: object) -> object | None:
 	molecules = _collect_molecules(text)
 	return _merge_molecules(molecules)
 
 
 #============================================
-def file_to_mol(file_obj):
+def file_to_mol(file_obj: object) -> object | None:
 	return text_to_mol(file_obj.read())
 
 
 #============================================
-def _atom_label(atom_obj):
+def _atom_label(atom_obj: object) -> str:
 	label = atom_obj.properties_.get("cdxml_label")
 	if label:
 		return _safe_text(label)
@@ -181,7 +244,12 @@ def _atom_label(atom_obj):
 
 
 #============================================
-def _write_fragment(doc, parent_node, mol, fragment_index):
+def _write_fragment(
+	doc: object,
+	parent_node: object,
+	mol: object,
+	fragment_index: object,
+) -> None:
 	fragment_node = doc.createElement("fragment")
 	fragment_node.setAttribute("id", f"f{fragment_index}")
 	parent_node.appendChild(fragment_node)
@@ -216,7 +284,7 @@ def _write_fragment(doc, parent_node, mol, fragment_index):
 
 
 #============================================
-def mol_to_text(mol):
+def mol_to_text(mol: object) -> str:
 	document = xml.dom.minidom.Document()
 	root = document.createElement("CDXML")
 	document.appendChild(root)
@@ -238,5 +306,5 @@ def mol_to_text(mol):
 
 
 #============================================
-def mol_to_file(mol, file_obj):
+def mol_to_file(mol: object, file_obj: object) -> None:
 	file_obj.write(mol_to_text(mol))

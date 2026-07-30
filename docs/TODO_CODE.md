@@ -1,7 +1,7 @@
 # Todo code
 
 - Implement the PubChem lookup work in
-  [docs/active_plans/PUBCHEM_API_PLAN.md](docs/active_plans/PUBCHEM_API_PLAN.md).
+  [PUBCHEM_API_PLAN.md](active_plans/PUBCHEM_API_PLAN.md).
 - I would like to see the undo functions in BKChem stick to the CDML contract.
   Basically UNDO becomes a CDML becomes a CDML history. When you make a change in
   BKChem the old version is saved as temporary CDML file. We could keep a history
@@ -25,10 +25,13 @@
     - `packages/bkchem-app/bkchem/oasa_bridge.py` for conversion hooks.
     - `packages/bkchem-app/bkchem/format_loader.py` and
       `packages/bkchem-app/bkchem/format_menus.yaml` for BKChem format wiring.
-    - [docs/SUPPORTED_FORMATS.md](docs/SUPPORTED_FORMATS.md) to list new formats.
-- Multi-ring Haworth layout coordinator for disaccharides/polysaccharides
-  (see [docs/archive/HAWORTH_IMPLEMENTATION_PLAN_attempt2.md](docs/archive/HAWORTH_IMPLEMENTATION_PLAN_attempt2.md)
+    - [SUPPORTED_FORMATS.md](SUPPORTED_FORMATS.md) to list new formats.
+- Extend the direct-glycosidic disaccharide Haworth planner into a document
+  coordinator for polysaccharides, attachment-aware substituents, and frontend
+  undo delivery. The current pure OASA slice deliberately supports only two
+  vertex-disjoint 5/6-member C/O rings and one direct oxygen bridge (see
+  [HAWORTH_IMPLEMENTATION_PLAN_attempt2.md](archive/HAWORTH_IMPLEMENTATION_PLAN_attempt2.md)
   Phase 6b).
 - Haworth text collision detection with bounding box analysis
-  (see [docs/archive/HAWORTH_IMPLEMENTATION_PLAN_attempt2.md](docs/archive/HAWORTH_IMPLEMENTATION_PLAN_attempt2.md)
+  (see [HAWORTH_IMPLEMENTATION_PLAN_attempt2.md](archive/HAWORTH_IMPLEMENTATION_PLAN_attempt2.md)
   Phase 6b).

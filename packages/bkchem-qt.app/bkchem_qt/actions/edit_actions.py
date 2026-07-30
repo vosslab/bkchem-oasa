@@ -2,81 +2,51 @@
 
 # PIP3 modules
 import PySide6.QtCore
-import PySide6.QtSvg
+import PySide6.QtGui
 import PySide6.QtWidgets
 
 # local repo modules
-import bkchem_qt.canvas.items.atom_item
-import bkchem_qt.canvas.items.bond_item
+import oasa.cdml_render
+import bkchem_qt.io.clipboard_mime
+import bkchem_qt.io.export
 from bkchem_qt.actions.action_registry import MenuAction
 
 
 #============================================
-def _selected_to_svg(app) -> None:
-	"""Copy selected items as SVG to the system clipboard.
-
-	Renders only the selected AtomItem and BondItem graphics to an
-	SVG string via QSvgGenerator, then places the SVG data on the
-	clipboard as image/svg+xml MIME type.
-
-	Args:
-		app: MainWindow instance.
-	"""
-	scene = app._scene
-	selected = scene.selectedItems()
-	if not selected:
-		app.statusBar().showMessage("Nothing selected", 3000)
+def _selected_to_svg(app: object) -> None:
+	"""Copy selected durable backend content as snapshot-derived SVG."""
+	session = getattr(app, "_active_session", None)
+	if session is None:
+		app.statusBar().showMessage("Copy as SVG requires an active backend session", 3000)
 		return
-	# compute bounding rect of selected items with padding
-	bounds = PySide6.QtCore.QRectF()
-	for item in selected:
-		if isinstance(item, bkchem_qt.canvas.items.atom_item.AtomItem):
-			bounds = bounds.united(item.sceneBoundingRect())
-		elif isinstance(item, bkchem_qt.canvas.items.bond_item.BondItem):
-			bounds = bounds.united(item.sceneBoundingRect())
-	if bounds.isEmpty():
-		app.statusBar().showMessage("Selection bounds empty", 3000)
+	request = session.capture_visual_render_request("svg", "selection")
+	if isinstance(request, oasa.cdml_render.CDMLRenderFailure):
+		app.statusBar().showMessage(request.message, 3000)
 		return
-	# add padding
-	padding = 10.0
-	bounds.adjust(-padding, -padding, padding, padding)
-	# render to SVG buffer
-	svg_buffer = PySide6.QtCore.QBuffer()
-	svg_buffer.open(PySide6.QtCore.QIODevice.OpenModeFlag.WriteOnly)
-	generator = PySide6.QtSvg.QSvgGenerator()
-	generator.setOutputDevice(svg_buffer)
-	generator.setSize(PySide6.QtCore.QSize(
-		int(bounds.width()), int(bounds.height()),
-	))
-	generator.setViewBox(bounds)
-	generator.setTitle("BKChem-Qt Selection")
-	# temporarily hide non-selected items
-	hidden_items = []
-	for item in scene.items():
-		if item not in selected and item.isVisible():
-			item.setVisible(False)
-			hidden_items.append(item)
-	# render the scene (only visible/selected items)
-	from PySide6.QtGui import QPainter
-	painter = QPainter(generator)
-	scene.render(painter, source=bounds)
-	painter.end()
-	svg_buffer.close()
-	# restore hidden items
-	for item in hidden_items:
-		item.setVisible(True)
-	# place SVG on clipboard
-	svg_bytes = svg_buffer.data()
+	result = bkchem_qt.io.export.render_snapshot_request(request)
+	if isinstance(result, oasa.cdml_render.CDMLRenderFailure):
+		app.statusBar().showMessage(result.message, 3000)
+		return
+	if result.artifact is None:
+		app.statusBar().showMessage("Snapshot SVG render returned no artifact", 3000)
+		return
+	svg_bytes = result.artifact
 	clipboard = PySide6.QtWidgets.QApplication.clipboard()
 	mime_data = PySide6.QtCore.QMimeData()
 	mime_data.setData("image/svg+xml", svg_bytes)
 	mime_data.setText(bytes(svg_bytes).decode("utf-8"))
+	mime_data.setProperty(
+		bkchem_qt.io.clipboard_mime.BKCHEM_OWNED_MIME_PROPERTY, True,
+	)
 	clipboard.setMimeData(mime_data)
-	app.statusBar().showMessage("Selection copied as SVG", 3000)
+	message = "Selection copied as SVG"
+	if result.warnings:
+		message += " (%d unsupported persistent object(s) omitted)" % len(result.warnings)
+	app.statusBar().showMessage(message, 3000)
 
 
 #============================================
-def register_edit_actions(registry, app) -> None:
+def register_edit_actions(registry: object, app: object) -> None:
 	"""Register all Edit menu actions.
 
 	Args:
@@ -104,30 +74,17 @@ def register_edit_actions(registry, app) -> None:
 	))
 
 	# predicate: true when the document has selected items
-	def has_selection():
-		return app.document.has_selection
+	def has_selection() -> bool:
+		return app.document is not None and app.document.has_selection
 
-	# predicate: true when the undo stack can undo
-	# try/except guards against RuntimeError when the C++ QUndoStack
-	# object is deleted during teardown but the Python wrapper persists
-	def can_undo():
-		stack = app.document.undo_stack
-		if stack is None:
-			return False
-		try:
-			return stack.canUndo()
-		except RuntimeError:
-			return False
+	# The MainWindow resolves backend navigation before legacy Qt history, so
+	# menu actions and toolbar/shortcut handlers share one authority decision.
+	def can_undo() -> bool:
+		return app.can_undo()
 
-	# predicate: true when the undo stack can redo
-	def can_redo():
-		stack = app.document.undo_stack
-		if stack is None:
-			return False
-		try:
-			return stack.canRedo()
-		except RuntimeError:
-			return False
+	# The same single decision prevents fallback into mixed history families.
+	def can_redo() -> bool:
+		return app.can_redo()
 
 	# update undo/redo predicates
 	registry.get('edit.undo').enabled_when = can_undo
@@ -154,13 +111,17 @@ def register_edit_actions(registry, app) -> None:
 	))
 
 	# paste clipboard contents onto paper
+	def can_paste() -> bool:
+		"""Enable Paste only for a current authoritative session and CDML data."""
+		return app.can_paste()
+
 	registry.register(MenuAction(
 		id='edit.paste',
 		label_key='Paste',
 		help_key='Paste the content of clipboard to current paper',
 		accelerator='(C-v)',
 		handler=app.on_paste,
-		enabled_when=None,
+		enabled_when=can_paste,
 	))
 
 	# copy selection as SVG to system clipboard

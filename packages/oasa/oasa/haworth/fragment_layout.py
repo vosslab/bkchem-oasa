@@ -64,13 +64,13 @@ def _smiles_for_label(label: str) -> str | None:
 
 
 #============================================
-def _implicit_h_count(atom_obj) -> int:
+def _implicit_h_count(atom_obj: object) -> int:
 	"""Count implicit hydrogens on an OASA atom (valency - occupied bonds)."""
 	return max(0, atom_obj.valency - atom_obj.occupied_valency)
 
 
 #============================================
-def _terminal_carbon_label(atom_obj) -> str:
+def _terminal_carbon_label(atom_obj: object) -> str:
 	"""Build display label for a terminal carbon from its implicit H and O neighbors."""
 	implicit_h = _implicit_h_count(atom_obj)
 	oxygen_neighbors = [n for n in atom_obj.neighbors if n.symbol == "O"]
@@ -88,7 +88,7 @@ def _terminal_carbon_label(atom_obj) -> str:
 
 
 #============================================
-def _build_molecule(smiles_text: str):
+def _build_molecule(smiles_text: str) -> object:
 	"""Parse SMILES into an OASA molecule with 2D coordinates."""
 	mol = smiles_module.text_to_mol(smiles_text, calc_coords=0)
 	coords_generator.calculate_coords(mol, bond_length=1.0, force=1)
@@ -96,7 +96,7 @@ def _build_molecule(smiles_text: str):
 
 
 #============================================
-def _identify_fragment_groups(mol) -> list[dict]:
+def _identify_fragment_groups(mol: object) -> list[dict]:
 	"""Walk the molecule and identify display groups.
 
 	Terminal carbons absorb their oxygen children into a single group label

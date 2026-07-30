@@ -35,17 +35,17 @@ from bkchem.textatom_lib import BkTextatom
 
 class validator(object):
 
-  def __init__( self):
+  def __init__( self) -> None:
     self.report = None
 
-  def start_new_report( self):
+  def start_new_report( self) -> None:
     self.report = validator_report()
 
-  def validate( self, o):
+  def validate( self, o: object) -> None:
     self.start_new_report()
     self.validate_object( o)
 
-  def validate_object( self, o):
+  def validate_object( self, o: object) -> None:
     if isinstance(o, list):
       self.validate_list( o)
     elif isinstance(o, (BkAtom, BkGroup, BkTextatom)):
@@ -53,7 +53,7 @@ class validator(object):
     elif isinstance( o, BkMolecule):
       self.validate_molecule( o)
 
-  def validate_atom( self, a):
+  def validate_atom( self, a: object) -> None:
     if isinstance( a, BkTextatom):
       self.report.text_atoms.append( a)
     elif isinstance( a, BkGroup):
@@ -63,32 +63,32 @@ class validator(object):
       if fval < 0:
         self.report.exceeded_valency.append( a)
 
-  def validate_bond( self, b):
+  def validate_bond( self, b: object) -> None:
     if b.order == 0:
       self.report.zero_order_bonds.append( b)
 
 
-  def validate_molecule( self, mol):
+  def validate_molecule( self, mol: object) -> None:
     list(map( self.validate_atom, mol.atoms))
     list(map( self.validate_bond, mol.bonds))
 
-  def validate_list( self, objs):
+  def validate_list( self, objs: list) -> None:
     [self.validate_object( o) for o in objs]
 
 
 class validator_report(object):
 
-  def __init__( self):
+  def __init__( self) -> None:
     #self._report_text = ""
     self.text_atoms = []
     self.group_atoms = []
     self.exceeded_valency = []
     self.zero_order_bonds = []
 
-  def get_text_report( self):
+  def get_text_report( self) -> None:
     pass
 
-  def get_summary( self):
+  def get_summary( self) -> str:
     # gettext i18n translation fallbacks
     _ = builtins.__dict__.get( '_', lambda m: m)
     ngettext = builtins.__dict__.get(

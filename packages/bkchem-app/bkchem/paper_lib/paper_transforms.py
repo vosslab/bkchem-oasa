@@ -8,7 +8,7 @@ from oasa.transform_lib import Transform
 class PaperTransformsMixin:
 	"""Viewport and coordinate transform helpers extracted from paper.py."""
 
-	def set_viewport( self, view=(0,0,640,480)):
+	def set_viewport( self, view: object=(0,0,640,480)) -> None:
 		x1, y1, x2, y2 = view
 		self._view = tuple( view)
 
@@ -23,7 +23,7 @@ class PaperTransformsMixin:
 		self._screen2real.set_scaling_xy( ratiox, ratioy)
 		self._screen2real.set_move( x1, y1)
 
-	def real_to_canvas(self, lenghts):
+	def real_to_canvas(self, lenghts: object) -> object:
 		"""Transforms distances or coordinates from real (as stored in eg: atom.x)
 				to those in the canvas (as stored for items)."""
 		try:
@@ -34,7 +34,7 @@ class PaperTransformsMixin:
 		except TypeError:
 			return lenghts*self._scale
 
-	def canvas_to_real(self, lenghts):
+	def canvas_to_real(self, lenghts: object) -> object:
 		"""Transforms distances or coordinates from those in the canvas (as stored for items)
 				to real ones (as stored in eg: BkAtom.x)."""
 		try:
@@ -45,7 +45,7 @@ class PaperTransformsMixin:
 		except TypeError:
 			return lenghts/self._scale
 
-	def screen_to_real_coords( self, coords):
+	def screen_to_real_coords( self, coords: object) -> object:
 		"""transforms set of x,y coordinates to real coordinates, input list must have even length.
 		It's called when exporting files."""
 		if len( coords) % 2:
@@ -56,7 +56,7 @@ class PaperTransformsMixin:
 		return out
 
 
-	def real_to_screen_coords( self, coords):
+	def real_to_screen_coords( self, coords: object) -> object:
 		"""transforms set of x,y coordinates to screen coordinates, input list must have even length.
 		It's called when importing files."""
 		if len( coords) % 2:
@@ -67,9 +67,9 @@ class PaperTransformsMixin:
 		return out
 
 
-	def screen_to_real_ratio( self):
+	def screen_to_real_ratio( self) -> object:
 		return 1.0/self._ratio
 
 
-	def real_to_screen_ratio( self):
+	def real_to_screen_ratio( self) -> object:
 		return self._ratio

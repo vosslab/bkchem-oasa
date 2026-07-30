@@ -5,11 +5,11 @@ Covers `Graph` (undirected), `Digraph` (directed), `Vertex`, and `Edge`/`Diedge`
 Reference for rustworkx backend integration (Phase 0 deliverable).
 
 Source files:
-- [packages/oasa/oasa/graph/graph_lib.py](../../packages/oasa/oasa/graph/graph_lib.py)
-- [packages/oasa/oasa/graph/digraph_lib.py](../../packages/oasa/oasa/graph/digraph_lib.py)
-- [packages/oasa/oasa/graph/vertex_lib.py](../../packages/oasa/oasa/graph/vertex_lib.py)
-- [packages/oasa/oasa/graph/edge_lib.py](../../packages/oasa/oasa/graph/edge_lib.py)
-- [packages/oasa/oasa/graph/diedge_lib.py](../../packages/oasa/oasa/graph/diedge_lib.py)
+- [graph_lib.py](../../packages/oasa/oasa/graph/graph_lib.py)
+- [digraph_lib.py](../../packages/oasa/oasa/graph/digraph_lib.py)
+- [vertex_lib.py](../../packages/oasa/oasa/graph/vertex_lib.py)
+- [edge_lib.py](../../packages/oasa/oasa/graph/edge_lib.py)
+- [diedge_lib.py](../../packages/oasa/oasa/graph/diedge_lib.py)
 
 ---
 

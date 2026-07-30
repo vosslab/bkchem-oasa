@@ -8,6 +8,45 @@ import sys
 # PIP3 modules
 import pytest
 
+pytest_plugins = ("pytest_kill_after",)
+
+
+_LEGACY_TK_E2E_TEST_FILES = frozenset({
+	"test_bkchem_gui_events.py",
+	"test_gui_modes.py",
+	"test_bkchem_gui_benzene.py",
+	"test_bkchem_gui_hex_grid.py",
+	"test_gui_theme_change.py",
+	"test_bkchem_gui_zoom.py",
+})
+
+
+#============================================
+def pytest_addoption(parser: pytest.Parser) -> None:
+	"""Register the explicit opt-in for native Tk end-to-end tests."""
+	parser.addoption(
+		"--run-legacy-tk-e2e",
+		action="store_true",
+		default=False,
+		help="run legacy Tk tests that create native Cocoa windows",
+	)
+
+
+#============================================
+def pytest_collection_modifyitems(
+	config: pytest.Config,
+	items: list[pytest.Item],
+) -> None:
+	"""Skip legacy native-Tk E2E modules unless explicitly requested."""
+	if config.getoption("--run-legacy-tk-e2e"):
+		return
+	skip_legacy_tk = pytest.mark.skip(
+		reason="native Tk E2E tests require --run-legacy-tk-e2e",
+	)
+	for item in items:
+		if item.path.name in _LEGACY_TK_E2E_TEST_FILES:
+			item.add_marker(skip_legacy_tk)
+
 
 #============================================
 def _get_repo_root() -> str:
@@ -22,7 +61,7 @@ _REPO_ROOT = _get_repo_root()
 
 
 #============================================
-def _ensure_paths():
+def _ensure_paths() -> None:
 	"""Add bkchem-app, oasa packages, and repo tests/ to sys.path."""
 	# bkchem package root (packages/bkchem-app)
 	bkchem_pkg = os.path.join(_REPO_ROOT, "packages", "bkchem-app")
@@ -58,56 +97,3 @@ def repo_tests_path(*parts) -> str:
 
 
 _ensure_paths()
-
-
-#============================================
-_tk_root = None
-
-
-#============================================
-@pytest.fixture(scope="session", autouse=True)
-def _init_gui_singletons():
-	"""Create a hidden Tk root so GUI singletons are available in tests."""
-	global _tk_root
-	try:
-		from tkinter import Tk
-	except ImportError:
-		yield
-		return
-	_tk_root = Tk()
-	_tk_root.withdraw()
-	dpi = _tk_root.winfo_fpixels("1i")
-	# attach a paper.standard so molecule factory methods work
-	# (create_vertex/create_edge fall back to Store.app.paper.standard)
-	try:
-		import bkchem.classes
-		_tk_root.paper = type('_MockPaper', (), {
-			'standard': bkchem.classes.standard(),
-		})()
-	except ImportError:
-		pass
-	# set singletons for GUI tests
-	try:
-		from bkchem.singleton_store import Store, Screen
-		Screen.dpi = dpi
-		if Store.app is None:
-			Store.app = _tk_root
-	except ImportError:
-		pass
-	_propagate_singletons(dpi, _tk_root)
-	yield
-	_tk_root.destroy()
-	_tk_root = None
-
-
-#============================================
-def _propagate_singletons(dpi: float, app=None) -> None:
-	"""Set Screen.dpi and Store.app on special_parents module."""
-	# special_parents imports Screen/Store directly; references may differ
-	try:
-		from bkchem import special_parents
-		special_parents.Screen.dpi = dpi
-		if app is not None and getattr(special_parents.Store, 'app', None) is None:
-			special_parents.Store.app = app
-	except ImportError:
-		pass

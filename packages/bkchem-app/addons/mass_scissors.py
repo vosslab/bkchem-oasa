@@ -1,7 +1,7 @@
 from oasa.periodic_table import formula_dict
 
 
-def main(app):
+def main(app: object) -> None:
 	mols, _unique = app.paper.selected_to_unique_top_levels()
 
 	colors = ["#cc0000", "#00ff00", "#0000ff", "#ff00ff", "#00ffff", "#ff5500"]

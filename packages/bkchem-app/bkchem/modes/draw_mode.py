@@ -36,14 +36,14 @@ _ = builtins.__dict__.get( '_', lambda m: m)
 ### -------------------- DRAW MODE --------------------
 class draw_mode( edit_mode):
 
-	def __init__( self):
+	def __init__( self) -> None:
 		edit_mode.__init__( self)
 		# submodes, name loaded from YAML
 		self._moved_atom = None
 		self._start_atom = None
 
 
-	def mouse_down( self, event, modifiers = []):
+	def mouse_down( self, event: object, modifiers: object = []) -> None:
 		"""Starts a new bond, if no atom is focused (the mouse is being
 			pressed on bank space) creates a new BkAtom.
 			The BkBond is completed upon release (mouse_up())."""
@@ -63,7 +63,7 @@ class draw_mode( edit_mode):
 		#Store.app.paper.add_bindings()
 
 
-	def mouse_up( self, event):
+	def mouse_up( self, event: object) -> None:
 		"""Completion of bond started when pressing (mouse_down())."""
 		if not self._dragging:
 			#Make sure this was not thrown after click
@@ -103,7 +103,7 @@ class draw_mode( edit_mode):
 			Store.app.paper.start_new_undo_record()
 
 
-	def mouse_click( self, event):
+	def mouse_click( self, event: object) -> None:
 		if not self.focused:
 			#print("it should not get here!!!")
 			mol = Store.app.paper.new_molecule()
@@ -170,7 +170,7 @@ class draw_mode( edit_mode):
 		Store.app.paper.add_bindings()
 
 
-	def mouse_drag( self, event):
+	def mouse_drag( self, event: object) -> None:
 		if not self._dragging:
 			self._dragging = 1
 			if self.focused and bkchem.chem_compat.is_chemistry_vertex( self.focused):
@@ -241,14 +241,14 @@ class draw_mode( edit_mode):
 			self._bonds_to_update.redraw()
 
 
-	def enter_object( self, object, event):
+	def enter_object( self, object: object, event: object) -> None:
 		if self.focused:
 			self.focused.unfocus()
 		self.focused = object
 		self.focused.focus()
 
 
-	def leave_object( self, event):
+	def leave_object( self, event: object) -> None:
 		if self.focused:
 			self.focused.unfocus()
 			self.focused = None
@@ -256,7 +256,7 @@ class draw_mode( edit_mode):
 			pass #warn( "leaving NONE", UserWarning, 2)
 
 
-	def __mode_to_bond_type( self):
+	def __mode_to_bond_type( self) -> object:
 		"""maps bond type submode to bond_type"""
 		type = self.get_submode( 2)
 		if type == 'dotted':
@@ -267,6 +267,6 @@ class draw_mode( edit_mode):
 			return type[0]
 
 
-	def __mode_to_bond_order( self):
+	def __mode_to_bond_order( self) -> object:
 		order = self.submode[1]+1
 		return order

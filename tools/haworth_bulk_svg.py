@@ -211,7 +211,7 @@ def _filter_entries(entries: list, n_carbons: int, prefix_kind: str,
 
 
 #============================================
-def parse_args():
+def parse_args() -> object:
 	"""Parse command-line arguments."""
 	parser = argparse.ArgumentParser(
 		description="Bulk Haworth projection SVG generator. "
@@ -263,7 +263,7 @@ def parse_args():
 
 
 #============================================
-def main():
+def main() -> None:
 	"""Generate bulk Haworth projection SVGs."""
 	args = parse_args()
 

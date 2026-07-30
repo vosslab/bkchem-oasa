@@ -1,12 +1,16 @@
 include pyproject.toml
 include MANIFEST.in
-include bkchem/bkchem.js
+include LICENSE
 include addons/*.py
 include addons/*.xml
+include bkchem_data/menus.yaml
+include bkchem_data/modes.yaml
+include bkchem_data/keysymdef.yaml
+recursive-include bkchem_data/themes *.yaml
 include bkchem_data/templates/*.cdml
 include bkchem_data/templates/*.xml
-recursive-include bkchem_data/templates/biomolecules *.cdml
-include bkchem_data/pixmaps/*.gif
+recursive-include bkchem_data/pixmaps/png *.png
+recursive-include bkchem_data/pixmaps/png-dark *.png
 include bkchem_data/images/*.ppm
 include bkchem_data/images/*.ico
 include bkchem_data/images/*.svg

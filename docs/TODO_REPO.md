@@ -2,7 +2,7 @@
 
 - Publish OASA to PyPI from the monorepo.
 - Plan BKChem binary distribution (macOS dmg, Linux Flatpak, Windows installer).
-- Reconcile licensing guidance in [docs/REPO_STYLE.md](docs/REPO_STYLE.md) with
+- Reconcile licensing guidance in [REPO_STYLE.md](REPO_STYLE.md) with
   GPLv2 repo policy and LGPLv3/AGPLv3 future plans.
 - Make the OASA backend LGPLv3 and the BKChem frontend AGPLv3
 - Remove package specific .md files for BKChem and OASA and move to central .md docs/

@@ -32,13 +32,13 @@ class QueryAtom( chem_vertex):
   ## ("value","charge","x","y","z","multiplicity","valency","charge","free_sites")
   attrs_to_copy = chem_vertex.attrs_to_copy + ("symbols",)
 
-  def __init__( self, coords=None):
+  def __init__( self, coords: object = None) -> None:
     chem_vertex.__init__( self, coords=coords)
     self.symbols = set()
     self.free_sites = 0
 
 
-  def matches( self, other):
+  def matches( self, other: object) -> object:
     if not isinstance( other, atom):
       return False
     #if isinstance( other, query_atom):
@@ -66,7 +66,7 @@ class QueryAtom( chem_vertex):
 
 
   @property
-  def symbol(self):
+  def symbol(self) -> object:
     """Atom symbol.
 
     """
@@ -74,7 +74,7 @@ class QueryAtom( chem_vertex):
 
 
   @symbol.setter
-  def symbol(self, symbol):
+  def symbol(self, symbol: object) -> None:
     if symbol in list(PT.periodic_table.keys()):
       if not "query" in PT.periodic_table[ symbol]:
         warn( "Setting normal atom symbol to a query_atom instance, do you mean it?")
@@ -86,7 +86,7 @@ class QueryAtom( chem_vertex):
 
 
   @property
-  def free_sites(self):
+  def free_sites(self) -> object:
     """Atom's free sites.
 
     """
@@ -94,22 +94,22 @@ class QueryAtom( chem_vertex):
 
 
   @free_sites.setter
-  def free_sites(self, free_sites):
+  def free_sites(self, free_sites: object) -> None:
     self._free_sites = free_sites
 
 
-  def __str__( self):
+  def __str__( self) -> str:
     return "query atom '%s'" % str( self.symbol)
 
 
   @classmethod
-  def is_query_definition(self, text):
+  def is_query_definition(self, text: object) -> object:
     matcher = re.compile( r"\[([A-Z][a-z]?,)*[A-Z][a-z]?\]")
     return matcher.match( text) and True or False
 
 
   @classmethod
-  def parse_query_definition(self, text):
+  def parse_query_definition(self, text: object) -> object:
     if self.is_query_definition( text):
       syms = set( map( str, text[1:-1].split(",")))
       for sym in syms:
@@ -118,4 +118,3 @@ class QueryAtom( chem_vertex):
       return syms
     else:
       raise oasa_invalid_atom_symbol( "not valid query definition", text)
-

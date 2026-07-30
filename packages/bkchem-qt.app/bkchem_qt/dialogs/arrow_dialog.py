@@ -21,8 +21,9 @@ class ArrowDialog(PySide6.QtWidgets.QDialog):
 	"""
 
 	#============================================
-	def __init__(self, parent=None, start_head=False, end_head=True,
-			line_width=2.0, color="#000000"):
+	def __init__(self, parent: object | None = None, start_head: bool = False,
+			end_head: bool = True, line_width: float = 2.0,
+			color: str = "#000000") -> None:
 		"""Initialize the arrow properties dialog.
 
 		Args:

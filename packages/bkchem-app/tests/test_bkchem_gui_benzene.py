@@ -13,7 +13,7 @@ import pytest
 
 
 #============================================
-def _ensure_gettext_fallbacks():
+def _ensure_gettext_fallbacks() -> object:
 	"""Ensure gettext helpers exist for module-level strings."""
 	if "_" not in builtins.__dict__:
 		builtins.__dict__["_"] = lambda m: m
@@ -22,7 +22,7 @@ def _ensure_gettext_fallbacks():
 
 
 #============================================
-def _verify_tkinter():
+def _verify_tkinter() -> object:
 	"""Verify Tk is available for GUI-backed tests."""
 	try:
 		import tkinter
@@ -37,7 +37,7 @@ def _verify_tkinter():
 
 
 #============================================
-def _ensure_preferences():
+def _ensure_preferences() -> object:
 	"""Initialize preference manager for tests."""
 	from bkchem import os_support
 	from bkchem import pref_manager
@@ -51,7 +51,7 @@ def _ensure_preferences():
 
 
 #============================================
-def _hex_points(cx, cy, radius):
+def _hex_points(cx: object, cy: object, radius: object) -> object:
 	"""Return 6 points for a regular hexagon."""
 	points = []
 	for i in range(6):
@@ -63,7 +63,7 @@ def _hex_points(cx, cy, radius):
 
 
 #============================================
-def _build_benzene(app):
+def _build_benzene(app: object) -> object:
 	"""Create a benzene ring from 6 atoms with alternating double bonds."""
 	from bkchem.bond_lib import BkBond
 	from bkchem.singleton_store import Screen
@@ -86,7 +86,7 @@ def _build_benzene(app):
 
 
 #============================================
-def _run_benzene_smoke():
+def _run_benzene_smoke() -> object:
 	_ensure_gettext_fallbacks()
 	_verify_tkinter()
 	_ensure_preferences()
@@ -114,13 +114,13 @@ def _run_benzene_smoke():
 
 
 #============================================
-def main():
+def main() -> None:
 	"""Entry point for running the benzene smoke check directly."""
 	_run_benzene_smoke()
 
 
 #============================================
-def test_bkchem_gui_benzene_smoke():
+def test_bkchem_gui_benzene_smoke() -> None:
 	cmd = [sys.executable, os.path.abspath(__file__)]
 	result = subprocess.run(cmd, capture_output=True, text=True, check=False)
 	if result.returncode == 0:

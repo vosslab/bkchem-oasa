@@ -1,120 +1,48 @@
-"""Grid visual parity tests for BKChem-Qt.
+"""Fast behavioral checks for the disposable BKChem Qt grid projection."""
 
-Verifies that the ChemScene grid overlay behaves correctly: visible by
-default, togglable, snappable, populated with child items, and
-resilient across theme changes.
+# Standard Library
+import math
 
-Usage:
-	source source_me.sh && QT_QPA_PLATFORM=offscreen python3 -m pytest \
-		packages/bkchem-qt.app/tests/test_grid_parity.py -v
-"""
+# PIP3 modules
+import pytest
 
 
 #============================================
-def test_grid_visible_by_default(main_window):
-	"""Verify the grid is visible when the scene is first created."""
+def test_grid_visibility_tracks_the_live_overlay(main_window: object) -> None:
+	"""Hiding and restoring the grid updates the one visible projection."""
 	scene = main_window.scene
-	assert scene.grid_visible is True, (
-		"grid should be visible by default on a fresh scene"
-	)
-
-
-#============================================
-def test_grid_toggle(main_window):
-	"""Toggle grid off and on, verifying visibility at each step."""
-	scene = main_window.scene
-
-	# hide the grid
+	overlay = scene._grid_overlay
 	scene.set_grid_visible(False)
-	assert scene.grid_visible is False, (
-		"grid_visible should be False after set_grid_visible(False)"
-	)
-
-	# show the grid again
+	hidden = not scene.grid_visible and not overlay.isVisible()
 	scene.set_grid_visible(True)
-	assert scene.grid_visible is True, (
-		"grid_visible should be True after set_grid_visible(True)"
-	)
+	assert hidden and scene.grid_visible and overlay.isVisible()
 
 
 #============================================
-def test_grid_snap(main_window):
-	"""Call snap_to_grid with arbitrary coords and verify the return type."""
+def test_grid_uses_one_disposable_scene_item(main_window: object) -> None:
+	"""The grid contributes one scene-owned decoration, not a child forest."""
 	scene = main_window.scene
-
-	# use arbitrary coordinates that are unlikely to land on a grid point
-	result = scene.snap_to_grid(137.3, 248.9)
-	assert isinstance(result, tuple), (
-		f"snap_to_grid should return a tuple, got {type(result).__name__}"
-	)
-	assert len(result) == 2, (
-		f"snap_to_grid should return a 2-tuple, got length {len(result)}"
-	)
-	# both elements should be numeric floats (or ints coercible to float)
-	assert isinstance(result[0], (int, float)), (
-		f"snapped x should be numeric, got {type(result[0]).__name__}"
-	)
-	assert isinstance(result[1], (int, float)), (
-		f"snapped y should be numeric, got {type(result[1]).__name__}"
-	)
+	overlay = scene._grid_overlay
+	assert overlay in scene.items() and overlay.childItems() == []
 
 
 #============================================
-def test_grid_has_items(main_window):
-	"""Verify the grid group contains child items when the grid is visible."""
+def test_grid_theme_changes_keep_one_live_projection(main_window: object) -> None:
+	"""A theme update preserves the visible grid projection identity."""
 	scene = main_window.scene
-
-	# grid should be visible by default
-	assert scene.grid_visible is True, "precondition: grid should be visible"
-
-	# the grid group should exist
-	grid_group = scene._grid_group
-	assert grid_group is not None, "grid group should not be None"
-
-	# the grid group should have child items (lines and dots)
-	children = grid_group.childItems()
-	assert len(children) > 0, (
-		"grid group should contain child items when grid is visible"
-	)
-
-
-#============================================
-def test_grid_theme_change_rebuilds(main_window):
-	"""Apply dark then light themes and verify the grid survives rebuilds."""
-	scene = main_window.scene
-
-	# switch to dark theme
-	scene.apply_theme("dark")
-
-	# grid should still be visible after theme change
-	assert scene.grid_visible is True, (
-		"grid should remain visible after apply_theme('dark')"
-	)
-
-	# grid group should still have child items
-	grid_group = scene._grid_group
-	assert grid_group is not None, (
-		"grid group should not be None after dark theme apply"
-	)
-	children = grid_group.childItems()
-	assert len(children) > 0, (
-		"grid group should contain items after dark theme apply"
-	)
-
-	# switch back to light theme to restore state
+	overlay = scene._grid_overlay
 	scene.apply_theme("light")
+	assert scene._grid_overlay is overlay and overlay.isVisible()
 
-	# grid should still be visible after restoring light theme
-	assert scene.grid_visible is True, (
-		"grid should remain visible after apply_theme('light')"
-	)
 
-	# grid group should still have child items
-	grid_group_light = scene._grid_group
-	assert grid_group_light is not None, (
-		"grid group should not be None after light theme apply"
-	)
-	children_light = grid_group_light.childItems()
-	assert len(children_light) > 0, (
-		"grid group should contain items after light theme apply"
+#============================================
+def test_grid_spacing_preserves_hex_snap_behavior(main_window: object) -> None:
+	"""A geometry refresh leaves snapping on the requested hex lattice."""
+	scene = main_window.scene
+	scene.set_grid_spacing_pt(48.0)
+	snapped = scene.snap_to_grid(53.0, 53.0)
+	n_index = snapped[0] / (math.sqrt(3.0) * 48.0 / 2.0)
+	m_index = snapped[1] / 48.0 - round(n_index) / 2.0
+	assert (n_index, m_index) == pytest.approx(
+		(round(n_index), round(m_index)), abs=1e-6,
 	)

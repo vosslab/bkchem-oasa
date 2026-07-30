@@ -43,7 +43,7 @@ def _load_valid_codes() -> list:
 
 
 #============================================
-def test_all_yaml_codes_parse():
+def test_all_yaml_codes_parse() -> None:
 	"""Every code in sugar_codes.yaml should parse successfully."""
 	codes = _load_valid_codes()
 	# sanity: the YAML should have a reasonable number of sugars
@@ -61,7 +61,7 @@ def test_all_yaml_codes_parse():
 
 
 #============================================
-def test_invalid_codes_raise():
+def test_invalid_codes_raise() -> None:
 	"""Known-invalid codes must raise ValueError."""
 	for code in _INVALID_CODES:
 		try:

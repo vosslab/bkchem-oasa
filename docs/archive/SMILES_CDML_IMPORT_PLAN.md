@@ -11,7 +11,7 @@ layer between OASA and BKChem.
 ## Design philosophy
 
 CDML is the serialization contract between OASA and BKChem
-([docs/archive/CDML_ARCHITECTURE_PLAN.md](docs/archive/CDML_ARCHITECTURE_PLAN.md)).
+([CDML_ARCHITECTURE_PLAN.md](CDML_ARCHITECTURE_PLAN.md)).
 The current `read_smiles` bypasses this contract by calling
 `oasa_mol_to_bkchem_mol()` directly. This plan routes SMILES import through the
 canonical CDML path so that:
@@ -148,7 +148,7 @@ import, center on the visible canvas area.
 **Done check**:
 - Entering "CCO" in the dialog produces ethanol on the canvas.
 - Entering "C1=CC=CC=C1" produces benzene.
-- Entering "OC[C@@H](O)[C@H](O)C=O" produces a sugar with stereo wedges.
+- Entering "OC`O``O`C=O" produces a sugar with stereo wedges.
 - The molecule appears centered on the visible canvas.
 - Undo reverses the import.
 
@@ -257,11 +257,11 @@ import, center on the visible canvas area.
 
 ## References
 
-- [docs/archive/CDML_ARCHITECTURE_PLAN.md](docs/archive/CDML_ARCHITECTURE_PLAN.md):
+- [CDML_ARCHITECTURE_PLAN.md](CDML_ARCHITECTURE_PLAN.md):
   OASA/BKChem boundary design
-- [docs/CDML_FORMAT_SPEC.md](docs/CDML_FORMAT_SPEC.md):
+- [CDML_FORMAT_SPEC.md](../CDML_FORMAT_SPEC.md):
   CDML format specification
-- [docs/active_plans/PUBCHEM_API_PLAN.md](docs/active_plans/PUBCHEM_API_PLAN.md):
+- [PUBCHEM_API_PLAN.md](../active_plans/PUBCHEM_API_PLAN.md):
   Related future plan for molecule lookup
 - `packages/bkchem-app/bkchem/oasa_bridge.py`: Current bridge code
 - `packages/bkchem-app/bkchem/main.py` lines 1262-1289: Current `read_smiles`

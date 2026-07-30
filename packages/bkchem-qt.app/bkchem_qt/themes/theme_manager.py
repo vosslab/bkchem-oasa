@@ -157,7 +157,7 @@ class ThemeManager(PySide6.QtCore.QObject):
 			hints.colorSchemeChanged.connect(self._on_system_theme_changed)
 
 	#============================================
-	def _on_system_theme_changed(self, scheme) -> None:
+	def _on_system_theme_changed(self, scheme: object) -> None:
 		"""Handle live system theme change from the OS.
 
 		Only applies if the user has not explicitly overridden the theme.

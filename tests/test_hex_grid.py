@@ -3,6 +3,9 @@
 # Standard Library
 import math
 
+# third-party modules
+import pytest
+
 # local repo modules
 import oasa.hex_grid
 
@@ -14,7 +17,22 @@ TOL = 1e-9
 
 
 #============================================
-def test_basis_vectors_geometry():
+def _brute_force_nearest_index(x: float, y: float, spacing: float,
+		origin_x: float, origin_y: float) -> tuple:
+	"""Return the nearest index from a fixed small lattice neighborhood."""
+	candidates = []
+	for n in range(-3, 4):
+		for m in range(-3, 4):
+			px, py = oasa.hex_grid.hex_grid_point(n, m, spacing, origin_x, origin_y)
+			dx = x - px
+			dy = y - py
+			candidates.append((dx * dx + dy * dy, n, m))
+	_, n, m = min(candidates)
+	return (n, m)
+
+
+#============================================
+def test_basis_vectors_geometry() -> None:
 	"""Verify basis vectors have correct length and 60-degree angle."""
 	e1x, e1y, e2x, e2y = oasa.hex_grid.hex_basis_vectors(SPACING)
 	# e1 length should equal spacing
@@ -33,7 +51,7 @@ def test_basis_vectors_geometry():
 
 
 #============================================
-def test_basis_vectors_scaled():
+def test_basis_vectors_scaled() -> None:
 	"""Verify basis vectors scale with spacing."""
 	spacing = 2.5
 	e1x, e1y, e2x, e2y = oasa.hex_grid.hex_basis_vectors(spacing)
@@ -44,7 +62,7 @@ def test_basis_vectors_scaled():
 
 
 #============================================
-def test_snap_to_grid_exact_point():
+def test_snap_to_grid_exact_point() -> None:
 	"""A point exactly on the grid snaps to itself."""
 	# the origin is a grid point
 	sx, sy = oasa.hex_grid.snap_to_hex_grid(0.0, 0.0, SPACING)
@@ -67,7 +85,7 @@ def test_snap_to_grid_exact_point():
 
 
 #============================================
-def test_snap_to_grid_near_point():
+def test_snap_to_grid_near_point() -> None:
 	"""A point near a grid node snaps to that node."""
 	# slightly offset from origin
 	offset = 0.05
@@ -84,7 +102,74 @@ def test_snap_to_grid_near_point():
 
 
 #============================================
-def test_hex_grid_index_roundtrip():
+def test_snap_to_grid_uses_cartesian_nearest_vertex() -> None:
+	"""The counterexample and midpoint use the documented nearest/tie policy."""
+	counterexample = oasa.hex_grid.hex_grid_point(0.49, 0.49, SPACING)
+	midpoint = oasa.hex_grid.hex_grid_point(0.5, 0.0, SPACING)
+	indices = [
+		oasa.hex_grid.hex_grid_index(x, y, SPACING)
+		for x, y in (counterexample, midpoint)
+	]
+	assert indices == [(0, 1), (0, 0)]
+
+
+#============================================
+def test_hex_grid_index_preserves_nearest_order_at_representable_scales() -> None:
+	"""Small and large spacings retain the same nearest lattice vertex."""
+	spacings = [1e-200, 1e200]
+	indices = []
+	for spacing in spacings:
+		x, y = oasa.hex_grid.hex_grid_point(0.9, 0.0, spacing)
+		indices.append(oasa.hex_grid.hex_grid_index(x, y, spacing))
+	assert indices == [(1, 0), (1, 0)]
+
+
+#============================================
+def test_hex_grid_index_rejects_unrepresentable_coordinate_ratio() -> None:
+	"""A finite canvas coordinate needs a finite fractional lattice location."""
+	with pytest.raises(ValueError, match="coordinate-to-spacing ratio"):
+		oasa.hex_grid.hex_grid_index(1e308, 0.0, 1e-308)
+
+
+#============================================
+def test_hex_grid_index_matches_fixed_brute_force_oracle() -> None:
+	"""Nearest-index selection agrees with a small Cartesian brute-force oracle."""
+	spacing = 2.25
+	origin_x, origin_y = -3.5, 4.25
+	fractional_coords = [(0.49, 0.49), (0.5, 0.0), (1.7, -0.4), (-1.2, 1.6)]
+	points = [
+		oasa.hex_grid.hex_grid_point(n, m, spacing, origin_x, origin_y)
+		for n, m in fractional_coords
+	]
+	actual = [
+		oasa.hex_grid.hex_grid_index(x, y, spacing, origin_x, origin_y)
+		for x, y in points
+	]
+	expected = [
+		_brute_force_nearest_index(x, y, spacing, origin_x, origin_y)
+		for x, y in points
+	]
+	assert actual == expected
+
+
+#============================================
+def test_snap_to_grid_preserves_exact_lattice_points() -> None:
+	"""Exact lattice points remain unchanged with shifted origins and scaling."""
+	spacing = 2.25
+	origin_x, origin_y = -3.5, 4.25
+	points = [
+		oasa.hex_grid.hex_grid_point(n, m, spacing, origin_x, origin_y)
+		for n, m in [(-2, 1), (0, 0), (3, -1)]
+	]
+	snapped = [
+		oasa.hex_grid.snap_to_hex_grid(x, y, spacing, origin_x, origin_y)
+		for x, y in points
+	]
+	assert snapped == points
+
+
+#============================================
+def test_hex_grid_index_roundtrip() -> None:
 	"""hex_grid_point(hex_grid_index(x, y)) should equal snap_to_hex_grid(x, y)."""
 	# test several grid points using new pointy-top basis
 	e1x = SPACING * math.sqrt(3) / 2.0
@@ -105,7 +190,7 @@ def test_hex_grid_index_roundtrip():
 
 
 #============================================
-def test_generate_points_count():
+def test_generate_points_count() -> None:
 	"""Known bounding box produces expected point count."""
 	# generate grid in a small box
 	spacing = 1.0
@@ -120,7 +205,7 @@ def test_generate_points_count():
 
 
 #============================================
-def test_generate_points_neighbor_spacing():
+def test_generate_points_neighbor_spacing() -> None:
 	"""All generated points have at least one neighbor at exactly spacing distance."""
 	spacing = 1.0
 	points = oasa.hex_grid.generate_hex_grid_points(-2, -2, 2, 2, spacing)
@@ -146,7 +231,7 @@ def test_generate_points_neighbor_spacing():
 
 
 #============================================
-def test_all_atoms_on_grid_benzene():
+def test_all_atoms_on_grid_benzene() -> None:
 	"""A perfect benzene hexagon with side = spacing should pass grid check."""
 	spacing = 1.0
 	# pointy-top benzene vertices: 6 points on a circle of radius = spacing
@@ -168,7 +253,7 @@ def test_all_atoms_on_grid_benzene():
 
 
 #============================================
-def test_all_atoms_on_grid_shifted():
+def test_all_atoms_on_grid_shifted() -> None:
 	"""A hexagon shifted by half spacing should fail grid check at default origin."""
 	spacing = 1.0
 	# pointy-top benzene at origin
@@ -190,7 +275,7 @@ def test_all_atoms_on_grid_shifted():
 
 
 #============================================
-def test_snap_molecule_preserves_count():
+def test_snap_molecule_preserves_count() -> None:
 	"""snap_molecule_to_hex_grid output has same length as input."""
 	spacing = 1.0
 	# arbitrary input coordinates
@@ -206,7 +291,7 @@ def test_snap_molecule_preserves_count():
 
 
 #============================================
-def test_distance_to_grid_zero_on_grid():
+def test_distance_to_grid_zero_on_grid() -> None:
 	"""Distance to grid is 0.0 for points that are on the grid."""
 	# origin is on grid
 	d = oasa.hex_grid.distance_to_hex_grid(0.0, 0.0, SPACING)
@@ -224,7 +309,7 @@ def test_distance_to_grid_zero_on_grid():
 
 
 #============================================
-def test_find_best_origin_trivial():
+def test_find_best_origin_trivial() -> None:
 	"""When atoms are already on the default grid, best origin is near (0,0)."""
 	spacing = 1.0
 	# use grid points as atom positions (pointy-top basis)
@@ -244,7 +329,7 @@ def test_find_best_origin_trivial():
 
 
 #============================================
-def test_bond_length_spacing():
+def test_bond_length_spacing() -> None:
 	"""Adjacent hex grid points are exactly spacing apart."""
 	spacing = 1.5
 	# point (0,0) and its neighbors in the hex grid
@@ -267,7 +352,7 @@ def test_bond_length_spacing():
 
 
 #============================================
-def test_honeycomb_edge_count():
+def test_honeycomb_edge_count() -> None:
 	"""Verify reasonable edge count for a known bounding box."""
 	spacing = 1.0
 	edges = oasa.hex_grid.generate_hex_honeycomb_edges(0, 0, 5, 5, spacing)
@@ -278,7 +363,7 @@ def test_honeycomb_edge_count():
 
 
 #============================================
-def test_honeycomb_edge_length():
+def test_honeycomb_edge_length() -> None:
 	"""All honeycomb edges should have length equal to spacing."""
 	spacing = 1.0
 	edges = oasa.hex_grid.generate_hex_honeycomb_edges(0, 0, 5, 5, spacing)
@@ -292,7 +377,7 @@ def test_honeycomb_edge_length():
 
 
 #============================================
-def test_honeycomb_no_duplicate_edges():
+def test_honeycomb_no_duplicate_edges() -> None:
 	"""No duplicate edges in honeycomb output."""
 	spacing = 1.0
 	edges = oasa.hex_grid.generate_hex_honeycomb_edges(0, 0, 5, 5, spacing)
@@ -309,7 +394,7 @@ def test_honeycomb_no_duplicate_edges():
 
 
 #============================================
-def test_honeycomb_cutoff():
+def test_honeycomb_cutoff() -> None:
 	"""Huge bounding box should trigger cutoff and return None."""
 	spacing = 1.0
 	result = oasa.hex_grid.generate_hex_honeycomb_edges(

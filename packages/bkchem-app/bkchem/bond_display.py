@@ -7,7 +7,7 @@ from oasa import geometry
 class BondDisplayMixin:
   """UI/display helpers extracted from bond.py."""
 
-  def _display_line_width_for_ui(self):
+  def _display_line_width_for_ui(self) -> float:
     """Return a display-space stroke width for focus/unfocus/simple redraw."""
     width_getter = getattr(self, "_display_line_width", None)
     if callable(width_getter):
@@ -15,7 +15,7 @@ class BondDisplayMixin:
     base_line_width = float(self.line_width or 1.0)
     return abs(float(self.paper.real_to_canvas(base_line_width)))
 
-  def redraw(self, recalc_side=0):
+  def redraw(self, recalc_side: object = 0) -> None:
     if not getattr(self, "_bond__dirty", 0):
       pass
       # print("redrawing non-dirty bond")
@@ -27,7 +27,7 @@ class BondDisplayMixin:
       self.select()
     self._bond__dirty = 0
 
-  def simple_redraw(self):
+  def simple_redraw(self) -> None:
     """Very fast redraw that draws only a simple line instead of the bond."""
     [self.paper.delete(i) for i in self.second]
     self.second = []
@@ -58,7 +58,7 @@ class BondDisplayMixin:
       fill=display_color,
     )
 
-  def visible_items(self):
+  def visible_items(self) -> list:
     """Return a list of canvas items displayed by this bond."""
     if getattr(self, "_render_item_ids", None):
       return list(self._render_item_ids)
@@ -79,7 +79,7 @@ class BondDisplayMixin:
 
     return items
 
-  def focus(self):
+  def focus(self) -> None:
     items = self.visible_items()
     display_line_width = self._display_line_width_for_ui()
 
@@ -90,7 +90,7 @@ class BondDisplayMixin:
     elif self.type in "wb":
       [self.paper.itemconfigure(item, fill=self.paper.highlight_color) for item in items]
 
-  def unfocus(self):
+  def unfocus(self) -> None:
     items = self.visible_items()
     # use theme-mapped color when restoring from highlight
     display_color = theme_manager.map_chemistry_color(self.line_color)
@@ -103,7 +103,7 @@ class BondDisplayMixin:
     elif self.type in "wb":
       [self.paper.itemconfigure(item, fill=display_color) for item in items]
 
-  def select(self):
+  def select(self) -> None:
     x1, y1 = self.atom1.get_xy_on_paper()
     x2, y2 = self.atom2.get_xy_on_paper()
     x = (x1 + x2) / 2
@@ -116,12 +116,12 @@ class BondDisplayMixin:
       )
     self._selected = 1
 
-  def unselect(self):
+  def unselect(self) -> None:
     self.paper.delete(self.selector)
     self.selector = None
     self._selected = 0
 
-  def move(self, dx, dy, use_paper_coords=False):
+  def move(self, dx: object, dy: object, use_paper_coords: object = False) -> None:
     """Move object with its selector (when present)."""
     if not use_paper_coords:
       dx = self.paper.real_to_canvas(dx)
@@ -131,7 +131,7 @@ class BondDisplayMixin:
       items.append(self.selector)
     [self.paper.move(o, dx, dy) for o in items]
 
-  def delete(self):
+  def delete(self) -> object:
     items = [self.item] + self.second + self.third + self.items
     if getattr(self, "_render_item_ids", None):
       items = list(self._render_item_ids)
@@ -148,11 +148,11 @@ class BondDisplayMixin:
     list(map(self.paper.delete, items))
     return self
 
-  def bbox(self):
+  def bbox(self) -> object:
     """Return the object bbox as [x1, y1, x2, y2]."""
     return self.paper.bbox(self.item)
 
-  def lift(self):
+  def lift(self) -> None:
     [self.paper.lift(i) for i in self.items]
     if self.selector:
       self.paper.lift(self.selector)
@@ -163,7 +163,7 @@ class BondDisplayMixin:
     if self.item:
       self.paper.lift(self.item)
 
-  def transform(self, tr):
+  def transform(self, tr: object) -> None:
     if not self.item:
       return
     for i in [self.item] + self.second + self.third + self.items:
@@ -181,7 +181,7 @@ class BondDisplayMixin:
       if sign * self.bond_width < 0:
         self.bond_width *= -1
 
-  def get_exportable_items(self):
+  def get_exportable_items(self) -> tuple:
     """Return (line_items, items) tuple used by exporters."""
     if getattr(self, "_render_item_ids", None):
       line_items = []

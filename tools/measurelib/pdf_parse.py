@@ -23,7 +23,7 @@ CHAR_GROUPING_THRESHOLD_FACTOR = 0.5
 
 
 #============================================
-def open_pdf_page(pdf_path: str):
+def open_pdf_page(pdf_path: str) -> object:
 	"""Open a PDF file with pdfplumber and return the first page.
 
 	Args:
@@ -55,7 +55,7 @@ def _curve_is_straight_line(curve: dict) -> bool:
 
 
 #============================================
-def collect_pdf_lines(page) -> list[dict]:
+def collect_pdf_lines(page: object) -> list[dict]:
 	"""Collect line primitives from one PDF page.
 
 	Extracts from page.lines and straight-line page.curves.
@@ -187,7 +187,7 @@ def _group_chars_into_words(chars: list[dict], page_height: float) -> list[dict]
 
 
 #============================================
-def collect_pdf_labels(page) -> list[dict]:
+def collect_pdf_labels(page: object) -> list[dict]:
 	"""Collect text labels from one PDF page with measurement eligibility tags.
 
 	Groups adjacent characters into words by proximity.
@@ -205,7 +205,7 @@ def collect_pdf_labels(page) -> list[dict]:
 
 
 #============================================
-def collect_pdf_ring_primitives(page) -> list[dict]:
+def collect_pdf_ring_primitives(page: object) -> list[dict]:
 	"""Collect filled polygon/path primitives for Haworth ring detection from PDF.
 
 	Extracts filled curves and rects from the page.
@@ -267,7 +267,7 @@ def collect_pdf_ring_primitives(page) -> list[dict]:
 
 
 #============================================
-def collect_pdf_wedge_bonds(page) -> list[dict]:
+def collect_pdf_wedge_bonds(page: object) -> list[dict]:
 	"""Collect filled polygon elements that represent wedge/stereo bonds from PDF.
 
 	Returns dicts with keys matching svg_parse.collect_svg_wedge_bonds output.

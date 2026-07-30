@@ -29,7 +29,7 @@ from bkchem.actions.view_actions import register_view_actions
 
 
 #============================================
-def _make_mock_app():
+def _make_mock_app() -> object:
 	"""Build a mock app with attributes needed by chemistry and view actions.
 
 	Returns:
@@ -58,7 +58,7 @@ def _make_mock_app():
 
 
 #============================================
-def _build_chemistry_registry():
+def _build_chemistry_registry() -> object:
 	"""Register chemistry actions and return the registry and app.
 
 	Returns:
@@ -71,7 +71,7 @@ def _build_chemistry_registry():
 
 
 #============================================
-def _build_view_registry():
+def _build_view_registry() -> object:
 	"""Register view actions and return the registry and app.
 
 	Returns:
@@ -84,7 +84,7 @@ def _build_view_registry():
 
 
 #============================================
-def test_chemistry_register_count():
+def test_chemistry_register_count() -> None:
 	"""Verify exactly 14 chemistry actions are registered."""
 	registry, _app = _build_chemistry_registry()
 	actions = registry.all_actions()
@@ -92,7 +92,7 @@ def test_chemistry_register_count():
 
 
 #============================================
-def test_view_register_count():
+def test_view_register_count() -> None:
 	"""Verify exactly 5 view actions are registered."""
 	registry, _app = _build_view_registry()
 	actions = registry.all_actions()
@@ -100,7 +100,7 @@ def test_view_register_count():
 
 
 #============================================
-def test_chemistry_action_ids():
+def test_chemistry_action_ids() -> None:
 	"""Verify all 14 chemistry action IDs are present."""
 	registry, _app = _build_chemistry_registry()
 	expected_ids = {
@@ -124,7 +124,7 @@ def test_chemistry_action_ids():
 
 
 #============================================
-def test_view_action_ids():
+def test_view_action_ids() -> None:
 	"""Verify all 5 view action IDs are present."""
 	registry, _app = _build_view_registry()
 	expected_ids = {
@@ -139,7 +139,7 @@ def test_view_action_ids():
 
 
 #============================================
-def test_chemistry_enabled_when_types():
+def test_chemistry_enabled_when_types() -> None:
 	"""Verify enabled_when values have the correct types for each action."""
 	registry, _app = _build_chemistry_registry()
 	actions = registry.all_actions()
@@ -163,7 +163,7 @@ def test_chemistry_enabled_when_types():
 
 
 #============================================
-def test_view_all_enabled_when_none():
+def test_view_all_enabled_when_none() -> None:
 	"""Verify all 5 view actions have enabled_when=None (always enabled)."""
 	registry, _app = _build_view_registry()
 	actions = registry.all_actions()

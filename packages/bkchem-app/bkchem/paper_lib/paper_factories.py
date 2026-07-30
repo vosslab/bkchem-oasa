@@ -10,73 +10,73 @@ from bkchem.reaction_lib import BkReaction
 class PaperFactoriesMixin:
 	"""Object creation and deserialization helpers extracted from paper.py."""
 
-	def new_molecule( self):
+	def new_molecule( self) -> object:
 		mol = BkMolecule( self)
 		self.stack.append( mol)
 		return mol
 
 
-	def add_molecule( self, mol):
+	def add_molecule( self, mol: object) -> object:
 		self.stack.append( mol)
 
 
-	def new_arrow( self, points=[], spline=0, type="normal"):
+	def new_arrow( self, points: object = [], spline: object = 0, type: object = "normal") -> object:
 		arr = BkArrow( self, type=type, points=points, spline=spline)
 		self.stack.append( arr)
 		arr.draw()
 		return arr
 
 
-	def new_plus( self, x, y):
+	def new_plus( self, x: object, y: object) -> object:
 		pl = classes.plus( self, xy = (x,y))
 		self.stack.append( pl)
 		pl.draw()
 		return pl
 
 
-	def new_text( self, x, y, text=''):
+	def new_text( self, x: object, y: object, text: object = '') -> object:
 		txt = classes.text( self, xy=(x,y), text=text)
 		self.stack.append( txt)
 		return txt
 
 
-	def new_rect( self, coords):
+	def new_rect( self, coords: object) -> object:
 		rec = graphics.rect( self, coords=coords)
 		self.stack.append( rec)
 		return rec
 
 
-	def new_oval( self, coords):
+	def new_oval( self, coords: object) -> object:
 		ovl = graphics.oval( self, coords=coords)
 		self.stack.append( ovl)
 		return ovl
 
 
-	def new_square( self, coords):
+	def new_square( self, coords: object) -> object:
 		rec = graphics.square( self, coords=coords)
 		self.stack.append( rec)
 		return rec
 
 
-	def new_circle( self, coords):
+	def new_circle( self, coords: object) -> object:
 		ovl = graphics.circle( self, coords=coords)
 		self.stack.append( ovl)
 		return ovl
 
 
-	def new_polygon( self, coords):
+	def new_polygon( self, coords: object) -> object:
 		p = graphics.polygon( self, coords=coords)
 		self.stack.append( p)
 		return p
 
 
-	def new_polyline( self, coords):
+	def new_polyline( self, coords: object) -> object:
 		p = graphics.polyline( self, coords=coords)
 		self.stack.append( p)
 		return p
 
 
-	def add_object_from_package( self, package):
+	def add_object_from_package( self, package: object) -> object:
 		if package.nodeName == 'molecule':
 			o = BkMolecule( self, package=package)
 		elif package.nodeName == 'arrow':

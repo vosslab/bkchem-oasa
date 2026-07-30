@@ -66,7 +66,7 @@ REPAIR_OPS = {
 
 
 #============================================
-def _mol_from_smiles(smiles_str):
+def _mol_from_smiles(smiles_str: str) -> object:
 	"""Parse a SMILES string and generate 2D coordinates.
 
 	Args:
@@ -81,7 +81,7 @@ def _mol_from_smiles(smiles_str):
 
 
 #============================================
-def _get_bond_lengths(mol) -> list:
+def _get_bond_lengths(mol: object) -> list:
 	"""Compute Euclidean bond lengths for every bond in the molecule.
 
 	Args:
@@ -100,7 +100,7 @@ def _get_bond_lengths(mol) -> list:
 
 
 #============================================
-def _get_ring_sizes(mol) -> list:
+def _get_ring_sizes(mol: object) -> list:
 	"""Return sorted list of ring sizes.
 
 	Args:
@@ -115,7 +115,7 @@ def _get_ring_sizes(mol) -> list:
 
 
 #============================================
-def _get_ring_atoms_set(mol) -> set:
+def _get_ring_atoms_set(mol: object) -> set:
 	"""Return set of all atoms belonging to at least one ring.
 
 	Args:
@@ -131,7 +131,7 @@ def _get_ring_atoms_set(mol) -> set:
 
 
 #============================================
-def _get_shared_ring_atoms(cycles) -> set:
+def _get_shared_ring_atoms(cycles: object) -> set:
 	"""Return atoms that appear in more than one ring (fused ring junctions).
 
 	Args:
@@ -151,7 +151,7 @@ def _get_shared_ring_atoms(cycles) -> set:
 
 
 #============================================
-def _measure_ring_geometry(ring_atoms, mol) -> tuple:
+def _measure_ring_geometry(ring_atoms: object, mol: object) -> tuple:
 	"""Measure bond lengths and internal angles for an ordered ring.
 
 	Args:
@@ -187,7 +187,7 @@ def _measure_ring_geometry(ring_atoms, mol) -> tuple:
 
 
 #============================================
-def _is_fused_ring(cycle, all_cycles) -> bool:
+def _is_fused_ring(cycle: object, all_cycles: object) -> bool:
 	"""Check if a ring shares any atoms with another ring.
 
 	Args:
@@ -208,7 +208,7 @@ def _is_fused_ring(cycle, all_cycles) -> bool:
 
 #============================================
 @pytest.fixture(params=sorted(MOLECULES.keys()))
-def mol_data(request):
+def mol_data(request: object) -> object:
 	"""Fixture that provides each biomolecule with its expected metadata."""
 	key = request.param
 	info = MOLECULES[key]
@@ -222,7 +222,7 @@ def mol_data(request):
 class TestMoleculeLoading:
 	"""Verify that SMILES parsing produces expected molecular graphs."""
 
-	def test_atom_count(self, mol_data):
+	def test_atom_count(self, mol_data: object) -> None:
 		"""Each molecule has at least the expected number of heavy atoms."""
 		mol = mol_data["mol"]
 		assert len(mol.atoms) >= mol_data["min_atoms"], (
@@ -230,7 +230,7 @@ class TestMoleculeLoading:
 			f"got {len(mol.atoms)}"
 		)
 
-	def test_bond_count(self, mol_data):
+	def test_bond_count(self, mol_data: object) -> None:
 		"""Each molecule has at least the expected number of bonds."""
 		mol = mol_data["mol"]
 		assert len(mol.bonds) >= mol_data["min_bonds"], (
@@ -238,7 +238,7 @@ class TestMoleculeLoading:
 			f"got {len(mol.bonds)}"
 		)
 
-	def test_ring_sizes(self, mol_data):
+	def test_ring_sizes(self, mol_data: object) -> None:
 		"""Ring decomposition matches expected ring sizes."""
 		mol = mol_data["mol"]
 		sizes = _get_ring_sizes(mol)
@@ -247,7 +247,7 @@ class TestMoleculeLoading:
 			f"got {sizes}"
 		)
 
-	def test_coords_not_all_zero(self, mol_data):
+	def test_coords_not_all_zero(self, mol_data: object) -> None:
 		"""All atoms have coordinates and they are not all at the origin."""
 		mol = mol_data["mol"]
 		has_nonzero = False
@@ -263,7 +263,7 @@ class TestMoleculeLoading:
 class TestNormalizeBondLengths:
 	"""Test normalize_bond_lengths on each biomolecule."""
 
-	def test_non_ring_bonds_normalized(self, mol_data):
+	def test_non_ring_bonds_normalized(self, mol_data: object) -> None:
 		"""Non-ring bond lengths should be close to the target length."""
 		mol = mol_data["mol"]
 		oasa.repair_ops.normalize_bond_lengths(mol, bond_length=1.0)
@@ -286,7 +286,7 @@ class TestNormalizeBondLengths:
 class TestNormalizeBondAngles:
 	"""Test normalize_bond_angles on each biomolecule."""
 
-	def test_angles_snap_to_60(self, mol_data):
+	def test_angles_snap_to_60(self, mol_data: object) -> None:
 		"""Non-ring, non-terminal bond angles should be near 60-degree multiples."""
 		mol = mol_data["mol"]
 		oasa.repair_ops.normalize_bond_angles(mol, bond_length=1.0)
@@ -333,7 +333,7 @@ class TestNormalizeRings:
 	earlier rings.  Fused ring tests are marked xfail to document this.
 	"""
 
-	def test_isolated_ring_bond_lengths(self, mol_data):
+	def test_isolated_ring_bond_lengths(self, mol_data: object) -> None:
 		"""Isolated rings should have all bond lengths equal to bond_length."""
 		mol = mol_data["mol"]
 		oasa.repair_ops.normalize_rings(mol, bond_length=1.0)
@@ -348,7 +348,7 @@ class TestNormalizeRings:
 					f"bond length {length:.4f}, expected 1.0"
 				)
 
-	def test_isolated_ring_angles(self, mol_data):
+	def test_isolated_ring_angles(self, mol_data: object) -> None:
 		"""Isolated rings should have internal angles of 180*(N-2)/N degrees."""
 		mol = mol_data["mol"]
 		oasa.repair_ops.normalize_rings(mol, bond_length=1.0)
@@ -370,7 +370,7 @@ class TestNormalizeRings:
 		reason="fused rings: sequential processing overwrites shared atoms",
 		strict=False,
 	)
-	def test_fused_ring_bond_lengths(self, mol_data):
+	def test_fused_ring_bond_lengths(self, mol_data: object) -> None:
 		"""Fused rings should ideally have uniform bond lengths.
 
 		Known limitation: the algorithm processes rings sequentially,
@@ -397,7 +397,7 @@ class TestNormalizeRings:
 		reason="fused rings: sequential processing overwrites shared atoms",
 		strict=False,
 	)
-	def test_fused_ring_angles(self, mol_data):
+	def test_fused_ring_angles(self, mol_data: object) -> None:
 		"""Fused rings should ideally have regular N-gon angles.
 
 		Known limitation: the algorithm processes rings sequentially,
@@ -427,7 +427,7 @@ class TestNormalizeRings:
 class TestStraightenBonds:
 	"""Test straighten_bonds on each biomolecule."""
 
-	def test_terminal_angles_snap_to_30(self, mol_data):
+	def test_terminal_angles_snap_to_30(self, mol_data: object) -> None:
 		"""Terminal bond angles should be multiples of 30 degrees."""
 		mol = mol_data["mol"]
 		oasa.repair_ops.straighten_bonds(mol)
@@ -462,12 +462,12 @@ class TestSnapToHexGrid:
 	or NaN coordinates -- not that every atom lands on a grid point.
 	"""
 
-	def test_runs_without_error(self, mol_data):
+	def test_runs_without_error(self, mol_data: object) -> None:
 		"""snap_to_hex_grid should complete without exceptions."""
 		mol = mol_data["mol"]
 		oasa.repair_ops.snap_to_hex_grid(mol, bond_length=1.0)
 
-	def test_no_nan_after_snap(self, mol_data):
+	def test_no_nan_after_snap(self, mol_data: object) -> None:
 		"""No atom should have NaN or infinite coordinates after snapping."""
 		mol = mol_data["mol"]
 		oasa.repair_ops.snap_to_hex_grid(mol, bond_length=1.0)
@@ -485,11 +485,11 @@ class TestOperationsPreserveTopology:
 	"""All repair operations must preserve atom and bond counts."""
 
 	@pytest.fixture(params=sorted(REPAIR_OPS.keys()))
-	def op_name(self, request):
+	def op_name(self, request: object) -> str:
 		"""Parametrize over all repair operation names."""
 		return request.param
 
-	def test_atom_count_preserved(self, mol_data, op_name):
+	def test_atom_count_preserved(self, mol_data: object, op_name: str) -> None:
 		"""Atom count unchanged after any repair operation."""
 		mol = mol_data["mol"]
 		original_count = len(mol.atoms)
@@ -503,7 +503,7 @@ class TestOperationsPreserveTopology:
 			f"from {original_count} to {len(mol.atoms)}"
 		)
 
-	def test_bond_count_preserved(self, mol_data, op_name):
+	def test_bond_count_preserved(self, mol_data: object, op_name: str) -> None:
 		"""Bond count unchanged after any repair operation."""
 		mol = mol_data["mol"]
 		original_count = len(mol.bonds)
@@ -523,11 +523,11 @@ class TestOperationsProduceFiniteCoords:
 	"""No repair operation should produce NaN or infinite coordinates."""
 
 	@pytest.fixture(params=sorted(REPAIR_OPS.keys()))
-	def op_name(self, request):
+	def op_name(self, request: object) -> str:
 		"""Parametrize over all repair operation names."""
 		return request.param
 
-	def test_no_nan_or_inf(self, mol_data, op_name):
+	def test_no_nan_or_inf(self, mol_data: object, op_name: str) -> None:
 		"""All atom coordinates must be finite after any repair operation."""
 		mol = mol_data["mol"]
 		func, needs_bl = REPAIR_OPS[op_name]

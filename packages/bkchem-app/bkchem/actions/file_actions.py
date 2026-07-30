@@ -1,11 +1,12 @@
 """File menu action registrations for BKChem."""
 
 # local repo modules
+from bkchem.actions.action_registry import ActionRegistry
 from bkchem.actions.action_registry import MenuAction
 
 
 #============================================
-def register_file_actions(registry, app) -> None:
+def register_file_actions(registry: ActionRegistry, app: object) -> None:
 	"""Register all File menu actions.
 
 	Args:

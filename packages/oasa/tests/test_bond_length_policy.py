@@ -22,19 +22,19 @@ from oasa.render_lib.molecule_ops import molecule_to_ops
 class _EdgeMock:
 	"""Minimal edge-like object for policy helper tests."""
 
-	def __init__(self, order=1, edge_type='n', properties=None):
+	def __init__(self, order: int = 1, edge_type: str = 'n', properties: object = None) -> None:
 		self.order = order
 		self.type = edge_type
 		self.properties_ = properties or {}
 
 
 #============================================
-def _distance(p1, p2):
+def _distance(p1: object, p2: object) -> float:
 	return math.hypot(p2[0] - p1[0], p2[1] - p1[1])
 
 
 #============================================
-def _build_two_atom_molecule(order=1, edge_type='n'):
+def _build_two_atom_molecule(order: int = 1, edge_type: str = 'n') -> tuple:
 	mol = oasa.molecule_lib.Molecule()
 	a1 = oasa.atom_lib.Atom(symbol='C')
 	a2 = oasa.atom_lib.Atom(symbol='C')
@@ -51,7 +51,7 @@ def _build_two_atom_molecule(order=1, edge_type='n'):
 
 
 #============================================
-def _longest_line_length(ops):
+def _longest_line_length(ops: object) -> float:
 	lines = [op for op in ops if isinstance(op, render_ops.LineOp)]
 	if not lines:
 		raise AssertionError("Expected at least one LineOp in rendered output")
@@ -59,7 +59,7 @@ def _longest_line_length(ops):
 
 
 #============================================
-def test_bond_length_profile_table_keys():
+def test_bond_length_profile_table_keys() -> None:
 	profile = bond_length_profile()
 	assert set(profile) == {
 		"single",
@@ -85,13 +85,13 @@ def test_bond_length_profile_table_keys():
 		("wavy", 1.00),
 	),
 )
-def test_resolve_bond_length_defaults(style, expected_ratio):
+def test_resolve_bond_length_defaults(style: str, expected_ratio: float) -> None:
 	resolved = resolve_bond_length(10.0, style)
 	assert resolved == pytest.approx(10.0 * expected_ratio)
 
 
 #============================================
-def test_resolve_bond_length_rejects_non_default_override_without_tag():
+def test_resolve_bond_length_rejects_non_default_override_without_tag() -> None:
 	with pytest.raises(ValueError, match="Non-default bond length requires one exception tag"):
 		resolve_bond_length(
 			base_length=10.0,
@@ -101,7 +101,7 @@ def test_resolve_bond_length_rejects_non_default_override_without_tag():
 
 
 #============================================
-def test_resolve_bond_length_enforces_exception_direction_rules():
+def test_resolve_bond_length_enforces_exception_direction_rules() -> None:
 	with pytest.raises(ValueError, match="may only lengthen"):
 		resolve_bond_length(
 			base_length=10.0,
@@ -125,13 +125,13 @@ def test_resolve_bond_length_enforces_exception_direction_rules():
 		(1, "n", 1.00),
 		(2, "n", 0.98),
 		(3, "n", 0.96),
-		(1, "d", 1.08),
+		(1, "d", 1.00),
 		(1, "w", 1.00),
 		(1, "h", 1.00),
 		(1, "s", 1.00),
 	),
 )
-def test_apply_bond_length_policy_uses_style_mapping(order, edge_type, expected_ratio):
+def test_apply_bond_length_policy_uses_style_mapping(order: int, edge_type: str, expected_ratio: float) -> None:
 	edge = _EdgeMock(order=order, edge_type=edge_type)
 	start, end = _apply_bond_length_policy(edge, (0.0, 0.0), (10.0, 0.0))
 	assert start == pytest.approx((0.0, 0.0))
@@ -139,7 +139,7 @@ def test_apply_bond_length_policy_uses_style_mapping(order, edge_type, expected_
 
 
 #============================================
-def test_molecule_to_ops_applies_default_double_and_triple_lengths():
+def test_molecule_to_ops_applies_default_double_and_triple_lengths() -> None:
 	base_mol, _base_bond = _build_two_atom_molecule(order=1, edge_type='n')
 	base_ops = molecule_to_ops(base_mol)
 	base_length = _longest_line_length(base_ops)
@@ -157,7 +157,7 @@ def test_molecule_to_ops_applies_default_double_and_triple_lengths():
 
 
 #============================================
-def test_molecule_to_ops_rejects_untagged_non_default_override():
+def test_molecule_to_ops_rejects_untagged_non_default_override() -> None:
 	mol, bond = _build_two_atom_molecule(order=1, edge_type='n')
 	bond.properties_["bond_length_override"] = 12.0
 	with pytest.raises(ValueError, match="Non-default bond length requires one exception tag"):
@@ -165,7 +165,7 @@ def test_molecule_to_ops_rejects_untagged_non_default_override():
 
 
 #============================================
-def test_molecule_to_ops_accepts_tagged_override():
+def test_molecule_to_ops_accepts_tagged_override() -> None:
 	mol, bond = _build_two_atom_molecule(order=1, edge_type='n')
 	bond.properties_["bond_length_override"] = 12.0
 	bond.properties_["bond_length_exception_tag"] = "EXC_OXYGEN_AVOID_UP"

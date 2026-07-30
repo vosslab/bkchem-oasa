@@ -12,7 +12,7 @@ import pytest
 
 
 #============================================
-def _ensure_gettext_fallbacks():
+def _ensure_gettext_fallbacks() -> None:
 	"""Ensure gettext helpers exist for module-level strings."""
 	if "_" not in builtins.__dict__:
 		builtins.__dict__["_"] = lambda m: m
@@ -21,7 +21,7 @@ def _ensure_gettext_fallbacks():
 
 
 #============================================
-def _verify_tkinter():
+def _verify_tkinter() -> None:
 	"""Verify Tk is available for GUI-backed tests."""
 	try:
 		import tkinter
@@ -36,7 +36,7 @@ def _verify_tkinter():
 
 
 #============================================
-def _ensure_preferences():
+def _ensure_preferences() -> None:
 	"""Initialize preference manager for tests."""
 	from bkchem import os_support
 	from bkchem import pref_manager
@@ -50,7 +50,7 @@ def _ensure_preferences():
 
 
 #============================================
-def _flush_events(app, delay=0.05):
+def _flush_events(app: object, delay: float=0.05) -> None:
 	"""Process Tk events with a brief delay for GUI updates."""
 	app.update_idletasks()
 	app.update()
@@ -60,7 +60,7 @@ def _flush_events(app, delay=0.05):
 
 
 #============================================
-def _verify_mode_borders(app, current_mode):
+def _verify_mode_borders(app: object, current_mode: str) -> None:
 	"""Check that only the active mode button is selected via StringVar.
 
 	For ttk.Radiobutton toolbar, the active mode is tracked by
@@ -107,7 +107,7 @@ def _verify_mode_borders(app, current_mode):
 
 
 #============================================
-def _run_gui_mode_cycling():
+def _run_gui_mode_cycling() -> None:
 	"""Cycle through every toolbar mode and submode, verifying state."""
 	_ensure_gettext_fallbacks()
 	_verify_tkinter()
@@ -191,13 +191,13 @@ def _run_gui_mode_cycling():
 
 
 #============================================
-def main():
+def main() -> None:
 	"""Entry point for running the GUI mode cycling test directly."""
 	_run_gui_mode_cycling()
 
 
 #============================================
-def test_gui_mode_cycling():
+def test_gui_mode_cycling() -> None:
 	"""Run the mode cycling test in a subprocess for Tk isolation."""
 	cmd = [sys.executable, os.path.abspath(__file__)]
 	result = subprocess.run(cmd, capture_output=True, text=True, check=False)

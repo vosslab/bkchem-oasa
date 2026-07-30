@@ -6,8 +6,10 @@ import PySide6.QtGui
 import PySide6.QtWidgets
 
 # local repo modules
+import bkchem_qt.canvas.graphics_retirement
+import bkchem_qt.canvas.items.render_ops_painter
 import bkchem_qt.modes.base_mode
-from bkchem_qt.canvas.items import render_ops_painter
+
 _PREVIEW_PEN_WIDTH = 1.5
 _PREVIEW_PEN_STYLE = PySide6.QtCore.Qt.PenStyle.DashLine
 
@@ -26,7 +28,11 @@ class ArrowMode(bkchem_qt.modes.base_mode.BaseMode):
 	"""
 
 	#============================================
-	def __init__(self, view, parent=None):
+	def __init__(
+			self,
+			view: PySide6.QtWidgets.QGraphicsView,
+			parent: PySide6.QtCore.QObject | None = None,
+			) -> None:
 		"""Initialize the arrow mode.
 
 		Args:
@@ -35,14 +41,27 @@ class ArrowMode(bkchem_qt.modes.base_mode.BaseMode):
 		"""
 		super().__init__(view, parent)
 		self._name = "Arrow"
+		self._persistent_operation = None
 		# preview line item shown during drag
 		self._preview_line = None
+		self._preview_scene = None
 		# start point in scene coordinates
 		self._start_point = None
 		self._cursor = PySide6.QtCore.Qt.CursorShape.CrossCursor
 
 	#============================================
-	def mouse_press(self, scene_pos: PySide6.QtCore.QPointF, event) -> None:
+	def set_persistent_operation(self, operation: object | None) -> None:
+		"""Install or clear the generic immutable-request callback."""
+		if operation is not None and not callable(operation):
+			raise TypeError("Arrow persistent operation must be callable")
+		self._persistent_operation = operation
+
+	#============================================
+	def mouse_press(
+			self,
+			scene_pos: PySide6.QtCore.QPointF,
+			event: object,
+			) -> None:
 		"""Set the arrow start point.
 
 		Args:
@@ -53,7 +72,11 @@ class ArrowMode(bkchem_qt.modes.base_mode.BaseMode):
 		self.status_message.emit("Drag to set arrow endpoint")
 
 	#============================================
-	def mouse_move(self, scene_pos: PySide6.QtCore.QPointF, event) -> None:
+	def mouse_move(
+			self,
+			scene_pos: PySide6.QtCore.QPointF,
+			event: object,
+			) -> None:
 		"""Update the preview arrow line during drag.
 
 		Creates a dashed line from the start point to the current
@@ -65,15 +88,14 @@ class ArrowMode(bkchem_qt.modes.base_mode.BaseMode):
 		"""
 		if self._start_point is None:
 			return
+		# A preview is terminal feedback, never undo-owned graphics.
+		self._retire_preview_line()
 		scene = self._env.scene
 		if scene is None:
 			return
-		# remove old preview line if it exists
-		if self._preview_line is not None:
-			scene.removeItem(self._preview_line)
-			self._preview_line = None
 		# create a new preview line
-		pen = PySide6.QtGui.QPen(PySide6.QtGui.QColor(render_ops_painter.get_canvas_color("preview")))
+		color = bkchem_qt.canvas.items.render_ops_painter.get_canvas_color("preview")
+		pen = PySide6.QtGui.QPen(PySide6.QtGui.QColor(color))
 		pen.setWidthF(_PREVIEW_PEN_WIDTH)
 		pen.setStyle(_PREVIEW_PEN_STYLE)
 		self._preview_line = scene.addLine(
@@ -81,91 +103,78 @@ class ArrowMode(bkchem_qt.modes.base_mode.BaseMode):
 			scene_pos.x(), scene_pos.y(),
 			pen,
 		)
+		self._preview_scene = scene
 
 	#============================================
-	def mouse_release(self, scene_pos: PySide6.QtCore.QPointF, event) -> None:
-		"""Create the final arrow item and clean up the preview.
+	def mouse_release(
+			self,
+			scene_pos: PySide6.QtCore.QPointF,
+			event: object,
+			) -> None:
+		"""Commit a persistent arrow candidate and clean up the preview.
 
-		Removes the preview dashed line and adds an arrow line item
-		with an arrowhead to the scene.
+		The live line is transient feedback only.  A session-owned frontend
+		action converts plain coordinates to complete CDML and rebuilds this Qt
+		projection from the accepted backend snapshot.
 
 		Args:
 			scene_pos: End position in scene coordinates.
-			event: The mouse event.
+			 event: The mouse event.
 		"""
+		self._retire_preview_line()
 		scene = self._env.scene
 		if scene is None:
 			self._start_point = None
 			return
-		# remove preview line
-		if self._preview_line is not None:
-			scene.removeItem(self._preview_line)
-			self._preview_line = None
+		message = "Arrow mode active"
 		# only create the arrow if we have a start point and some distance
 		if self._start_point is not None:
 			dx = scene_pos.x() - self._start_point.x()
 			dy = scene_pos.y() - self._start_point.y()
 			# minimum distance threshold to avoid accidental zero-length arrows
 			if (dx * dx + dy * dy) > 25.0:
-				_create_arrow_item(scene, self._start_point, scene_pos)
+				if self._persistent_operation is None:
+					message = "Document cannot accept a persistent edit"
+				else:
+					from bkchem_qt.models import document_session
+					request = document_session.PersistentOperationRequest(
+						"arrow.add", "Arrow",
+						(
+							("start", (self._start_point.x(), self._start_point.y())),
+							("end", (scene_pos.x(), scene_pos.y())),
+						),
+					)
+					outcome = self._persistent_operation(request)
+					message = outcome.message
 		self._start_point = None
-		self.status_message.emit("Arrow mode active")
+		self.status_message.emit(message)
 
 	#============================================
 	def deactivate(self) -> None:
 		"""Clean up the preview line when leaving arrow mode."""
-		if self._preview_line is not None:
-			scene = self._env.scene
-			if scene is not None:
-				scene.removeItem(self._preview_line)
-			self._preview_line = None
+		self._retire_preview_line()
 		self._start_point = None
 		super().deactivate()
 
-
-#============================================
-def _create_arrow_item(scene, start: PySide6.QtCore.QPointF,
-						end: PySide6.QtCore.QPointF) -> None:
-	"""Add a line with an arrowhead to the scene.
-
-	Draws a solid line from start to end and adds a small triangular
-	arrowhead at the end point.
-
-	Args:
-		scene: QGraphicsScene to add the arrow to.
-		start: Arrow start position.
-		end: Arrow end position (where the arrowhead points).
-	"""
-	import math
-	# draw the main line
-	pen = PySide6.QtGui.QPen(PySide6.QtCore.Qt.GlobalColor.black)
-	pen.setWidthF(1.5)
-	line_item = scene.addLine(
-		start.x(), start.y(), end.x(), end.y(), pen,
-	)
-	line_item.setFlag(
-		PySide6.QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, True,
-	)
-	# compute arrowhead triangle
-	arrow_size = 10.0
-	angle = math.atan2(end.y() - start.y(), end.x() - start.x())
-	# two points of the arrowhead, offset from the end point
-	angle_offset = math.pi / 6  # 30 degrees
-	p1_x = end.x() - arrow_size * math.cos(angle - angle_offset)
-	p1_y = end.y() - arrow_size * math.sin(angle - angle_offset)
-	p2_x = end.x() - arrow_size * math.cos(angle + angle_offset)
-	p2_y = end.y() - arrow_size * math.sin(angle + angle_offset)
-	# create the arrowhead polygon
-	arrowhead = PySide6.QtGui.QPolygonF([
-		end,
-		PySide6.QtCore.QPointF(p1_x, p1_y),
-		PySide6.QtCore.QPointF(p2_x, p2_y),
-	])
-	head_item = scene.addPolygon(
-		arrowhead,
-		PySide6.QtGui.QPen(PySide6.QtCore.Qt.GlobalColor.black),
-		PySide6.QtGui.QBrush(PySide6.QtCore.Qt.GlobalColor.black),
-	)
-	head_item.setFlag(
-		PySide6.QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, True,
-	)
+	#============================================
+	def _retire_preview_line(self) -> None:
+		"""Terminally retire the known preview line before releasing its wrapper."""
+		preview_line = self._preview_line
+		preview_scene = self._preview_scene
+		if preview_line is None:
+			return
+		try:
+			coordinator = bkchem_qt.canvas.graphics_retirement.GraphicsRetirementCoordinator()
+			if preview_scene is None:
+				coordinator.retire_detached_projection_items(
+					[preview_line], reaper=self._graphics_retirement_reaper,
+				)
+			else:
+				coordinator.retire_scene_projection_items(
+					preview_scene, [preview_line],
+					reaper=self._graphics_retirement_reaper,
+				)
+			coordinator.raise_if_callback_failed("Arrow preview retirement failed")
+		finally:
+			self._preview_line = None
+			self._preview_scene = None

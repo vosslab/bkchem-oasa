@@ -19,7 +19,7 @@ _ = builtins.__dict__.get( '_', lambda m: m)
 class MainChemistryIOMixin:
   """SMILES / InChI / peptide read and generate helpers extracted from main.py."""
 
-  def read_smiles( self, smiles=None):
+  def read_smiles( self, smiles: object=None) -> object:
     if not oasa_bridge.oasa_available:
       return
     lt = _("Enter a SMILES or IsoSMILES string:")
@@ -54,7 +54,7 @@ class MainChemistryIOMixin:
       return imported
 
 
-  def read_inchi( self, inchi=None):
+  def read_inchi( self, inchi: object=None) -> object:
     if not oasa_bridge.oasa_available:
       return
     lt = _("""Before you use his tool, be warned that not all features of InChI are currently supported.
@@ -118,7 +118,7 @@ Enter InChI:""")
       self.paper.start_new_undo_record()
 
 
-  def read_peptide_sequence( self):
+  def read_peptide_sequence( self) -> object:
     if not oasa_bridge.oasa_available:
       return
     # get supported amino acid letters from OASA for the dialog prompt
@@ -169,7 +169,7 @@ Enter InChI:""")
     return imported
 
 
-  def gen_smiles(self):
+  def gen_smiles(self) -> None:
     if not oasa_bridge.oasa_available:
       return
     u, i = self.paper.selected_to_unique_top_levels()
@@ -187,7 +187,7 @@ Enter InChI:""")
     dial.activate()
 
 
-  def gen_inchi( self):
+  def gen_inchi( self) -> None:
     program = Store.pm.get_preference( "inchi_program_path")
     self.paper.swap_sides_of_selected("horizontal")
     if not oasa_bridge.oasa_available:

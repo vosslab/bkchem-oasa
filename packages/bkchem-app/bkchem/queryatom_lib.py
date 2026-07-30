@@ -25,6 +25,7 @@
 
 import sys
 import oasa
+import oasa.linear_formula
 import oasa.query_atom
 
 from oasa import periodic_table as PT
@@ -56,7 +57,7 @@ class BkQueryatom(drawable_chem_vertex):
   # only number marks are allowed for query atoms
   #meta__allowed_marks = () #"atom_number","free_sites")
 
-  def __init__( self, standard=None, xy=(), package=None, molecule=None):
+  def __init__( self, standard: object=None, xy: object=(), package: object=None, molecule: object=None) -> None:
     drawable_chem_vertex.__init__( self, standard=standard, xy=xy, molecule=molecule)
     # composition: delegate chemistry to oasa.query_atom instance
     if xy:
@@ -69,24 +70,24 @@ class BkQueryatom(drawable_chem_vertex):
 
 
   @property
-  def symbol(self):
+  def symbol(self) -> object:
     """Query atom symbol, read from shadow composition layer."""
     return self._chem_query_atom.symbol
 
 
   @symbol.setter
-  def symbol(self, symbol):
+  def symbol(self, symbol: object) -> None:
     """Set symbol on the shadow composition layer."""
     self._chem_query_atom.symbol = symbol
 
 
   @property
-  def name(self):
+  def name(self) -> object:
     return self.__name
 
 
   @name.setter
-  def name(self, name):
+  def name(self, name: object) -> None:
     if sys.version_info[0] > 2:
       if isinstance(name, bytes):
         name = name.decode('utf-8')
@@ -99,12 +100,12 @@ class BkQueryatom(drawable_chem_vertex):
 
   #LOOK charge
   @property
-  def charge(self):
+  def charge(self) -> object:
     return self.__charge
 
 
   @charge.setter
-  def charge(self, charge):
+  def charge(self, charge: object) -> None:
     self.__charge = charge
     # sync shadow composition layer (guard against early init before _chem_query_atom exists)
     if hasattr(self, '_chem_query_atom'):
@@ -114,7 +115,7 @@ class BkQueryatom(drawable_chem_vertex):
 
   #LOOK valency (setting)
   @property
-  def valency(self):
+  def valency(self) -> object:
     """Atom's (maximum) valency.
 
     Used for hydrogen counting.
@@ -123,12 +124,12 @@ class BkQueryatom(drawable_chem_vertex):
 
 
   @valency.setter
-  def valency(self, val):
+  def valency(self, val: object) -> None:
     pass
 
 
   @property
-  def show(self):
+  def show(self) -> object:
     """Should the atom symbol be displayed?
 
     Accepts both 0|1 and yes|no.
@@ -137,23 +138,23 @@ class BkQueryatom(drawable_chem_vertex):
 
 
   @show.setter
-  def show(self, show):
+  def show(self, show: object) -> None:
     pass
 
 
   @property
-  def show_hydrogens(self):
+  def show_hydrogens(self) -> object:
     return 1
 
 
   @show_hydrogens.setter
-  def show_hydrogens(self, show_hydrogens):
+  def show_hydrogens(self, show_hydrogens: object) -> None:
     pass
 
 
   # free-sites - replaces oasa.atom.free_sites
   @property
-  def free_sites(self):
+  def free_sites(self) -> object:
     """Atom's free_sites.
 
     """
@@ -161,7 +162,7 @@ class BkQueryatom(drawable_chem_vertex):
 
 
   @free_sites.setter
-  def free_sites(self, free_sites):
+  def free_sites(self, free_sites: object) -> None:
     self._free_sites = free_sites
     marks = self.get_marks_by_type( "free_sites")
     if self._free_sites:
@@ -175,7 +176,7 @@ class BkQueryatom(drawable_chem_vertex):
 
 
   @property
-  def free_sites_text(self):
+  def free_sites_text(self) -> str:
     """Atom's free_sites as text.
 
     Used by free-site mark.
@@ -186,7 +187,7 @@ class BkQueryatom(drawable_chem_vertex):
       return ""
 
 
-  def matches(self, other):
+  def matches(self, other: object) -> bool:
     """Check if this query atom matches another atom for substructure search.
 
     Delegates to the composed oasa.query_atom instance.
@@ -200,7 +201,7 @@ class BkQueryatom(drawable_chem_vertex):
     return self._chem_query_atom.matches(other)
 
 
-  def set_name( self, name, interpret=1, occupied_valency=None):
+  def set_name( self, name: object, interpret: object=1, occupied_valency: object=None) -> None:
     try:
       self.symbol = name
     except oasa.oasa_exceptions.oasa_invalid_atom_symbol:
@@ -209,12 +210,21 @@ class BkQueryatom(drawable_chem_vertex):
       return True
 
 
-  def interpret_name( self, name):
-    lf = oasa.linear_formula.linear_formula( name, start_valency=self.valency)
+  def interpret_name( self, name: object) -> object:
+    lf = oasa.linear_formula.linear_formula(
+      name, start_valency=self.valency,
+      molecule_factory=self._make_query_molecule,
+    )
     return lf.molecule
 
 
-  def read_package( self, package):
+  def _make_query_molecule( self) -> object:
+    """Build a query graph with this atom's paper context."""
+    from bkchem.molecule_lib import BkMolecule
+    return BkMolecule( paper=self.paper)
+
+
+  def read_package( self, package: object) -> None:
     """reads the dom element package and sets internal state according to it"""
     self.id = package.getAttribute( 'id')
     self.pos = package.getAttribute( 'pos')
@@ -256,7 +266,7 @@ class BkQueryatom(drawable_chem_vertex):
       self.free_sites = int( package.getAttribute( 'free_sites'))
 
 
-  def get_package( self, doc):
+  def get_package( self, doc: object) -> object:
     """returns a DOM element describing the object in CDML,
     doc is the parent document which is used for element creation
     (the returned element is not inserted into the document)"""
@@ -293,12 +303,11 @@ class BkQueryatom(drawable_chem_vertex):
     return a
 
 
-  def get_formula_dict( self):
+  def get_formula_dict( self) -> dict:
     """returns formula as dictionary that can
     be passed to functions in periodic_table"""
     return PT.formula_dict()
 
 
-  def __str__( self):
+  def __str__( self) -> str:
     return self.id
-

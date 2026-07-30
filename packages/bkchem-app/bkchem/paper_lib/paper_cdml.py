@@ -22,7 +22,7 @@ _ = builtins.__dict__.get('_', lambda m: m)
 class PaperCDMLMixin:
 	"""CDML read/write helpers extracted from paper.py."""
 
-	def read_package( self, CDML, draw=True):
+	def read_package( self, CDML: object, draw: object = True) -> object:
 		self.onread_id_sandbox_activate() # to sandbox the ids
 
 		original_version = CDML.getAttribute( 'version')
@@ -114,7 +114,7 @@ class PaperCDMLMixin:
 
 
 	#============================================
-	def _is_template_file( self):
+	def _is_template_file( self) -> bool:
 		"""Return True when the current file lives in a template directory."""
 		full_path = self.full_path
 		if not full_path:
@@ -132,7 +132,7 @@ class PaperCDMLMixin:
 		return False
 
 
-	def onread_id_sandbox_activate( self):
+	def onread_id_sandbox_activate( self) -> None:
 		"""For reading we provide a new, clean id_manager as a sandbox to prevent
 		clashes between ids that might be already on the paper and ids that are in the file.
 		This is especialy needed for copying and template addition (although this is done somewhere else)"""
@@ -140,7 +140,7 @@ class PaperCDMLMixin:
 		Store.id_manager = id_manager()
 
 
-	def onread_id_sandbox_finish( self, apply_to=None):
+	def onread_id_sandbox_finish( self, apply_to: object = None) -> None:
 		Store.id_manager = self._old_id_manager
 		del self._old_id_manager
 		if apply_to is None:
@@ -153,7 +153,7 @@ class PaperCDMLMixin:
 				[ch.generate_id() for ch in o.children]
 
 
-	def get_package( self):
+	def get_package( self) -> object:
 		doc = dom.Document()
 		root = dom_extensions.elementUnder( doc, 'cdml', attributes = (('version', bkchem_config.current_CDML_version),
 																																		( 'xmlns', data.cdml_namespace)))
@@ -188,7 +188,7 @@ class PaperCDMLMixin:
 		return doc
 
 
-	def get_cropping_bbox( self):
+	def get_cropping_bbox( self) -> object:
 		if hasattr( self, '_cropping_bbox') and self._cropping_bbox:
 			return self._cropping_bbox
 
@@ -207,9 +207,9 @@ class PaperCDMLMixin:
 		return x1-margin, y1-margin, x2+margin, y2+margin
 
 
-	def set_cropping_bbox( self, coords):
+	def set_cropping_bbox( self, coords: object) -> None:
 		self._cropping_bbox = coords
 
 
-	def fix_current_cropping_bbox( self):
+	def fix_current_cropping_bbox( self) -> None:
 		self.set_cropping_bbox( self.get_cropping_bbox())

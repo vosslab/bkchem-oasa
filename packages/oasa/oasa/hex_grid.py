@@ -26,11 +26,11 @@ Pointy-top hex grid with spacing s (= bond_length) uses two basis vectors:
 Every grid point is n * e1 + m * e2 for integer n, m.
 Bond directions align with organic chemistry convention:
   30, 90, 150, 210, 270, 330 degrees.
-Snapping is O(1) per point: invert the basis matrix, round to nearest
-integers, convert back.
+Snapping is O(1) per point: invert the basis matrix, then compare the four
+lattice vertices around the fractional skew coordinates in Cartesian space.
 """
 
-from math import cos, pi, sqrt, sin
+from math import cos, floor, isfinite, pi, sqrt, sin
 
 
 #============================================
@@ -53,10 +53,14 @@ def hex_basis_vectors(spacing: float) -> tuple:
 #============================================
 def hex_grid_index(x: float, y: float, spacing: float,
 		origin_x: float = 0.0, origin_y: float = 0.0) -> tuple:
-	"""Convert pixel coordinates to hex grid indices (n, m).
+	"""Return the Euclidean-nearest displayed lattice vertex indices.
 
-	Uses the inverse of the basis matrix to find the closest
-	integer grid indices.
+	Coordinates use the Cartesian frame of the canvas, with the grid origin at
+	(origin_x, origin_y), e1 at 30 degrees, and e2 vertical.  Fractional
+	coordinates are in that skew e1/e2 basis, so their components cannot be
+	rounded independently.  The four lattice vertices enclosing the fractional
+	coordinates are compared by squared Cartesian distance.  Exact distance
+	ties use the lexicographically smallest (n, m), which is deterministic.
 
 	Args:
 		x: X coordinate to convert.
@@ -67,7 +71,17 @@ def hex_grid_index(x: float, y: float, spacing: float,
 
 	Returns:
 		Tuple (n, m) of integer grid indices.
+
+	Raises:
+		ValueError: If a canvas value is invalid or its fractional lattice
+			coordinates are not representable as finite floats.
 	"""
+	# This public operation is for finite canvas geometry with positive spacing.
+	canvas_values = (x, y, origin_x, origin_y, spacing)
+	if not all(isfinite(value) for value in canvas_values):
+		raise ValueError("hex grid coordinates, origin, and spacing must be finite")
+	if spacing <= 0.0:
+		raise ValueError("hex grid spacing must be greater than zero")
 	# shift to origin-relative coordinates
 	dx = x - origin_x
 	dy = y - origin_y
@@ -82,9 +96,27 @@ def hex_grid_index(x: float, y: float, spacing: float,
 	n_frac = dx / (spacing * half_sqrt3)
 	# solve for fractional m (subtract n contribution to y)
 	m_frac = (dy - n_frac * spacing / 2.0) / spacing
-	# round to nearest integers
-	n = round(n_frac)
-	m = round(m_frac)
+	if not isfinite(n_frac) or not isfinite(m_frac):
+		raise ValueError("hex grid coordinate-to-spacing ratio is not representable")
+	# A lattice nearest point must be one of the four vertices enclosing the
+	# fractional skew-basis coordinates.  Compare Cartesian squared distances
+	# because the basis is skew and squared distance avoids square roots.
+	n_floor = floor(n_frac)
+	m_floor = floor(m_frac)
+	candidates = []
+	for n in (n_floor, n_floor + 1):
+		for m in (m_floor, m_floor + 1):
+			# For e1 and e2 of equal length with a 60-degree angle, the
+			# dimensionless distance ordering is a^2 + b^2 + a*b.  The omitted
+			# common spacing^2 factor cannot affect the winner and can overflow.
+			delta_n = n - n_frac
+			delta_m = m - m_frac
+			distance_squared = (
+				delta_n * delta_n + delta_m * delta_m + delta_n * delta_m
+		)
+			candidates.append((distance_squared, n, m))
+	# Tuple ordering resolves equal squared distances by n, then m.
+	_, n, m = min(candidates)
 	return (n, m)
 
 
@@ -112,7 +144,11 @@ def hex_grid_point(n: int, m: int, spacing: float,
 #============================================
 def snap_to_hex_grid(x: float, y: float, spacing: float,
 		origin_x: float = 0.0, origin_y: float = 0.0) -> tuple:
-	"""Snap a point to the nearest hex grid point.
+	"""Snap a point to the Euclidean-nearest displayed lattice vertex.
+
+	The coordinate frame and deterministic exact-tie policy are defined by
+	hex_grid_index(): Cartesian canvas coordinates are measured from the grid
+	origin, and ties choose the lexicographically smallest lattice index.
 
 	Args:
 		x: X coordinate to snap.

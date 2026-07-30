@@ -105,7 +105,7 @@ class cairo_out(object):
     }
 
 
-  def __init__( self, **kw):
+  def __init__( self, **kw) -> None:
     self._scaling_overridden = False
     for k, v in list(self.__class__.default_options.items()):
       setattr( self, k, v)
@@ -121,7 +121,7 @@ class cairo_out(object):
         raise Exception( "unknown attribute '%s' passed to constructor" % k)
 
 
-  def draw_mol( self, mol):
+  def draw_mol( self, mol: object) -> None:
     if not self.surface:
       raise Exception( "You must initialize cairo surface before drawing, use 'create_surface' to do it.")
     self.molecule = mol
@@ -132,7 +132,7 @@ class cairo_out(object):
       self._draw_edge( e)
 
 
-  def create_surface( self, w, h, format):
+  def create_surface( self, w: object, h: object, format: object) -> None:
     """currently implements PNG writting, but might be overriden to write other types;
     w and h are minimal estimated width and height"""
     # trick - we use bigger surface and then copy from it to a new surface and crop
@@ -146,17 +146,17 @@ class cairo_out(object):
       raise Exception( "unknown format '%s'" % format)
 
 
-  def init_surface( self):
+  def init_surface( self) -> None:
     """make all necessary operations to prepare a surface for drawing:
     set antialiasing as requested, create background, etc."""
     pass
 
 
-  def create_dummy_surface( self, w, h):
+  def create_dummy_surface( self, w: object, h: object) -> None:
     self.surface = cairo.ImageSurface( cairo.FORMAT_A1, w, h)
 
 
-  def write_surface( self):
+  def write_surface( self) -> None:
     """finishes the surface and write it to the file if necessary"""
     self.context.show_page()
     if isinstance( self.surface, cairo.ImageSurface):
@@ -164,7 +164,7 @@ class cairo_out(object):
     self.surface.finish()
 
 
-  def mols_to_cairo( self, mols, filename, format="png"):
+  def mols_to_cairo( self, mols: object, filename: object, format: object="png") -> None:
     x1, y1, x2, y2 = None, None, None, None
     for mol in mols:
       for v in mol.vertices:
@@ -235,18 +235,18 @@ class cairo_out(object):
       v.y = -v.y
 
 
-  def mol_to_cairo( self, mol, filename, format="png"):
+  def mol_to_cairo( self, mol: object, filename: object, format: object="png") -> object:
     """This is a convenience method kept for backward compatibility,
     it just calls mols_to_cairo internally"""
     return self.mols_to_cairo( [mol], filename, format=format)
 
 
-  def _round( self, x):
+  def _round( self, x: object) -> object:
     if self.line_width % 2:
       return round( x) + 0.5
     return round( x)
 
-  def _draw_edge( self, e):
+  def _draw_edge( self, e: object) -> None:
     # at first detect the need to make 3D adjustments
     self._transform = transform3d.Transform3d()
     self._invtransform = transform3d.Transform3d()
@@ -304,19 +304,19 @@ class cairo_out(object):
         n.coords = self._invtransform.transform_xyz( *n.coords)
 
 
-  def _point_for_atom( self, atom):
+  def _point_for_atom( self, atom: object) -> tuple:
     return (atom.x, atom.y)
 
 
-  def _bond_coords_for_edge( self, edge):
+  def _bond_coords_for_edge( self, edge: object) -> tuple | None:
     coords = self._where_to_draw_from_and_to( edge)
     if not coords:
       return None
     return (coords[:2], coords[2:])
 
 
-  def _where_to_draw_from_and_to( self, b):
-    def fix_bbox( a):
+  def _where_to_draw_from_and_to( self, b: object) -> tuple | None:
+    def fix_bbox( a: object) -> list | None:
       x, y = a.x, a.y
       data = self._vertex_to_bbox.get( a, None)
       if data:
@@ -345,7 +345,7 @@ class cairo_out(object):
       return (x1, y1, x2, y2)
 
 
-  def _is_there_place( self, atom, x, y):
+  def _is_there_place( self, atom: object, x: object, y: object) -> bool:
     x1, y1 = atom.x, atom.y
     angle1 = geometry.clockwise_angle_from_east( x-x1, y-y1)
     for n in atom.neighbors:
@@ -355,7 +355,7 @@ class cairo_out(object):
     return True
 
 
-  def _find_place_around_atom( self, atom):
+  def _find_place_around_atom( self, atom: object) -> object:
     x, y = atom.x, atom.y
     coords = [(a.x,a.y) for a in atom.neighbors]
     # now we can compare the angles
@@ -368,7 +368,7 @@ class cairo_out(object):
     return angle
 
 
-  def _draw_vertex( self, v):
+  def _draw_vertex( self, v: object) -> None:
     pos = sum( [(a.x < v.x) and -1 or 1 for a in v.neighbors if abs(a.x-v.x)>0.2])
     if 'show_symbol' in v.properties_:
       show_symbol = v.properties_['show_symbol']
@@ -451,7 +451,7 @@ class cairo_out(object):
           self.context.show_text( charge)
 
 
-  def _get_3dtransform_for_drawing( self, b):
+  def _get_3dtransform_for_drawing( self, b: object) -> object:
     """this is a helper method that returns a transform3d which rotates
     a bond and its neighbors to coincide with the x-axis and rotates neighbors to be in (x,y)
     plane."""
@@ -476,14 +476,14 @@ class cairo_out(object):
 
 
   ## ------------------------------ lowlevel drawing methods ------------------------------
-  def _draw_text( self, xy, text, font_name=None, font_size=None, center_letter=None,
-                  color=(0,0,0)):
+  def _draw_text( self, xy: object, text: object, font_name: object=None, font_size: object=None,
+                  center_letter: object=None, color: object=(0,0,0)) -> list:
     class text_chunk(object):
-      def __init__( self, text, attrs=None):
+      def __init__( self, text: object, attrs: object=None) -> None:
         self.text = text
         self.attrs = attrs or set()
 
-    def collect_chunks( element, chunks, above):
+    def collect_chunks( element: object, chunks: object, above: object) -> None:
       above.append( element.tag)
       if element.text:
         chunks.append( text_chunk( element.text, attrs=set( above)))
@@ -581,7 +581,7 @@ class cairo_out(object):
 
 
   # not used
-  def _draw_rectangle( self, coords, fill_color=(1,1,1)):
+  def _draw_rectangle( self, coords: object, fill_color: object=(1,1,1)) -> None:
     #outline = self.paper.itemcget( item, 'outline')
     x1, y1, x2, y2 = coords
     self.context.set_line_join( cairo.LINE_JOIN_MITER)
@@ -593,7 +593,7 @@ class cairo_out(object):
     self.context.stroke()
 
 
-  def _create_cairo_path( self, points, closed=False):
+  def _create_cairo_path( self, points: object, closed: object=False) -> None:
     points = [self._invtransform.transform_xyz( p[0],p[1],0)[:2] for p in points]
     x, y = points[0]
     self.context.move_to( x, y)
@@ -603,7 +603,7 @@ class cairo_out(object):
       self.context.close_path()
 
 
-  def _get_bbox( self):
+  def _get_bbox( self) -> list:
     bbox = list( self._bboxes[0])
     for _bbox in self._bboxes[1:]:
       x1,y1,x2,y2 = _bbox
@@ -618,7 +618,7 @@ class cairo_out(object):
     return bbox
 
 
-  def _set_source_color( self, color):
+  def _set_source_color( self, color: object) -> None:
     """depending on the value of color uses the proper method,
     either set_source_rgb or set_source_rgba"""
     if len( color) == 3:
@@ -630,22 +630,22 @@ class cairo_out(object):
 
 
 
-def mol_to_png( mol, filename, **kw):
+def mol_to_png( mol: object, filename: object, **kw) -> None:
   c = cairo_out( **kw)
   c.mol_to_cairo( mol, filename)
 
 
-def mols_to_png( mols, filename, **kw):
+def mols_to_png( mols: object, filename: object, **kw) -> None:
   c = cairo_out( **kw)
   c.mols_to_cairo( mols, filename)
 
 
-def mol_to_cairo( mol, filename, format, **kw):
+def mol_to_cairo( mol: object, filename: object, format: object, **kw) -> None:
   c = cairo_out( **kw)
   c.mol_to_cairo( mol, filename, format=format)
 
 
-def mols_to_cairo( mols, filename, format, **kw):
+def mols_to_cairo( mols: object, filename: object, format: object, **kw) -> None:
   c = cairo_out( **kw)
   c.mols_to_cairo( mols, filename, format=format)
 

@@ -17,7 +17,7 @@ class ScaleDialog(PySide6.QtWidgets.QDialog):
 	"""
 
 	#============================================
-	def __init__(self, parent=None):
+	def __init__(self, parent: object | None = None) -> None:
 		"""Initialize the scale dialog.
 
 		Args:
@@ -112,7 +112,7 @@ class ScaleDialog(PySide6.QtWidgets.QDialog):
 
 	#============================================
 	@staticmethod
-	def get_scale_factors(parent=None) -> tuple:
+	def get_scale_factors(parent: object | None = None) -> tuple:
 		"""Convenience method to show the dialog and return scale factors.
 
 		Args:

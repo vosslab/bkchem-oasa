@@ -1,39 +1,39 @@
 # Changelog
 
 ## 2026-01-31
-- Add [docs/HAWORTH_IMPLEMENTATION_PLAN.md](docs/HAWORTH_IMPLEMENTATION_PLAN.md)
+- Add `HAWORTH_IMPLEMENTATION_PLAN.md`
   to outline Haworth projection goals, scope, and implementation phases.
 - Document the biomolecule template side feature in
-  [docs/HAWORTH_IMPLEMENTATION_PLAN.md](docs/HAWORTH_IMPLEMENTATION_PLAN.md),
+  `HAWORTH_IMPLEMENTATION_PLAN.md`,
   covering CDML templates and the initial macro categories.
 - Add the wavy-bond smoke glucose note to
-  [docs/HAWORTH_IMPLEMENTATION_PLAN.md](docs/HAWORTH_IMPLEMENTATION_PLAN.md).
+  `HAWORTH_IMPLEMENTATION_PLAN.md`.
 - Note that biomolecule template categories are inferred from folder names by
   scanning CDML files on load in
-  [docs/HAWORTH_IMPLEMENTATION_PLAN.md](docs/HAWORTH_IMPLEMENTATION_PLAN.md).
+  `HAWORTH_IMPLEMENTATION_PLAN.md`.
 - Note that template subcategories are inferred from subfolder names in
-  [docs/HAWORTH_IMPLEMENTATION_PLAN.md](docs/HAWORTH_IMPLEMENTATION_PLAN.md).
-- Expand [docs/HAWORTH_IMPLEMENTATION_PLAN.md](docs/HAWORTH_IMPLEMENTATION_PLAN.md)
+  `HAWORTH_IMPLEMENTATION_PLAN.md`.
+- Expand `HAWORTH_IMPLEMENTATION_PLAN.md`
   with Haworth bond style notes (left/right hatch, wide rectangle),
   CDML ownership guidance, insert-only template workflow, and the
   wavy_bond.png reference.
 - Add a testing plan (unit and smoke tests) to
-  [docs/HAWORTH_IMPLEMENTATION_PLAN.md](docs/HAWORTH_IMPLEMENTATION_PLAN.md).
+  `HAWORTH_IMPLEMENTATION_PLAN.md`.
 - Add staged rollout notes with testable outcomes to
-  [docs/HAWORTH_IMPLEMENTATION_PLAN.md](docs/HAWORTH_IMPLEMENTATION_PLAN.md).
-- Expand [docs/HAWORTH_IMPLEMENTATION_PLAN.md](docs/HAWORTH_IMPLEMENTATION_PLAN.md)
+  `HAWORTH_IMPLEMENTATION_PLAN.md`.
+- Expand `HAWORTH_IMPLEMENTATION_PLAN.md`
   with bond style specs, including the NEUROtiker-derived bold multiplier and
   the sine-wave wavy bond decision.
 - Note template distribution in the macOS app bundle and the Insert-menu
   entry point in
-  [docs/HAWORTH_IMPLEMENTATION_PLAN.md](docs/HAWORTH_IMPLEMENTATION_PLAN.md).
+  `HAWORTH_IMPLEMENTATION_PLAN.md`.
 - Implement Stage 1 renderer updates: SVG wedge/hatch/bold support and
   per-bond line widths in SVG/Cairo (`packages/oasa/oasa/svg_out.py`,
   `packages/oasa/oasa/cairo_out.py`).
 - Add a smoke test for SVG/PNG bond style rendering (normal, bold, wedge,
   hatch) in `tests/test_oasa_bond_styles.py`.
 - Update the Stage 2 plan in
-  [docs/HAWORTH_IMPLEMENTATION_PLAN.md](docs/HAWORTH_IMPLEMENTATION_PLAN.md)
+  `HAWORTH_IMPLEMENTATION_PLAN.md`
   to cover full new bond type support and add a post-Stage 2 printer-style
   smoke test plan with colored bonds.
 - Rename the bond style smoke test outputs to
@@ -45,10 +45,10 @@
   format docs, and the OASA README.
 - Bump the CDML format version to `26.02` with a compatibility transformer and
   add `tests/test_cdml_versioning.py` for legacy CDML smoke coverage.
-- Add [docs/VERSIONING_DOCS.md](docs/VERSIONING_DOCS.md) to track release and
+- Add [VERSIONING_DOCS.md](VERSIONING_DOCS.md) to track release and
   CDML version update locations.
 - Add a Haworth CLI phase to
-  [docs/HAWORTH_IMPLEMENTATION_PLAN.md](docs/HAWORTH_IMPLEMENTATION_PLAN.md),
+  `HAWORTH_IMPLEMENTATION_PLAN.md`,
   including a draft `packages/oasa/oasa_cli.py haworth` command and smoke
   testing notes.
 - Update `tests/oasa_legacy_test.py` to write named outputs into a temporary
@@ -123,31 +123,31 @@
 - Annotate validated WebBook urlopen calls to silence Bandit B310.
 - Expand the Haworth plan scope to cover pyranose and furanose rings, and add
   local SVG references.
-- Update [docs/TODO_CODE.md](docs/TODO_CODE.md) to match the Haworth scope.
+- Update [TODO_CODE.md](TODO_CODE.md) to match the Haworth scope.
 - Align Haworth style notes with existing renderer defaults and add external
   NEUROtiker archive references.
-- Replace the TODO list with [docs/TODO_REPO.md](docs/TODO_REPO.md) and
-  [docs/TODO_CODE.md](docs/TODO_CODE.md).
+- Replace the TODO list with [TODO_REPO.md](TODO_REPO.md) and
+  [TODO_CODE.md](TODO_CODE.md).
 - Refresh todo references in [README.md](../README.md),
-  [docs/REPO_STYLE.md](docs/REPO_STYLE.md), and
-  [packages/oasa/docs/REPO_STYLE.md](../packages/oasa/docs/REPO_STYLE.md).
+  [REPO_STYLE.md](REPO_STYLE.md), and
+  [REPO_STYLE.md](REPO_STYLE.md).
 
 ## 2025-12-26
 - Update [README.md](../README.md) with monorepo overview, doc links, and
   package locations.
-- Refresh [docs/INSTALL.md](docs/INSTALL.md) with merged repo run instructions
+- Refresh [INSTALL.md](INSTALL.md) with merged repo run instructions
   and updated Python requirements.
-- Revise [docs/FILE_STRUCTURE.md](docs/FILE_STRUCTURE.md) for the
+- Revise `FILE_STRUCTURE.md` for the
   `packages/bkchem-app/` and `packages/oasa/` layout plus the local website mirror.
-- Update [docs/CODE_ARCHITECTURE.md](docs/CODE_ARCHITECTURE.md) to use the new
+- Update `CODE_ARCHITECTURE.md` to use the new
   monorepo paths and OASA doc references.
-- Update [packages/oasa/README.md](../packages/oasa/README.md) for monorepo
+- Update [README.md](../packages/oasa/README.md) for monorepo
   install and test locations.
 - Add `pyproject.toml` packaging for BKChem and OASA, remove legacy
   `setup.py`, and add a `bkchem` console entry point.
 - Teach BKChem path resolution to look in `bkchem_data` and shared install
   directories before legacy relative paths.
-- Add [docs/MIGRATION.md](docs/MIGRATION.md) with the BKChem and OASA merge
+- Add [MIGRATION.md](MIGRATION.md) with the BKChem and OASA merge
   summary.
 - Switch documentation and packaging metadata to the GitHub repository as the
   primary homepage and mark legacy sites as archived.
@@ -155,14 +155,14 @@
 - Migrate legacy HTML and DocBook docs into Markdown
   (`docs/USER_GUIDE.md`, `docs/BATCH_MODE.md`, `docs/CUSTOM_PLUGINS.md`,
   `docs/CUSTOM_TEMPLATES.md`, `docs/EXTERNAL_IMPORT.md`).
-- Add [docs/RELEASE_DISTRIBUTION.md](docs/RELEASE_DISTRIBUTION.md) with planned
+- Add [RELEASE_DISTRIBUTION.md](active_plans/RELEASE_DISTRIBUTION.md) with planned
   distribution paths for BKChem and OASA.
 - Add legacy notices to HTML and DocBook sources that now point to Markdown.
 - Fix initial pyflakes findings in batch scripts and gettext helpers in core
   modules.
 - Define OASA as "Open Architecture for Sketching Atoms and Molecules" across
   docs and metadata.
-- Add BKChem modernization follow-ups to [docs/TODO.md](docs/TODO.md).
+- Add BKChem modernization follow-ups to `TODO.md`.
 - Fix more pyflakes findings in BKChem core modules and plugin exporters.
 - Exclude the local website mirror from the pyflakes scan.
 - Fix additional pyflakes issues in logger, interactors, plugins, and tests.
@@ -181,11 +181,11 @@
 - Standardize BKChem and OASA to use the same version string from
   `version.txt`.
 - Bump the shared BKChem/OASA version to `0.16beta1`.
-- Add [docs/RELEASE_HISTORY.md](docs/RELEASE_HISTORY.md) from the legacy
+- Add [RELEASE_HISTORY.md](RELEASE_HISTORY.md) from the legacy
   progress log.
 - Restore the pyflakes runner skip list for `bkchem_webpage` and
   `bkchem_website`.
-- Add [tests/bkchem_batch_examples.py](../tests/bkchem_batch_examples.py) to exercise
+- Add [bkchem_batch_examples.py](../packages/bkchem-app/tests/bkchem_batch_examples.py) to exercise
   the batch script examples against a temporary CDML file.
 - Rename BKChem test runners to drop the `run_` prefix.
 - Consolidate test scripts under `tests/`, add OASA-specific runners with
@@ -213,7 +213,7 @@
   OASA MANIFEST license references.
 - Expand the root README docs list to include every Markdown document under
   `docs/`.
-- Update [docs/RELEASE_HISTORY.md](docs/RELEASE_HISTORY.md) with the simone16
+- Update [RELEASE_HISTORY.md](RELEASE_HISTORY.md) with the simone16
   0.15 fork acknowledgment and a 0.16beta1 entry.
 - Refine the 0.15 simone16 release entry with a date range and concise highlights.
 - Initialize BKChem preferences in GUI and batch test runners to avoid
@@ -257,30 +257,30 @@
 - Match the disabled edit-pool background to the UI theme to avoid a black bar.
 - Fix mixed indentation in `packages/oasa/oasa/selftest_sheet.py`.
 - Pretty-print SVG output when writing files in `packages/oasa/oasa/svg_out.py`.
-- Add [docs/BOND_BACKEND_ALIGNMENT_PLAN.md](docs/BOND_BACKEND_ALIGNMENT_PLAN.md)
+- Add [BOND_BACKEND_ALIGNMENT_PLAN.md](archive/BOND_BACKEND_ALIGNMENT_PLAN.md)
   with a phased plan for aligning BKChem and OASA bond semantics.
 - Teach `tools/generate_biomolecule_templates.py` to read YAML input and add
   legacy name mapping when generating template paths.
 - Regenerate biomolecule templates from `biomolecule_smiles.yaml`.
 - Remove left/right hatch references from
-  [docs/BOND_BACKEND_ALIGNMENT_PLAN.md](docs/BOND_BACKEND_ALIGNMENT_PLAN.md) and
+  [BOND_BACKEND_ALIGNMENT_PLAN.md](archive/BOND_BACKEND_ALIGNMENT_PLAN.md) and
   focus on deterministic vertex ordering for hashed bonds.
-- Refine [docs/BOND_BACKEND_ALIGNMENT_PLAN.md](docs/BOND_BACKEND_ALIGNMENT_PLAN.md)
+- Refine [BOND_BACKEND_ALIGNMENT_PLAN.md](archive/BOND_BACKEND_ALIGNMENT_PLAN.md)
   to call out vertex ordering rules, snapshot guidance, and updated risks.
 - Add explicit canonicalization helper and serialization policy to
-  [docs/BOND_BACKEND_ALIGNMENT_PLAN.md](docs/BOND_BACKEND_ALIGNMENT_PLAN.md).
+  [BOND_BACKEND_ALIGNMENT_PLAN.md](archive/BOND_BACKEND_ALIGNMENT_PLAN.md).
 - Add test strategy section to
-  [docs/BOND_BACKEND_ALIGNMENT_PLAN.md](docs/BOND_BACKEND_ALIGNMENT_PLAN.md)
+  [BOND_BACKEND_ALIGNMENT_PLAN.md](archive/BOND_BACKEND_ALIGNMENT_PLAN.md)
   covering fixtures, invariants, and vertex ordering tests.
 - Expand the test strategy in
-  [docs/BOND_BACKEND_ALIGNMENT_PLAN.md](docs/BOND_BACKEND_ALIGNMENT_PLAN.md)
+  [BOND_BACKEND_ALIGNMENT_PLAN.md](archive/BOND_BACKEND_ALIGNMENT_PLAN.md)
   with atom label and coordinate transform smoke tests plus fixture suite scope.
 - Add maintainability expansion guidance to
-  [docs/BOND_BACKEND_ALIGNMENT_PLAN.md](docs/BOND_BACKEND_ALIGNMENT_PLAN.md)
+  [BOND_BACKEND_ALIGNMENT_PLAN.md](archive/BOND_BACKEND_ALIGNMENT_PLAN.md)
   covering shared OASA core boundaries, next semantic layers, and a deletion
   gate.
 - Add measurable phases with pass criteria to
-  [docs/BOND_BACKEND_ALIGNMENT_PLAN.md](docs/BOND_BACKEND_ALIGNMENT_PLAN.md),
+  [BOND_BACKEND_ALIGNMENT_PLAN.md](archive/BOND_BACKEND_ALIGNMENT_PLAN.md),
   including the test harness phase and deletion gate phase.
 
 ## 2026-01-31
@@ -288,16 +288,16 @@
   files and reporting output sizes.
 - Use the macOS system menu bar when running on Darwin, keeping in-window menus
   for other platforms.
-- Add [docs/BKCHEM_FORMAT_SPEC.md](docs/BKCHEM_FORMAT_SPEC.md) to document the
+- Add [BKCHEM_FORMAT_SPEC.md](archive/BKCHEM_FORMAT_SPEC.md) to document the
   CDML file format.
-- Add [docs/SUPPORTED_FORMATS.md](docs/SUPPORTED_FORMATS.md) with import/export
+- Add [SUPPORTED_FORMATS.md](SUPPORTED_FORMATS.md) with import/export
   formats and default save behavior.
-- Update [docs/TODO.md](docs/TODO.md) with new follow-up items.
+- Update `TODO.md` with new follow-up items.
 - Note optional RDKit/Open Babel integration as a potential format expansion path.
 - Expand RDKit/Open Babel TODO with candidate files and docs.
 - Add format coverage notes to the RDKit/Open Babel TODO entry.
 - Add `inchi` to the Homebrew dependencies.
-- Clarify required and optional dependencies in [docs/INSTALL.md](docs/INSTALL.md).
+- Clarify required and optional dependencies in [INSTALL.md](INSTALL.md).
 - Mark `pycairo` as a required dependency.
 - Resolve OASA mypy errors by tightening class imports, annotations, and a
   stderr print fix.
@@ -312,9 +312,9 @@
 - Add a draft BKChem package README and link it from the root README.
 
 ## 2025-12-24
-- Add [docs/CODE_ARCHITECTURE.md](docs/CODE_ARCHITECTURE.md) with system overview
+- Add `CODE_ARCHITECTURE.md` with system overview
   and data flow.
-- Add [docs/FILE_STRUCTURE.md](docs/FILE_STRUCTURE.md) with directory map and
+- Add `FILE_STRUCTURE.md` with directory map and
   generated assets.
 - Rename `README` to `README.md`.
 - Update packaging references to `README.md` in `MANIFEST.in` and `setup.py`.
@@ -342,5 +342,5 @@
   `imp` usage with `importlib` in `bkchem/main.py`.
 - Add gettext fallback in `bkchem/messages.py` for module-level strings.
 - Initialize gettext fallbacks in `tests/bkchem_gui_smoke.py`.
-- Add [docs/TODO.md](docs/TODO.md) with a note to replace legacy exporters with
+- Add `TODO.md` with a note to replace legacy exporters with
   Cairo equivalents.

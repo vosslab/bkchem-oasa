@@ -10,7 +10,7 @@ More info can be found in the [BKChem GitHub repository](https://github.com/voss
 BKChem, the primary consumer of this library, is documented in the same repo.
 Legacy sites are archived and relate to the Python 2 era.
 Usage notes are in [docs/USAGE.md](docs/USAGE.md).
-Current version: 26.02.
+Current version: 26.02a1.
 
 ## Distribution
 

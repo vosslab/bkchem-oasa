@@ -9,10 +9,12 @@ and drawing objects (arrows, text, shapes) in a single document.
 
 CDML is the serialization contract between:
 
-- **BKChem** (GUI editor): reads and writes full CDML documents with paper
-  layout, viewport, standards, and all drawing object types.
-- **OASA** (standalone library): reads and writes the `<molecule>` subset for
-  codec operations and rendering pipelines.
+- **OASA document backend**: owns and preserves the complete ordered
+  persistent document, including typed and opaque content.
+- **OASA molecule codecs and renderers**: provide typed chemistry adapters for
+  `<molecule>` content; they do not replace the complete-document session.
+- **BKChem Qt frontend**: submits complete candidate CDML and projects the
+  backend's canonical complete response.
 - **CD-SVG**: embeds a `<cdml>` node inside standard SVG for round-trip
   editing.
 
@@ -25,20 +27,26 @@ http://www.freesoftware.fsf.org/bkchem/cdml
 The namespace URI is an identifier and may not be dereferenceable; it is kept
 for compatibility and identity, not as a guaranteed fetch target.
 
-The namespace is optional for standalone `.cdml` files but required for
-embedded CDML inside SVG (CD-SVG). BKChem will load CDML without the
-namespace but may prompt when loading embedded CDML in SVG files with missing
-or incorrect namespaces.
+The canonical namespace is required by the 26.07 authored profile. Its absence
+is accepted only as standalone legacy compatibility input; it is not a new
+authoring option. It is also required for embedded CDML inside SVG (CD-SVG).
+BKChem may load legacy CDML without the namespace but may prompt when loading
+embedded CDML in SVG files with missing or incorrect namespaces.
 
-Documentation URL:
-
-```
-https://github.com/vosslab/bkchem/blob/main/docs/CDML_FORMAT_SPEC.md
-```
+Documentation URL: [CDML Format Specification](https://github.com/vosslab/bkchem/blob/main/docs/CDML_FORMAT_SPEC.md).
 
 ### Current version
 
-`26.02`
+`26.07`
+
+`26.07` is the authored-current CDML profile. `26.02` and the earlier
+versions in the migration chain remain accepted compatibility inputs. The
+implemented writer/default, transformer, and focused-test wiring author new
+documents as 26.07 and preserve loaded supported-old and unknown-future root
+values unless the legacy transformer is explicitly invoked. `26.07` documents
+and makes the authored profile explicit for long-standing direct-child order
+and opaque-preservation behavior; it does not reinterpret or alter the meaning
+of 26.02 documents.
 
 ### File extensions
 
@@ -57,7 +65,7 @@ A CDML document has the following top-level structure:
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
-<cdml version="26.02" xmlns="http://www.freesoftware.fsf.org/bkchem/cdml">
+<cdml version="26.07" xmlns="http://www.freesoftware.fsf.org/bkchem/cdml">
   <info>...</info>
   <metadata>
     <doc href="https://github.com/vosslab/bkchem/blob/main/docs/CDML_FORMAT_SPEC.md"/>
@@ -81,8 +89,115 @@ A CDML document has the following top-level structure:
 </cdml>
 ```
 
-All children except `version` on `<cdml>` are optional. Drawing objects may
-appear in any order and any quantity.
+All direct child elements of `<cdml>` are optional. Root `version` is an
+attribute, not a child element. The complete direct-child sequence is
+persistent document order and must be preserved. Persistent
+drawable records paint in that relative sequence; header/default/metadata
+records such as `<info>`, `<metadata>`, `<standard>`, `<paper>`, and
+`<viewport>` are not painted layers. The current transitional Qt
+reconstruction writer can regroup records and is therefore not authoritative
+for CDML order.
+
+## Conformance vocabulary
+
+This specification distinguishes authored requirements from compatible input
+and preservation behavior. It does not define a transaction protocol; that is
+covered separately by
+[CDML_BACKEND_TO_FRONTEND_CONTRACT.md](CDML_BACKEND_TO_FRONTEND_CONTRACT.md).
+
+| Class | Meaning | Current evidence |
+|-------|---------|------------------|
+| Normative authored 26.07 | New documents use root `<cdml version="26.07">`, the canonical namespace, existing documented CDML vocabulary, and the preserved direct-child sequence. | Implemented writer/default and legacy-transformer wiring. |
+| Legacy-compatible input | Earlier chain versions, including `26.02`, and historical namespace/cardinality/order variants remain readable when accepted by compatibility handling. | Implemented migration chain and complete-document preservation behavior. |
+| Opaque preservation | Unknown elements, attributes, namespaces, and unsupported known content retain their XML meaning and sequence without CDML lookup, reference, or provisional-token semantics. Every literal `id` in an ID-definition position, including one in opaque content, reserves a document-wide collision name. | Complete-document backend preservation. |
+| Proposal | A possible future addition has no authored grammar or editor requirement until separately specified and implemented. | Proposal registry below. |
+
+The detailed element sections below describe established CDML semantics and
+compatibility evidence. They do not turn an unimplemented proposal into a
+newly required element grammar.
+
+External CML, CDXML, and SVG material is comparison-only: it may identify a
+coverage gap, but supplies neither replacement schema nor migration target.
+CDML's existing semantics and version chain remain authoritative.
+
+### Machine inspection profiles
+
+The public, Qt-free conformance inspector has exactly two profiles. Its API,
+CLI, and versioned semantic corpus are provided by
+`packages/oasa/oasa/cdml_conformance.py`, `tools/cdml_conformance.py`, and
+`docs/cdml_conformance/cdml_26_07_manifest.json`.
+
+| Profile | Behavioral question | Bounded implemented checks |
+|---------|---------------------|----------------------------|
+| `compat` | Can the complete document be safely parsed and preserved as compatible CDML? | CDML root/namespace and safe XML parsing. Historical versions, incomplete records, and opaque extension content remain preservation-compatible. |
+| `authored-26.07` | Does a newly authored document meet the implemented 26.07 safety/profile boundary? | `compat`, canonical root version and namespace, nonempty, non-whitespace durable IDs on selectable direct children, recognized-reference safety checks, and typed direct-root reaction-role targets. |
+
+The authored inspector is deliberately a bounded safety/profile checker, not a
+total XSD, cardinality, geometry, or chemistry validator. The prose grammar in
+this document remains normative for authors. Backend transaction/session
+validation remains exclusively in the backend-to-frontend contract; it is not
+a third format-inspection profile.
+
+An authored requirement does not imply that compatible input is rejected.
+Complete-document compatibility validation is intentionally narrower: it
+preserves records that omit authored fields when their XML can be preserved.
+
+### Acceptance frontier
+
+Ordinary complete-document Load and Commit accept compatibility-preservation
+content that is XML-safe and identity/reference-safe. This acceptance frontier
+preserves legacy, incomplete, and opaque persistent records without claiming
+that every accepted record has complete authored geometry, chemistry, or
+renderer support. `authored-26.07` is the stricter opt-in assessment for a
+producer that chooses to check the implemented authored profile before it
+emits a document. A future authoring operation states its own emitted-profile
+rule; until it does, generic Load and Commit continue to use the compatibility
+frontier rather than silently adding authored-profile enforcement.
+
+### Complete-CDML XML safety and preservation
+
+Complete CDML input must not declare a `DOCTYPE`, use entity expansion, or
+refer to external entities. Parsing disables network access, recovery, and
+huge-tree mode. A rejected XML source produces the backend's typed parse
+failure and cannot become a document snapshot or committed revision.
+
+For accepted CDML, comments, processing instructions, namespaces, attributes,
+text, tail text, and element sequence are persistent preservation content.
+Round trips preserve that XML semantically rather than promising byte-identical
+whitespace formatting or serializer layout. Known CDML element and attribute
+names compare by expanded name, so a prefix rename in known CDML syntax is
+semantically equivalent. CDATA is character data for this purpose; preserving
+its original CDATA-section spelling is not required.
+
+This expanded-name rule covers the documented CDML records and their deliberate
+reader/writer compatibility attributes. It does not classify arbitrary markup
+inside old direct-child rich text as CDML vocabulary. That markup has no
+current typed grammar and remains opaque preservation content.
+
+An unrecognized attribute on an otherwise known CDML element remains opaque
+extension content. Its lexical QName, literal value, and complete current
+namespace context are preservation semantics; only the element's documented
+or deliberate compatibility attributes use expanded-name comparison.
+
+### Backend snapshot identity
+
+Semantic preservation describes whether accepted compatibility content retains
+its XML meaning across a boundary. It does not let a client choose a competing
+normalization for a live document. For revisions, clean/dirty state, Save,
+Recovery Export, and backend interchange, the document's content identity is
+the exact immutable complete-CDML serialization returned by the owning backend
+for that session. An implementation may serialize formatting differently while
+crossing the boundary, but clients use the returned snapshot as the one
+authoritative value; transaction details are defined by
+[CDML_BACKEND_TO_FRONTEND_CONTRACT.md](CDML_BACKEND_TO_FRONTEND_CONTRACT.md).
+
+An unknown or foreign element begins an opaque subtree, even when a descendant
+uses a familiar CDML local name. The generic backend retains that subtree's
+lexical element and attribute QNames, literal attribute values and character
+data, and complete in-scope namespace context. It must not rename or remove an
+opaque namespace binding because an unknown extension may use it in QName-like
+content. A typed extension handler may normalize only content governed by its
+own schema.
 
 ---
 
@@ -90,9 +205,9 @@ appear in any order and any quantity.
 
 | Attribute | Type | Required | Default | Notes |
 |-----------|------|----------|---------|-------|
-| `version` | string | Yes | -- | Schema version (e.g. `"26.02"`) |
+| `version` | string | Yes | -- | Format version (e.g. `"26.07"`) |
 | `type` | enum | No | `"normal"` | `"normal"`, `"template"`, or `"standard"` |
-| `xmlns` | URI | No | -- | Should be `"http://www.freesoftware.fsf.org/bkchem/cdml"` |
+| `xmlns` | URI | Yes (authored 26.07) | -- | Legacy standalone input may omit it. |
 
 ### `<metadata>`
 
@@ -116,11 +231,14 @@ Metadata about the document and authoring program.
 
 ```xml
 <info>
-  <author_program version="26.02">BKChem</author_program>
+  <author_program version="application-version">BKChem</author_program>
   <author>User Name</author>
   <note>Optional notes</note>
 </info>
 ```
+
+`author_program@version` identifies the authoring application release. It is
+independent of root `cdml@version` and may have a different value.
 
 | Child element | Attributes | Content | Cardinality |
 |---------------|------------|---------|-------------|
@@ -133,13 +251,19 @@ Metadata about the document and authoring program.
 ## `<standard>`
 
 Drawing defaults applied when per-object values are absent. Saved as part of
-the document and can be stored separately as a personal standard.
+the document and can be stored separately as a personal standard. Unit-bearing
+defaults are retained document data. Where a delivered typed adapter must
+convert a unit-bearing default, `cm` is the portable authored unit. Bare,
+`px`, `mm`, and `in` values remain compatibility-preserved historical/default
+values according to the readers that accept them; 26.07 does not define a
+shared portable conversion for those forms. Paper dimensions remain separately
+defined in millimetres.
 
 ### Attributes
 
 | Attribute | Type | Default | Notes |
 |-----------|------|---------|-------|
-| `line_width` | string (with units) | `"1px"` | Supports `px`, `cm`, `mm` |
+| `line_width` | string (with units) | `"1px"` | Retained default; use `cm` for portable authored conversion where a delivered typed adapter converts the value |
 | `font_size` | int | `12` | Point size |
 | `font_family` | string | `"helvetica"` | Font family name |
 | `line_color` | hex color | `"#000"` | Default line/stroke color |
@@ -151,7 +275,9 @@ the document and can be stored separately as a personal standard.
 
 ### Children
 
-**`<bond>`** -- bond drawing defaults:
+**`<bond>`** -- bond drawing defaults. Unit-bearing entries follow the
+`<standard>` unit policy above; their listed historical defaults are not a
+claim of a shared `px` or `mm` conversion.
 
 | Attribute | Type | Default | Notes |
 |-----------|------|---------|-------|
@@ -161,7 +287,8 @@ the document and can be stored separately as a personal standard.
 | `double-ratio` | float | `0.75` | Length ratio for double bond inner line |
 | `min_wedge_angle` | float | `0.3927` (~pi/8) | Minimum wedge angle in radians |
 
-**`<arrow>`** -- arrow defaults:
+**`<arrow>`** -- arrow defaults. Its unit-bearing value follows the same
+`<standard>` unit policy.
 
 | Attribute | Type | Default |
 |-----------|------|---------|
@@ -177,7 +304,10 @@ the document and can be stored separately as a personal standard.
 
 ## `<paper>`
 
-Page layout and export options. Written by BKChem only.
+Page layout and export options are persistent CDML data owned and preserved by
+the OASA document backend. BKChem edits and projects these values through a
+revision-bound explicit-field backend patch; it does not rebuild the paper
+record or complete document.
 
 | Attribute | Type | Required | Notes |
 |-----------|------|----------|-------|
@@ -187,13 +317,22 @@ Page layout and export options. Written by BKChem only.
 | `crop_margin` | int | No | Margin in pixels when cropping |
 | `use_real_minus` | int | No | `0` or `1`; use Unicode minus sign |
 | `replace_minus` | int | No | `0` or `1` |
-| `size_x` | int | When `type="custom"` | Custom width |
-| `size_y` | int | When `type="custom"` | Custom height |
+| `size_x` | positive finite decimal millimetres | When `type="custom"` | Custom width |
+| `size_y` | positive finite decimal millimetres | When `type="custom"` | Custom height |
+
+For a `type="custom"` paper, `size_x` and `size_y` are positive finite
+decimal millimetre values, for example `200.5` and `300.25`. Backend-authored
+changes validate and serialize that form. Existing accepted legacy lexical
+values remain compatibility-preserved unchanged until an explicit paper patch
+changes the corresponding field.
 
 ### Recognized paper types
 
 Standard ISO and US sizes: `A0`--`A10`, `B0`--`B10`, `C0`--`C10`, `Ledger`,
 `Legal`, `Letter`, `Tabloid`. Values are stored as `[width_mm, height_mm]`.
+OASA publishes this plain catalog to clients; Qt scene and snapshot renderers
+use that catalog for recognized page sizing. Unknown legacy values remain
+compatibility-preserved and retain the established default-page projection.
 
 ---
 
@@ -213,15 +352,16 @@ The `viewport` attribute is a space-separated string of 4 float coordinates.
 
 ### Coordinate values
 
-Coordinate attributes (`x`, `y`, `z` on `<point>` elements) may be:
+Portable authored coordinates and shape bounds use a `cm` suffix, for example
+`"1.500cm"`. OASA writers emit `cm` using `POINTS_PER_CM = 72.0 / 2.54`
+(~28.3465 points per cm).
 
-- **Pure numbers**: interpreted as raw float values (pixels in BKChem screen
-  space).
-- **Values with unit suffix**: `"1.5cm"`, `"10mm"`, `"40px"`.
-
-OASA writes coordinates as `"%.3fcm"` strings using the conversion constant
-`POINTS_PER_CM = 72.0 / 2.54` (~28.3465 points per cm). BKChem uses
-`misc.split_number_and_unit()` to parse any supported unit suffix.
+Bare numeric coordinates and `px` values are compatibility input for legacy
+documents and the current Qt projection. They are not portable authored form.
+`mm` and `in` remain legacy-Tk compatibility values only until a future shared,
+frontend-neutral conversion rule is implemented. Paper dimensions are a
+separate case: recognized paper sizes and custom paper dimensions use
+millimetres by definition.
 
 ### Y-axis convention
 
@@ -232,9 +372,12 @@ remains **+Y down** unless an explicit versioned migration says otherwise.
 
 ### Width and length values
 
-Attributes like `line_width`, `bond length`, `wedge-width` use the same unit
-system (`px`, `cm`, `mm`). BKChem normalizes all values through
-`Screen.any_to_px()` on read.
+Unit-bearing `<standard>` defaults, such as bond length and arrow length, are
+not interchangeable with per-bond depiction fields. Per-bond `line_width`,
+`bond_width`, `wedge_width`, and `double_ratio` are numeric depiction values;
+authors must not attach a unit suffix unless that field's established reader
+supports one. This distinction prevents a document from claiming portable
+geometry that its typed chemistry adapter cannot consume.
 
 ---
 
@@ -279,6 +422,11 @@ A molecular graph containing atoms (vertices) and bonds (edges).
 | `fragment` | 0..* | Named substructure fragments |
 | `user-data` | 0..1 | Arbitrary DOM nodes preserved on round-trip |
 
+All listed children are established CDML records. In the current delivery, the
+OASA typed molecule adapter provides editable chemistry for `<atom>` and
+`<bond>`. Other established molecule children remain complete-document content
+unless an active frontend documents a supported projection for them.
+
 ---
 
 ## Vertex elements: `<atom>`, `<group>`, `<text>`, `<query>`
@@ -303,6 +451,7 @@ unified from a single `<atom>` element in version 0.14 (see Version History).
 | `valency` | int | No | -- | Explicit valency |
 | `free_sites` | int | No | `0` | Free coordination sites; only written when nonzero |
 | `isotope` | int | No | -- | Mass number (OASA level) |
+| `explicit_hydrogens` | int | No | `0` | Explicit hydrogen count used by OASA chemistry; read when present and written only when nonzero |
 
 #### `<atom>` children
 
@@ -375,8 +524,8 @@ A chemical bond connecting two vertex elements.
 | Attribute | Type | Required | Notes |
 |-----------|------|----------|-------|
 | `type` | string | Yes | Bond type + order (e.g. `"n1"`, `"n2"`, `"w1"`) |
-| `start` | IDREF | Yes | ID of first vertex |
-| `end` | IDREF | Yes | ID of second vertex |
+| `start` | IDREF | Yes | ID of first vertex; narrow/tip endpoint for `w1` and `h1` |
+| `end` | IDREF | Yes | ID of second vertex; wide/base endpoint for `w1` and `h1` |
 | `id` | ID | No | Bond identifier |
 
 ### Bond type string format
@@ -390,12 +539,12 @@ The `type` attribute is a string: `<type_char><order_digit>`.
 | `n` | Normal | Plain line(s) |
 | `w` | Wedge | Filled triangle (stereo up) |
 | `h` | Hashed | Dashed wedge (stereo down) |
-| `a` | Bold | Thick line |
-| `b` | Dashed | Dashed line |
-| `d` | Dotted | Dotted line |
-| `o` | Partial | Half/partial bond |
+| `a` | Adder / unspecified stereochemistry | Established non-aromatic adder style |
+| `b` | Bold | Thick line |
+| `d` | Dashed | Dashed line |
+| `o` | Dotted | Dotted line |
 | `s` | Wavy | Squiggly/wave line |
-| `q` | Quadruple | Four lines |
+| `q` | Haworth front edge | Author only as `q1`; it is not a generic quadruple bond |
 
 **Legacy type characters** (normalized on read):
 
@@ -404,11 +553,32 @@ The `type` attribute is a string: `<type_char><order_digit>`.
 | `l` | `h` | Legacy left-hashed |
 | `r` | `h` | Legacy right-hashed |
 
-**Order digit:** `1` (single), `2` (double), `3` (triple).
+**Ordinary authored order digit:** `1` (single), `2` (double), `3` (triple).
+`q1` is the established Haworth front-edge form. A generic order `4` and a
+generic four-line bond are not authored 26.07 features. Compatibility loading
+may preserve other historical values without assigning them new typed meaning.
 
 Examples: `n1` = normal single, `n2` = normal double, `n3` = normal triple,
-`w1` = wedge single, `h1` = hashed single, `a1` = bold single,
-`b1` = dashed single, `s1` = wavy single.
+`w1` = wedge single, `h1` = hashed single, `a1` = adder single,
+`b1` = bold single, `d1` = dashed single, `o1` = dotted single, and
+`s1` = wavy single. Aromaticity is a separate chemical property of an OASA
+bond; `a` does not encode aromaticity.
+
+### Directed wedge endpoints
+
+`start` and `end` are ordered IDREFs. For authored `w1` and `h1`, that order
+is persistent depiction data: `start` is the narrow tip and `end` is the wide
+base. OASA's normal CDML molecule decoder preserves the serialized order; it
+does not rederive it from X/Y geometry. This is the same order consumed by the
+filled and hashed wedge renderers, not an additional stereo record.
+
+`q1` Haworth front edges and `n*` ordinary bonds retain their existing ordered
+endpoint references but have no new wide/narrow interpretation. Every `q1`,
+`w1`, `h1`, and `n1` remains chemical order one. A caller that constructs a
+new directionless wedge may explicitly apply a geometry policy through the
+OASA bond-ordering helper. Any repair for historical documents whose producer
+did not provide meaningful wedge endpoint order must be an explicit,
+version-scoped migration choice, never normal authoritative CDML decoding.
 
 ### Depiction attributes (optional)
 
@@ -426,12 +596,41 @@ These are only written when their values differ from the document `<standard>`.
 | `simple_double` | int (string) | `"1"` | `"0"` or `"1"`; simple double bond drawing |
 | `color` | hex color | `"#000"` | Bond line color |
 | `wavy_style` | enum | -- | For `s*` bonds: `"sine"`, `"half-circle"`, `"box"`, `"triangle"` |
+| `haworth_position` | enum | -- | `"front"` or `"back"`; Haworth depth metadata used with established Haworth styles |
+
+For `a*`, `d*`, and `o*`, the selected style always occupies the primary bond
+axis. Their additional lanes use the following matrix:
+
+| Order and centering | Primary axis | Additional lanes |
+|---------------------|--------------|------------------|
+| `1` | One styled lane | None |
+| `2`, `center` absent or `"no"` | One styled lane | One offset lane; plain when `simple_double="1"`, styled when `"0"` |
+| `2`, `center="yes"` | None | Two equal, full-length styled flanking lanes |
+| `3` | One styled lane | Two full-length outer lanes; plain when `simple_double="1"`, styled when `"0"` |
+
+An absent `simple_double` has the effective value `"1"` without becoming an
+authored attribute. A backend or frontend projection must retain that lexical
+absence. For styled triples, `center` is ignored and an authored structural
+operation retains or creates `simple_double` so the outer-lane choice remains
+persistent.
+
+`double_ratio` shortens only the added lane of an uncentered order-2 bond,
+symmetrically about its midpoint. Centered order-2 lanes and all order-3 lanes
+remain full length. `equithick` changes only adder (`a*`) amplitude:
+`"0"` is tapered and `"1"` is constant-width. It has no visual effect on
+`d*` or `o*`. A styled bond whose resolved endpoints coincide emits no
+rendering primitives.
+
+The `d*` family is an ordinary dashed depiction and uses the same length
+profile as the corresponding `n*` order. The separately named
+`dashed_hbond` length profile remains available for explicit hydrogen-bond
+semantics; CDML `d1` does not select it implicitly.
 
 ### Serialization order
 
 Bond depiction attributes are written in this order:
 `line_width`, `bond_width`, `center`, `auto_sign`, `equithick`, `wedge_width`,
-`double_ratio`, `simple_double`, `color`, `wavy_style`.
+`double_ratio`, `simple_double`, `color`, `wavy_style`, `haworth_position`.
 
 ---
 
@@ -475,7 +674,13 @@ Tags may be nested. Example:
 ```
 
 In versions before 0.16, rich text was stored as direct XML children of
-`<ftext>` rather than escaped text.
+`<ftext>` rather than escaped text. Those direct child nodes are
+compatibility/preservation content, not globally recognized core CDML names:
+the current authored form stores formatting as escaped character data, and
+generic direct markup could be external or user data. Their lexical QName and
+in-scope namespace context therefore remain semantic preservation data; a
+generic backend must not normalize a prefix spelling or treat such nodes as
+typed `<sub>`, `<sup>`, `<b>`, or `<i>` records.
 
 ### `<mark>` -- electron marks and annotations
 
@@ -546,7 +751,11 @@ Named substructure within a molecule.
 
 ## `<display-form>` and `<user-data>`
 
-Both elements preserve arbitrary DOM content verbatim through round-trip.
+Both elements preserve their XML subtree, namespace bindings, values, and
+relative document position without interpretation. Serialization may change
+lexical XML spelling or formatting. Their descendants receive no CDML lookup,
+reference, or provisional-token semantics; literal IDs still reserve global
+collision names.
 
 - `<display-form>`: stores alternative display representations.
 - `<user-data>`: stores arbitrary application-specific data.
@@ -557,12 +766,43 @@ Content is cloned on read and appended on write without interpretation.
 
 ## Drawing objects
 
+### Top-level identity and geometry
+
+An `authored-26.07` assessment requires a producer to assign a nonempty,
+non-whitespace, document-unique durable `id` to every newly authored selectable direct child:
+molecule, arrow, plus, standalone text, rect, square, oval, circle, polygon,
+polyline, and reaction. This is an authored-output requirement. Compatibility
+Load and Commit continue to accept and preserve ID-less legacy records.
+An operation that needs backend correlation MUST use a valid operation-scoped
+provisional identifier in a recognized declaration and consume it through an
+accepted backend transaction. ID-less legacy records remain compatible and are
+preserved without frontend repair. `reaction@id` remains optional compatibility
+data in 26.07.
+
+Every literal `id` in an ID-definition position reserves a collision name
+across the complete document, including opaque extension content. A recognized
+`id` field documented as an IDREF is a reference, not a definition: currently
+this means `fragment/vertex@id` and `fragment/bond@id` do not reserve another
+name. Opaque XML receives no CDML lookup, reference, or provisional-token
+semantics. Only recognized editable declarations and recognized reference
+fields receive those semantics; opaque reference-like strings remain
+uninterpreted literal content. The established `<display-form>`,
+`<user-data>`, and handler-less `<external-data>` records are
+preservation-only containers: their descendants are opaque for these purposes,
+even when they use CDML-looking names or provisional-looking values. Their
+literal `id` values still reserve document-wide collision names. An
+`external-data@id` is literal preservation content rather than an editable
+provisional declaration.
+
+The following minima are authored requirements. Incomplete historical records
+remain compatible preservation input; they are not portable authored output.
+
 ### `<arrow>`
 
 ```xml
 <arrow id="arr1" type="normal" start="no" end="yes" width="1.0" spline="no">
-  <point x="0.0" y="0.0"/>
-  <point x="50.0" y="0.0"/>
+  <point x="0.000cm" y="0.000cm"/>
+  <point x="1.764cm" y="0.000cm"/>
 </arrow>
 ```
 
@@ -577,7 +817,7 @@ Content is cloned on read and appended on write without interpretation.
 | `shape` | string | -- | Arrow shape parameters |
 | `color` | string | -- | Line color |
 
-Children: one or more `<point>` elements defining the path.
+Children: two or more direct `<point>` elements defining the ordered path.
 
 ### `<plus>`
 
@@ -590,7 +830,7 @@ A plus sign between reactants/products.
 | `color` | hex color | `"#000"` | Only written when not default |
 | `background-color` | hex color | `"#ffffff"` | Only written when not default |
 
-Children: one `<point>`, optional `<font>`.
+Children: exactly one direct `<point>`, optional `<font>`.
 
 ### `<text>` (standalone, top-level)
 
@@ -601,12 +841,14 @@ A free-form rich text label on the canvas.
 | `id` | ID | |
 | `background-color` | hex color | Optional |
 
-Children: `<font>` (optional), `<point>`, `<ftext>`.
+Children: optional `<font>`, exactly one direct `<point>`, and exactly one
+direct `<ftext>`.
 
 ### Vector graphics: `<rect>`, `<square>`, `<oval>`, `<circle>`
 
 | Attribute | Type | Default | Notes |
 |-----------|------|---------|-------|
+| `id` | ID | -- | Optional compatibility data; new selectable records follow the top-level identity rule |
 | `x1` | string (with unit) | -- | Bounding box corner |
 | `y1` | string (with unit) | -- | |
 | `x2` | string (with unit) | -- | |
@@ -615,32 +857,41 @@ Children: `<font>` (optional), `<point>`, `<ftext>`.
 | `line_color` | hex color | -- | Outline color |
 | `width` | float | `1.0` | Line width |
 
+Authored box shapes require all four bounds: `x1`, `y1`, `x2`, and `y2`.
+
 ### `<polygon>`
 
 | Attribute | Type | Default | Notes |
 |-----------|------|---------|-------|
+| `id` | ID | -- | Optional compatibility data; new selectable records follow the top-level identity rule |
 | `area_color` | hex color | -- | Fill color |
 | `line_color` | hex color | -- | Outline color |
 | `width` | float | `1.0` | Line width |
 
-Children: multiple `<point>` elements.
+Children: at least three ordered direct `<point>` elements.
 
 ### `<polyline>`
 
 | Attribute | Type | Default | Notes |
 |-----------|------|---------|-------|
+| `id` | ID | -- | Optional compatibility data; new selectable records follow the top-level identity rule |
 | `line_color` | hex color | -- | Line color |
 | `width` | float | `1.0` | Line width |
 | `spline` | int | `0` | `0` or `1`; spline interpolation |
 
-Children: multiple `<point>` elements.
+Children: at least two ordered direct `<point>` elements.
 
 ---
 
 ## `<reaction>`
 
 Groups related drawing objects into a reaction scheme. Children are IDREF
-elements pointing to existing top-level objects.
+elements pointing to persistent objects. The child name states the intended
+target category. `authored-26.07` requires every recognized role to reference
+a nonempty durable ID on a core direct child of the CDML root in that category.
+Compatibility Load and Commit remain lossless and permissive for historical
+reaction structures, including nested or ID-less references that do not meet
+the authored profile.
 
 ```xml
 <reaction>
@@ -654,82 +905,110 @@ elements pointing to existing top-level objects.
 
 | Child element | Attribute | Notes |
 |---------------|-----------|-------|
-| `reactant` | `idref` | References a molecule |
-| `product` | `idref` | References a molecule |
-| `arrow` | `idref` | References an arrow |
-| `condition` | `idref` | References a text object |
-| `plus` | `idref` | References a plus sign |
+| `reactant` | `idref` | `authored-26.07`: direct-root molecule |
+| `product` | `idref` | `authored-26.07`: direct-root molecule |
+| `arrow` | `idref` | `authored-26.07`: direct-root arrow |
+| `condition` | `idref` | `authored-26.07`: direct-root standalone text |
+| `plus` | `idref` | `authored-26.07`: direct-root plus sign |
+
+The profile checks target scope and target category only. It does not define
+reaction cardinality, ordering, stoichiometry, chemistry, or a uniqueness rule
+for repeated role targets. Those semantics remain available for a later
+versioned reaction model.
 
 ---
 
 ## `<external-data>`
 
-Application-specific external data. Read by BKChem's external data manager.
-Content and attributes are application-defined.
+Application-specific external data. A typed handler may interpret its content
+and attributes, but the OASA document backend preserves them even without one.
+Without such a handler, its own attributes (including `id`) and complete
+descendant subtree are preservation-only literal content. Literal IDs reserve
+global collision names without becoming editable provisional declarations.
 
 ---
 
-## Planned extensions
+## Proposal registry
 
-### `attach_atom` attribute
+This registry is non-normative. Entries preserve design intent and do not add
+element grammar, require writer output, or make content editable. A proposal
+becomes authored CDML only after a versioned specification, preservation and
+projection disposition, and implementation evidence.
 
-An optional attribute that stores attachment intent for multi-atom labels.
+### Candidate `attach_atom` design
+
+If adopted in a future version, this candidate optional attribute would store
+attachment intent for multi-atom labels.
 
 | Attribute | Type | Default | Applies to |
 |-----------|------|---------|------------|
-| `attach_atom` | enum | `"first"` | Label-bearing elements that participate in connector clipping |
+| `attach_atom` | enum | Candidate default: `"first"` | Candidate label-bearing clipping element |
 
-Values: `"first"` or `"last"`.
+Candidate values would be `"first"` or `"last"`.
 
-**What is stored:**
+**Candidate stored meaning:**
 - Attachment intent, not coordinates.
-- Renderers derive connector geometry from text layout (`label_bbox()` /
+- Renderers would derive connector geometry from text layout (`label_bbox()` /
   `label_attach_bbox()`) and line-rectangle intersection.
 
-**Where it lives:**
-- On the CDML element that represents the label participating in connector
+**Candidate location:**
+- On the CDML element that would represent the label participating in connector
   clipping.
 - For ordinary molecules: on label-bearing vertex elements (`<atom>`,
-  `<group>`, or `<text>`) when the displayed label is multi-atom.
-- For Haworth substituents: on the label-bearing node generated for the
-  substituent label in CDML data.
+  `<group>`, or `<text>`) when the displayed label would be multi-atom.
+- For Haworth substituents: on the label-bearing node that would be generated
+  for the substituent label in CDML data.
 
-**Semantics:**
-- `"first"`: attach to the first atom token in label text (for example the `C`
-  in `CH2OH`).
-- `"last"`: attach to the last atom token in label text (for example the `O`
-  in `CH2OH`).
-- `first`/`last` are defined by token order in text, not screen direction,
+**Candidate semantics:**
+- `"first"` would attach to the first atom token in label text (for example
+  the `C` in `CH2OH`).
+- `"last"` would attach to the last atom token in label text (for example the
+  `O` in `CH2OH`).
+- `first`/`last` would be defined by token order in text, not screen direction,
   not mirroring, and not coordinate-system orientation.
-- Tokenization is renderer-defined but must be stable.
-- Minimum tokenization rule for interoperability: atom tokens are element
-  symbols (uppercase letter with optional lowercase letter).
-- Digits, charge markers (`+`/`-`), and text markup are treated as decorations
-  attached to atom tokens, not standalone attachable atom tokens.
+- Tokenization would be renderer-defined and would need to be stable.
+- Minimum candidate tokenization rule for interoperability: atom tokens would
+  be element symbols (uppercase letter with optional lowercase letter).
+- Digits, charge markers (`+`/`-`), and text markup would be treated as
+  decorations attached to atom tokens, not standalone attachable atom tokens.
 
-**Write rules:**
-- Do not write for single-atom labels where attachment is unambiguous (`O`,
-  `N`, `Cl`, etc.).
-- Write for multi-atom labels where attachment intent matters (`CH2OH`, `OAc`,
-  `NHCH3`, and similar).
-- Omission means `"first"`.
-- Writers may choose to emit only non-default `"last"` to reduce diff noise.
-- Writers may optionally emit only when attachment intent was explicitly edited
+**Candidate writer policy:**
+- Writers would not write it for single-atom labels where attachment is
+  unambiguous (`O`, `N`, `Cl`, etc.).
+- Writers would write it for multi-atom labels where attachment intent matters
+  (`CH2OH`, `OAc`, `NHCH3`, and similar).
+- Omission would mean `"first"`.
+- Writers could choose to emit only non-default `"last"` to reduce diff noise.
+- Writers could optionally emit it only when attachment intent was explicitly edited
   by a user workflow.
 
-**Backward compatibility:**
-- Optional additive attribute; older BKChem/OASA readers that do not recognize
-  it safely ignore it and fall back to full-label clipping behavior.
-- No CDML version bump required.
+**Compatibility hypothesis:**
+- If adopted, the additive attribute would require a versioned compatibility
+  and preservation decision before writers emit it.
+- Existing readers and documents have no `attach_atom` requirement.
+
+### Deferred document concepts
+
+`bracket`, `vector`, visual `layer`, visual `page`, visual grouping, and
+generic stacking containers are proposals, not current CDML grammar. Chemical
+`<group>` remains an established molecular vertex and is not a visual
+container. The direct-child sequence is the only established document-order
+mechanism; it does not imply an unimplemented layer or grouping model.
+
+Legacy or extension `<bracket>` and `<vector>` content is preserve-only opaque
+content in 26.07, so it has durable round-trip support while editable typed
+bracket/vector grammar remains separately versioned. It does not receive
+provisional-ID allocation. The established bracket tool persists its artwork
+as top-level `<polyline>` records rather than a first-class `<bracket>` record.
 
 ---
 
 ## Version history
 
-CDML versions are upgraded by a chain of transformers. Each transformer
-performs an in-place DOM transformation from one version to the next. The chain
-is: `0.6` -> `0.7` -> `0.8` -> `0.9` -> `0.10` -> `0.11` -> `0.12` ->
-`0.13` -> `0.14` -> `0.15` -> `0.16` -> `26.02`.
+CDML versions are upgraded by an implemented chain of transformers. Each
+transformer performs an in-place DOM transformation from one version to the
+next. The implemented runtime chain is: `0.6` -> `0.7` -> `0.8` -> `0.9` -> `0.10` -> `0.11` -> `0.12` ->
+`0.13` -> `0.14` -> `0.15` -> `0.16` -> `26.02` -> `26.07`.
 
 ### 0.6 -> 0.7
 
@@ -823,37 +1102,56 @@ serialized via `.toxml()`, concatenated, and replaced with a single text node.
 No-op. Placeholder for future extensions. The version number scheme switched
 from `0.x` to `YY.MM` format.
 
+### 26.02 -> 26.07
+
+Structurally no-op transition. The transformer changes only root
+`cdml@version` to `26.07`; it performs no XML normalization, insertion,
+deletion, or reinterpretation. `26.07` documents and makes the authored
+root/version/namespace profile explicit for long-standing direct-child order
+and opaque-extension preservation. It adds no element grammar or namespace,
+and it does not reinterpret or alter the meaning of 26.02 documents. Existing
+26.02 documents remain compatible and retain their established semantics and
+order when preserved.
+
 ---
 
-## OASA vs BKChem CDML usage
+## OASA and BKChem usage
 
-OASA and BKChem both read and write CDML but at different scopes:
+Persistent CDML authority is not divided by element type. The OASA document
+backend accepts and returns the complete ordered document and preserves every
+persistent object, typed or opaque. Molecule codecs expose typed chemistry
+behavior for `<molecule>` content, and rendering pipelines consume typed
+chemistry data; neither substitutes for the complete-document session. BKChem
+projects the canonical backend response and must not restore, merge, or
+reconstruct omitted persistent content after a backend round-trip.
 
-| Capability | BKChem | OASA |
-|------------|--------|------|
-| Full document (info, standard, paper, viewport) | Read + Write | -- |
-| `<molecule>` with atoms and bonds | Read + Write | Read + Write |
-| `<group>` expansion from SMILES | -- | Yes (via `known_groups.cdml_to_smiles`) |
-| Version transformers (0.6 -> 26.02) | Yes | -- |
-| Unknown attribute preservation | No | No |
-| `<arrow>`, `<plus>`, `<text>`, graphics | Read + Write | -- |
-| `<reaction>` | Read + Write | -- |
-| CD-SVG embedding | Read + Write | -- |
-| Render-ops pipeline (molecule -> LineOp, TextOp, etc.) | -- | Yes |
+| Concern | OASA document backend | OASA molecule codecs and renderers | BKChem Qt frontend |
+|---------|-----------------------|------------------------------------|--------------------|
+| Complete CDML document | Owns, validates, and preserves | Typed adapters only | Submits candidates and projects response |
+| Molecule chemistry | Owns document record | Reads and writes typed chemistry data | Projects and edits through CDML |
+| Arrows, text, graphics, reactions, paper, and headers | Preserves typed or opaque records | May omit unsupported semantics | Projects supported records; does not re-merge losses |
+| Unknown attributes, elements, namespaces, and nested content | Preserves unchanged | Must not discard through a document round-trip | Must not repair or reconstruct them |
 
 ### OASA-level known bond attributes
 
 Core: `type`, `start`, `end`, `id`.
 
 Depiction: `line_width`, `bond_width`, `wedge_width`, `double_ratio`,
-`center`, `auto_sign`, `equithick`, `simple_double`, `color`, `wavy_style`.
+`center`, `auto_sign`, `equithick`, `simple_double`, `color`, `wavy_style`,
+`haworth_position`.
 
 ---
 
-## Legacy DTD
+## Historical schema artifacts
 
-The file `packages/bkchem-app/bkchem_data/dtd/cdml.dtd` contains a legacy DTD that
-is **incomplete and outdated**. It does not include:
+The checked-in
+[`cdml.dtd`](../packages/bkchem-app/bkchem_data/dtd/cdml.dtd) and
+[`cdml.xsd`](../packages/bkchem-app/bkchem_data/dtd/cdml.xsd) are historical,
+incomplete, non-authoritative artifacts. Neither is a valid validator for
+current CDML, including the 26.07 authored profile. They remain in the tree as
+legacy evidence; this package neither deletes nor rewrites them.
+
+The DTD does not include:
 
 - `<paper>`, `<viewport>` elements
 - `<group>`, `<query>`, `<text>` (textatom) vertex types
@@ -864,9 +1162,17 @@ is **incomplete and outdated**. It does not include:
 - Modern bond attributes (`line_width`, `bond_width`, `wedge_width`, etc.)
 - The `color` attribute on `<font>`
 
-The DTD also contains a typo: `bond_lenght` instead of `bond_length`.
+The DTD also contains a typo: `bond_lenght` instead of `bond_length`. The XSD
+describes a different `header`/`chemistry`/`graphics` document structure and
+does not define the current CDML vocabulary.
 
-This specification supersedes the DTD as the authoritative reference.
+This specification and its version chain supersede both historical schemas.
+No new XSD is adopted for 26.07. The semantic conformance corpus is the
+completion artifact for the two implemented inspection profiles. A future XSD
+must first demonstrate, against the recorded corpus, that it catches a useful
+structural error more clearly than the semantic checks while preserving opaque
+foreign subtrees and compatibility inputs. It is adopted only if that evidence
+outweighs the cost of maintaining another grammar artifact.
 
 ---
 
@@ -874,7 +1180,7 @@ This specification supersedes the DTD as the authoritative reference.
 
 If you generate CDML outside of BKChem or OASA:
 
-1. Set `version="26.02"` on the root `<cdml>` element.
+1. Set `version="26.07"` on the root `<cdml>` element.
 2. Include the namespace: `xmlns="http://www.freesoftware.fsf.org/bkchem/cdml"`.
 3. Optionally include a documentation pointer:
    `<metadata><doc href="https://github.com/vosslab/bkchem/blob/main/docs/CDML_FORMAT_SPEC.md"/></metadata>`.
@@ -882,6 +1188,14 @@ If you generate CDML outside of BKChem or OASA:
 5. Provide `<point>` children for all atoms with `x` and `y` attributes.
 6. Give every atom a unique `id` attribute.
 7. Reference atoms by `id` in bond `start` and `end` attributes.
-8. Use `cm` unit suffix for coordinates if targeting OASA codec compatibility.
+8. Use a `cm` unit suffix for portable authored coordinates and shape bounds.
 9. Prefer the current `<standard>` attribute names and children.
-10. Unknown attributes are silently ignored on read.
+10. Preserve the full direct-child sequence. Persistent drawable records keep
+    their relative paint order; metadata/default records remain unpainted.
+11. Preserve unknown attributes, elements, namespaces, and nested content
+    unchanged in complete-document backend round-trips. A typed codec may lack
+    semantics for such content, but it may not remove that content from the
+    backend document.
+12. Run the `authored-26.07` conformance profile before publishing new CDML.
+    It checks the implemented safety boundary; authors remain responsible for
+    the normative geometry and cardinality requirements in this specification.

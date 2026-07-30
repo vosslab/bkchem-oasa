@@ -35,7 +35,7 @@ python_version = "%d.%d.%d" % sys.version_info[0:3]
 python_version_ok = sys.version_info[0:2] >= MIN_PYTHON
 
 
-def _module_available( module_name):
+def _module_available( module_name: str) -> bool:
   try:
     importlib.import_module( module_name)
   except ImportError:

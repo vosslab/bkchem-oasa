@@ -6,14 +6,13 @@ import PySide6.QtGui
 import PySide6.QtWidgets
 
 # local repo modules
+import bkchem_qt.canvas.graphics_retirement
 import bkchem_qt.modes.base_mode
 import bkchem_qt.canvas.items.atom_item
+import bkchem_qt.wavy_geometry
 
-# font for numbering labels
-_NUMBER_FONT_FAMILY = "Arial"
-_NUMBER_FONT_SIZE = 9
-_NUMBER_OFFSET_X = 8.0
-_NUMBER_OFFSET_Y = -12.0
+
+_PREVIEW_PEN_STYLE = PySide6.QtCore.Qt.PenStyle.DashLine
 
 
 #============================================
@@ -22,8 +21,9 @@ class MiscMode(bkchem_qt.modes.base_mode.BaseMode):
 
 	Provides access to less common drawing operations. The active
 	submode determines the operation:
-	- number: click atoms in sequence to assign numbers
+	- numbering: click atoms in sequence to assign numbers
 	- clear-numbers: click to clear numbering from atoms
+	- wavy: press, drag, and release to add a presentation-only wavy line
 
 	Args:
 		view: The ChemView widget that owns this mode.
@@ -31,7 +31,7 @@ class MiscMode(bkchem_qt.modes.base_mode.BaseMode):
 	"""
 
 	#============================================
-	def __init__(self, view, parent=None):
+	def __init__(self, view: object, parent: PySide6.QtCore.QObject | None = None) -> None:
 		"""Initialize the miscellaneous mode.
 
 		Args:
@@ -45,6 +45,28 @@ class MiscMode(bkchem_qt.modes.base_mode.BaseMode):
 		self._operation = "number"
 		# running counter for atom numbering
 		self._next_number = 1
+		# Transient scene-only state for an in-progress wavy line.
+		self._wavy_start = None
+		self._wavy_preview = None
+		self._wavy_preview_scene = None
+		self._persistent_operation = None
+		self._atom_number_context = None
+		self._atom_number_revision = None
+
+	#============================================
+	def set_persistent_operation(self, operation: object | None) -> None:
+		"""Install or clear the generic immutable-request callback."""
+		if operation is not None and not callable(operation):
+			raise TypeError("Misc persistent operation must be callable")
+		self._persistent_operation = operation
+
+	#============================================
+	def set_atom_number_context(self, provider: object | None) -> None:
+		"""Install or clear the session-owned atom-number context provider."""
+		if provider is not None and not callable(provider):
+			raise TypeError("Misc atom-number context provider must be callable")
+		self._atom_number_context = provider
+		self._atom_number_revision = None
 
 	#============================================
 	@property
@@ -58,6 +80,8 @@ class MiscMode(bkchem_qt.modes.base_mode.BaseMode):
 			return f"Click atoms to number them (next: {self._next_number})"
 		if self._operation == "clear-numbers":
 			return "Click an atom to clear its number"
+		if self._operation == "wavy":
+			return "Drag to draw a wavy line"
 		return "Click to apply operation"
 
 	#============================================
@@ -68,26 +92,50 @@ class MiscMode(bkchem_qt.modes.base_mode.BaseMode):
 			submode_index: Group index of the changed submode.
 			name: Key string of the newly selected submode.
 		"""
-		self._operation = name
-		# reset counter when switching to number mode
-		if name == "number":
-			self._next_number = 1
+		# ``modes.yaml`` is the toolbar's public vocabulary.  Preserve the
+		# compact internal operation name used by the original implementation.
+		if name == "numbering":
+			self._operation = "number"
+		else:
+			self._operation = name
 		self.status_message.emit(self.status_hint)
 
 	#============================================
 	def activate(self) -> None:
-		"""Reset numbering counter on mode activation."""
-		self._next_number = 1
+		"""Start after the highest number already owned by the document."""
+		self._refresh_next_number()
 		super().activate()
 
 	#============================================
-	def mouse_press(self, scene_pos: PySide6.QtCore.QPointF, event) -> None:
+	def _refresh_next_number(self) -> None:
+		"""Refresh transient numbering from the authoritative snapshot provider."""
+		if self._atom_number_context is None:
+			return
+		context = self._atom_number_context()
+		if (
+			not isinstance(context, tuple)
+			or len(context) != 2
+			or type(context[0]) is not int
+		):
+			raise ValueError("Atom-number context provider must return revision and candidate")
+		revision, next_number = context
+		if type(next_number) is not int or next_number <= 0:
+			raise ValueError("Atom-number candidate provider must return a positive integer")
+		self._atom_number_revision = revision
+		self._next_number = next_number
+
+	#============================================
+	def mouse_press(self, scene_pos: PySide6.QtCore.QPointF, event: object) -> None:
 		"""Apply the active operation at the click position.
 
 		Args:
 			scene_pos: Position in scene coordinates.
 			event: The mouse event.
 		"""
+		if self._operation == "wavy":
+			self._wavy_start = PySide6.QtCore.QPointF(scene_pos)
+			self.status_message.emit("Drag to set wavy-line endpoint")
+			return
 		item = self._item_at(scene_pos)
 		if self._operation == "number":
 			self._number_atom(item, scene_pos)
@@ -95,11 +143,98 @@ class MiscMode(bkchem_qt.modes.base_mode.BaseMode):
 			self._clear_number(item)
 
 	#============================================
-	def _number_atom(self, item, scene_pos) -> None:
+	def mouse_move(self, scene_pos: PySide6.QtCore.QPointF, event: object) -> None:
+		"""Update the transient wavy-line preview while dragging."""
+		if self._operation != "wavy" or self._wavy_start is None:
+			return
+		self._remove_wavy_preview()
+		scene = self._env.scene
+		if scene is None:
+			return
+		try:
+			points = bkchem_qt.wavy_geometry.wavy_points(
+				(self._wavy_start.x(), self._wavy_start.y()),
+				(scene_pos.x(), scene_pos.y()),
+			)
+		except ValueError as error:
+			self.status_message.emit(str(error))
+			return
+		if len(points) < 2:
+			return
+		path = _path_for_points(_qpoints_for_wavy(points))
+		pen = PySide6.QtGui.QPen(PySide6.QtGui.QColor(80, 80, 80, 150))
+		pen.setWidthF(1.0)
+		pen.setStyle(_PREVIEW_PEN_STYLE)
+		self._wavy_preview = scene.addPath(path, pen)
+		self._wavy_preview_scene = scene
+
+	#============================================
+	def mouse_release(self, scene_pos: PySide6.QtCore.QPointF, event: object) -> None:
+		"""Submit one completed normal Wavy drag through backend authority."""
+		if self._operation != "wavy":
+			return
+		start = self._wavy_start
+		self._remove_wavy_preview()
+		self._wavy_start = None
+		if start is None:
+			return
+		try:
+			points = bkchem_qt.wavy_geometry.wavy_points(
+				(start.x(), start.y()),
+				(scene_pos.x(), scene_pos.y()),
+			)
+		except ValueError as error:
+			self.status_message.emit(str(error))
+			return
+		if len(points) < 2:
+			self.status_message.emit(self.status_hint)
+			return
+		if self._persistent_operation is None:
+			self.status_message.emit("Document cannot accept a persistent edit")
+			return
+		from bkchem_qt.models import document_session
+		request = document_session.PersistentOperationRequest(
+			"wavy.add", "Wavy",
+			(("start", (start.x(), start.y())), ("end", (scene_pos.x(), scene_pos.y()))),
+		)
+		outcome = self._persistent_operation(request)
+		self.status_message.emit(outcome.message)
+
+	#============================================
+	def deactivate(self) -> None:
+		"""Discard an in-progress preview when this mode loses focus."""
+		self._remove_wavy_preview()
+		self._wavy_start = None
+		super().deactivate()
+
+	#============================================
+	def _remove_wavy_preview(self) -> None:
+		"""Terminally retire transient feedback without changing document state."""
+		wavy_preview = self._wavy_preview
+		wavy_preview_scene = self._wavy_preview_scene
+		if wavy_preview is None:
+			return
+		try:
+			coordinator = bkchem_qt.canvas.graphics_retirement.GraphicsRetirementCoordinator()
+			if wavy_preview_scene is None:
+				coordinator.retire_detached_projection_items(
+					[wavy_preview], reaper=self._graphics_retirement_reaper,
+				)
+			else:
+				coordinator.retire_scene_projection_items(
+					wavy_preview_scene, [wavy_preview],
+					reaper=self._graphics_retirement_reaper,
+				)
+			coordinator.raise_if_callback_failed("Wavy preview retirement failed")
+		finally:
+			self._wavy_preview = None
+			self._wavy_preview_scene = None
+
+	#============================================
+	def _number_atom(self, item: object | None, scene_pos: PySide6.QtCore.QPointF) -> None:
 		"""Assign a sequential number to the clicked atom.
 
-		If an AtomItem is under the cursor, attaches a small number
-		label as a child item. If clicking empty space, does nothing.
+		If an AtomItem is under the cursor, submits a durable scalar request.
 
 		Args:
 			item: The item at the click position (or None).
@@ -107,24 +242,41 @@ class MiscMode(bkchem_qt.modes.base_mode.BaseMode):
 		"""
 		if not isinstance(item, bkchem_qt.canvas.items.atom_item.AtomItem):
 			return
-		# remove any existing number label on this atom
-		_remove_number_label(item)
-		# create a number label as a child of the atom item
-		number_text = str(self._next_number)
-		font = PySide6.QtGui.QFont(_NUMBER_FONT_FAMILY, _NUMBER_FONT_SIZE)
-		label = PySide6.QtWidgets.QGraphicsSimpleTextItem(number_text, item)
-		label.setFont(font)
-		label.setBrush(PySide6.QtGui.QBrush(
-			PySide6.QtGui.QColor(0, 0, 200)
-		))
-		label.setPos(_NUMBER_OFFSET_X, _NUMBER_OFFSET_Y)
-		# tag the label for later identification
-		label.setData(0, "atom_number_label")
-		self._next_number += 1
-		self.status_message.emit(self.status_hint)
+		if self._persistent_operation is None:
+			self.status_message.emit("Document cannot accept a persistent edit")
+			return
+		self._refresh_next_number()
+		atom_model = item.atom_model
+		new_number = self._next_number
+		molecule = self._env.document.molecule_for_graphics_item(item)
+		if molecule is None:
+			self.status_message.emit("Atom has no persistent molecule identity")
+			return
+		molecule_id = molecule.mol_id
+		atom_id = atom_model.backend_durable_id
+		if not isinstance(molecule_id, str) or not molecule_id:
+			self.status_message.emit("Atom has no persistent molecule identity")
+			return
+		if not isinstance(atom_id, str) or not atom_id:
+			self.status_message.emit("Atom has no persistent identity")
+			return
+		show_number = atom_model.show_number if atom_model.number is not None else True
+		from bkchem_qt.models import document_session
+		request = document_session.PersistentOperationRequest(
+			"atom.number.set", "Number Atom",
+			(
+				("expected_revision", self._numbering_revision()),
+				("molecule_id", molecule_id), ("atom_id", atom_id),
+				("number", new_number), ("show_number", show_number),
+			),
+			frozenset({("molecule", molecule_id), ("atom", atom_id)}),
+		)
+		outcome = self._persistent_operation(request)
+		self._refresh_next_number()
+		self.status_message.emit(outcome.message)
 
 	#============================================
-	def _clear_number(self, item) -> None:
+	def _clear_number(self, item: object | None) -> None:
 		"""Remove the number label from the clicked atom.
 
 		Args:
@@ -132,27 +284,66 @@ class MiscMode(bkchem_qt.modes.base_mode.BaseMode):
 		"""
 		if not isinstance(item, bkchem_qt.canvas.items.atom_item.AtomItem):
 			return
-		removed = _remove_number_label(item)
-		if removed:
-			self.status_message.emit("Number cleared")
-		else:
+		if self._persistent_operation is None:
+			self.status_message.emit("Document cannot accept a persistent edit")
+			return
+		self._refresh_next_number()
+		atom_model = item.atom_model
+		if atom_model.number is None:
 			self.status_message.emit("No number to clear")
+			self._refresh_next_number()
+			return
+		molecule = self._env.document.molecule_for_graphics_item(item)
+		if molecule is None:
+			self.status_message.emit("Atom has no persistent molecule identity")
+			return
+		molecule_id = molecule.mol_id
+		atom_id = atom_model.backend_durable_id
+		if not isinstance(molecule_id, str) or not molecule_id:
+			self.status_message.emit("Atom has no persistent molecule identity")
+			return
+		if not isinstance(atom_id, str) or not atom_id:
+			self.status_message.emit("Atom has no persistent identity")
+			return
+		from bkchem_qt.models import document_session
+		request = document_session.PersistentOperationRequest(
+			"atom.number.set", "Clear Atom Number",
+			(
+				("expected_revision", self._numbering_revision()),
+				("molecule_id", molecule_id), ("atom_id", atom_id),
+				("number", None), ("show_number", None),
+			),
+			frozenset({("molecule", molecule_id), ("atom", atom_id)}),
+		)
+		outcome = self._persistent_operation(request)
+		self._refresh_next_number()
+		self.status_message.emit(outcome.message)
+
+	#============================================
+	def _numbering_revision(self) -> int:
+		"""Return the authoritative revision captured with the next candidate."""
+		revision = self._atom_number_revision
+		if type(revision) is not int:
+			raise ValueError("Atom numbering requires a backend snapshot revision")
+		return revision
 
 
 #============================================
-def _remove_number_label(atom_item) -> bool:
-	"""Remove any atom_number_label child from an atom item.
+def _path_for_points(
+		points: tuple[PySide6.QtCore.QPointF, ...],
+		) -> PySide6.QtGui.QPainterPath:
+	"""Build a scene path from deterministic presentation points."""
+	path = PySide6.QtGui.QPainterPath()
+	path.moveTo(points[0])
+	for point in points[1:]:
+		path.lineTo(point)
+	return path
 
-	Args:
-		atom_item: The AtomItem to clean.
 
-	Returns:
-		True if a label was removed, False otherwise.
-	"""
-	for child in atom_item.childItems():
-		if child.data(0) == "atom_number_label":
-			scene = child.scene()
-			if scene is not None:
-				scene.removeItem(child)
-			return True
-	return False
+#============================================
+def _qpoints_for_wavy(
+		points: tuple[tuple[float, float], ...],
+		) -> tuple[PySide6.QtCore.QPointF, ...]:
+	"""Adapt pure Wavy geometry to transient Qt preview points."""
+	result = tuple(PySide6.QtCore.QPointF(x, y) for x, y in points)
+	return result

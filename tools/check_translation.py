@@ -8,7 +8,7 @@ import subprocess
 
 
 #============================================
-def get_repo_root():
+def get_repo_root() -> object:
 	"""Get repository root using git."""
 	result = subprocess.run(
 		["git", "rev-parse", "--show-toplevel"],
@@ -21,7 +21,7 @@ def get_repo_root():
 
 
 #============================================
-def check_translation_file(filename):
+def check_translation_file(filename: object) -> object:
 	"""Print printf-placeholder count mismatches for one .po file."""
 	msgid = ""
 	line_index = 0
@@ -38,7 +38,7 @@ def check_translation_file(filename):
 
 
 #============================================
-def main():
+def main() -> None:
 	"""Run translation checks for all locale files."""
 	repo_root = get_repo_root()
 	locale_dir = os.path.join(repo_root, "packages", "bkchem", "bkchem_data", "locale")

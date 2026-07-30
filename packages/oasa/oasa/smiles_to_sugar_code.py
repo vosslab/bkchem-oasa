@@ -129,7 +129,7 @@ def _infer_from_molecule(smiles_text: str, table: dict) -> SugarCodeResult:
 
 
 #============================================
-def _safe_parse(smiles_text: str):
+def _safe_parse(smiles_text: str) -> object:
 	"""Parse SMILES to molecule with error wrapping."""
 	try:
 		mol = smiles_module.text_to_mol(smiles_text, calc_coords=0)
@@ -139,7 +139,7 @@ def _safe_parse(smiles_text: str):
 
 
 #============================================
-def _find_sugar_rings(mol) -> list:
+def _find_sugar_rings(mol: object) -> list:
 	"""Find rings that look like sugar rings (5 or 6 atoms, one oxygen)."""
 	all_cycles = mol.get_smallest_independent_cycles()
 	candidates = []
@@ -155,7 +155,7 @@ def _find_sugar_rings(mol) -> list:
 
 
 #============================================
-def _try_ring(mol, ring_atoms: list, table: dict) -> SugarCodeResult:
+def _try_ring(mol: object, ring_atoms: list, table: dict) -> SugarCodeResult:
 	"""Try to match a ring to a sugar code by regenerating SMILES and looking up."""
 	# Identify ring type from ring size
 	ring_size = len(ring_atoms)
@@ -200,7 +200,7 @@ def _try_ring(mol, ring_atoms: list, table: dict) -> SugarCodeResult:
 
 
 #============================================
-def _molecules_match(mol, candidate_smiles: str) -> bool:
+def _molecules_match(mol: object, candidate_smiles: str) -> bool:
 	"""Check if two molecules represent the same structure.
 
 	Compares atom counts and bond connectivity as a heuristic.
@@ -211,7 +211,7 @@ def _molecules_match(mol, candidate_smiles: str) -> bool:
 		return False
 
 	# Compare atom counts by element
-	def atom_counts(m):
+	def atom_counts(m: object) -> object:
 		counts = {}
 		for a in m.atoms:
 			counts[a.symbol] = counts.get(a.symbol, 0) + 1
@@ -221,7 +221,7 @@ def _molecules_match(mol, candidate_smiles: str) -> bool:
 		return False
 
 	# Compare bond counts by order
-	def bond_counts(m):
+	def bond_counts(m: object) -> object:
 		counts = {}
 		for b in m.bonds:
 			counts[b.order] = counts.get(b.order, 0) + 1
@@ -240,7 +240,7 @@ def _molecules_match(mol, candidate_smiles: str) -> bool:
 
 
 #============================================
-def _raise_not_sugar(smiles_text: str, reason: str):
+def _raise_not_sugar(smiles_text: str, reason: str) -> object:
 	"""Raise SugarCodeError with helpful examples."""
 	examples = [
 		"O[C@@H]1O[C@@H](CO)[C@@H](O)[C@H](O)[C@H]1O  (alpha-D-glucose pyranose)",

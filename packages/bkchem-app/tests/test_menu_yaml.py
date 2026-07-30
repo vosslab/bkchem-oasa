@@ -38,14 +38,14 @@ def _collect_all_items(data: dict) -> list:
 	return items
 
 #============================================
-def test_yaml_parses():
+def test_yaml_parses() -> None:
 	"""File loads without error."""
 	data = _load_yaml()
 	assert isinstance(data, dict)
 	assert 'menus' in data
 
 #============================================
-def test_every_menu_has_name_and_side():
+def test_every_menu_has_name_and_side() -> None:
 	"""Every menu entry has a name and side key."""
 	data = _load_yaml()
 	for menu in data['menus']:
@@ -53,7 +53,7 @@ def test_every_menu_has_name_and_side():
 		assert 'side' in menu, f"Menu missing 'side': {menu}"
 
 #============================================
-def test_every_menu_has_items():
+def test_every_menu_has_items() -> None:
 	"""Every menu has a non-empty items list."""
 	data = _load_yaml()
 	for menu in data['menus']:
@@ -61,7 +61,7 @@ def test_every_menu_has_items():
 		assert len(items) > 0, f"Menu '{menu['name']}' has no items"
 
 #============================================
-def test_help_right_side():
+def test_help_right_side() -> None:
 	"""Help has side=right, others left."""
 	data = _load_yaml()
 	for menu in data['menus']:
@@ -71,7 +71,7 @@ def test_help_right_side():
 			assert menu['side'] == 'left', f"{menu['name']} should be left"
 
 #============================================
-def test_item_types_valid():
+def test_item_types_valid() -> None:
 	"""Every item is one of: action, separator, cascade."""
 	data = _load_yaml()
 	all_items = _collect_all_items(data)
@@ -82,7 +82,7 @@ def test_item_types_valid():
 		assert len(item_keys & valid_keys) == 1, f"Invalid item: {item}"
 
 #============================================
-def test_action_ids_well_formed():
+def test_action_ids_well_formed() -> None:
 	"""All action IDs match pattern word.word_word etc."""
 	data = _load_yaml()
 	# pattern: word dot word (with optional underscores)
@@ -94,7 +94,7 @@ def test_action_ids_well_formed():
 			assert pattern.match(action_id), f"Bad action ID: {action_id}"
 
 #============================================
-def test_no_duplicate_action_ids():
+def test_no_duplicate_action_ids() -> None:
 	"""No action ID appears twice across all menus."""
 	data = _load_yaml()
 	all_items = _collect_all_items(data)
@@ -105,7 +105,7 @@ def test_no_duplicate_action_ids():
 	)
 
 #============================================
-def test_cascade_refs_have_definitions():
+def test_cascade_refs_have_definitions() -> None:
 	"""Every cascade name referenced in items exists in cascades section."""
 	data = _load_yaml()
 	all_items = _collect_all_items(data)
@@ -115,7 +115,7 @@ def test_cascade_refs_have_definitions():
 	assert not missing, f"Missing cascade definitions: {missing}"
 
 #============================================
-def test_no_adjacent_separators():
+def test_no_adjacent_separators() -> None:
 	"""No menu has two separators in a row."""
 	data = _load_yaml()
 	for menu in data['menus']:
@@ -125,7 +125,7 @@ def test_no_adjacent_separators():
 				assert False, f"Adjacent separators in '{menu['name']}' at index {i}"
 
 #============================================
-def test_no_leading_or_trailing_separators():
+def test_no_leading_or_trailing_separators() -> None:
 	"""No menu starts or ends with a separator."""
 	data = _load_yaml()
 	for menu in data['menus']:

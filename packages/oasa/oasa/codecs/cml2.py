@@ -12,10 +12,10 @@ _VERSION = "2"
 
 
 #============================================
-def text_to_mol(text):
+def text_to_mol(text: object) -> object:
 	return cml.text_to_mol(text, version=_VERSION)
 
 
 #============================================
-def file_to_mol(file_obj):
+def file_to_mol(file_obj: object) -> object:
 	return cml.file_to_mol(file_obj, version=_VERSION)

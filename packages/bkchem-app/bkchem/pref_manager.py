@@ -36,34 +36,34 @@ if sys.version_info[0] > 2:
 
 class pref_manager( object):
 
-  def __init__( self, file_names=None):
+  def __init__( self, file_names: object=None) -> None:
     self.data = {}
     if file_names:
       for file_name in file_names:
         self.read_pref_file( file_name)
 
 
-  def add_preference( self, name, value):
+  def add_preference( self, name: object, value: object) -> None:
     self.data[ name] = value
 
 
-  def remove_preference( self, name):
+  def remove_preference( self, name: object) -> None:
     if name in self.data:
       del self.data[ name]
 
 
-  def get_preference( self, name):
+  def get_preference( self, name: object) -> object:
     if name in self.data:
       return self.data[ name]
     else:
       return None
 
 
-  def has_preference( self, name):
+  def has_preference( self, name: object) -> bool:
     return name in self.data
 
 
-  def read_pref_file( self, name):
+  def read_pref_file( self, name: object) -> None:
     if name and os.path.exists( name):
       try:
         doc = safe_xml.parse_dom_from_file( name)
@@ -73,7 +73,7 @@ class pref_manager( object):
       self.read_from_dom( doc)
 
 
-  def read_from_dom(self, doc):
+  def read_from_dom(self, doc: object) -> None:
     top = doc.getElementsByTagName("bkchem-prefs")[0]
     for child in dom_extensions.childNodesWithoutEmptySpaces(top):
       name = child.nodeName
@@ -95,7 +95,7 @@ class pref_manager( object):
       self.add_preference(name, value)
 
 
-  def write_to_dom(self, doc=None):
+  def write_to_dom(self, doc: object=None) -> object:
     if not doc:
       doc = dom.Document()
 
@@ -126,7 +126,7 @@ class pref_manager( object):
     return doc
 
 
-  def write_to_file(self, f):
+  def write_to_file(self, f: object) -> None:
     try:
       s = self.write_to_dom().toxml('utf-8')
       f.write(s)

@@ -28,8 +28,8 @@ from oasa.molecule_lib import equals
 
 # helper functions
 
-def create_test(i,name):
-  def test(obj):
+def create_test(i: int, name: str) -> object:
+  def test(obj: object) -> None:
     getattr(obj, name)(i)
   return test
 
@@ -44,7 +44,7 @@ class TestLinearFormula(unittest.TestCase):
               ("(CH2)7Cl","CCCCCCCCl",1,0),
               ]
 
-  def _testformula(self, num):
+  def _testformula(self, num: int) -> None:
     l = linear_formula.linear_formula()
     linear, smile, start_valency, end_valency = self.formulas[num]
     m1 = l.parse_text( linear, start_valency=start_valency, end_valency=end_valency)
@@ -85,7 +85,7 @@ class TestSubstructure(unittest.TestCase):
               ("C(=O)OCC","C(=O)[O-]",False),
               ]
 
-  def _testformula(self, num):
+  def _testformula(self, num: int) -> None:
     smile1, smile2, result = self.formulas[num]
     m1 = smiles.text_to_mol( smile1)
     m2 = smiles.text_to_mol( smile2)
@@ -120,7 +120,7 @@ class TestEqualSMILES(unittest.TestCase):
               ("[C]","[CH0]", True),
               ]
 
-  def _testformula(self, num):
+  def _testformula(self, num: int) -> None:
     smile1, smile2, result = self.formulas[num]
     m1 = smiles.text_to_mol( smile1)
     m2 = smiles.text_to_mol( smile2)
@@ -147,7 +147,7 @@ class TestSMILESReading(unittest.TestCase):
               ("c1cscc1",("C4H4S",)),
               ]
 
-  def _testformula(self, num):
+  def _testformula(self, num: int) -> None:
     smile1, sum_forms = self.formulas[num]
     conv = smiles.converter()
     mols = conv.read_text( smile1)
@@ -155,7 +155,7 @@ class TestSMILESReading(unittest.TestCase):
       self.assertTrue(i < len(sum_forms))
       self.assertEqual( str( mol.get_formula_dict()), sum_forms[i])
 
-  def test_empty_smiles( self):
+  def test_empty_smiles(self) -> None:
     conv = smiles.converter()
     for text in ("", "  "):
       mols = conv.read_text( "")
@@ -173,7 +173,7 @@ for i in range( len( TestSMILESReading.formulas)):
 
 class TestSMILESReactionSupport(unittest.TestCase):
 
-  def test1(self):
+  def test1(self) -> None:
     """tests handling of reactions by the SMILES reader on a preparation of methyl-formate"""
     c = smiles.converter()
     reacts = c.read_text( "O=CO.CO>[H+]>O=COC.O")
@@ -189,7 +189,7 @@ class TestSMILESReactionSupport(unittest.TestCase):
     self.assertEqual( len( react.products[1].molecule.atoms), 1)
     self.assertEqual( str( react.products[0].molecule.get_formula_dict()), "C2H4O2")
 
-  def test2(self):
+  def test2(self) -> None:
     """test reactions with some empty parts"""
     c = smiles.converter()
     reacts = c.read_text( "C=C.[H][H]>>CC")
@@ -210,7 +210,7 @@ from oasa import reaction_lib as reaction
 
 class TestReactionComponent(unittest.TestCase):
 
-  def test1(self):
+  def test1(self) -> None:
     mol = smiles.text_to_mol( "CCCO")
     rc = reaction.ReactionComponent( mol, 2)
     self.assertEqual( rc.stoichiometry, 2)
@@ -232,7 +232,7 @@ class TestValency(unittest.TestCase):
               ("CN(C)C",(0,3,0)),
               ]
 
-  def _testformula(self, num):
+  def _testformula(self, num: int) -> None:
     smile1, (explicit_hs, occupied_v, free_v) = self.formulas[num]
     conv = smiles.converter()
     mols = conv.read_text( smile1)
@@ -265,7 +265,7 @@ class TestCharge(unittest.TestCase):
               ("[OH-].[OH-].[Ca+2]",(-1,-1,2)),
               ]
 
-  def _testformula(self, num):
+  def _testformula(self, num: int) -> None:
     smile1, charges = self.formulas[num]
     conv = smiles.converter()
     mols = conv.read_text( smile1)
@@ -294,7 +294,7 @@ class TestStereo(unittest.TestCase):
               (r"O\C(\N)=C/C=C\C=C\Cl", (-1,-1,1,1))
               ]
 
-  def _testformula(self, num):
+  def _testformula(self, num: int) -> None:
     smile1, directions = self.formulas[num]
     conv = smiles.converter()
     mols = conv.read_text( smile1)
@@ -321,8 +321,8 @@ class TestStereo2(unittest.TestCase):
               r"C/C(Cl)=C(\O)C",
               ]
 
-  def _testformula(self, num):
-    def create_st_sum( st):
+  def _testformula(self, num: int) -> None:
+    def create_st_sum(st: object) -> tuple:
       symbols = [a.symbol for a in (st.references[0],st.references[-1])]
       symbols.sort()
       return tuple( symbols + [st.value==st.SAME_SIDE and 1 or -1])
@@ -360,8 +360,8 @@ class TestStereo3(unittest.TestCase):
               r"C/C(Cl)=C(\O)N",
               ]
 
-  def _testformula(self, num):
-    def create_st_sum( st):
+  def _testformula(self, num: int) -> None:
+    def create_st_sum(st: object) -> tuple:
       symbols = [a.symbol for a in (st.references[0],st.references[-1])]
       symbols.sort()
       return tuple( symbols + [st.value==st.SAME_SIDE and 1 or -1])
@@ -407,7 +407,7 @@ class TestGraphMatching(unittest.TestCase):
               ("C1CC1C(C)C",2,2),
               ]
 
-  def _testformula(self, num):
+  def _testformula(self, num: int) -> None:
     smile1,match_pair_num,exposed_vs_num = self.formulas[num]
     conv = smiles.converter()
     mols = conv.read_text( smile1)

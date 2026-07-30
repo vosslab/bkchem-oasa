@@ -1,183 +1,77 @@
-"""Bond alignment mode for align/mirror/invert operations."""
+"""Backend-authoritative atom alignment mode."""
 
 # PIP3 modules
 import PySide6.QtCore
 
 # local repo modules
-import bkchem_qt.modes.base_mode
 import bkchem_qt.canvas.items.atom_item
-import bkchem_qt.canvas.items.bond_item
+import bkchem_qt.modes.base_mode
 
-# supported alignment operations
-ALIGN_HORIZONTAL = "align_horizontal"
-ALIGN_VERTICAL = "align_vertical"
-MIRROR_HORIZONTAL = "mirror_horizontal"
-MIRROR_VERTICAL = "mirror_vertical"
+
+ALIGN_HORIZONTAL = "horizontal"
+ALIGN_VERTICAL = "vertical"
+_SUBMODE_AXIS = {"tohoriz": ALIGN_HORIZONTAL, "tovert": ALIGN_VERTICAL}
 
 
 #============================================
 class BondAlignMode(bkchem_qt.modes.base_mode.BaseMode):
-	"""Mode for aligning and mirroring molecule geometry.
-
-	Click to apply the current alignment operation to all selected
-	atom items. The operation can be changed via ``set_operation()``.
-
-	Args:
-		view: The ChemView widget that owns this mode.
-		parent: Optional parent QObject.
-	"""
+	"""Submit selected durable atoms to the backend alignment operation."""
 
 	#============================================
-	def __init__(self, view, parent=None):
-		"""Initialize the bond alignment mode.
-
-		Args:
-			view: The ChemView widget that dispatches events.
-			parent: Optional parent QObject.
-		"""
+	def __init__(self, view: object, parent: PySide6.QtCore.QObject | None = None) -> None:
+		"""Initialize the mode with its horizontal default."""
 		super().__init__(view, parent)
 		self._name = "bondalign"
-		# current alignment submode operation
-		self._operation = ALIGN_HORIZONTAL
+		self._axis = ALIGN_HORIZONTAL
+		self._atom_align_operation = None
 		self._cursor = PySide6.QtCore.Qt.CursorShape.SizeAllCursor
+
+	#============================================
+	def set_atom_align_operation(self, operation: object | None) -> None:
+		"""Install the session-owned atom-alignment client callback."""
+		if operation is not None and not callable(operation):
+			raise TypeError("Atom alignment operation must be callable")
+		self._atom_align_operation = operation
+
+	#============================================
+	def on_submode_switch(self, submode_index: int, name: str) -> None:
+		"""Map the two supported YAML controls to their exact backend axis."""
+		if submode_index != 0:
+			return
+		axis = _SUBMODE_AXIS.get(name)
+		if axis is None:
+			self.status_message.emit("This transform is unavailable in the Qt release")
+			return
+		self._axis = axis
+		self.status_message.emit("Align selected atoms %s" % axis)
 
 	#============================================
 	@property
 	def status_hint(self) -> str:
-		"""Return bond alignment mode interaction hint for the status bar.
-
-		Returns:
-			A short description of available alignment interactions.
-		"""
-		return "Select atoms then click to apply alignment"
+		"""Return the current bounded interaction guidance."""
+		return "Select durable atoms then click to align %s" % self._axis
 
 	#============================================
-	@property
-	def operation(self) -> str:
-		"""Return the current alignment operation name."""
-		return self._operation
-
-	#============================================
-	def set_operation(self, operation: str) -> None:
-		"""Set the alignment operation for subsequent clicks.
-
-		Args:
-			operation: One of the ALIGN_* or MIRROR_* constants.
-		"""
-		self._operation = operation
-		self.status_message.emit(f"Align mode: {operation}")
-
-	#============================================
-	def mouse_press(self, scene_pos: PySide6.QtCore.QPointF, event) -> None:
-		"""Apply the alignment operation to selected items.
-
-		Collects all selected AtomItems, computes the centroid or
-		axis, and applies the appropriate transformation.
-
-		Args:
-			scene_pos: Position in scene coordinates.
-			event: The mouse event.
-		"""
+	def mouse_press(self, scene_pos: PySide6.QtCore.QPointF, event: object) -> None:
+		"""Submit one selected direct-atom set without a local geometry command."""
 		scene = self._env.scene
-		if scene is None:
+		if scene is None or self._atom_align_operation is None:
+			self.status_message.emit("Alignment unavailable for this document")
 			return
-		# collect selected atom items
-		atom_items = []
+		targets = []
 		for item in scene.selectedItems():
-			if isinstance(item, bkchem_qt.canvas.items.atom_item.AtomItem):
-				atom_items.append(item)
-		if not atom_items:
+			if not isinstance(item, bkchem_qt.canvas.items.atom_item.AtomItem):
+				continue
+			atom_model = item.atom_model
+			atom_id = atom_model.backend_durable_id
+			molecule = getattr(atom_model, "_molecule_model", None)
+			molecule_id = getattr(molecule, "mol_id", None)
+			if not atom_id or not molecule_id:
+				self.status_message.emit("Alignment unavailable: selected atom lacks durable identity")
+				return
+			targets.append((str(molecule_id), str(atom_id)))
+		if not targets:
 			self.status_message.emit("No atoms selected")
 			return
-		# dispatch to the appropriate operation
-		if self._operation == ALIGN_HORIZONTAL:
-			_align_horizontal(atom_items)
-		elif self._operation == ALIGN_VERTICAL:
-			_align_vertical(atom_items)
-		elif self._operation == MIRROR_HORIZONTAL:
-			_mirror_horizontal(atom_items)
-		elif self._operation == MIRROR_VERTICAL:
-			_mirror_vertical(atom_items)
-		# update any bond items that depend on moved atoms
-		for item in scene.items():
-			if isinstance(item, bkchem_qt.canvas.items.bond_item.BondItem):
-				item.update_from_model()
-		self.status_message.emit(f"Applied {self._operation}")
-
-
-#============================================
-def _align_horizontal(atom_items: list) -> None:
-	"""Align selected atoms to the same y-coordinate (average y).
-
-	Args:
-		atom_items: List of AtomItem instances to align.
-	"""
-	if not atom_items:
-		return
-	# compute average y
-	total_y = 0.0
-	for item in atom_items:
-		total_y += item.atom_model.y
-	avg_y = total_y / len(atom_items)
-	# set all atoms to the average y
-	for item in atom_items:
-		item.atom_model.set_xyz(item.atom_model.x, avg_y, item.atom_model.z)
-
-
-#============================================
-def _align_vertical(atom_items: list) -> None:
-	"""Align selected atoms to the same x-coordinate (average x).
-
-	Args:
-		atom_items: List of AtomItem instances to align.
-	"""
-	if not atom_items:
-		return
-	# compute average x
-	total_x = 0.0
-	for item in atom_items:
-		total_x += item.atom_model.x
-	avg_x = total_x / len(atom_items)
-	# set all atoms to the average x
-	for item in atom_items:
-		item.atom_model.set_xyz(avg_x, item.atom_model.y, item.atom_model.z)
-
-
-#============================================
-def _mirror_horizontal(atom_items: list) -> None:
-	"""Mirror selected atoms across a horizontal axis (flip y around centroid).
-
-	Args:
-		atom_items: List of AtomItem instances to mirror.
-	"""
-	if not atom_items:
-		return
-	# compute centroid y
-	total_y = 0.0
-	for item in atom_items:
-		total_y += item.atom_model.y
-	center_y = total_y / len(atom_items)
-	# mirror each atom's y around the centroid
-	for item in atom_items:
-		new_y = 2.0 * center_y - item.atom_model.y
-		item.atom_model.set_xyz(item.atom_model.x, new_y, item.atom_model.z)
-
-
-#============================================
-def _mirror_vertical(atom_items: list) -> None:
-	"""Mirror selected atoms across a vertical axis (flip x around centroid).
-
-	Args:
-		atom_items: List of AtomItem instances to mirror.
-	"""
-	if not atom_items:
-		return
-	# compute centroid x
-	total_x = 0.0
-	for item in atom_items:
-		total_x += item.atom_model.x
-	center_x = total_x / len(atom_items)
-	# mirror each atom's x around the centroid
-	for item in atom_items:
-		new_x = 2.0 * center_x - item.atom_model.x
-		item.atom_model.set_xyz(new_x, item.atom_model.y, item.atom_model.z)
+		outcome = self._atom_align_operation(self._axis, tuple(targets))
+		self.status_message.emit(outcome.message)

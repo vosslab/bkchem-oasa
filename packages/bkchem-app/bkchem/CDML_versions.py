@@ -31,7 +31,7 @@ class CDML_transformer_06_07(object):
   output_version = '0.7'
   input_version = '0.6'
 
-  def tranform_dom( self, dom):
+  def tranform_dom(self, dom: object) -> None:
     for b in dom.getElementsByTagName( 'bond'):
       type = b.getAttribute( 'type')
       if type == 'forth':
@@ -44,7 +44,7 @@ class CDML_transformer_07_08(object):
   output_version = '0.8'
   input_version = '0.7'
 
-  def tranform_dom( self, dom):
+  def tranform_dom(self, dom: object) -> None:
     types = { 'single': 's', 'double': 'd', 'triple': 't', 'up': 'w', 'back': 'h'}
     for b in dom.getElementsByTagName( 'bond'):
       type = b.getAttribute( 'type')
@@ -59,7 +59,7 @@ class CDML_transformer_08_09(object):
   output_version = '0.9'
   input_version = '0.8'
 
-  def tranform_dom( self, dom):
+  def tranform_dom(self, dom: object) -> None:
     pass
 
 
@@ -69,7 +69,7 @@ class CDML_transformer_09_10(object):
   output_version = '0.10'
   input_version = '0.9'
 
-  def tranform_dom( self, dom):
+  def tranform_dom(self, dom: object) -> None:
     if dom.nodeName == 'cdml':
       cdml = dom
     else:
@@ -96,7 +96,7 @@ class CDML_transformer_10_11(object):
   input_version = '0.10'
   bond_type_remap = ['','n1','n2','n3','w1','h1']
 
-  def tranform_dom( self, dom):
+  def tranform_dom(self, dom: object) -> None:
     for b in dom.getElementsByTagName("bond"):
       # bond remap
       type = b.getAttribute( 'type')
@@ -137,7 +137,7 @@ class CDML_transformer_11_12(object):
   output_version = '0.12'
   input_version = '0.11'
 
-  def tranform_dom( self, dom):
+  def tranform_dom(self, dom: object) -> None:
     pass
 
 
@@ -147,7 +147,7 @@ class CDML_transformer_12_13(object):
   output_version = '0.13'
   input_version = '0.12'
 
-  def tranform_dom( self, dom):
+  def tranform_dom(self, dom: object) -> None:
     for a in dom.getElementsByTagName( 'atom'):
       ch = a.getAttribute("charge") or 0
       for m in a.getElementsByTagName( 'mark'):
@@ -164,7 +164,7 @@ class CDML_transformer_13_14(object):
   output_version = '0.14'
   input_version = '0.13'
 
-  def tranform_dom( self, dom):
+  def tranform_dom(self, dom: object) -> None:
     for a in dom.getElementsByTagName( 'atom'):
       name = a.getAttribute( "name")
       if not name:
@@ -187,7 +187,7 @@ class CDML_transformer_14_15(object):
   output_version = '0.15'
   input_version = '0.14'
 
-  def tranform_dom( self, dom):
+  def tranform_dom(self, dom: object) -> None:
     for a in dom.getElementsByTagName( 'atom'):
       multiplicity = 1
       for m in a.getElementsByTagName( 'mark'):
@@ -214,7 +214,7 @@ class CDML_transformer_15_16(object):
   output_version = '0.16'
   input_version = '0.15'
 
-  def tranform_dom( self, dom):
+  def tranform_dom(self, dom: object) -> None:
     for a in dom.getElementsByTagName( 'ftext'):
       text = ""
       for ch in a.childNodes[:]:
@@ -232,8 +232,22 @@ class CDML_transformer_16_26_02(object):
   output_version = '26.02'
   input_version = '0.16'
 
-  def tranform_dom( self, dom):
+  def tranform_dom(self, dom: object) -> None:
     pass
+
+
+
+class CDML_transformer_26_02_26_07(object):
+  """CDML version 26.07.
+
+  Documents the current authored profile without changing document structure.
+  """
+
+  output_version = '26.07'
+  input_version = '26.02'
+
+  def tranform_dom(self, dom: object) -> None:
+    dom.setAttribute('version', self.output_version)
 
 
 
@@ -249,11 +263,12 @@ transformers = { '0.6': CDML_transformer_06_07,
                  '0.14': CDML_transformer_14_15,
                  '0.15': CDML_transformer_15_16,
                  '0.16': CDML_transformer_16_26_02,
+                 '26.02': CDML_transformer_26_02_26_07,
                  }
 
 
 # TRANSFORMING FUNCTION
-def transform_dom_to_version(dom, version):
+def transform_dom_to_version(dom: object, version: str) -> int:
   """Do inplace transformation of the dom tree to requested version.
 
   Return 1 on success.

@@ -1,11 +1,12 @@
 """Edit menu action registrations for BKChem."""
 
 # local repo modules
+from bkchem.actions.action_registry import ActionRegistry
 from bkchem.actions.action_registry import MenuAction
 
 
 #============================================
-def register_edit_actions(registry, app) -> None:
+def register_edit_actions(registry: ActionRegistry, app: object) -> None:
 	"""Register all Edit menu actions.
 
 	Args:

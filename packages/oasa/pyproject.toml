@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,11 +7,16 @@ name = "oasa"
 description = "OASA is a free cheminformatics library written in Python"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "GPL-2.0-only"}
+license = "GPL-2.0-only"
+license-files = ["LICENSE"]
 authors = [{name = "Beda Kosata", email = "beda@zirael.org"}]
 maintainers = [{name = "Reinis Danne", email = "rei4dan@gmail.com"}]
-version = "26.02a1"
+version = "26.07"
 dependencies = [
+    "defusedxml",
+    "lxml",
+    "pycairo",
+    "pyyaml",
     "rdkit",
     "rustworkx",
 ]
@@ -25,5 +30,4 @@ where = ["."]
 include = ["oasa*"]
 
 [tool.setuptools.package-data]
-oasa = ["*.txt", "*.txt.gz", "*.db"]
-oasa_data = ["*.json"]
+oasa_data = ["*.json", "*.yaml"]

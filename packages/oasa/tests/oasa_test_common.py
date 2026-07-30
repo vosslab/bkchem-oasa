@@ -4,7 +4,7 @@ import oasa.common as common
 
 
 #============================================
-def main():
+def main() -> None:
 	print("Running test_common checks...")
 	result = common.is_uniquely_sorted([1, 2, 3])
 	assert result is True

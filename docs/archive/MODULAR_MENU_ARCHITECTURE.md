@@ -268,7 +268,7 @@ class ToolRegistry:
         if tool_id not in self._tools:
             raise KeyError(f"Tool not found: {tool_id}")
 
-        return self._tools[tool_id](app)
+        return self._tools`app`
 
     def list_tools(self, category: Optional[str] = None) -> List[ToolMetadata]:
         """List all registered tools.

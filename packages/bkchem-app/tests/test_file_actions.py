@@ -35,7 +35,7 @@ EXPECTED_LABELS = {
 
 
 #============================================
-def _make_mock_app():
+def _make_mock_app() -> object:
 	"""Create a mock application object with stub handler methods.
 
 	Returns:
@@ -54,7 +54,7 @@ def _make_mock_app():
 
 
 #============================================
-def _build_registry():
+def _build_registry() -> object:
 	"""Build a registry populated with file actions using a mock app.
 
 	Returns:
@@ -67,7 +67,7 @@ def _build_registry():
 
 
 #============================================
-def test_register_count():
+def test_register_count() -> None:
 	"""Verify exactly 9 file actions are registered."""
 	registry, _ = _build_registry()
 	all_actions = registry.all_actions()
@@ -75,7 +75,7 @@ def test_register_count():
 
 
 #============================================
-def test_action_ids():
+def test_action_ids() -> None:
 	"""Verify all 9 expected action IDs are present."""
 	registry, _ = _build_registry()
 	all_actions = registry.all_actions()
@@ -84,7 +84,7 @@ def test_action_ids():
 
 
 #============================================
-def test_label_keys_exact():
+def test_label_keys_exact() -> None:
 	"""Verify label_key strings match exactly, especially 'Save As..' (two dots)."""
 	registry, _ = _build_registry()
 	for action_id, expected_label in EXPECTED_LABELS.items():
@@ -96,7 +96,7 @@ def test_label_keys_exact():
 
 
 #============================================
-def test_all_enabled_when_none():
+def test_all_enabled_when_none() -> None:
 	"""Verify all 9 actions have enabled_when=None."""
 	registry, _ = _build_registry()
 	for action_id in EXPECTED_IDS:
@@ -107,7 +107,7 @@ def test_all_enabled_when_none():
 
 
 #============================================
-def test_handlers_callable():
+def test_handlers_callable() -> None:
 	"""Verify all 9 actions have callable handlers."""
 	registry, _ = _build_registry()
 	for action_id in EXPECTED_IDS:

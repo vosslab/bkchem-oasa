@@ -30,14 +30,14 @@ import sys
 
 
 
-def myisstr(obj):
+def myisstr(obj: object) -> bool:
   if sys.version_info[0] > 2:
     return isinstance(obj, str)
   else:
     return isinstance(obj, str)
 
 
-def intersection( a, b):
+def intersection(a: object, b: object) -> list:
   "returns intersection of 2 lists"
   ret = []
   for i in a:
@@ -46,7 +46,7 @@ def intersection( a, b):
   return ret
 
 
-def difference( a,b):
+def difference(a: object, b: object) -> list:
   "returns difference of 2 lists ( a-b)"
   ret = list( a)  # needed for type conversion of tuple for instance
   for i in b:
@@ -55,7 +55,7 @@ def difference( a,b):
   return ret
 
 
-def signum( a):
+def signum(a: object) -> int:
   if a == 0:
     return 0
   elif a < 0:
@@ -64,7 +64,7 @@ def signum( a):
     return 1
 
 
-def filter_unique( items):
+def filter_unique(items: object) -> list:
   ret = []
   for item in items:
     if item not in ret:
@@ -72,11 +72,11 @@ def filter_unique( items):
   return ret
 
 
-def reverse_molecule_formula( formula):
+def reverse_molecule_formula(formula: object) -> None:
   pass
 
 
-def normalize_coords( coords):
+def normalize_coords(coords: object) -> tuple:
   x1, y1, x2, y2 = coords
   if x2 < x1:
     x2, x1 = x1, x2
@@ -85,7 +85,7 @@ def normalize_coords( coords):
   return (x1, y1, x2, y2)
 
 
-def list_difference(l):
+def list_difference(l: object) -> list:
   """Return a list of differences between list members.
 
   The list is by 1 shorter than the original.
@@ -93,7 +93,7 @@ def list_difference(l):
   return [l[i] - l[i+1] for i in range(len(l)-1)]
 
 
-def split_number_and_unit( txt):
+def split_number_and_unit(txt: object) -> tuple:
   try:
     v = float(txt)
     return v, ''
@@ -107,20 +107,20 @@ def split_number_and_unit( txt):
   return None, None
 
 
-def lazy_apply( function, arguments, attrs=None):
+def lazy_apply(function: object, arguments: object, attrs: object = None) -> object:
   """similar to apply but returns a callable (lambda) that performs the apply when called."""
   if not attrs:
     attrs = {}
   return lambda: function( *arguments, **attrs)
 
 
-def lazy_apply_ignorant( function, arguments):
+def lazy_apply_ignorant(function: object, arguments: object) -> object:
   """similar to apply but returns a callable (lambda) that performs the apply when called.
   the returned lambda can be called with any arguments which are ignored"""
   return lambda *x: function( *arguments)
 
 
-def extend_bbox( bbox, pixels=1):
+def extend_bbox(bbox: object, pixels: object = 1) -> tuple:
   minx = min( (bbox[0], bbox[2]))
   maxx = max( (bbox[0], bbox[2]))
   miny = min( (bbox[1], bbox[3]))
@@ -128,7 +128,7 @@ def extend_bbox( bbox, pixels=1):
   return minx-pixels, miny-pixels, maxx+pixels, maxy+pixels
 
 
-def smallest_common_bbox( bboxes):
+def smallest_common_bbox(bboxes: object) -> tuple:
   _x0, _y0, _x1, _y1 = None, None, None, None
   for (x0, y0, x1, y1) in bboxes:
     minx = min( x0, x1)
@@ -146,7 +146,7 @@ def smallest_common_bbox( bboxes):
   return _x1, _y1, _x0, _y0
 
 
-def has_one_value_only( iterable):
+def has_one_value_only(iterable: object) -> int:
   if not iterable:
     return 0
   a = iterable[0]
@@ -156,7 +156,7 @@ def has_one_value_only( iterable):
   return 1
 
 
-def plural_or_singular( iterable):
+def plural_or_singular(iterable: object) -> str:
   """useful for string construction such as 'you have %d apple%s' % (len(apples), plural_or_singular( apples)"""
   if len( iterable) == 1:
     return ''
@@ -164,11 +164,11 @@ def plural_or_singular( iterable):
     return 's'
 
 
-def len_and_ending( iterable):
+def len_and_ending(iterable: object) -> tuple:
   return (len( iterable), plural_or_singular( iterable))
 
 
-def set_attr_or_property( obj, name, value):
+def set_attr_or_property(obj: object, name: object, value: object) -> bool:
   """sets value of attribute or property of object name to value"""
   if hasattr( obj, name):
     setattr( obj, name, value)

@@ -13,7 +13,7 @@ ZOOM_MAX = 10.0
 class PaperZoomMixin:
 	"""Zoom and scale helpers extracted from paper.py."""
 
-	def scale_selected( self, ratio_x, ratio_y, scale_font=1, fix_centers=0, scale_bond_width=False):
+	def scale_selected( self, ratio_x: object, ratio_y: object, scale_font: object=1, fix_centers: object=0, scale_bond_width: object=False) -> None:
 		top_levels, unique = self.selected_to_unique_top_levels()
 		ratio = math.sqrt( ratio_x*ratio_y) # ratio for operations where x and y can't be distinguished (font size etc.)
 		tr = Transform()
@@ -33,7 +33,7 @@ class PaperZoomMixin:
 			self.start_new_undo_record()
 
 
-	def scale_object( self, o, tr, ratio, scale_font=1, scale_bond_width=False):
+	def scale_object( self, o: object, tr: object, ratio: object, scale_font: object=1, scale_bond_width: object=False) -> None:
 		"""scale_font now also refers to scaling of marks"""
 		if o.object_type == 'molecule':
 			o.transform( tr)
@@ -77,7 +77,7 @@ class PaperZoomMixin:
 			o.unselect()
 			o.select()
 
-	def scale_all( self, scale, center_on_viewport=False):
+	def scale_all( self, scale: object, center_on_viewport: object=False) -> None:
 		"""Scale canvas, used to zoom in and out of the frame.
 	should not affect the *actual* size of the objects."""
 		new_scale = self._scale * scale
@@ -128,19 +128,19 @@ class PaperZoomMixin:
 			self._center_viewport_on_canvas(target_cx, target_cy)
 		self.event_generate('<<zoom-changed>>')
 
-	def zoom_in(self):
+	def zoom_in(self) -> None:
 		if self._scale < ZOOM_MAX:
 			self.scale_all(ZOOM_FACTOR, center_on_viewport=True)
 
-	def zoom_out(self):
+	def zoom_out(self) -> None:
 		if self._scale > ZOOM_MIN:
 			self.scale_all(1.0 / ZOOM_FACTOR, center_on_viewport=True)
 
-	def zoom_reset(self):
+	def zoom_reset(self) -> None:
 		if self._scale != 1.0:
 			self.scale_all(1.0 / self._scale)
 
-	def zoom_to_fit(self):
+	def zoom_to_fit(self) -> None:
 		"""Scale so all content fits in the visible window."""
 		bbox = self.bbox('all')
 		if not bbox:
@@ -155,7 +155,7 @@ class PaperZoomMixin:
 		fit_scale = min(canvas_w / content_w, canvas_h / content_h) * 0.9
 		self.scale_all(fit_scale)
 
-	def _content_bbox(self):
+	def _content_bbox(self) -> object:
 		"""Return bbox of drawn content only, excluding the page background
 		and non-content overlays like the hex grid."""
 		items = list(self.find_all())
@@ -169,7 +169,7 @@ class PaperZoomMixin:
 			return None
 		return self.list_bbox(items)
 
-	def _center_viewport_on_canvas(self, cx, cy):
+	def _center_viewport_on_canvas(self, cx: object, cy: object) -> None:
 		"""Scroll so that canvas point (cx, cy) is at the viewport center.
 
 		Tk's ``xview moveto`` internally subtracts the canvas inset
@@ -196,7 +196,7 @@ class PaperZoomMixin:
 		self.xview_moveto(max(0.0, min(1.0, frac_x)))
 		self.yview_moveto(max(0.0, min(1.0, frac_y)))
 
-	def zoom_to_content(self):
+	def zoom_to_content(self) -> None:
 		"""Reset zoom, scale to fit content (max 400%), and center viewport."""
 		# Reset to 1.0 so bbox gives real coordinates
 		if self._scale != 1.0:

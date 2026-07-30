@@ -16,9 +16,7 @@ MARK_ELECTRON_PAIR = "electron_pair"
 MARK_LONE_PAIR = "lone_pair"
 
 # local repo modules
-from bkchem_qt.canvas.items import render_ops_painter
-
-
+import bkchem_qt.canvas.items.render_ops_painter
 
 #============================================
 class MarkItem(PySide6.QtWidgets.QGraphicsItem):
@@ -35,7 +33,9 @@ class MarkItem(PySide6.QtWidgets.QGraphicsItem):
 	"""
 
 	#============================================
-	def __init__(self, parent_atom_item, mark_type: str, angle: float = 0.0):
+	def __init__(self, parent_atom_item: PySide6.QtWidgets.QGraphicsItem,
+			mark_type: str, angle: float = 0.0, offset: float = 12.0,
+			size: float = 4.0) -> None:
 		"""Initialize the mark item.
 
 		Args:
@@ -43,17 +43,20 @@ class MarkItem(PySide6.QtWidgets.QGraphicsItem):
 			mark_type: Type string such as "plus", "minus", "radical",
 				"electron_pair", or "lone_pair".
 			angle: Placement angle in degrees from the positive x-axis.
+			offset: Distance in scene points from the atom centre to mark centre.
+			size: CDML mark diameter in scene points.
 		"""
 		super().__init__(parent_atom_item)
 		self._parent_atom = parent_atom_item
 		self._mark_type = mark_type
 		self._angle = angle
-		# size of the mark symbol
-		self._radius = 6.0
+		# CDML stores mark size as a diameter, matching legacy BKChem marks.
+		self._radius = max(0.0, size) / 2.0
 		# distance from atom center to mark center
-		self._offset = 12.0
+		self._offset = max(0.0, offset)
 		# position the mark relative to the parent atom center
 		self._update_position()
+		self._disposed = False
 
 	#============================================
 	def _update_position(self) -> None:
@@ -81,7 +84,7 @@ class MarkItem(PySide6.QtWidgets.QGraphicsItem):
 
 	#============================================
 	@angle.setter
-	def angle(self, value: float):
+	def angle(self, value: float) -> None:
 		"""Set the placement angle and reposition.
 
 		Args:
@@ -89,6 +92,42 @@ class MarkItem(PySide6.QtWidgets.QGraphicsItem):
 		"""
 		self._angle = value
 		self._update_position()
+
+	#============================================
+	@property
+	def offset(self) -> float:
+		"""Return the mark centre's radial distance from its atom."""
+		return self._offset
+
+	#============================================
+	@offset.setter
+	def offset(self, value: float) -> None:
+		"""Set the radial distance and update parent-local position."""
+		self._offset = max(0.0, value)
+		self._update_position()
+
+	#============================================
+	@property
+	def size(self) -> float:
+		"""Return the CDML mark diameter in scene points."""
+		diameter = self._radius * 2.0
+		return diameter
+
+	#============================================
+	@size.setter
+	def size(self, value: float) -> None:
+		"""Set the CDML diameter and notify Qt that bounds changed."""
+		new_radius = max(0.0, value) / 2.0
+		if new_radius == self._radius:
+			return
+		self.prepareGeometryChange()
+		self._radius = new_radius
+		self.update()
+
+	#============================================
+	def dispose(self) -> None:
+		"""Release projection-owned callbacks before scene teardown."""
+		self._disposed = True
 
 	#============================================
 	def boundingRect(self) -> PySide6.QtCore.QRectF:
@@ -103,8 +142,8 @@ class MarkItem(PySide6.QtWidgets.QGraphicsItem):
 
 	#============================================
 	def paint(self, painter: PySide6.QtGui.QPainter,
-				option: PySide6.QtWidgets.QStyleOptionGraphicsItem,
-				widget: PySide6.QtWidgets.QWidget = None) -> None:
+			option: PySide6.QtWidgets.QStyleOptionGraphicsItem,
+			widget: PySide6.QtWidgets.QWidget | None = None) -> None:
 		"""Paint the mark by dispatching to the appropriate draw method.
 
 		Args:
@@ -130,7 +169,10 @@ class MarkItem(PySide6.QtWidgets.QGraphicsItem):
 		"""
 		r = self._radius
 		# draw circle outline
-		color = PySide6.QtGui.QColor(render_ops_painter.get_charge_color("plus"))
+		charge_color = bkchem_qt.canvas.items.render_ops_painter.get_charge_color(
+			"plus",
+		)
+		color = PySide6.QtGui.QColor(charge_color)
 		pen = PySide6.QtGui.QPen(color)
 		pen.setWidthF(1.0)
 		painter.setPen(pen)
@@ -156,7 +198,10 @@ class MarkItem(PySide6.QtWidgets.QGraphicsItem):
 		"""
 		r = self._radius
 		# draw circle outline
-		color = PySide6.QtGui.QColor(render_ops_painter.get_charge_color("minus"))
+		charge_color = bkchem_qt.canvas.items.render_ops_painter.get_charge_color(
+			"minus",
+		)
+		color = PySide6.QtGui.QColor(charge_color)
 		pen = PySide6.QtGui.QPen(color)
 		pen.setWidthF(1.0)
 		painter.setPen(pen)
@@ -176,9 +221,11 @@ class MarkItem(PySide6.QtWidgets.QGraphicsItem):
 		Args:
 			painter: The QPainter to draw with.
 		"""
-		dot_radius = 2.5
+		dot_radius = self._radius
 		painter.setPen(PySide6.QtCore.Qt.PenStyle.NoPen)
-		painter.setBrush(PySide6.QtGui.QBrush(render_ops_painter._default_color))
+		painter.setBrush(PySide6.QtGui.QBrush(
+			bkchem_qt.canvas.items.render_ops_painter._default_color,
+		))
 		painter.drawEllipse(PySide6.QtCore.QPointF(0, 0), dot_radius, dot_radius)
 
 	#============================================
@@ -188,11 +235,13 @@ class MarkItem(PySide6.QtWidgets.QGraphicsItem):
 		Args:
 			painter: The QPainter to draw with.
 		"""
-		dot_radius = 1.5
+		dot_radius = max(1.0, self._radius * 0.3)
 		# spacing between the two dots
-		spacing = 3.0
+		spacing = max(dot_radius, self._radius * 0.6)
 		painter.setPen(PySide6.QtCore.Qt.PenStyle.NoPen)
-		painter.setBrush(PySide6.QtGui.QBrush(render_ops_painter._default_color))
+		painter.setBrush(PySide6.QtGui.QBrush(
+			bkchem_qt.canvas.items.render_ops_painter._default_color,
+		))
 		# draw two dots side by side perpendicular to the radial direction
 		angle_rad = math.radians(self._angle)
 		# perpendicular direction
@@ -220,7 +269,8 @@ class ChargeMarkItem(MarkItem):
 	"""
 
 	#============================================
-	def __init__(self, parent_atom_item, positive: bool = True, angle: float = 45.0):
+	def __init__(self, parent_atom_item: PySide6.QtWidgets.QGraphicsItem,
+			positive: bool = True, angle: float = 45.0) -> None:
 		"""Initialize the charge mark.
 
 		Args:
@@ -229,7 +279,7 @@ class ChargeMarkItem(MarkItem):
 			angle: Placement angle in degrees from the positive x-axis.
 		"""
 		mark_type = MARK_PLUS if positive else MARK_MINUS
-		super().__init__(parent_atom_item, mark_type, angle)
+		super().__init__(parent_atom_item, mark_type, angle, size=10.0)
 
 
 #============================================
@@ -244,14 +294,15 @@ class RadicalMarkItem(MarkItem):
 	"""
 
 	#============================================
-	def __init__(self, parent_atom_item, angle: float = 90.0):
+	def __init__(self, parent_atom_item: PySide6.QtWidgets.QGraphicsItem,
+			angle: float = 90.0) -> None:
 		"""Initialize the radical mark.
 
 		Args:
 			parent_atom_item: The AtomItem this mark is attached to.
 			angle: Placement angle in degrees from the positive x-axis.
 		"""
-		super().__init__(parent_atom_item, MARK_RADICAL, angle)
+		super().__init__(parent_atom_item, MARK_RADICAL, angle, size=4.0)
 
 
 #============================================
@@ -266,11 +317,12 @@ class ElectronPairMarkItem(MarkItem):
 	"""
 
 	#============================================
-	def __init__(self, parent_atom_item, angle: float = 180.0):
+	def __init__(self, parent_atom_item: PySide6.QtWidgets.QGraphicsItem,
+			angle: float = 180.0) -> None:
 		"""Initialize the electron pair mark.
 
 		Args:
 			parent_atom_item: The AtomItem this mark is attached to.
 			angle: Placement angle in degrees from the positive x-axis.
 		"""
-		super().__init__(parent_atom_item, MARK_ELECTRON_PAIR, angle)
+		super().__init__(parent_atom_item, MARK_ELECTRON_PAIR, angle, size=10.0)

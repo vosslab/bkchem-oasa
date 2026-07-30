@@ -2,9 +2,11 @@
 
 # Standard Library
 import math
+import pathlib
 
 # PIP3 modules
 import PySide6.QtCore
+import pytest
 
 # local repo modules
 import oasa.atom_lib
@@ -12,6 +14,7 @@ import oasa.bond_lib
 import bkchem_qt.modes.draw_mode
 import bkchem_qt.models.atom_model
 import bkchem_qt.models.bond_model
+import bkchem_qt.models.molecule_model
 import bkchem_qt.canvas.items.atom_item
 import bkchem_qt.canvas.items.bond_item
 import bkchem_qt.actions.context_menu
@@ -19,7 +22,31 @@ import bkchem_qt.actions.repair_actions
 
 
 #============================================
-def test_atom_dialog_applies_changes(qapp):
+def _complete_draw(
+		draw_mode: bkchem_qt.modes.draw_mode.DrawMode,
+		position: PySide6.QtCore.QPointF,
+		) -> None:
+	"""Commit one Draw click through the backend-owned session route."""
+	draw_mode.mouse_press(position, None)
+	draw_mode.mouse_release(position, None)
+
+
+#============================================
+def _new_root_from_draw(
+		main_window: object, draw_mode: bkchem_qt.modes.draw_mode.DrawMode,
+		position: PySide6.QtCore.QPointF,
+		) -> object:
+	"""Commit a fresh root and return it across shared-session fixture resets."""
+	previous_ids = {molecule.mol_id for molecule in main_window.document.molecules}
+	_complete_draw(draw_mode, position)
+	for molecule in main_window.document.molecules:
+		if molecule.mol_id not in previous_ids:
+			return molecule
+	raise AssertionError("Draw click did not install a new backend molecule root")
+
+
+#============================================
+def test_atom_dialog_applies_changes(qapp: object) -> None:
 	"""AtomDialog.edit_atom() can apply changes to an AtomModel."""
 	oasa_atom = oasa.atom_lib.Atom(symbol="C")
 	atom = bkchem_qt.models.atom_model.AtomModel(oasa_atom=oasa_atom)
@@ -35,7 +62,7 @@ def test_atom_dialog_applies_changes(qapp):
 
 
 #============================================
-def test_bond_dialog_applies_changes(qapp):
+def test_bond_dialog_applies_changes(qapp: object) -> None:
 	"""BondDialog.edit_bond() can apply changes to a BondModel."""
 	oasa_bond = oasa.bond_lib.Bond(order=1, type="n")
 	bond = bkchem_qt.models.bond_model.BondModel(oasa_bond=oasa_bond)
@@ -51,37 +78,7 @@ def test_bond_dialog_applies_changes(qapp):
 
 
 #============================================
-def test_template_mode_places_molecule(main_window):
-	"""Template mode _place_template() adds atoms to the scene and document."""
-	main_window._mode_manager.set_mode("template")
-	tmpl_mode = main_window._mode_manager.current_mode
-	# set a known template
-	if "Ph" in tmpl_mode.template_names:
-		tmpl_mode.set_template("Ph")
-	elif "Me" in tmpl_mode.template_names:
-		tmpl_mode.set_template("Me")
-	else:
-		# use the first available template
-		if tmpl_mode.template_names:
-			tmpl_mode.set_template(tmpl_mode.template_names[0])
-		else:
-			# no templates available, skip
-			return
-	# place the template
-	tmpl_mode._place_template(200.0, 200.0)
-	# verify atoms were added
-	atom_items = [
-		i for i in main_window.scene.items()
-		if isinstance(i, bkchem_qt.canvas.items.atom_item.AtomItem)
-	]
-	assert len(atom_items) > 0, "template should have added atoms to scene"
-	assert len(main_window.document.molecules) > 0, (
-		"document should have molecules"
-	)
-
-
-#============================================
-def test_context_menu_delete_atom(main_window):
+def test_context_menu_delete_atom(main_window: object) -> None:
 	"""Context menu _delete_atom() removes atom with undo support."""
 	main_window._mode_manager.set_mode("draw")
 	draw_mode = main_window._mode_manager.current_mode
@@ -112,7 +109,7 @@ def test_context_menu_delete_atom(main_window):
 
 
 #============================================
-def test_implemented_modes_no_crash_on_press(main_window):
+def test_implemented_modes_no_crash_on_press(main_window: object) -> None:
 	"""All modes handle mouse press without crashing or saying not implemented."""
 	# modes that were previously stubs are now implemented
 	mode_names = ["vector", "bracket", "plus", "misc", "repair"]
@@ -138,7 +135,7 @@ def test_implemented_modes_no_crash_on_press(main_window):
 # ------------------------------------------------------------------
 
 #============================================
-def _count_atom_items(scene) -> int:
+def _count_atom_items(scene: object) -> int:
 	"""Count AtomItem instances in the scene."""
 	return sum(
 		1 for i in scene.items()
@@ -147,7 +144,7 @@ def _count_atom_items(scene) -> int:
 
 
 #============================================
-def _count_bond_items(scene) -> int:
+def _count_bond_items(scene: object) -> int:
 	"""Count BondItem instances in the scene."""
 	return sum(
 		1 for i in scene.items()
@@ -160,17 +157,19 @@ class _FakeMouseEvent:
 	"""Minimal mouse-event stub for direct mode method calls in tests."""
 
 	#============================================
-	def __init__(self, modifiers=PySide6.QtCore.Qt.KeyboardModifier.NoModifier):
+	def __init__(
+		self, modifiers: object = PySide6.QtCore.Qt.KeyboardModifier.NoModifier,
+	) -> None:
 		self._modifiers = modifiers
 
 	#============================================
-	def modifiers(self):
+	def modifiers(self) -> object:
 		"""Return keyboard modifiers."""
 		return self._modifiers
 
 
 #============================================
-def test_scene_and_draw_share_canonical_spacing(main_window):
+def test_scene_and_draw_share_canonical_spacing(main_window: object) -> None:
 	"""Draw mode must read bond length directly from scene spacing."""
 	main_window._mode_manager.set_mode("draw")
 	draw_mode = main_window._mode_manager.current_mode
@@ -180,7 +179,7 @@ def test_scene_and_draw_share_canonical_spacing(main_window):
 
 
 #============================================
-def test_zoom_does_not_change_scene_spacing_value(main_window):
+def test_zoom_does_not_change_scene_spacing_value(main_window: object) -> None:
 	"""Zoom operations must not change the canonical scene spacing value."""
 	main_window._mode_manager.set_mode("draw")
 	draw_mode = main_window._mode_manager.current_mode
@@ -192,7 +191,7 @@ def test_zoom_does_not_change_scene_spacing_value(main_window):
 
 
 #============================================
-def test_element_change_routes_to_atom_mode_setter(main_window):
+def test_element_change_routes_to_atom_mode_setter(main_window: object) -> None:
 	"""Element edits should route through AtomMode.set_element()."""
 	main_window._mode_manager.set_mode("atom")
 	atom_mode = main_window._mode_manager.current_mode
@@ -203,7 +202,7 @@ def test_element_change_routes_to_atom_mode_setter(main_window):
 
 
 #============================================
-def test_element_change_routes_to_draw_mode_property(main_window):
+def test_element_change_routes_to_draw_mode_property(main_window: object) -> None:
 	"""Element edits should route to DrawMode.current_element setter."""
 	main_window._mode_manager.set_mode("draw")
 	draw_mode = main_window._mode_manager.current_mode
@@ -218,30 +217,26 @@ def test_element_change_routes_to_draw_mode_property(main_window):
 
 
 #============================================
-def test_bond_click_creates_fixed_length_bond(main_window):
-	"""Click on an existing atom creates a new atom at grid_spacing distance."""
+def test_bond_click_creates_fixed_length_bond(main_window: object) -> None:
+	"""Clicking a projected atom adds one backend-owned fixed-length bond."""
 	main_window._mode_manager.set_mode("draw")
 	draw_mode = main_window._mode_manager.current_mode
-	# create a seed atom directly
-	seed = draw_mode._create_atom_at(200.0, 200.0, "C")
-	assert seed is not None, "seed atom should be created"
-	# simulate clicking on the seed atom
-	pos = PySide6.QtCore.QPointF(200.0, 200.0)
-	draw_mode.mouse_press(pos, None)
-	# should now have 2 atoms and 1 bond
-	assert _count_atom_items(main_window.scene) == 2, (
-		"clicking atom should create a bonded neighbor"
+	mol = _new_root_from_draw(
+		main_window, draw_mode, PySide6.QtCore.QPointF(200.0, 200.0),
 	)
-	assert _count_bond_items(main_window.scene) == 1, (
-		"clicking atom should create one bond"
+	seed = mol.atoms[0]
+	_complete_draw(draw_mode, PySide6.QtCore.QPointF(seed.x, seed.y))
+	mol = next(
+		candidate for candidate in main_window.document.molecules
+		if candidate.mol_id == mol.mol_id
 	)
-	# verify the bond length matches grid spacing
+	assert _count_atom_items(main_window.scene) == 3
+	assert _count_bond_items(main_window.scene) == 2
 	bond_length = draw_mode._get_bond_length()
-	mol = main_window.document.molecules[0]
 	atoms = mol.atoms
-	assert len(atoms) == 2, "molecule should have 2 atoms"
-	dx = atoms[1].x - atoms[0].x
-	dy = atoms[1].y - atoms[0].y
+	assert len(atoms) == 3, "backend extension should add one atom"
+	dx = atoms[-1].x - seed.x
+	dy = atoms[-1].y - seed.y
 	actual_dist = math.sqrt(dx * dx + dy * dy)
 	assert abs(actual_dist - bond_length) < 0.5, (
 		f"bond length {actual_dist:.2f} should be close to "
@@ -250,38 +245,23 @@ def test_bond_click_creates_fixed_length_bond(main_window):
 
 
 #============================================
-def test_bond_click_uses_120_degree_angle(main_window):
+def test_bond_click_uses_120_degree_angle(main_window: object) -> None:
 	"""Click on atom with one neighbor places new bond at ~120 degrees."""
 	main_window._mode_manager.set_mode("draw")
 	draw_mode = main_window._mode_manager.current_mode
-	mol_model = draw_mode._get_active_molecule()
-	bond_length = draw_mode._get_bond_length()
-	# create two connected atoms manually (horizontal bond)
-	a1 = draw_mode._create_atom_at(200.0, 200.0, "C")
-	a2 = draw_mode._create_atom_at(200.0 + bond_length, 200.0, "C")
-	draw_mode._create_bond_between(a1, a2)
-	assert _count_atom_items(main_window.scene) == 2
-	assert _count_bond_items(main_window.scene) == 1
-	# click on a2 to add a third atom
-	pos = PySide6.QtCore.QPointF(200.0 + bond_length, 200.0)
-	draw_mode.mouse_press(pos, None)
-	assert _count_atom_items(main_window.scene) == 3, (
-		"should have 3 atoms after clicking a2"
+	mol = _new_root_from_draw(
+		main_window, draw_mode, PySide6.QtCore.QPointF(200.0, 200.0),
 	)
-	# measure the angle between a1-a2 and a2-a3
-	atoms = mol_model.atoms
-	# find a3: the atom that is not a1 or a2
-	a1m = a1.atom_model
-	a2m = a2.atom_model
-	a3m = None
-	for am in atoms:
-		if am is not a1m and am is not a2m:
-			a3m = am
-			break
-	assert a3m is not None, "should find a third atom"
-	# angle at a2 between a1 and a3
-	angle_a2_a1 = math.atan2(a1m.y - a2m.y, a1m.x - a2m.x)
-	angle_a2_a3 = math.atan2(a3m.y - a2m.y, a3m.x - a2m.x)
+	a1, a2 = mol.atoms
+	_complete_draw(draw_mode, PySide6.QtCore.QPointF(a2.x, a2.y))
+	mol = next(
+		candidate for candidate in main_window.document.molecules
+		if candidate.mol_id == mol.mol_id
+	)
+	a3 = mol.atoms[-1]
+	assert _count_atom_items(main_window.scene) == 3
+	angle_a2_a1 = math.atan2(a1.y - a2.y, a1.x - a2.x)
+	angle_a2_a3 = math.atan2(a3.y - a2.y, a3.x - a2.x)
 	angle_diff = abs(angle_a2_a3 - angle_a2_a1)
 	# normalize to [0, pi]
 	if angle_diff > math.pi:
@@ -295,20 +275,19 @@ def test_bond_click_uses_120_degree_angle(main_window):
 
 
 #============================================
-def test_standalone_atom_snaps_to_grid(main_window):
+def test_standalone_atom_snaps_to_grid(main_window: object) -> None:
 	"""Click on empty space creates atoms snapped to hex grid."""
 	main_window._mode_manager.set_mode("draw")
 	draw_mode = main_window._mode_manager.current_mode
 	scene = main_window.scene
 	# click on a position that is NOT on the grid
 	pos = PySide6.QtCore.QPointF(103.7, 98.2)
-	draw_mode.mouse_press(pos, None)
+	mol = _new_root_from_draw(main_window, draw_mode, pos)
 	# should have 2 atoms (standalone + auto-bonded neighbor)
 	assert _count_atom_items(scene) >= 2, (
 		"clicking empty space should create atom + bonded neighbor"
 	)
 	# the first atom should be snapped to grid
-	mol = main_window.document.molecules[0]
 	first_atom = mol.atoms[0]
 	# verify by re-snapping and checking it matches
 	snapped_x, snapped_y = scene.snap_to_grid(103.7, 98.2)
@@ -321,15 +300,14 @@ def test_standalone_atom_snaps_to_grid(main_window):
 
 
 #============================================
-def test_standalone_atom_respects_grid_snap_toggle(main_window):
+def test_standalone_atom_respects_grid_snap_toggle(main_window: object) -> None:
 	"""Draw mode should place on raw cursor when grid snap is disabled."""
 	main_window._mode_manager.set_mode("draw")
 	draw_mode = main_window._mode_manager.current_mode
 	scene = main_window.scene
 	scene.set_grid_snap_enabled(False)
 	pos = PySide6.QtCore.QPointF(103.7, 98.2)
-	draw_mode.mouse_press(pos, None)
-	mol = main_window.document.molecules[0]
+	mol = _new_root_from_draw(main_window, draw_mode, pos)
 	first_atom = mol.atoms[0]
 	assert abs(first_atom.x - pos.x()) < 0.5, (
 		f"x={first_atom.x:.2f} should stay near click x={pos.x():.2f}"
@@ -340,7 +318,7 @@ def test_standalone_atom_respects_grid_snap_toggle(main_window):
 
 
 #============================================
-def test_bond_drag_snaps_angle(main_window):
+def test_bond_drag_snaps_angle(main_window: object) -> None:
 	"""Drag from an atom snaps endpoint to 15-degree angle increments."""
 	draw_mode = bkchem_qt.modes.draw_mode.DrawMode
 	# unit test _point_on_circle directly
@@ -376,7 +354,7 @@ def test_bond_drag_snaps_angle(main_window):
 
 
 #============================================
-def test_edit_drag_snaps_anchor_to_grid(main_window):
+def test_edit_drag_snaps_anchor_to_grid(main_window: object) -> None:
 	"""Edit drag should snap selected atoms by anchor when enabled."""
 	main_window._mode_manager.set_mode("draw")
 	draw_mode = main_window._mode_manager.current_mode
@@ -415,7 +393,7 @@ def test_edit_drag_snaps_anchor_to_grid(main_window):
 
 
 #============================================
-def test_find_place_zero_neighbors(main_window):
+def test_find_place_zero_neighbors(main_window: object) -> None:
 	"""_find_place with zero neighbors places at 30-degree default angle."""
 	main_window._mode_manager.set_mode("draw")
 	draw_mode = main_window._mode_manager.current_mode
@@ -438,7 +416,57 @@ def test_find_place_zero_neighbors(main_window):
 
 
 #============================================
-def test_find_place_least_crowded(main_window):
+def test_connected_display_atoms_returns_projection_neighbors_in_bond_order() -> None:
+	"""The public query exposes display neighbors and scalar bond orders only."""
+	molecule = bkchem_qt.models.molecule_model.MoleculeModel()
+	center = molecule.create_atom()
+	first = molecule.create_atom()
+	second = molecule.create_atom()
+	for atom in (center, first, second):
+		molecule.add_atom(atom)
+	first_bond = molecule.create_bond(order=2)
+	second_bond = molecule.create_bond(order=3)
+	molecule.add_bond(center, first, first_bond)
+	molecule.add_bond(center, second, second_bond)
+	connections = molecule.connected_display_atoms(center)
+	assert connections == ((first, 2), (second, 3))
+	assert molecule.connected_display_atoms(first) == ((center, 2),)
+
+
+#============================================
+def test_connected_display_atoms_rejects_foreign_atoms_and_invalid_endpoints() -> None:
+	"""The projection query fails loudly for cross-molecule and broken wrappers."""
+	molecule = bkchem_qt.models.molecule_model.MoleculeModel()
+	first = molecule.create_atom()
+	second = molecule.create_atom()
+	for atom in (first, second):
+		molecule.add_atom(atom)
+	bond = molecule.create_bond()
+	molecule.add_bond(first, second, bond)
+	foreign = bkchem_qt.models.molecule_model.MoleculeModel().create_atom()
+	with pytest.raises(ValueError, match="does not belong"):
+		molecule.connected_display_atoms(foreign)
+	bond.atom2 = foreign
+	with pytest.raises(ValueError, match="bond endpoints"):
+		molecule.connected_display_atoms(first)
+
+
+#============================================
+def test_draw_mode_source_uses_display_projection_query_only() -> None:
+	"""Draw Mode must obtain placement topology through MoleculeModel's query."""
+	source_path = pathlib.Path(bkchem_qt.modes.draw_mode.__file__)
+	source = source_path.read_text(encoding="utf-8")
+	for forbidden_name in (
+		"_chem_atom",
+		"_atom_models",
+		"get_edge_leading_to",
+		".neighbors",
+	):
+		assert forbidden_name not in source
+
+
+#============================================
+def test_find_place_least_crowded(main_window: object) -> None:
 	"""_find_place with 2+ neighbors uses least-crowded angular gap."""
 	main_window._mode_manager.set_mode("draw")
 	draw_mode = main_window._mode_manager.current_mode
@@ -462,16 +490,76 @@ def test_find_place_least_crowded(main_window):
 	assert abs(actual_dist - bond_length) < 0.5, (
 		f"distance {actual_dist:.2f} should be ~{bond_length:.2f}"
 	)
-	# verify it is NOT in the 0-to-90 deg sector occupied by neighbors
+	# The 270-degree gap from the right-hand bond to the upward bond has a
+	# midpoint at 135 degrees (down-left in scene coordinates).
 	angle = math.atan2(dy, dx)
 	if angle < 0:
 		angle += 2 * math.pi
-	# neighbors are at 0 deg and 270 deg (= -90 deg = 1.5*pi)
-	# the new atom should be between them in the largest gap
-	assert not (angle < 0.1 or abs(angle - 1.5 * math.pi) < 0.1), (
-		f"new atom angle {math.degrees(angle):.1f} should not be at "
-		"a neighbor angle"
+	assert abs(angle - 3 * math.pi / 4) < 0.02, (
+		f"new atom angle {math.degrees(angle):.1f} should be 135 degrees"
 	)
+
+
+#============================================
+def test_find_place_uses_transoid_side_for_degree_two_neighbor(
+		main_window: object,
+		) -> None:
+	"""A degree-two neighbor makes the next ordinary bond transoid."""
+	main_window._mode_manager.set_mode("draw")
+	draw_mode = main_window._mode_manager.current_mode
+	mol_model = draw_mode._get_active_molecule()
+	bond_length = draw_mode._get_bond_length()
+	selected = draw_mode._create_atom_at(200.0, 200.0, "C")
+	neighbor = draw_mode._create_atom_at(200.0 + bond_length, 200.0, "C")
+	neighbor_other = draw_mode._create_atom_at(
+		200.0 + bond_length, 200.0 - bond_length, "C",
+	)
+	draw_mode._create_bond_between(selected, neighbor)
+	draw_mode._create_bond_between(neighbor, neighbor_other)
+	new_x, new_y = draw_mode._find_place(
+		selected.atom_model, mol_model, bond_length,
+	)
+	new_angle = math.atan2(
+		new_y - selected.atom_model.y,
+		new_x - selected.atom_model.x,
+	)
+	existing_angle = math.atan2(
+		neighbor.atom_model.y - selected.atom_model.y,
+		neighbor.atom_model.x - selected.atom_model.x,
+	)
+	angle_difference = abs(new_angle - existing_angle)
+	if angle_difference > math.pi:
+		angle_difference = 2 * math.pi - angle_difference
+	assert abs(angle_difference - 2 * math.pi / 3) < 0.02
+
+	new_side = draw_mode._on_which_side(
+		neighbor.atom_model, selected.atom_model, new_x, new_y,
+	)
+	other_side = draw_mode._on_which_side(
+		neighbor.atom_model,
+		selected.atom_model,
+		neighbor_other.atom_model.x,
+		neighbor_other.atom_model.y,
+	)
+	assert new_side == -other_side
+
+
+#============================================
+def test_find_place_extends_existing_triple_bond(main_window: object) -> None:
+	"""A triple-bonded displayed neighbor produces a collinear extension."""
+	main_window._mode_manager.set_mode("draw")
+	draw_mode = main_window._mode_manager.current_mode
+	mol_model = draw_mode._get_active_molecule()
+	bond_length = draw_mode._get_bond_length()
+	center = draw_mode._create_atom_at(200.0, 200.0, "C")
+	right = draw_mode._create_atom_at(200.0 + bond_length, 200.0, "C")
+	bond_item = draw_mode._create_bond_between(center, right)
+	bond_item.bond_model.order = 3
+	new_x, new_y = draw_mode._find_place(
+		center.atom_model, mol_model, bond_length,
+	)
+	assert abs(new_x - (200.0 - bond_length)) < 0.5
+	assert abs(new_y - 200.0) < 0.5
 
 
 # ------------------------------------------------------------------
@@ -479,7 +567,15 @@ def test_find_place_least_crowded(main_window):
 # ------------------------------------------------------------------
 
 #============================================
-def _make_bonded_items(qapp, symbol1="C", symbol2="N", x1=0.0, y1=0.0, x2=40.0, y2=0.0):
+def _make_bonded_items(
+	qapp: object,
+	symbol1: str = "C",
+	symbol2: str = "N",
+	x1: float = 0.0,
+	y1: float = 0.0,
+	x2: float = 40.0,
+	y2: float = 0.0,
+) -> tuple:
 	"""Create two AtomModels connected by a BondModel with BondItem.
 
 	Uses MoleculeModel to properly wire the OASA graph connectivity
@@ -500,7 +596,7 @@ def _make_bonded_items(qapp, symbol1="C", symbol2="N", x1=0.0, y1=0.0, x2=40.0, 
 
 
 #============================================
-def test_bond_item_clips_at_labeled_atom(qapp):
+def test_bond_item_clips_at_labeled_atom(qapp: object) -> None:
 	"""Bond endpoint near a labeled heteroatom is shorter than center-to-center."""
 	a1, a2, bond, bond_item = _make_bonded_items(qapp, "C", "N", 0.0, 0.0, 40.0, 0.0)
 	# find the maximum x coordinate in bond ops line endpoints
@@ -515,7 +611,7 @@ def test_bond_item_clips_at_labeled_atom(qapp):
 
 
 #============================================
-def test_bond_item_no_clip_for_hidden_carbon(qapp):
+def test_bond_item_no_clip_for_hidden_carbon(qapp: object) -> None:
 	"""Bond between two hidden carbons has no clipping."""
 	a1, a2, bond, bond_item = _make_bonded_items(qapp, "C", "C", 0.0, 0.0, 40.0, 0.0)
 	import oasa.render_ops
@@ -529,7 +625,7 @@ def test_bond_item_no_clip_for_hidden_carbon(qapp):
 
 
 #============================================
-def test_atom_symbol_change_triggers_bond_redraw(qapp):
+def test_atom_symbol_change_triggers_bond_redraw(qapp: object) -> None:
 	"""Changing atom symbol triggers bond item update via signal chain."""
 	a1, a2, bond, bond_item = _make_bonded_items(qapp, "C", "C", 0.0, 0.0, 40.0, 0.0)
 	# change atom2 to nitrogen (should trigger bond update)
@@ -546,7 +642,7 @@ def test_atom_symbol_change_triggers_bond_redraw(qapp):
 
 
 #============================================
-def test_atom_charge_change_triggers_bond_redraw(qapp):
+def test_atom_charge_change_triggers_bond_redraw(qapp: object) -> None:
 	"""Changing atom charge triggers bond item update via signal chain."""
 	a1, a2, bond, bond_item = _make_bonded_items(qapp, "C", "N", 0.0, 0.0, 40.0, 0.0)
 	# get initial ops snapshot
@@ -560,7 +656,7 @@ def test_atom_charge_change_triggers_bond_redraw(qapp):
 
 
 #============================================
-def test_atom_position_change_triggers_bond_redraw(qapp):
+def test_atom_position_change_triggers_bond_redraw(qapp: object) -> None:
 	"""Moving an atom triggers bond item update via signal chain."""
 	a1, a2, bond, bond_item = _make_bonded_items(qapp, "C", "N", 0.0, 0.0, 40.0, 0.0)
 	import oasa.render_ops
@@ -577,7 +673,7 @@ def test_atom_position_change_triggers_bond_redraw(qapp):
 
 
 #============================================
-def test_bond_render_context_has_real_targets(qapp):
+def test_bond_render_context_has_real_targets(qapp: object) -> None:
 	"""BondItem build passes non-empty label_targets for heteroatom bonds."""
 	a1, a2, bond, bond_item = _make_bonded_items(qapp, "C", "O", 0.0, 0.0, 40.0, 0.0)
 	# force update and inspect the context by checking ops differ from empty
@@ -592,7 +688,7 @@ def test_bond_render_context_has_real_targets(qapp):
 
 
 #============================================
-def test_repair_normalize_uses_canonical_spacing(main_window):
+def test_repair_normalize_uses_canonical_spacing(main_window: object) -> None:
 	"""Repair normalization target must come from scene spacing."""
 	main_window._mode_manager.set_mode("draw")
 	draw_mode = main_window._mode_manager.current_mode

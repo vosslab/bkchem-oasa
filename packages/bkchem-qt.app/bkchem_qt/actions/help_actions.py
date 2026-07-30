@@ -66,7 +66,7 @@ def _extract_category(action_id: str) -> str:
 
 
 #============================================
-def _show_keyboard_shortcuts(app) -> None:
+def _show_keyboard_shortcuts(app: object) -> None:
 	"""Show a modal dialog listing all registered keyboard shortcuts.
 
 	Iterates the action registry, filters to actions with non-None
@@ -150,7 +150,7 @@ def _show_keyboard_shortcuts(app) -> None:
 
 
 #============================================
-def register_help_actions(registry, app) -> None:
+def register_help_actions(registry: object, app: object) -> None:
 	"""Register all Help menu actions.
 
 	Args:

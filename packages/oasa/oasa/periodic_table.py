@@ -161,7 +161,7 @@ accept_anion = {'B': 3, 'Al': 3, 'P': 5}
 
 class composition_dict( dict):
   """special dict that automatically converts itself to human readable composition on str()"""
-  def __str__( self):
+  def __str__( self) -> str:
     ret = ''
     for n in ('C','H'):
       if n in self:
@@ -176,7 +176,7 @@ class composition_dict( dict):
     return ret
 
 
-def _myisustr(obj):
+def _myisustr(obj: object) -> object:
   if sys.version_info[0] > 2:
     return isinstance(obj, str)
   else:
@@ -187,7 +187,7 @@ class formula_dict( dict):
   """special dict that automatically converts itself to human readable
   formula on str(). Implements += for convenient formula concatenation"""
 
-  def __init__( self, form=None):
+  def __init__( self, form: object = None) -> None:
     dict.__init__( self)
     ## incomplete means that there were some problems to fully convert a formula to this dict
     self.incomplete = 0
@@ -200,7 +200,7 @@ class formula_dict( dict):
         else:
           raise ValueError("some of the dictionary entries are not valid for formula_dict (%s => %s)" % (str(key), str(val)))
 
-  def __str__( self, reverse=0):
+  def __str__( self, reverse: object = 0) -> str:
     sum = ''
     k = self.sorted_keys()
     if reverse:
@@ -213,7 +213,7 @@ class formula_dict( dict):
       sum += s+num
     return sum
 
-  def __iadd__( self, other):
+  def __iadd__( self, other: object) -> object:
     for s in other:
       if s in self:
         self[s] += other[s]
@@ -221,7 +221,7 @@ class formula_dict( dict):
         self[s] = other[s]
     return self
 
-  def __add__( self, other):
+  def __add__( self, other: object) -> object:
     ret = formula_dict()
     for form in (self, other):
       for s in form:
@@ -231,7 +231,7 @@ class formula_dict( dict):
           ret[s] = form[s]
     return ret
 
-  def __mul__( self, other):
+  def __mul__( self, other: object) -> object:
     if not isinstance(other, int):
       raise TypeError("formula_dict can be only multiplied by an integer")
     res = formula_dict()
@@ -240,28 +240,28 @@ class formula_dict( dict):
     return res
 
 
-  def get_element_fraction( self, element):
+  def get_element_fraction( self, element: object) -> object:
     if element in self:
       return self[element]*periodic_table[element]['weight']/self.get_molecular_weight()
     return 0
 
-  def get_molecular_weight( self):
+  def get_molecular_weight( self) -> object:
     tot = 0
     for i in self:
       tot += self[i]* periodic_table[i]['weight']
     return tot
 
-  def get_exact_molecular_mass( self):
+  def get_exact_molecular_mass( self) -> object:
     tot = 0
     for i in self:
       tot += self[i]* periodic_table[i]['exact_mass']
     return tot
 
 
-  def keys_in_order( self):
+  def keys_in_order( self) -> object:
     return self.sorted_keys()
 
-  def sorted_keys( self):
+  def sorted_keys( self) -> object:
     k = list(self.keys())
     ret = []
     if 'C' in k:
@@ -273,7 +273,7 @@ class formula_dict( dict):
     else:
       return sorted(k)
 
-  def read_formula_string( self, form):
+  def read_formula_string( self, form: object) -> object:
     is_formula = re.compile("^([A-Z][a-z]?[0-9]*)*$")
     #form = "".join( form.split("."))
     form = form.replace( ".", "")
@@ -297,7 +297,7 @@ class formula_dict( dict):
       else:
         self.incomplete = 1
 
-  def get_html_repr_as_string( self, outer_element=None, reverse=0):
+  def get_html_repr_as_string( self, outer_element: object = None, reverse: object = 0) -> object:
     sum = ''
     k = self.sorted_keys()
     if reverse:
@@ -312,36 +312,36 @@ class formula_dict( dict):
       return '<%s>%s</%s>' % (outer_element, sum, outer_element)
     return sum
 
-  def is_saturated_alkyl_chain( self):
+  def is_saturated_alkyl_chain( self) -> object:
     if (self.sorted_keys() == ['C','H']) and (self['H'] == 2*self['C']+1):
       return 1
     else:
       return 0
 
-  def to_tuple( self):
+  def to_tuple( self) -> object:
     return tuple(j for i in ((k, self[k]) for k in self.sorted_keys())
                        for j in i)
 
 
-def dict_to_composition( form):
+def dict_to_composition( form: object) -> object:
   ret = composition_dict()
   for s in form:
     ret[ s] = form.get_element_fraction(s) * 100
   return ret
 
-def formula_to_weight( formula):
+def formula_to_weight( formula: object) -> object:
   return formula_dict( formula).get_molecular_weight()
 
-def formula_to_formula( formula):
+def formula_to_formula( formula: object) -> object:
   return str( formula_dict( formula))
 
-def formula_to_composition( formula):
+def formula_to_composition( formula: object) -> object:
   return dict_to_composition( formula_dict( formula))
 
 
 ## other support functions
 
-def text_to_hydrogenated_atom( text):
+def text_to_hydrogenated_atom( text: object) -> object:
   a = re.match( r'^([a-z]{1,2})(h)(\d*)$', text.lower())
   if a:
     atom = a.group( 1)
@@ -409,7 +409,7 @@ def get_element_category_color(symbol: str) -> str:
   return ELEMENT_CATEGORY_COLORS.get(category, "#ffa0a0")
 
 
-def gen_bit_masks( length):
+def gen_bit_masks( length: object) -> object:
   ret = length * [0]
   yield ret
   for i in range( 2 ** length):

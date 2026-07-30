@@ -26,7 +26,7 @@ class ColorPickerButton(PySide6.QtWidgets.QPushButton):
 	color_changed = PySide6.QtCore.Signal(str)
 
 	#============================================
-	def __init__(self, color: str = "#000000", parent=None):
+	def __init__(self, color: str = "#000000", parent: object = None) -> None:
 		"""Initialize the color picker button.
 
 		Args:
@@ -78,7 +78,7 @@ class ColorPickerButton(PySide6.QtWidgets.QPushButton):
 		)
 
 	#============================================
-	def paintEvent(self, event) -> None:
+	def paintEvent(self, event: object) -> None:
 		"""Draw the color swatch on the button.
 
 		Fills the button with the current color and draws a thin

@@ -38,12 +38,12 @@ _ALLOWED_OPTION_SOURCES = {"preference", "paper_property", "dialog"}
 
 
 #============================================
-def _manifest_path():
+def _manifest_path() -> object:
 	return os.path.join(os.path.dirname(__file__), "format_menus.yaml")
 
 
 #============================================
-def load_backend_capabilities():
+def load_backend_capabilities() -> object:
 	"""Return registry capabilities keyed by codec name."""
 	if not oasa_bridge.oasa_available:
 		return {}
@@ -52,7 +52,7 @@ def load_backend_capabilities():
 
 
 #============================================
-def _validate_gui_option(codec_name, option):
+def _validate_gui_option(codec_name: object, option: object) -> object:
 	if not isinstance(option, dict):
 		raise ValueError(f"Format '{codec_name}' has a non-mapping gui option.")
 	unknown = set(option.keys()) - _ALLOWED_OPTION_KEYS
@@ -74,7 +74,7 @@ def _validate_gui_option(codec_name, option):
 
 
 #============================================
-def load_gui_manifest(path=None):
+def load_gui_manifest(path: object = None) -> object:
 	"""Load and validate GUI format metadata."""
 	manifest_path = path or _manifest_path()
 	with open(manifest_path, "r", encoding="utf-8") as handle:
@@ -116,7 +116,7 @@ def load_gui_manifest(path=None):
 
 
 #============================================
-def load_format_entries():
+def load_format_entries() -> object:
 	"""Join GUI metadata with registry capabilities."""
 	backend = load_backend_capabilities()
 	gui_formats = load_gui_manifest()
@@ -148,7 +148,7 @@ def load_format_entries():
 
 
 #============================================
-def resolve_gui_kwargs(paper, gui_options):
+def resolve_gui_kwargs(paper: object, gui_options: object) -> object:
 	"""Resolve GUI option values from their declared sources."""
 	kwargs = {}
 	for option in gui_options:
@@ -172,7 +172,7 @@ def resolve_gui_kwargs(paper, gui_options):
 
 
 #============================================
-def _write_text_output(handle, text):
+def _write_text_output(handle: object, text: object) -> object:
 	if text and not text.endswith("\n"):
 		text = text + "\n"
 	data = text or ""
@@ -183,14 +183,14 @@ def _write_text_output(handle, text):
 
 
 #============================================
-def import_format(codec_name, paper, filename):
+def import_format(codec_name: object, paper: object, filename: object) -> object:
 	"""Import one file via oasa_bridge and return BKChem molecules."""
 	with open(filename, "r") as handle:
 		return oasa_bridge.read_codec_file(codec_name, handle, paper)
 
 
 #============================================
-def export_format(codec_name, paper, filename, scope, gui_options):
+def export_format(codec_name: object, paper: object, filename: object, scope: object, gui_options: object) -> object:
 	"""Export one file via oasa_bridge using scope and resolved GUI options."""
 	kwargs = resolve_gui_kwargs(paper, gui_options)
 	with open(filename, "wb") as handle:

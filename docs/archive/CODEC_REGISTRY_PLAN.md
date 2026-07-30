@@ -54,7 +54,7 @@ Deliverable:
 
 ## Phase 4: Plugin contract cleanup (DONE)
 - Document the registry-backed contract in
-  [docs/CUSTOM_PLUGINS.md](docs/CUSTOM_PLUGINS.md).
+  `CUSTOM_PLUGINS.md`.
 - Ensure plugin export paths use codec capabilities for validation.
 
 ## Phase 5: Tests and drift prevention (DONE)
@@ -69,21 +69,21 @@ Deliverable:
 - Removing a legacy codec requires a registry update (no hidden imports).
 
 ## Related documents
-- [docs/RENDER_BACKEND_UNIFICATION.md](docs/RENDER_BACKEND_UNIFICATION.md):
+- [RENDER_BACKEND_UNIFICATION.md](RENDER_BACKEND_UNIFICATION.md):
   no overlap, but rendering parity depends on shared IO.
-- [docs/ROUNDED_WEDGES_PLAN.md](docs/ROUNDED_WEDGES_PLAN.md): registry does not
+- [ROUNDED_WEDGES_PLAN.md](ROUNDED_WEDGES_PLAN.md): registry does not
   affect wedge geometry, but stable CDML IO supports tests.
-- [docs/HAWORTH_IMPLEMENTATION_PLAN.md](docs/HAWORTH_IMPLEMENTATION_PLAN.md):
+- `HAWORTH_IMPLEMENTATION_PLAN.md`:
   Haworth CLI or batch output should use registry-backed CDML/SMILES IO.
-- [docs/BKCHEM_FORMAT_SPEC.md](docs/BKCHEM_FORMAT_SPEC.md): codec registry must
+- [BKCHEM_FORMAT_SPEC.md](BKCHEM_FORMAT_SPEC.md): codec registry must
   preserve CDML rules and namespaces.
-- [docs/BOND_BACKEND_ALIGNMENT_PLAN.md](docs/BOND_BACKEND_ALIGNMENT_PLAN.md):
+- [BOND_BACKEND_ALIGNMENT_PLAN.md](BOND_BACKEND_ALIGNMENT_PLAN.md):
   registry integration should not bypass bond IO normalization.
-- [docs/CDML_ARCHITECTURE_PLAN.md](docs/CDML_ARCHITECTURE_PLAN.md): CDML IO
+- [CDML_ARCHITECTURE_PLAN.md](CDML_ARCHITECTURE_PLAN.md): CDML IO
   remains OASA-owned; registry is the discovery layer.
-- [docs/CUSTOM_PLUGINS.md](docs/CUSTOM_PLUGINS.md): update once BKChem plugins
+- `CUSTOM_PLUGINS.md`: update once BKChem plugins
   route through the registry.
-- [docs/LICENSE_MIGRATION.md](docs/LICENSE_MIGRATION.md): new registry modules
+- [LICENSE_MIGRATION.md](../active_plans/LICENSE_MIGRATION.md): new registry modules
   require SPDX headers (LGPL-3.0-or-later).
-- [docs/TODO_CODE.md](docs/TODO_CODE.md): registry work reduces duplication
+- [TODO_CODE.md](../TODO_CODE.md): registry work reduces duplication
   before adding new external codecs.

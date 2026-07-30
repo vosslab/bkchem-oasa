@@ -44,7 +44,7 @@ class MockAction:
 	def __init__(self, action_id: str, label_key: str,
 			help_key: str, accelerator: str = None,
 			handler: object = None,
-			enabled_when: object = None):
+			enabled_when: object = None) -> None:
 		self.id = action_id
 		self.label_key = label_key
 		self.help_key = help_key
@@ -65,7 +65,7 @@ class MockAction:
 class MockRegistry:
 	"""Mock action registry for testing."""
 
-	def __init__(self, actions: list):
+	def __init__(self, actions: list) -> None:
 		self._actions = {a.id: a for a in actions}
 
 	def get(self, action_id: str) -> MockAction:
@@ -82,38 +82,38 @@ class MockRegistry:
 class MockAdapter:
 	"""Mock platform menu adapter for testing."""
 
-	def __init__(self):
+	def __init__(self) -> None:
 		self.calls = []
 
-	def add_menu(self, name: str, help_text: str, side: str = 'left'):
+	def add_menu(self, name: str, help_text: str, side: str = 'left') -> None:
 		self.calls.append(('add_menu', name, help_text, side))
 
 	def add_command(self, menu_name: str, label: str,
-					accel: str, help_text: str, command: object):
+					accel: str, help_text: str, command: object) -> None:
 		self.calls.append(('add_command', menu_name, label))
 
-	def add_separator(self, menu_name: str):
+	def add_separator(self, menu_name: str) -> None:
 		self.calls.append(('add_separator', menu_name))
 
 	def add_cascade(self, menu_name: str, cascade_name: str,
-					help_text: str):
+					help_text: str) -> None:
 		self.calls.append(('add_cascade', menu_name, cascade_name))
 
 	def add_command_to_cascade(self, cascade_name: str, label: str,
-			help_text: str, command: object):
+			help_text: str, command: object) -> None:
 		self.calls.append(
 			('add_command_to_cascade', cascade_name, label)
 		)
 
 	def set_item_state(self, menu_name: str, label: str,
-			enabled: bool):
+			enabled: bool) -> None:
 		self.calls.append(
 			('set_item_state', menu_name, label, enabled)
 		)
 
 
 #============================================
-def _noop():
+def _noop() -> None:
 	"""No-op handler for test actions."""
 	pass
 
@@ -173,7 +173,7 @@ def _build(registry: MockRegistry = None,
 
 
 #============================================
-def test_build_creates_all_menus():
+def test_build_creates_all_menus() -> None:
 	"""Adapter add_menu called for each menu in YAML."""
 	builder, adapter, yaml_path = _build()
 	builder.build_menus()
@@ -188,7 +188,7 @@ def test_build_creates_all_menus():
 
 
 #============================================
-def test_build_creates_commands():
+def test_build_creates_commands() -> None:
 	"""Adapter add_command called for each registered action."""
 	builder, adapter, yaml_path = _build()
 	builder.build_menus()
@@ -203,7 +203,7 @@ def test_build_creates_commands():
 
 
 #============================================
-def test_separators_placed():
+def test_separators_placed() -> None:
 	"""Adapter add_separator called for separator items."""
 	builder, adapter, yaml_path = _build()
 	builder.build_menus()
@@ -215,7 +215,7 @@ def test_separators_placed():
 
 
 #============================================
-def test_cascades_created():
+def test_cascades_created() -> None:
 	"""Adapter add_cascade called for cascade items."""
 	builder, adapter, yaml_path = _build()
 	builder.build_menus()
@@ -230,7 +230,7 @@ def test_cascades_created():
 
 
 #============================================
-def test_missing_action_skipped():
+def test_missing_action_skipped() -> None:
 	"""Actions not in registry are silently skipped."""
 	# registry with only file.new (missing file.save and edit.undo)
 	registry = MockRegistry([
@@ -246,7 +246,7 @@ def test_missing_action_skipped():
 
 
 #============================================
-def test_update_states_none_skipped():
+def test_update_states_none_skipped() -> None:
 	"""Actions with enabled_when=None are not passed to set_item_state."""
 	builder, adapter, yaml_path = _build()
 	builder.build_menus()
@@ -262,7 +262,7 @@ def test_update_states_none_skipped():
 
 
 #============================================
-def test_update_states_callable():
+def test_update_states_callable() -> None:
 	"""Callable predicate is evaluated and set_item_state called."""
 	# create action with a callable enabled_when
 	actions = [
@@ -284,7 +284,7 @@ def test_update_states_callable():
 
 
 #============================================
-def test_update_states_string():
+def test_update_states_string() -> None:
 	"""String predicate is looked up on app.paper attribute."""
 	actions = [
 		MockAction("file.new", "New", "Create new", None, _noop,
@@ -306,7 +306,7 @@ def test_update_states_string():
 
 
 #============================================
-def test_plugin_slots_returned():
+def test_plugin_slots_returned() -> None:
 	"""get_plugin_slots returns dict with exporters and importers."""
 	builder, adapter, yaml_path = _build()
 	builder.build_menus()
@@ -319,7 +319,7 @@ def test_plugin_slots_returned():
 
 
 #============================================
-def test_add_to_plugin_slot():
+def test_add_to_plugin_slot() -> None:
 	"""add_to_plugin_slot adds command to cascade via adapter."""
 	builder, adapter, yaml_path = _build()
 	builder.build_menus()
@@ -339,7 +339,7 @@ def test_add_to_plugin_slot():
 
 
 #============================================
-def test_add_to_unknown_slot_ignored():
+def test_add_to_unknown_slot_ignored() -> None:
 	"""Adding to a nonexistent slot does nothing."""
 	builder, adapter, yaml_path = _build()
 	builder.build_menus()

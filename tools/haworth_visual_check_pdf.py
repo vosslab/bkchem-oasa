@@ -16,7 +16,7 @@ import cairo
 
 
 #============================================
-def get_repo_root():
+def get_repo_root() -> str:
 	"""Return repository root using git."""
 	result = subprocess.run(
 		["git", "rev-parse", "--show-toplevel"],
@@ -104,18 +104,18 @@ CASES = [
 
 
 #============================================
-def _visible_text_length(text):
+def _visible_text_length(text: object) -> int:
 	return len(re.sub(r"<[^>]+>", "", text or ""))
 
 
 #============================================
-def _bbox(ops):
+def _bbox(ops: object) -> tuple[float, float, float, float]:
 	minx = float("inf")
 	miny = float("inf")
 	maxx = float("-inf")
 	maxy = float("-inf")
 
-	def _take(x, y):
+	def _take(x: float, y: float) -> None:
 		nonlocal minx
 		nonlocal miny
 		nonlocal maxx
@@ -149,7 +149,7 @@ def _bbox(ops):
 
 
 #============================================
-def _transform_ops(ops, dx, dy, scale):
+def _transform_ops(ops: object, dx: float, dy: float, scale: float) -> list[object]:
 	transformed = []
 	for op in ops:
 		if isinstance(op, render_ops.LineOp):
@@ -196,7 +196,7 @@ def _transform_ops(ops, dx, dy, scale):
 
 
 #============================================
-def _build_case_ops(case, show_carbon_numbers=False):
+def _build_case_ops(case: dict, show_carbon_numbers: bool = False) -> object:
 	parsed = sugar_code.parse(case["code"])
 	spec = haworth_spec.generate(
 		parsed,
@@ -215,7 +215,9 @@ def _build_case_ops(case, show_carbon_numbers=False):
 
 
 #============================================
-def _add_panel_decoration(all_ops, x, y, width, height, title, panel_bg):
+def _add_panel_decoration(
+		all_ops: list[object], x: float, y: float, width: float,
+		height: float, title: str, panel_bg: str) -> None:
 	panel_points = (
 		(x, y),
 		(x + width, y),
@@ -272,7 +274,7 @@ def _add_panel_decoration(all_ops, x, y, width, height, title, panel_bg):
 
 
 #============================================
-def generate_pdf(output_path, show_carbon_numbers=False):
+def generate_pdf(output_path: str, show_carbon_numbers: bool = False) -> None:
 	cell_width = (PAGE_WIDTH - (2 * MARGIN) - ((COLS - 1) * GAP_X)) / COLS
 	cell_height = (PAGE_HEIGHT - (2 * MARGIN) - ((ROWS - 1) * GAP_Y)) / ROWS
 
@@ -345,7 +347,7 @@ def generate_pdf(output_path, show_carbon_numbers=False):
 
 
 #============================================
-def parse_args():
+def parse_args() -> argparse.Namespace:
 	default_output = os.path.join(tempfile.gettempdir(), "haworth_phase3_checks.pdf")
 	parser = argparse.ArgumentParser(
 		description="Generate Haworth visual-check PDF for manual review"
@@ -367,7 +369,7 @@ def parse_args():
 
 
 #============================================
-def main():
+def main() -> None:
 	args = parse_args()
 	generate_pdf(args.output, show_carbon_numbers=args.show_carbon_numbers)
 	print(args.output)

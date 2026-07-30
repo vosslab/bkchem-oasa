@@ -105,7 +105,7 @@ Color coding:
 
 ## Related files
 
-- [docs/GLYPH_ALIGNMENT_TECHNIQUE_SUMMARY.md](GLYPH_ALIGNMENT_TECHNIQUE_SUMMARY.md) --
+- [GLYPH_ALIGNMENT_TECHNIQUE_SUMMARY.md](GLYPH_ALIGNMENT_TECHNIQUE_SUMMARY.md) --
   history of techniques tried and remaining challenges.
 - `tools/measurelib/analysis.py` -- metric computation.
 - `tools/measurelib/diagnostic_svg.py` -- diagnostic overlay generation.

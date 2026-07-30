@@ -32,7 +32,7 @@ class ChemVertex(vertex):
   """
   attrs_to_copy = vertex.attrs_to_copy + ("charge","x","y","z","multiplicity","valency","charge","free_sites")
 
-  def __init__( self, coords=None):
+  def __init__( self, coords: object=None) -> None:
     vertex.__init__( self)
     self.charge = 0
     self.free_sites = 0
@@ -46,14 +46,14 @@ class ChemVertex(vertex):
     self._multiplicity = 1
 
 
-  def matches( self, other):
+  def matches( self, other: object) -> bool:
     if other is self:
       return False
     return True
 
 
   @property
-  def coords(self):
+  def coords(self) -> tuple:
     """Atom coordinates.
 
     """
@@ -61,7 +61,7 @@ class ChemVertex(vertex):
 
 
   @coords.setter
-  def coords(self, coords):
+  def coords(self, coords: object) -> None:
     if len( coords) == 2:
       self.x, self.y = coords
       self.z = 0
@@ -72,7 +72,7 @@ class ChemVertex(vertex):
 
 
   @property
-  def charge(self):
+  def charge(self) -> object:
     """Atom charge.
 
     """
@@ -80,13 +80,13 @@ class ChemVertex(vertex):
 
 
   @charge.setter
-  def charge(self, charge):
+  def charge(self, charge: object) -> None:
     self._clean_cache()
     self._charge = charge
 
 
   @property
-  def multiplicity(self):
+  def multiplicity(self) -> object:
     """Atom multiplicity.
 
     """
@@ -94,13 +94,13 @@ class ChemVertex(vertex):
 
 
   @multiplicity.setter
-  def multiplicity(self, multiplicity):
+  def multiplicity(self, multiplicity: object) -> None:
     self._clean_cache()
     self._multiplicity = multiplicity
 
 
   @property
-  def valency(self):
+  def valency(self) -> object:
     """Atom valency.
 
     """
@@ -108,13 +108,13 @@ class ChemVertex(vertex):
 
 
   @valency.setter
-  def valency(self, valency):
+  def valency(self, valency: object) -> None:
     self._clean_cache()
     self._valency = valency
 
 
   @property
-  def occupied_valency(self):
+  def occupied_valency(self) -> object:
     """Atom's occupied valency.
 
     """
@@ -128,7 +128,7 @@ class ChemVertex(vertex):
 
 
   @property
-  def free_valency(self):
+  def free_valency(self) -> object:
     """Atom's free valency.
 
     """
@@ -141,7 +141,7 @@ class ChemVertex(vertex):
 
 
   @property
-  def weight(self):
+  def weight(self) -> object:
     """Atom weight.
 
     """
@@ -152,7 +152,7 @@ class ChemVertex(vertex):
 
 
   @property
-  def free_sites(self):
+  def free_sites(self) -> object:
     """Atom's free sites.
 
     """
@@ -164,34 +164,33 @@ class ChemVertex(vertex):
 
 
   @free_sites.setter
-  def free_sites(self, free_sites):
+  def free_sites(self, free_sites: object) -> None:
     self._free_sites = free_sites
 
 
-  def get_x( self):
+  def get_x( self) -> object:
     return self.x or 0
 
 
-  def get_y( self):
+  def get_y( self) -> object:
     return self.y or 0
 
 
-  def get_z( self):
+  def get_z( self) -> object:
     return self.z or 0
 
 
-  def has_aromatic_bonds( self):
+  def has_aromatic_bonds( self) -> int:
     for b in list(self._neighbors.keys()):
       if b.aromatic:
         return 1
     return 0
 
 
-  def bond_order_changed( self):
+  def bond_order_changed( self) -> None:
     """called by a bond when its order was changed"""
     self._clean_cache()
 
 
-  def get_hydrogen_count( self):
+  def get_hydrogen_count( self) -> int:
     return 0
-

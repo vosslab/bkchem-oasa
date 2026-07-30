@@ -117,7 +117,7 @@ def convert_svg_to_png(
 
 
 #============================================
-def main():
+def main() -> None:
 	"""Convert all SVG icons to PNG files."""
 	args = parse_args()
 

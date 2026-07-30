@@ -20,15 +20,15 @@ from oasa.render_lib.molecule_ops import molecule_to_ops
 #============================================
 def _make_two_atom_mol(
 		*,
-		left_symbol="C",
-		right_symbol="O",
-		right_charge=0,
-		right_label=None,
-		right_attach_atom=None,
-		right_attach_element=None,
-		bond_order=1,
-		bond_type="n",
-):
+		left_symbol: object = "C",
+		right_symbol: object = "O",
+		right_charge: object = 0,
+		right_label: object = None,
+		right_attach_atom: object = None,
+		right_attach_element: object = None,
+		bond_order: object = 1,
+		bond_type: object = "n",
+) -> tuple:
 	mol = oasa.molecule_lib.Molecule()
 	left = oasa.atom_lib.Atom(symbol=left_symbol)
 	left.x = 0.0
@@ -52,24 +52,24 @@ def _make_two_atom_mol(
 
 
 #============================================
-def _line_ops(ops):
+def _line_ops(ops: object) -> list:
 	return [op for op in ops if isinstance(op, render_ops.LineOp)]
 
 
 #============================================
-def _first_line(ops):
+def _first_line(ops: object) -> object:
 	lines = _line_ops(ops)
 	assert lines
 	return lines[0]
 
 
 #============================================
-def _path_ops(ops):
+def _path_ops(ops: object) -> list:
 	return [op for op in ops if isinstance(op, render_ops.PathOp)]
 
 
 #============================================
-def _path_draw_points(path_op):
+def _path_draw_points(path_op: object) -> list:
 	points = []
 	for command, payload in path_op.commands:
 		if command in ("M", "L") and payload is not None:
@@ -78,7 +78,7 @@ def _path_draw_points(path_op):
 
 
 #============================================
-def _point_not_inside_bbox(point, bbox):
+def _point_not_inside_bbox(point: object, bbox: object) -> bool:
 	"""Return True if the point is NOT strictly inside the bbox."""
 	x, y = point
 	x1, y1, x2, y2 = bbox
@@ -86,7 +86,7 @@ def _point_not_inside_bbox(point, bbox):
 
 
 #============================================
-def test_bond_clipped_to_shown_vertex():
+def test_bond_clipped_to_shown_vertex() -> None:
 	mol, _left, right = _make_two_atom_mol(right_symbol="O")
 	ops = molecule_to_ops(mol, style={"font_size": 16.0})
 	line = _first_line(ops)
@@ -97,7 +97,7 @@ def test_bond_clipped_to_shown_vertex():
 
 
 #============================================
-def test_bond_not_clipped_to_hidden_vertex():
+def test_bond_not_clipped_to_hidden_vertex() -> None:
 	mol, _left, right = _make_two_atom_mol(right_symbol="C")
 	ops = molecule_to_ops(mol, style={"font_size": 16.0})
 	line = _first_line(ops)
@@ -105,7 +105,7 @@ def test_bond_not_clipped_to_hidden_vertex():
 
 
 #============================================
-def test_double_bond_clipped():
+def test_double_bond_clipped() -> None:
 	mol, _left, right = _make_two_atom_mol(right_symbol="O", bond_order=2)
 	ops = molecule_to_ops(mol, style={"font_size": 16.0})
 	lines = _line_ops(ops)
@@ -118,7 +118,7 @@ def test_double_bond_clipped():
 
 
 #============================================
-def test_clipped_endpoint_on_bbox_edge():
+def test_clipped_endpoint_on_bbox_edge() -> None:
 	mol, _left, right = _make_two_atom_mol(right_symbol="O")
 	ops = molecule_to_ops(mol, style={"font_size": 16.0})
 	line = _first_line(ops)
@@ -128,7 +128,7 @@ def test_clipped_endpoint_on_bbox_edge():
 
 
 #============================================
-def test_charged_label_clipping():
+def test_charged_label_clipping() -> None:
 	mol_neutral, _left, _right = _make_two_atom_mol(right_symbol="N", right_charge=0)
 	mol_charged, _left_c, right_charged = _make_two_atom_mol(right_symbol="N", right_charge=1)
 	neutral_ops = molecule_to_ops(mol_neutral, style={"font_size": 16.0})
@@ -143,7 +143,7 @@ def test_charged_label_clipping():
 
 
 #============================================
-def test_wedge_bond_clipped():
+def test_wedge_bond_clipped() -> None:
 	mol, _left, right = _make_two_atom_mol(right_symbol="O", bond_type="w")
 	ops = molecule_to_ops(mol, style={"font_size": 16.0})
 	paths = _path_ops(ops)
@@ -155,7 +155,7 @@ def test_wedge_bond_clipped():
 
 
 #============================================
-def test_multi_atom_label_attach_first():
+def test_multi_atom_label_attach_first() -> None:
 	mol, _left, right = _make_two_atom_mol(
 		right_symbol="C",
 		right_label="CH2OH",
@@ -170,7 +170,7 @@ def test_multi_atom_label_attach_first():
 
 
 #============================================
-def test_multi_atom_label_attach_last():
+def test_multi_atom_label_attach_last() -> None:
 	mol, _left, right = _make_two_atom_mol(
 		right_symbol="C",
 		right_label="CH2OH",
@@ -187,7 +187,7 @@ def test_multi_atom_label_attach_last():
 
 
 #============================================
-def test_multi_atom_label_attach_default_first_when_missing():
+def test_multi_atom_label_attach_default_first_when_missing() -> None:
 	mol_default, _left, _right = _make_two_atom_mol(
 		right_symbol="C",
 		right_label="CH2OH",
@@ -204,7 +204,7 @@ def test_multi_atom_label_attach_default_first_when_missing():
 
 
 #============================================
-def test_multi_atom_label_attach_element_overrides_attach_atom_first():
+def test_multi_atom_label_attach_element_overrides_attach_atom_first() -> None:
 	mol, _left, right = _make_two_atom_mol(
 		right_symbol="C",
 		right_label="CH2OH",
@@ -223,7 +223,7 @@ def test_multi_atom_label_attach_element_overrides_attach_atom_first():
 
 
 #============================================
-def test_malformed_attach_atom_hard_fails_with_clear_error():
+def test_malformed_attach_atom_hard_fails_with_clear_error() -> None:
 	# Legacy malformed CDML should fail fast instead of silently defaulting.
 	mol, _left, _right = _make_two_atom_mol(
 		right_symbol="C",

@@ -1,10 +1,10 @@
 # Sugar code guide
 
 This guide explains the sugar code strings used by OASA and listed in
-[packages/oasa/oasa_data/sugar_codes.yaml](packages/oasa/oasa_data/sugar_codes.yaml).
+[sugar_codes.yaml](../packages/oasa/oasa_data/sugar_codes.yaml).
 It is based on parser behavior in
-[packages/oasa/oasa/sugar_code.py](packages/oasa/oasa/sugar_code.py) and tests in
-[tests/test_sugar_code.py](tests/test_sugar_code.py).
+[sugar_code.py](../packages/oasa/oasa/sugar_code.py) and tests in
+[test_sugar_code.py](../packages/oasa/tests/test_sugar_code.py).
 
 ## What a sugar code is
 
@@ -60,7 +60,7 @@ The penultimate token usually sets config:
 - `L` -> `LAEVUS`
 
 Some short forms can be `MESO` (see parser rules in
-[packages/oasa/oasa/sugar_code.py](packages/oasa/oasa/sugar_code.py)).
+[sugar_code.py](../packages/oasa/oasa/sugar_code.py)).
 
 The final token is the terminal token, often `M`, but it can be a modifier
 token such as `c`.
@@ -127,7 +127,7 @@ digit pathway with carbon-state footnotes
 
 ## Related files
 
-- [packages/oasa/oasa/sugar_code.py](packages/oasa/oasa/sugar_code.py)
-- [packages/oasa/oasa_data/sugar_codes.yaml](packages/oasa/oasa_data/sugar_codes.yaml)
-- [tests/test_sugar_code.py](tests/test_sugar_code.py)
-- [tests/test_haworth_spec.py](tests/test_haworth_spec.py)
+- [sugar_code.py](../packages/oasa/oasa/sugar_code.py)
+- [sugar_codes.yaml](../packages/oasa/oasa_data/sugar_codes.yaml)
+- [test_sugar_code.py](../packages/oasa/tests/test_sugar_code.py)
+- `test_haworth_spec.py`

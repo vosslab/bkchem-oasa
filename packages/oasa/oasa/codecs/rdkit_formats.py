@@ -19,11 +19,13 @@
 
 # Standard Library
 import io
+import math
 
 # PIP3 modules
 import rdkit.Chem
 import rdkit.Chem.AllChem
 import rdkit.Chem.inchi
+import rdkit.Geometry
 
 # local repo modules
 from oasa import coords_generator
@@ -31,7 +33,7 @@ from oasa import rdkit_bridge
 
 
 #============================================
-def _oasa_to_rdkit(mol):
+def _oasa_to_rdkit(mol: object) -> object:
 	"""Convert an OASA molecule to an RDKit Mol for export.
 
 	Args:
@@ -48,7 +50,7 @@ def _oasa_to_rdkit(mol):
 
 
 #============================================
-def _rdkit_to_oasa(rmol):
+def _rdkit_to_oasa(rmol: object) -> object:
 	"""Convert an RDKit Mol to an OASA molecule, generating coords if needed.
 
 	Kekulizes the RDKit molecule first so aromatic bonds are converted to
@@ -71,7 +73,7 @@ def _rdkit_to_oasa(rmol):
 
 
 #============================================
-def _molblock_error_message(text):
+def _molblock_error_message(text: str) -> str:
 	"""Return a descriptive error message for an unparseable mol block.
 
 	Detects V3000 macromolecule notation (TEMPLATE blocks, CLASS=AA residues)
@@ -102,7 +104,7 @@ def _molblock_error_message(text):
 # ===================================================================
 
 #============================================
-def molfile_text_to_mol(text):
+def molfile_text_to_mol(text: str) -> object:
 	"""Read a V2000 (or V3000) mol block and return an OASA molecule.
 
 	RDKit auto-detects V2000 vs V3000 on read.
@@ -120,7 +122,7 @@ def molfile_text_to_mol(text):
 
 
 #============================================
-def molfile_mol_to_text(mol):
+def molfile_mol_to_text(mol: object) -> str:
 	"""Write an OASA molecule as a V2000 mol block.
 
 	Args:
@@ -135,7 +137,7 @@ def molfile_mol_to_text(mol):
 
 
 #============================================
-def molfile_file_to_mol(file_obj):
+def molfile_file_to_mol(file_obj: object) -> object:
 	"""Read a mol block from a file object.
 
 	Args:
@@ -148,7 +150,7 @@ def molfile_file_to_mol(file_obj):
 
 
 #============================================
-def molfile_mol_to_file(mol, file_obj):
+def molfile_mol_to_file(mol: object, file_obj: object) -> None:
 	"""Write an OASA molecule as a V2000 mol block to a file object.
 
 	Args:
@@ -167,7 +169,7 @@ def molfile_mol_to_file(mol, file_obj):
 # ===================================================================
 
 #============================================
-def molfile_v3000_text_to_mol(text):
+def molfile_v3000_text_to_mol(text: str) -> object:
 	"""Read a V3000 (or V2000) mol block and return an OASA molecule.
 
 	Args:
@@ -183,7 +185,7 @@ def molfile_v3000_text_to_mol(text):
 
 
 #============================================
-def molfile_v3000_mol_to_text(mol):
+def molfile_v3000_mol_to_text(mol: object) -> str:
 	"""Write an OASA molecule as a V3000 mol block.
 
 	Args:
@@ -198,7 +200,7 @@ def molfile_v3000_mol_to_text(mol):
 
 
 #============================================
-def molfile_v3000_file_to_mol(file_obj):
+def molfile_v3000_file_to_mol(file_obj: object) -> object:
 	"""Read a V3000 mol block from a file object.
 
 	Args:
@@ -211,7 +213,7 @@ def molfile_v3000_file_to_mol(file_obj):
 
 
 #============================================
-def molfile_v3000_mol_to_file(mol, file_obj):
+def molfile_v3000_mol_to_file(mol: object, file_obj: object) -> None:
 	"""Write an OASA molecule as a V3000 mol block to a file object.
 
 	Args:
@@ -230,7 +232,7 @@ def molfile_v3000_mol_to_file(mol, file_obj):
 # ===================================================================
 
 #============================================
-def sdf_text_to_mol(text):
+def sdf_text_to_mol(text: object) -> object:
 	"""Read an SDF string and return merged OASA molecules.
 
 	Multiple records are merged into one disconnected OASA molecule.
@@ -279,7 +281,7 @@ def sdf_text_to_mol(text):
 
 
 #============================================
-def sdf_mol_to_text(mol):
+def sdf_mol_to_text(mol: object) -> str:
 	"""Write an OASA molecule as an SDF record.
 
 	Args:
@@ -297,7 +299,7 @@ def sdf_mol_to_text(mol):
 
 
 #============================================
-def sdf_file_to_mol(file_obj):
+def sdf_file_to_mol(file_obj: object) -> object:
 	"""Read an SDF file and return merged OASA molecules.
 
 	Args:
@@ -310,7 +312,7 @@ def sdf_file_to_mol(file_obj):
 
 
 #============================================
-def sdf_mol_to_file(mol, file_obj):
+def sdf_mol_to_file(mol: object, file_obj: object) -> None:
 	"""Write an OASA molecule to an SDF file.
 
 	Args:
@@ -329,7 +331,7 @@ def sdf_mol_to_file(mol, file_obj):
 # ===================================================================
 
 #============================================
-def sdf_v3000_text_to_mol(text):
+def sdf_v3000_text_to_mol(text: object) -> object:
 	"""Read an SDF V3000 string and return merged OASA molecules.
 
 	Args:
@@ -343,7 +345,7 @@ def sdf_v3000_text_to_mol(text):
 
 
 #============================================
-def sdf_v3000_mol_to_text(mol):
+def sdf_v3000_mol_to_text(mol: object) -> str:
 	"""Write an OASA molecule as an SDF V3000 record.
 
 	Args:
@@ -362,7 +364,7 @@ def sdf_v3000_mol_to_text(mol):
 
 
 #============================================
-def sdf_v3000_file_to_mol(file_obj):
+def sdf_v3000_file_to_mol(file_obj: object) -> object:
 	"""Read an SDF V3000 file and return merged OASA molecules.
 
 	Args:
@@ -375,7 +377,7 @@ def sdf_v3000_file_to_mol(file_obj):
 
 
 #============================================
-def sdf_v3000_mol_to_file(mol, file_obj):
+def sdf_v3000_mol_to_file(mol: object, file_obj: object) -> None:
 	"""Write an OASA molecule to an SDF V3000 file.
 
 	Args:
@@ -394,7 +396,7 @@ def sdf_v3000_mol_to_file(mol, file_obj):
 # ===================================================================
 
 #============================================
-def smarts_mol_to_text(mol):
+def smarts_mol_to_text(mol: object) -> str:
 	"""Write an OASA molecule as a SMARTS string.
 
 	Args:
@@ -411,7 +413,7 @@ def smarts_mol_to_text(mol):
 
 
 #============================================
-def smarts_mol_to_file(mol, file_obj):
+def smarts_mol_to_file(mol: object, file_obj: object) -> None:
 	"""Write an OASA molecule as SMARTS to a file.
 
 	Args:
@@ -430,8 +432,8 @@ def smarts_mol_to_file(mol, file_obj):
 # ===================================================================
 
 #============================================
-def smiles_text_to_mol(text, calc_coords=1, localize_aromatic_bonds=True,
-	include_hydrogens=False):
+def smiles_text_to_mol(text: str, calc_coords: object = 1, localize_aromatic_bonds: bool = True,
+	include_hydrogens: bool = False) -> object:
 	"""Read a SMILES string and return an OASA molecule using RDKit.
 
 	Args:
@@ -466,7 +468,7 @@ def smiles_text_to_mol(text, calc_coords=1, localize_aromatic_bonds=True,
 
 
 #============================================
-def smiles_mol_to_text(mol):
+def smiles_mol_to_text(mol: object) -> str:
 	"""Write an OASA molecule as a SMILES string using RDKit.
 
 	Args:
@@ -476,14 +478,110 @@ def smiles_mol_to_text(mol):
 		SMILES string.
 	"""
 	rmol = _oasa_to_rdkit(mol)
-	text = rdkit.Chem.MolToSmiles(rmol)
+	text = rdkit.Chem.MolToSmiles(rmol, canonical=True, isomericSmiles=True)
 	if text is None:
 		raise ValueError("RDKit could not generate SMILES for this molecule.")
 	return text
 
 
 #============================================
-def smiles_file_to_mol(file_obj):
+def _add_depiction_stereo_conformer(rmol: object, atom_to_index: dict) -> None:
+	"""Attach the authored finite OASA coordinates needed by wedge directions."""
+	conformer = rdkit.Chem.Conformer(rmol.GetNumAtoms())
+	for oatom, index in atom_to_index.items():
+		try:
+			x = float(oatom.x)
+			y = float(oatom.y)
+			z = float(oatom.z)
+		except (TypeError, ValueError) as error:
+			raise ValueError("styled stereo requires finite atom coordinates") from error
+		if not all(math.isfinite(value) for value in (x, y, z)):
+			raise ValueError("styled stereo requires finite atom coordinates")
+		conformer.SetAtomPosition(index, rdkit.Geometry.Point3D(x, y, z))
+	conformer.Set3D(False)
+	rmol.AddConformer(conformer, assignId=True)
+
+
+#============================================
+
+def _assign_depiction_stereo_bond_directions(mol: object, rmol: object, atom_to_index: dict) -> set[int]:
+	"""Map directed OASA wedge/hash bonds and return their tetrahedral centers."""
+	styled_center_indices = set()
+	for obond in mol.bonds:
+		if obond.type not in ("w", "h"):
+			continue
+		if obond.order != 1:
+			raise ValueError("styled stereo requires a single bond")
+		cdml_start, cdml_end = obond.vertices
+		candidates = [
+			atom for atom in (cdml_start, cdml_end)
+			if atom.degree in (3, 4)
+		]
+		if len(candidates) != 1:
+			raise ValueError("styled stereo requires one tetrahedral bond endpoint")
+		center = candidates[0]
+		center_index = atom_to_index[center]
+		styled_center_indices.add(center_index)
+		other = cdml_end if center is cdml_start else cdml_start
+		other_index = atom_to_index[other]
+		center_is_cdml_start = center is cdml_start
+		foreground = (obond.type == "w") == center_is_cdml_start
+		direction = (
+			rdkit.Chem.BondDir.BEGINWEDGE if foreground
+			else rdkit.Chem.BondDir.BEGINDASH
+		)
+
+		# RDKit reads a wedge from the bond's begin atom. Recreate the single
+		# bond so the authored tetrahedral center is that begin atom.
+		rmol.RemoveBond(center_index, other_index)
+		rmol.AddBond(center_index, other_index, rdkit.Chem.BondType.SINGLE)
+		rbond = rmol.GetBondBetweenAtoms(center_index, other_index)
+		rbond.SetBondDir(direction)
+	return styled_center_indices
+
+
+#============================================
+def depiction_stereo_smiles_mol_to_text(mol: object) -> str:
+	"""Write canonical isomeric SMILES while honoring CDML wedge/hash depiction.
+
+	This intentionally serves the CDML document observation path rather than
+	the general OASA-to-RDKit bridge: coordinate generation does not need a
+	depiction's directed tetrahedral meaning.
+	"""
+	styled_bonds = [bond for bond in mol.bonds if bond.type in ("w", "h")]
+	if not styled_bonds:
+		return smiles_mol_to_text(mol)
+
+	rmol, atom_to_index = rdkit_bridge.oasa_to_rdkit_mol(mol)
+	_add_depiction_stereo_conformer(rmol, atom_to_index)
+	for obond in styled_bonds:
+		start, end = obond.vertices
+		coordinates = (start.x, start.y, start.z, end.x, end.y, end.z)
+		if not all(math.isfinite(float(value)) for value in coordinates):
+			raise ValueError("styled stereo requires finite bond endpoint coordinates")
+		dx = start.x - end.x
+		dy = start.y - end.y
+		dz = start.z - end.z
+		if math.sqrt(dx * dx + dy * dy + dz * dz) <= 1e-9:
+			raise ValueError("styled stereo requires nondegenerate bond coordinates")
+	styled_center_indices = _assign_depiction_stereo_bond_directions(
+		mol, rmol, atom_to_index,
+	)
+	rdkit.Chem.SanitizeMol(rmol)
+	rdkit.Chem.AssignChiralTypesFromBondDirs(rmol, replaceExistingTags=True)
+	rdkit.Chem.AssignStereochemistry(rmol, cleanIt=True, force=True)
+	for center_index in styled_center_indices:
+		center = rmol.GetAtomWithIdx(center_index)
+		if center.GetChiralTag() == rdkit.Chem.ChiralType.CHI_UNSPECIFIED:
+			raise ValueError("styled stereo cannot produce an isomeric tetrahedral center")
+	text = rdkit.Chem.MolToSmiles(rmol, canonical=True, isomericSmiles=True)
+	if text is None:
+		raise ValueError("styled stereo cannot produce isomeric SMILES")
+	return text
+
+
+#============================================
+def smiles_file_to_mol(file_obj: object) -> object:
 	"""Read a SMILES file and return an OASA molecule.
 
 	Args:
@@ -496,7 +594,7 @@ def smiles_file_to_mol(file_obj):
 
 
 #============================================
-def smiles_mol_to_file(mol, file_obj):
+def smiles_mol_to_file(mol: object, file_obj: object) -> None:
 	"""Write an OASA molecule as SMILES to a file.
 
 	Args:
@@ -515,7 +613,7 @@ def smiles_mol_to_file(mol, file_obj):
 # ===================================================================
 
 #============================================
-def inchi_text_to_mol(text, include_hydrogens=True, calc_coords=1):
+def inchi_text_to_mol(text: str, include_hydrogens: bool = True, calc_coords: object = 1) -> object:
 	"""Read an InChI string and return an OASA molecule using RDKit.
 
 	Args:
@@ -541,7 +639,7 @@ def inchi_text_to_mol(text, include_hydrogens=True, calc_coords=1):
 
 
 #============================================
-def inchi_file_to_mol(file_obj):
+def inchi_file_to_mol(file_obj: object) -> object:
 	"""Read an InChI file and return an OASA molecule.
 
 	Args:
@@ -554,7 +652,7 @@ def inchi_file_to_mol(file_obj):
 
 
 #============================================
-def inchi_mol_to_text(mol):
+def inchi_mol_to_text(mol: object) -> str:
 	"""Write an OASA molecule as an InChI string using RDKit.
 
 	Args:
@@ -571,7 +669,7 @@ def inchi_mol_to_text(mol):
 
 
 #============================================
-def inchi_mol_to_file(mol, file_obj):
+def inchi_mol_to_file(mol: object, file_obj: object) -> None:
 	"""Write an OASA molecule as InChI to a file.
 
 	Args:
@@ -586,7 +684,7 @@ def inchi_mol_to_file(mol, file_obj):
 
 
 #============================================
-def generate_inchi_and_inchikey(mol, fixed_hs=True):
+def generate_inchi_and_inchikey(mol: object, fixed_hs: bool = True) -> tuple:
 	"""Generate InChI and InChIKey for an OASA molecule using RDKit.
 
 	Args:

@@ -35,7 +35,7 @@ from oasa.query_atom import QueryAtom as query_atom
 
 class Molecule(base_graph):
 
-  def __init__( self, vertices =[]):
+  def __init__( self: object, vertices: object=None) -> None:
     base_graph.__init__( self, vertices=vertices)
     # aliases
     self.atoms = self.vertices
@@ -43,37 +43,36 @@ class Molecule(base_graph):
     self.stereochemistry = []
 
 
-  def __str__( self):
+  def __str__( self: object) -> object:
     return "molecule, %d atoms, %d bonds" % (len( self.vertices), len( self.edges))
 
 
-  def create_vertex( self, vertex_class=None):
+  def create_vertex( self: object, vertex_class: object=None) -> object:
     if not vertex_class:
       return atom()
     else:
       return vertex_class()
 
 
-  def create_edge( self):
+  def create_edge( self: object) -> object:
     return bond()
 
 
-  def create_graph( self):
-    from oasa import oasa_config as config
-    return config.Config.molecule_class()
+  def create_graph( self: object) -> object:
+    return self.__class__()
 
 
-  def add_stereochemistry( self, stereo):
+  def add_stereochemistry( self: object, stereo: object) -> object:
     self.stereochemistry.append( stereo)
 
 
-  def remove_stereochemistry( self, stereo):
+  def remove_stereochemistry( self: object, stereo: object) -> object:
     if not stereo in self.stereochemistry:
       raise ValueError("cannot remove non-existent stereochemistry information")
     self.stereochemistry.remove( stereo)
 
 
-  def get_stereochemistry_by_center( self, center):
+  def get_stereochemistry_by_center( self: object, center: object) -> object:
     for st in self.stereochemistry:
       if st.center == center:
         return st
@@ -82,7 +81,7 @@ class Molecule(base_graph):
   # analytics
 
   # override of graphs method to add stereochemistry support
-  def get_disconnected_subgraphs( self):
+  def get_disconnected_subgraphs( self: object) -> object:
     out = base_graph.get_disconnected_subgraphs( self)
     for part in out:
       for st in self.stereochemistry:
@@ -92,7 +91,7 @@ class Molecule(base_graph):
 
 
   @property
-  def weight(self):
+  def weight(self: object) -> object:
     """Molecular weight.
 
     """
@@ -105,14 +104,14 @@ class Molecule(base_graph):
 
 
   @property
-  def charge(self):
+  def charge(self: object) -> object:
     """Net charge of the molecule.
 
     """
     return sum([a.charge for a in self.vertices])
 
 
-  def get_formula_dict( self):
+  def get_formula_dict( self: object) -> object:
     """returns a formula dict as defined in the periodic_table.py::formula_dict"""
     comp = PT.formula_dict()
     for a in self.atoms:
@@ -120,14 +119,14 @@ class Molecule(base_graph):
     return comp
 
 
-  def add_missing_hydrogens( self):
+  def add_missing_hydrogens( self: object) -> object:
     hs = set()
     for v in copy.copy( self.vertices):
       hs |= self.add_missing_hydrogens_to_atom( v)
     return hs
 
 
-  def add_missing_hydrogens_to_atom( self, v):
+  def add_missing_hydrogens_to_atom( self: object, v: object) -> object:
     hs = set()
     for i in range( v.free_valency):
       h = self.create_vertex()
@@ -138,7 +137,7 @@ class Molecule(base_graph):
     return hs
 
 
-  def explicit_hydrogens_to_real_atoms( self, v):
+  def explicit_hydrogens_to_real_atoms( self: object, v: object) -> object:
     hs = set()
     for i in range( v.explicit_hydrogens):
       h = self.create_vertex()
@@ -150,7 +149,7 @@ class Molecule(base_graph):
     return hs
 
 
-  def add_missing_bond_orders( self, retry=False):
+  def add_missing_bond_orders( self: object, retry: object=False) -> object:
     """retry means to try a different approach because the last one was not successful"""
     # we must at first find orphans that will force raising of valence of their neigbors
     # NO2 is a typical example
@@ -216,7 +215,7 @@ class Molecule(base_graph):
             break
 
 
-  def _gen_free_valency_connected_components( self):
+  def _gen_free_valency_connected_components( self: object) -> object:
     done = set()
     vs = set( copy.copy( self.vertices))
     while vs:
@@ -240,7 +239,7 @@ class Molecule(base_graph):
         done.add( v)
 
 
-  def mark_aromatic_bonds( self):
+  def mark_aromatic_bonds( self: object) -> object:
     sssr = self.get_smallest_independent_cycles()
     if len( sssr) > 10:
       # turn off processing of all cycles - it would be too slow, just use SSSR
@@ -267,7 +266,7 @@ class Molecule(base_graph):
         rings.remove( r)
 
 
-  def _get_atoms_possible_aromatic_electrons( self, at, ring):
+  def _get_atoms_possible_aromatic_electrons( self: object, at: object, ring: object) -> object:
     out = set()
     if at.charge > 0 and at.symbol not in PT.accept_cation:
       out.add( 0)
@@ -294,7 +293,7 @@ class Molecule(base_graph):
     return tuple( out)
 
 
-  def localize_aromatic_bonds( self):
+  def localize_aromatic_bonds( self: object) -> object:
     """localizes aromatic bonds (does not relocalize already localized ones),
     for those that are not aromatic but marked so
     (it is for instance possible to misuse 'cccc' in smiles to create butadiene)
@@ -376,7 +375,7 @@ class Molecule(base_graph):
     self.localize_fake_aromatic_bonds()
 
 
-  def localize_aromatic_bonds_old( self):
+  def localize_aromatic_bonds_old( self: object) -> object:
     """localizes aromatic bonds (does not relocalize already localized ones),
     for those that are not aromatic but marked so
     (it is for instance possible to misuse 'cccc' in smiles to create butadiene)
@@ -460,7 +459,7 @@ class Molecule(base_graph):
     self.localize_fake_aromatic_bonds()
 
 
-  def localize_fake_aromatic_bonds( self):
+  def localize_fake_aromatic_bonds( self: object) -> object:
     to_go = [b for b in self.bonds if b.order == 4]
 
     processed = []
@@ -498,7 +497,7 @@ class Molecule(base_graph):
       to_go = [b for b in self.bonds if b.order == 4]
 
 
-  def remove_unimportant_hydrogens( self):
+  def remove_unimportant_hydrogens( self: object) -> object:
     """removes all H atoms that don't have any special properties
     or are not part of a hydrogen only molecule."""
     only_hydrogens = True
@@ -512,14 +511,14 @@ class Molecule(base_graph):
           self.remove_vertex( v)
 
 
-  def remove_all_hydrogens( self):
+  def remove_all_hydrogens( self: object) -> object:
     """removes all H atoms"""
     for v in copy.copy( self.vertices):
       if v.symbol == 'H' and v.degree <= 1:
         self.remove_vertex( v)
 
 
-  def _get_atom_distance_matrix( self, a):
+  def _get_atom_distance_matrix( self: object, a: object) -> object:
     self.mark_vertices_with_distance_from( a)
     big_out = []
     i = 0
@@ -538,7 +537,7 @@ class Molecule(base_graph):
       i += 1
 
 
-  def get_symmetry_unique_atoms( self):
+  def get_symmetry_unique_atoms( self: object) -> object:
     out = []
     vs = copy.copy( self.vertices)
     for v in vs:
@@ -562,7 +561,7 @@ class Molecule(base_graph):
       vs = proc_vs
 
 
-  def number_atoms_uniquely( self):
+  def number_atoms_uniquely( self: object) -> object:
     out = {}
     for v in self.vertices:
       out[v] = [i for i in self._get_atom_distance_matrix( v)]
@@ -579,7 +578,7 @@ class Molecule(base_graph):
     return ret
 
 
-  def find_longest_mostly_carbon_chain( self):
+  def find_longest_mostly_carbon_chain( self: object) -> object:
     if len( self.vertices) < 2:
       return copy.copy( self.vertices)
     ends = [v for v in self.vertices
@@ -600,7 +599,7 @@ class Molecule(base_graph):
     return p
 
 
-  def remove_zero_order_bonds( self):
+  def remove_zero_order_bonds( self: object) -> object:
     """zero order bonds are created for example when SMILES is read"""
     zero_bonds = [e for e in self.edges if e.order == 0]
     for b in zero_bonds:
@@ -608,7 +607,7 @@ class Molecule(base_graph):
 
 
   # --- the fragment matching routines ---
-  def select_matching_substructures( self, other, implicit_freesites=False, auto_cleanup=True):
+  def select_matching_substructures( self: object, other: object, implicit_freesites: object=False, auto_cleanup: object=True) -> object:
     """select fragments that match the complete molecule 'other' and yield them
     as lists of atoms in the order of other.vertices; however when other has
     explicit hydrogens that match implicit hydrogens on self the length of the
@@ -679,7 +678,7 @@ class Molecule(base_graph):
       self.clean_after_search( other)
 
 
-  def clean_after_search( self, other):
+  def clean_after_search( self: object, other: object) -> object:
     # for implicit_freesites we restore original free_sites here
     for v in other.vertices:
       if "old_free_sites" in v.properties_:
@@ -705,7 +704,7 @@ class Molecule(base_graph):
       del e.properties_['subsearch']
 
 
-  def _mark_matching_threads( self, v, other):
+  def _mark_matching_threads( self: object, v: object, other: object) -> object:
     """v is other vertex, other is the other molecule"""
     thread = 0
     threads = list(v.properties_['subsearch'].keys())
@@ -760,7 +759,7 @@ class Molecule(base_graph):
         yield thread
 
 
-  def _spawn_thread( self, other, thread, number):
+  def _spawn_thread( self: object, other: object, thread: object, number: object) -> object:
     my_vs = [v for v in self.vertices if thread in v.properties_['subsearch']]
     my_es = [e for e in self.edges if thread in e.properties_['subsearch']]
     other_vs = [v for v in other.vertices if thread in v.properties_['subsearch']]
@@ -772,7 +771,7 @@ class Molecule(base_graph):
     return list(range(max_thread + 1, max_thread + number + 1, 1))
 
 
-  def _delete_thread( self, other, thread):
+  def _delete_thread( self: object, other: object, thread: object) -> object:
     for v in self.vertices + other.vertices:
       try:
         del v.properties_['subsearch'][thread]
@@ -780,7 +779,7 @@ class Molecule(base_graph):
         pass
 
 
-  def _freesites_match( self, other, thread):
+  def _freesites_match( self: object, other: object, thread: object) -> object:
     for v in other.vertices:
       mirror = v.properties_['subsearch'][thread]
       unmatched_ns = [n for n in mirror.neighbors if thread not in n.properties_['subsearch']] # and not n.symbol == 'H']
@@ -790,7 +789,7 @@ class Molecule(base_graph):
     return True
 
 
-  def contains_substructure( self, other, implicit_freesites=True):
+  def contains_substructure( self: object, other: object, implicit_freesites: object=True) -> object:
     found = False
     for i in self.select_matching_substructures( other, implicit_freesites=implicit_freesites, auto_cleanup=False):
       found = True
@@ -800,9 +799,9 @@ class Molecule(base_graph):
 
 
   # // --- end of the fragment matching routines ---
-  def detect_stereochemistry_from_coords( self, omit_rings=True):
+  def detect_stereochemistry_from_coords( self: object, omit_rings: object=True) -> object:
     from oasa import stereochemistry_lib as stereochemistry, geometry
-    def add_neighbor_double_bonds( bond, path):
+    def add_neighbor_double_bonds( bond: object, path: object) -> object:
       for _e in bond.neighbor_edges:
         if _e.order == 2 and _e not in path:
           path.append( _e)
@@ -866,7 +865,7 @@ class Molecule(base_graph):
                   self.remove_stereochemistry( to_remove)
 
 
-  def mark_morgan( self):
+  def mark_morgan( self: object) -> object:
     old_morgs = 0
     for v in self.vertices:
       v.properties_['new_morgan'] = v.degree #sum( [n.degree for n in v.neighbors])
@@ -885,7 +884,7 @@ class Molecule(base_graph):
 
 
   ## some geometry related things
-  def normalize_bond_length( self, bond_length=30):
+  def normalize_bond_length( self: object, bond_length: object=30) -> object:
     """make the average bond-length be bond_length by scaling the structure up"""
     if not self.edges or len( self.vertices) < 2:
       return False
@@ -917,7 +916,7 @@ class Molecule(base_graph):
     return True
 
 
-  def get_mean_bond_length( self):
+  def get_mean_bond_length( self: object) -> object:
     """returns the mean bond length of bonds in the molecule"""
     if len( self.edges) == 0:
       return None
@@ -929,7 +928,7 @@ class Molecule(base_graph):
     return bl
 
 
-  def create_CIP_digraph( self, center):
+  def create_CIP_digraph( self: object, center: object) -> object:
     """creates a digraph according to rules described in CIP paper."""
     assert center in self.vertices
     from oasa.graph.digraph_lib import Digraph
@@ -938,7 +937,7 @@ class Molecule(base_graph):
     return dg
 
 
-def the_right_sorting_function( t1, t2):
+def the_right_sorting_function( t1: object, t2: object) -> object:
   for i,l in enumerate( t1):
     k = t2[i]
     for j in range( len( l)):
@@ -953,7 +952,7 @@ def the_right_sorting_function( t1, t2):
   return 0
 
 
-def equals( mol1, mol2, level=0):
+def equals( mol1: object, mol2: object, level: object=0) -> object:
   """don't forget to put all hydrogens and bond orders to the bonds
      level 1 - number of atoms and bonds,
      level 2 - the number of atoms with same symbols is the same,
@@ -985,5 +984,3 @@ def equals( mol1, mol2, level=0):
 
 #import psyco
 #psyco.profile()
-
-

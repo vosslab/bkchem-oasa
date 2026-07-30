@@ -53,7 +53,7 @@ class ColorButton(tkinter.Button):
 	Has the choosen color in background and when pressed
 	opens tkColorChooser.askcolor dialog.
 	"""
-	def __init__(self, master=None, color=None, text=''):
+	def __init__(self, master: object = None, color: object = None, text: str = '') -> None:
 		self.master = master
 		self.set_color( color)
 		tkinter.Button.__init__( self, master=master, command=self._select_color,
@@ -62,7 +62,7 @@ class ColorButton(tkinter.Button):
 															text=text)
 
 
-	def set_color(self, color):
+	def set_color(self, color: object) -> None:
 		"""Set the self.color.
 
 		Also modify self.foreground_color if needed for the text to be visible.
@@ -85,7 +85,7 @@ class ColorButton(tkinter.Button):
 		else:
 			self.foreground_color = theme_manager.get_color('high_contrast_2')
 
-	def _select_color( self):
+	def _select_color( self) -> None:
 		if self.color:
 			color = tkinter.colorchooser.askcolor( self.color)
 		else:
@@ -100,7 +100,7 @@ class ColorButton(tkinter.Button):
 
 class ColorButtonWithTransparencyChecker(tkinter.Frame, object):
 
-	def __init__(self, master=None, color=None, text=''):
+	def __init__(self, master: object = None, color: object = None, text: str = '') -> None:
 		tkinter.Frame.__init__( self, master)
 		self.master = master
 		self.button = ColorButton( master=self, color=color, text=text)
@@ -113,21 +113,21 @@ class ColorButtonWithTransparencyChecker(tkinter.Frame, object):
 		self._set_trasparency()
 
 
-	def pack( self, **kw):
+	def pack( self, **kw) -> None:
 		self.button.pack( anchor="w", padx=0, pady=0)
 		self.checker.pack( anchor="w", padx=0, pady=0)
 		tkinter.Frame.pack( self, **kw)
 
 
 	@property
-	def color(self):
+	def color(self) -> str | None:
 		if not self.transparent.get():
 			return self.button.color
 		else:
 			return ''
 
 
-	def _set_trasparency( self):
+	def _set_trasparency( self) -> None:
 		if self.transparent.get():
 			self.button.configure( state="disabled")
 		else:
@@ -137,7 +137,7 @@ class ColorButtonWithTransparencyChecker(tkinter.Frame, object):
 
 class GraphicalAngleChooser(tkinter.Frame):
 
-	def __init__(self, parent, angle, line_color=None, fill_color=None):
+	def __init__(self, parent: object, angle: object, line_color: object = None, fill_color: object = None) -> None:
 		from bkchem import theme_manager
 		if line_color is None:
 			line_color = theme_manager.get_color('high_contrast_1')
@@ -162,15 +162,15 @@ class GraphicalAngleChooser(tkinter.Frame):
 		self._draw()
 
 
-	def _draw( self):
+	def _draw( self) -> None:
 		self._line = self.canvas.create_line( 30, 30, 30+20*math.cos( self.angle*math.pi/180), 30+20*math.sin( self.angle*math.pi/180))
 
 
-	def _redraw( self):
+	def _redraw( self) -> None:
 		self.canvas.coords( self._line, 30, 30, 30+20*math.cos( self.angle*math.pi/180), 30+20*math.sin( self.angle*math.pi/180))
 
 
-	def _counter_changed( self):
+	def _counter_changed( self) -> None:
 		try:
 			self.angle = round( float( self.counter.get()))
 		except ValueError:
@@ -178,21 +178,21 @@ class GraphicalAngleChooser(tkinter.Frame):
 		self._redraw()
 
 
-	def _click( self, e):
+	def _click( self, e: object) -> None:
 		x = e.x
 		y = e.y
 		self.angle = int( round( 180*geometry.clockwise_angle_from_east( x - 30, y - 30) / math.pi))
 		self.counter.setentry( self.angle)
 
 
-	def get( self):
+	def get( self) -> object:
 		return self.angle
 
 
 
 class FontSizeChooser(BkCounter):
 
-	def __init__(self, parent, value):
+	def __init__(self, parent: object, value: object) -> None:
 		BkCounter.__init__( self,
 													parent,
 													labelpos = 'nw',
@@ -207,7 +207,7 @@ class FontSizeChooser(BkCounter):
 
 class FontFamilyChooser(BkScrolledListBox):
 
-	def __init__(self, parent, value):
+	def __init__(self, parent: object, value: object) -> None:
 			available_families = sorted(list(tkinter.font.families()))
 			available_families.insert(-1, '')
 			for fnt in data.always_available_fonts:
@@ -232,7 +232,7 @@ class WidthCounter(BkCounter):
 	"""Counter widget used to implement WidthChooser.
 
 	"""
-	def __init__(self, parent, value, label=None):
+	def __init__(self, parent: object, value: object, label: object = None) -> None:
 		l = label or _('Width')
 		BkCounter.__init__( self,
 													parent,
@@ -250,7 +250,7 @@ class LengthCounter(BkCounter):
 	"""Counter widget used to implement LengthChooser.
 
 	"""
-	def __init__(self, parent, value, label=None):
+	def __init__(self, parent: object, value: object, label: object = None) -> None:
 		l = label or _('Length')
 		BkCounter.__init__( self,
 													parent,
@@ -268,7 +268,7 @@ class RatioCounter(BkCounter):
 	"""Counter used to input ratio information.
 
 	"""
-	def __init__(self, parent, value, label=None):
+	def __init__(self, parent: object, value: object, label: object = None) -> None:
 		l = label or _('Ratio')
 		BkCounter.__init__( self,
 													parent,
@@ -284,7 +284,7 @@ class RatioCounter(BkCounter):
 
 class ValueWithUnitParent(tkinter.Frame):
 
-	def __init__(self, parent, value, counter, label=None, units={}):
+	def __init__(self, parent: object, value: object, counter: object, label: object = None, units: dict = {}) -> None:
 		"""Initialize ValueWithUnitParent object.
 
 		parent  - standard widget parent
@@ -310,7 +310,7 @@ class ValueWithUnitParent(tkinter.Frame):
 		self.unit.pack( side='left')
 
 
-	def unit_changed( self, current):
+	def unit_changed( self, current: object) -> None:
 		if self._recent_unit != current:
 			unit = self.units[ current]
 			ratio = unit['ratio'] / self.units[ self._recent_unit]['ratio']
@@ -325,14 +325,14 @@ class ValueWithUnitParent(tkinter.Frame):
 			self._recent_unit = current
 
 
-	def getvalue( self):
+	def getvalue( self) -> str:
 		return '%s%s' % (self.counter.getvalue(), self.unit.getvalue())
 
 
 
 class WidthChooser(ValueWithUnitParent):
 
-	def __init__(self, parent, value, label=None):
+	def __init__(self, parent: object, value: object, label: object = None) -> None:
 		ValueWithUnitParent.__init__( self, parent, value, WidthCounter, label=label,
 																	units={'cm':{'ratio':1, 'increment': 0.02, 'round': 2},
 																					'px':{'ratio':30,  'increment': 1   , 'round': 0}})
@@ -341,7 +341,7 @@ class WidthChooser(ValueWithUnitParent):
 
 class LengthChooser(ValueWithUnitParent):
 
-	def __init__(self, parent, value, label=None):
+	def __init__(self, parent: object, value: object, label: object = None) -> None:
 		ValueWithUnitParent.__init__( self, parent, value, LengthCounter, label=label,
 																	units={'cm':{'ratio':1, 'increment': 0.2, 'round': 2},
 																					'px':{'ratio':30,  'increment': 10   , 'round': 0}})
@@ -351,7 +351,7 @@ class LengthChooser(ValueWithUnitParent):
 # a meta dialog for opening files
 class FileSelectionEntry(tkinter.Frame):
 
-	def __init__(self, parent, prompt="", value="", filetypes=(), type="open"):
+	def __init__(self, parent: object, prompt: str = "", value: str = "", filetypes: tuple = (), type: str = "open") -> None:
 		tkinter.Frame.__init__( self, parent)
 		self.parent = parent
 		self.value = value
@@ -370,7 +370,7 @@ class FileSelectionEntry(tkinter.Frame):
 		self.button.pack( side="left", padx=0)
 
 
-	def browse( self):
+	def browse( self) -> None:
 		if self.type == "open":
 			a = tkinter.filedialog.askopenfilename( defaultextension = "",
 																				initialdir = os.path.dirname( self.value),
@@ -388,19 +388,19 @@ class FileSelectionEntry(tkinter.Frame):
 			self.update_entry()
 
 
-	def update_entry( self):
+	def update_entry( self) -> None:
 		self.entry.delete( 0, "end")
 		self.entry.insert( 0, self.value)
 
 
-	def get( self):
+	def get( self) -> str:
 		return self.entry.get()
 
 
 
 class FileSelectionWithText(BkDialog):
 
-	def __init__(self, parent, title="", prompt="", value="", filetypes=()):
+	def __init__(self, parent: object, title: str = "", prompt: str = "", value: str = "", filetypes: tuple = ()) -> None:
 		BkDialog.__init__( self,
 													parent,
 													buttons = (_('OK'),_('Cancel')),
@@ -420,7 +420,7 @@ class HTMLLikeInput(tkinter.Frame, object):
 	font_decorations_to_html = {'italic':'i', 'bold':'b', 'subscript':'sub', 'superscript':'sup'}
 
 
-	def __init__(self, master, **kw):
+	def __init__(self, master: object, **kw) -> None:
 		tkinter.Frame.__init__( self, master, **kw)
 		self.editPool = tkinter.Entry( self, width=60)
 		self.editPool.pack( side='left')
@@ -475,7 +475,7 @@ class HTMLLikeInput(tkinter.Frame, object):
 
 
 	@property
-	def text(self):
+	def text(self) -> str:
 		"""The text property.
 
 		"""
@@ -483,20 +483,20 @@ class HTMLLikeInput(tkinter.Frame, object):
 
 
 	@text.setter
-	def text(self, text):
+	def text(self, text: str) -> None:
 		self.editPool.delete(0, last='end')
 		self.editPool.insert(0, text)
 
 
-	def _numbersToSubButtonPressed( self, *e):
+	def _numbersToSubButtonPressed( self, *e) -> None:
 		self.text = re.sub( r"\d+", r"<sub>\g<0></sub>", self.text)
 
 
-	def _chargesToSupButtonPressed( self, *e):
+	def _chargesToSupButtonPressed( self, *e) -> None:
 		self.text = re.sub( r"(\+|\.|-)+", r"<sup>\g<0></sup>", self.text)
 
 
-	def _tag_it( self, tag):
+	def _tag_it( self, tag: str) -> None:
 		if self.editPool.selection_present():
 			self.editPool.insert( tkinter.SEL_FIRST, '<%s>' % tag)
 			self.editPool.insert( tkinter.SEL_LAST, '</%s>' % tag)
@@ -505,7 +505,7 @@ class HTMLLikeInput(tkinter.Frame, object):
 			self.editPool.icursor( self.editPool.index( tkinter.INSERT) - len( tag) - 3)
 
 
-	def _key( self, event):
+	def _key( self, event: object) -> str | None:
 		if len(event.keysym) > 1 and event.keysym in get_keysyms():
 			if self.editPool.selection_present():
 				self.editPool.delete( "anchor", "insert")
@@ -515,7 +515,7 @@ class HTMLLikeInput(tkinter.Frame, object):
 
 
 ## -------------------- SUPPORT FUNCTIONS --------------------
-def font_size_counter( text, factor, increment):
+def font_size_counter(text: str, factor: int, increment: int) -> int:
 	if text == '':
 		return 12
 	i = int( text)
@@ -523,7 +523,7 @@ def font_size_counter( text, factor, increment):
 	return i
 
 
-def font_size_validator( input):
+def font_size_validator(input: str) -> object:
 	if input == '':
 		return OK
 	if len( input) > 3:

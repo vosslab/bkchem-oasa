@@ -51,26 +51,26 @@ class Inchi( plugin):
                   }
 
 
-  def __init__( self, structure=None):
+  def __init__( self: object, structure: object=None) -> object:
     self.structure = structure
     self._no_possibility_to_improve = False
     self.cleanup()
 
-  def cleanup( self):
+  def cleanup( self: object) -> object:
     self.charge = 0
     self.forced_charge = 0
     self._protonation_dealt_with_already = 0
     self._added_hs = set()
 
-  def set_structure( self, structure):
+  def set_structure( self: object, structure: object) -> object:
     self.structure = structure
 
-  def get_structure( self):
+  def get_structure( self: object) -> object:
     return self.structure
 
 
 
-  def split_layers( self, text):
+  def split_layers( self: object, text: object) -> object:
     # try if we have a xml document in hand
     try:
       doc = safe_xml.parse_dom_from_string( text)
@@ -104,18 +104,18 @@ class Inchi( plugin):
 
 
 
-  def get_layer( self, prefix):
+  def get_layer( self: object, prefix: object) -> object:
     for l in self.layers:
       if l.startswith( prefix):
         return l[1:]
 
-  def get_atom_with_inchi_number( self, number):
+  def get_atom_with_inchi_number( self: object, number: object) -> object:
     assert type( number) == int
     for v in self.structure.vertices:
       if v.properties_['inchi_number'] == number:
         return v
 
-  def read_inchi( self, text):
+  def read_inchi( self: object, text: object) -> object:
     try:
       self._read_inchi( text)
     except AssertionError:
@@ -124,7 +124,7 @@ class Inchi( plugin):
       raise
 
 
-  def _read_inchi( self, text):
+  def _read_inchi( self: object, text: object) -> object:
     if not text:
       raise oasa_inchi_error( "No inchi was given")
     self.structure = molecule()
@@ -212,7 +212,7 @@ class Inchi( plugin):
 
 
 
-  def read_sum_layer( self):
+  def read_sum_layer( self: object) -> object:
     if "." in self.layers[1]:
       raise oasa_not_implemented_error( "INChI", "multiple compound systems are not supported by the library")
 
@@ -235,7 +235,7 @@ class Inchi( plugin):
 
 
 
-  def read_connectivity_layer( self):
+  def read_connectivity_layer( self: object) -> object:
     layer = self.get_layer( "c")
     if not layer:
       return
@@ -263,7 +263,7 @@ class Inchi( plugin):
         last_atom = i
 
 
-  def read_hydrogen_layer( self, run=0):
+  def read_hydrogen_layer( self: object, run: object=0) -> object:
     layer = self.get_layer( "h")
     # check presence of the layer
     if not layer:
@@ -287,7 +287,7 @@ class Inchi( plugin):
 
 
 
-  def _read_simple_hydrogen_layer( self, layer):
+  def _read_simple_hydrogen_layer( self: object, layer: object) -> object:
     """just takes the layer and adds hydrogens according to what it seas,
     it does not care about moving hydrogens and stuff"""
 
@@ -305,7 +305,7 @@ class Inchi( plugin):
 
 
 
-  def read_charge_layer( self):
+  def read_charge_layer( self: object) -> object:
     layer = self.get_layer( "q")
     if not layer:
       return
@@ -400,7 +400,7 @@ class Inchi( plugin):
 
 
 
-  def read_p_layer( self):
+  def read_p_layer( self: object) -> object:
     layer = self.get_layer( "p")
     if not layer:
       return
@@ -469,8 +469,8 @@ class Inchi( plugin):
       assert p < old_p
 
 
-  def read_double_bond_stereo_layer( self):
-    def get_lowest_numbered_neighbor( atom, verbotten_atom):
+  def read_double_bond_stereo_layer( self: object) -> object:
+    def get_lowest_numbered_neighbor( atom: object, verbotten_atom: object) -> object:
       neighs = [(n.properties_.get('inchi_number',1000000), n)
                 for n in atom.neighbors
                 if n is not verbotten_atom and "inchi_number" in n.properties_]
@@ -502,7 +502,7 @@ class Inchi( plugin):
 
 
 
-  def _valency_to_charge( self, v, charge):
+  def _valency_to_charge( self: object, v: object, charge: object) -> object:
     """sets charge of the atom so that it has minimal free_valency,
     returns the 'unused' charge in case it is not comsumed whole"""
     ch = misc.signum( charge) * min( abs( charge), v.free_valency)
@@ -515,7 +515,7 @@ class Inchi( plugin):
     return charge
 
 
-  def get_number_of_hydrogens_in_hydrogen_layer( self):
+  def get_number_of_hydrogens_in_hydrogen_layer( self: object) -> object:
     # version check
     layer = self.get_layer( "h")
     if not layer:
@@ -539,7 +539,7 @@ class Inchi( plugin):
     return ret
 
 
-  def _get_hs_in_moving_hydrogen( self, chunk):
+  def _get_hs_in_moving_hydrogen( self: object, chunk: object) -> object:
     chks = chunk.split( ',')
     if len( chks[0]) > 1:
       if chks[0][1:].endswith( "-"):
@@ -552,7 +552,7 @@ class Inchi( plugin):
 
 
 
-  def _check_version( self, ver):
+  def _check_version( self: object, ver: object) -> object:
     """returns a tuple of two version numbers"""
     if "Beta" in ver:
       return None
@@ -563,7 +563,7 @@ class Inchi( plugin):
       return v, 0
 
 
-  def _process_moving_hydrogen( self, chunk, run=0):
+  def _process_moving_hydrogen( self: object, chunk: object, run: object=0) -> object:
     chks = chunk.split( ',')
     if len( chks[0]) > 1:
       if chks[0][1:].endswith("-"):
@@ -604,7 +604,7 @@ class Inchi( plugin):
 
 
 
-  def _split_h_layer( self, layer):
+  def _split_h_layer( self: object, layer: object) -> object:
     was_h = False
     chunks = []
     chunk = ""
@@ -623,7 +623,7 @@ class Inchi( plugin):
     return chunks
 
 
-  def _parse_h_layer( self, layer):
+  def _parse_h_layer( self: object, layer: object) -> object:
     chunks = self._split_h_layer( layer)
     for chunk in chunks:
       try:
@@ -648,7 +648,7 @@ class Inchi( plugin):
       yield vertices, num_h
 
 
-  def process_forced_charges( self):
+  def process_forced_charges( self: object) -> object:
     """this marks the charges that are forced by the connectivity and thus helps
     process zwitrions"""
     forced_charge = 0
@@ -659,7 +659,7 @@ class Inchi( plugin):
     self.forced_charge = forced_charge
 
 
-  def compensate_for_forced_charges( self):
+  def compensate_for_forced_charges( self: object) -> object:
     """if there were foced charges and the molecule should not have any charge,
     we have to take care of it here"""
     charge = self.charge - self.forced_charge
@@ -687,7 +687,7 @@ class Inchi( plugin):
       assert old_charge != charge
 
 
-  def deal_with_da_bonds( self):
+  def deal_with_da_bonds( self: object) -> object:
     """deal with donor-acceptor bonds, this fixes mostly boron containing compounds"""
     for v in self.structure.vertices:
       if v.free_valency < 0 and v.symbol in self.electron_acceptors:
@@ -697,7 +697,7 @@ class Inchi( plugin):
           n.charge += 1
           v.charge -= 1
 
-  def _move_charge_somewhere_else( self):
+  def _move_charge_somewhere_else( self: object) -> object:
     if self.charge < 0:
       pass
     elif self.charge == 1:
@@ -707,7 +707,7 @@ class Inchi( plugin):
           yield None
 
 
-  def _deal_with_notorious_groups( self):
+  def _deal_with_notorious_groups( self: object) -> object:
     """some groups such as NO2, SO3H etc. need the valency of the central atom to be risen,
     this is done here"""
     for v in self.structure.vertices:
@@ -722,7 +722,7 @@ class Inchi( plugin):
             v.raise_valency()
 
 
-  def _deal_with_valencies( self):
+  def _deal_with_valencies( self: object) -> object:
     go = True
     i = 0
     while go:
@@ -765,7 +765,7 @@ class Inchi( plugin):
 #        elif x == 0:
 #          break
 
-def generate_inchi_and_inchikey(m, program=None, fixed_hs=True, ignore_key_error=False):
+def generate_inchi_and_inchikey(m: object, program: object=None, fixed_hs: object=True, ignore_key_error: object=False) -> object:
   """Generate InChI and InChIKey using RDKit (no external binary needed).
 
   The program parameter is accepted for backward compatibility but ignored.
@@ -777,11 +777,11 @@ def generate_inchi_and_inchikey(m, program=None, fixed_hs=True, ignore_key_error
   return inchi, key, warnings
 
 
-def generate_inchi(m, program=None, fixed_hs=True):
+def generate_inchi(m: object, program: object=None, fixed_hs: object=True) -> object:
   inchi, key, warnings = generate_inchi_and_inchikey(m, program=program, fixed_hs=fixed_hs, ignore_key_error=True)
   return inchi, warnings
 
-def generate_inchi_key(m, program=None, fixed_hs=True):
+def generate_inchi_key(m: object, program: object=None, fixed_hs: object=True) -> object:
   inchi, key, warnings = generate_inchi_and_inchikey(m, program=program, fixed_hs=fixed_hs)
   return key, warnings
 
@@ -795,7 +795,7 @@ reads_files = 1
 writes_text = 1
 writes_files = 1
 
-def text_to_mol( text, include_hydrogens=True, mark_aromatic_bonds=False, calc_coords=1):
+def text_to_mol( text: object, include_hydrogens: object=True, mark_aromatic_bonds: object=False, calc_coords: object=1) -> object:
   from oasa.codecs import rdkit_formats
   mol = rdkit_formats.inchi_text_to_mol(
     text, include_hydrogens=include_hydrogens, calc_coords=calc_coords)
@@ -803,15 +803,15 @@ def text_to_mol( text, include_hydrogens=True, mark_aromatic_bonds=False, calc_c
     mol.mark_aromatic_bonds()
   return mol
 
-def file_to_mol( f):
+def file_to_mol( f: object) -> object:
   return text_to_mol( f.read())
 
 
-def mol_to_text( mol, program=None, fixed_hs=True):
+def mol_to_text( mol: object, program: object=None, fixed_hs: object=True) -> object:
   return generate_inchi( mol, program=program, fixed_hs=fixed_hs)[0]
 
 
-def mol_to_file( mol, f):
+def mol_to_file( mol: object, f: object) -> object:
   f.write( mol_to_text( mol))
 
 
@@ -830,7 +830,7 @@ if __name__ == '__main__':
 
   from oasa import smiles_lib as smiles
 
-  def main( text, cycles):
+  def main( text: object, cycles: object) -> object:
     t1 = time.time()
     for jj in range( cycles):
       mol = text_to_mol( text, calc_coords=True, include_hydrogens=False)
@@ -869,4 +869,3 @@ if __name__ == '__main__':
 
 
 ##################################################
-

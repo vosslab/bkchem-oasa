@@ -1,112 +1,137 @@
 # Code architecture
 
 ## Overview
-- BKChem is a Tkinter desktop application for drawing chemical structures.
-- OASA (Open Architecture for Sketching Atoms and Molecules) provides the
-  chemistry graph model, format conversions, and render backends.
-- CDML is the native document format, with SVG and other formats supported via
-  exporters and plugins.
+
+This repository is a three-package chemical-drawing workspace:
+
+- [packages/oasa/](../packages/oasa/) is the reusable chemistry backend.
+- [packages/bkchem-qt.app/](../packages/bkchem-qt.app/) is the active PySide6
+  desktop frontend.
+- [packages/bkchem-app/](../packages/bkchem-app/) is the retained Tkinter
+  frontend and compatibility oracle, not the target UI architecture.
+
+OASA owns chemistry.  The Qt frontend owns document presentation, interaction,
+and Qt object lifetime.  CDML is the native persistence boundary between them;
+the current division is defined by [QT_CONTRACT.md](QT_CONTRACT.md) and
+[CDML_BACKEND_TO_FRONTEND_CONTRACT.md](CDML_BACKEND_TO_FRONTEND_CONTRACT.md).
 
 ## Major components
-- Application entry points
-  - [packages/bkchem-app/bkchem/bkchem.py](packages/bkchem-app/bkchem/bkchem.py) boots
-    the app, loads preferences, and parses CLI flags.
-  - [packages/bkchem-app/bkchem/cli.py](packages/bkchem-app/bkchem/cli.py) exposes the
-    console entry point for BKChem.
-  - [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py) defines the
-    `BKChem` Tk application class, menus, and mode wiring.
-- UI and interaction layer
-  - [packages/bkchem-app/bkchem/paper.py](packages/bkchem-app/bkchem/paper.py) implements
-    `chem_paper`, the main Tk Canvas for drawing, selection, and events.
-  - [packages/bkchem-app/bkchem/modes.py](packages/bkchem-app/bkchem/modes.py),
-    [packages/bkchem-app/bkchem/interactors.py](packages/bkchem-app/bkchem/interactors.py),
-    and [packages/bkchem-app/bkchem/context_menu.py](packages/bkchem-app/bkchem/context_menu.py)
-    define editing modes and input handlers.
-  - [packages/bkchem-app/bkchem/undo.py](packages/bkchem-app/bkchem/undo.py) and
-    [packages/bkchem-app/bkchem/edit_pool.py](packages/bkchem-app/bkchem/edit_pool.py)
-    manage undo stacks and edit history.
-- Chemistry model and drawing objects
-  - [packages/bkchem-app/bkchem/molecule.py](packages/bkchem-app/bkchem/molecule.py)
-    wraps [packages/oasa/oasa/molecule.py](packages/oasa/oasa/molecule.py).
-  - [packages/bkchem-app/bkchem/atom.py](packages/bkchem-app/bkchem/atom.py) and
-    [packages/bkchem-app/bkchem/bond.py](packages/bkchem-app/bkchem/bond.py) extend OASA
-    atoms and bonds with drawing metadata.
-  - [packages/bkchem-app/bkchem/group.py](packages/bkchem-app/bkchem/group.py),
-    [packages/bkchem-app/bkchem/fragment.py](packages/bkchem-app/bkchem/fragment.py),
-    [packages/bkchem-app/bkchem/reaction.py](packages/bkchem-app/bkchem/reaction.py),
-    [packages/bkchem-app/bkchem/arrow.py](packages/bkchem-app/bkchem/arrow.py), and
-    [packages/bkchem-app/bkchem/textatom.py](packages/bkchem-app/bkchem/textatom.py)
-    implement higher-level drawing objects.
-- OASA core library
-  - [packages/oasa/oasa/](packages/oasa/oasa/) contains the chemistry graph
-    model, parsers, and conversions.
-  - [packages/oasa/oasa/render_ops.py](packages/oasa/oasa/render_ops.py) defines
-    shared render ops for SVG and Cairo.
-  - [packages/oasa/oasa/svg_out.py](packages/oasa/oasa/svg_out.py) and
-    [packages/oasa/oasa/cairo_out.py](packages/oasa/oasa/cairo_out.py) render
-    shared ops to SVG and Cairo surfaces.
-  - [packages/oasa/oasa/haworth.py](packages/oasa/oasa/haworth.py) provides
-    Haworth layout helpers for carbohydrate projections.
-- File formats and I/O
-  - CDML serialization is handled by
-    [packages/oasa/oasa/cdml_writer.py](packages/oasa/oasa/cdml_writer.py),
-    [packages/bkchem-app/bkchem/paper.py](packages/bkchem-app/bkchem/paper.py),
-    and [packages/bkchem-app/bkchem/CDML_versions.py](packages/bkchem-app/bkchem/CDML_versions.py).
-  - Export routing lives in
-    [packages/bkchem-app/bkchem/format_loader.py](packages/bkchem-app/bkchem/format_loader.py),
-    [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py), and
-    [packages/bkchem-app/bkchem/oasa_bridge.py](packages/bkchem-app/bkchem/oasa_bridge.py).
-  - Built-in exporters live under
-    [packages/bkchem-app/bkchem/plugins/](packages/bkchem-app/bkchem/plugins/).
-- Templates and reusable structures
-  - Template loading is handled by
-    [packages/bkchem-app/bkchem/temp_manager.py](packages/bkchem-app/bkchem/temp_manager.py)
-    and catalog discovery in
-    [packages/bkchem-app/bkchem/template_catalog.py](packages/bkchem-app/bkchem/template_catalog.py).
-  - Built-in templates live under
-    [packages/bkchem-app/bkchem_data/templates/](packages/bkchem-app/bkchem_data/templates/),
-    including biomolecule templates in
-    [packages/bkchem-app/bkchem_data/templates/biomolecules/](packages/bkchem-app/bkchem_data/templates/biomolecules/).
-- Plugin system
-  - [packages/bkchem-app/bkchem/plugin_support.py](packages/bkchem-app/bkchem/plugin_support.py)
-    loads addon XML descriptors and scripts from
-    [packages/bkchem-app/addons/](packages/bkchem-app/addons/).
+
+### OASA backend
+
+- [packages/oasa/oasa/](../packages/oasa/oasa/) provides molecular graphs,
+  atoms, bonds, stereochemistry, coordinate generation, repair operations, and
+  codecs.
+- [packages/oasa/oasa/cdml_writer.py](../packages/oasa/oasa/cdml_writer.py)
+  serializes OASA-owned molecular CDML.
+- [packages/oasa/oasa/codec_registry.py](../packages/oasa/oasa/codec_registry.py)
+  selects chemistry-format codecs; the backend also supplies SVG and Cairo
+  render operations.
+- [packages/oasa/oasa/coords_generator.py](../packages/oasa/oasa/coords_generator.py)
+  and [packages/oasa/oasa/repair_ops.py](../packages/oasa/oasa/repair_ops.py)
+  implement chemistry-aware geometry work used by the Qt frontend.
+
+### PySide6 frontend
+
+- [packages/bkchem-qt.app/bkchem_qt/app.py](../packages/bkchem-qt.app/bkchem_qt/app.py)
+  creates the application; [main_window.py](../packages/bkchem-qt.app/bkchem_qt/main_window.py)
+  owns tabs, global controls, file workflow, and ordered shutdown.
+- [models/document_session.py](../packages/bkchem-qt.app/bkchem_qt/models/document_session.py)
+  is the per-tab ownership boundary.  A session owns exactly one `Document`,
+  scene, view, mode manager, import request tokens, and import workers.
+- [models/document.py](../packages/bkchem-qt.app/bkchem_qt/models/document.py)
+  owns ordered document objects, CDML envelope state, clean/dirty state, and a
+  `QUndoStack`.  [canvas/](../packages/bkchem-qt.app/bkchem_qt/canvas/) projects
+  that model into `QGraphicsItem` objects without becoming the persistence
+  authority.
+- [bridge/oasa_bridge.py](../packages/bkchem-qt.app/bkchem_qt/bridge/oasa_bridge.py)
+  adapts OASA molecules to Qt models.  [bridge/worker.py](../packages/bkchem-qt.app/bkchem_qt/bridge/worker.py)
+  keeps parsing, coordinate generation, and component preparation off the GUI
+  thread; Qt model construction remains on the GUI thread.
+- [io/cdml_document_io.py](../packages/bkchem-qt.app/bkchem_qt/io/cdml_document_io.py)
+  reads and writes the full CDML document envelope.  It delegates molecule
+  topology to OASA while preserving paper, presentation objects, reactions,
+  external data, and unrepresented XML owned by the frontend.
+- [actions/](../packages/bkchem-qt.app/bkchem_qt/actions/) registers commands,
+  menus, context actions, and property editing.  The `ActionRegistry` and
+  [resources/menus.yaml](../packages/bkchem-qt.app/bkchem_qt/resources/menus.yaml)
+  build menus; registered `QAction` shortcuts are the keyboard source of truth.
+  [config/keybindings.py](../packages/bkchem-qt.app/bkchem_qt/config/keybindings.py)
+  installs active-session bindings and reports conflicts.
+- [modes/](../packages/bkchem-qt.app/bkchem_qt/modes/) holds drawing and editing
+  modes, configured by [resources/modes.yaml](../packages/bkchem-qt.app/bkchem_qt/resources/modes.yaml).
+  [undo/commands.py](../packages/bkchem-qt.app/bkchem_qt/undo/commands.py) pairs
+  model and scene mutations in undoable commands.
+- [resources/](../packages/bkchem-qt.app/bkchem_qt/resources/) is package-owned
+  runtime data: menu and mode YAML, themes, and pixmaps.  This keeps installed
+  Qt wheels independent of the legacy `bkchem_data` tree.
+
+### Tkinter compatibility oracle
+
+- [packages/bkchem-app/bkchem/](../packages/bkchem-app/bkchem/) is the
+  compatibility implementation used to inspect established behavior, legacy
+  CDML, menu definitions, modes, and interaction semantics.
+- [packages/bkchem-app/bkchem/main.py](../packages/bkchem-app/bkchem/main.py)
+  and [paper.py](../packages/bkchem-app/bkchem/paper.py) remain Tkinter entry
+  and canvas references.  New frontend work belongs in `bkchem_qt`, not here.
+- [packages/bkchem-app/bkchem_data/](../packages/bkchem-app/bkchem_data/) retains
+  legacy templates, themes, locales, images, and format assets.
 
 ## Data flow
-1. [packages/bkchem-app/bkchem/bkchem.py](packages/bkchem-app/bkchem/bkchem.py) loads
-   preferences, initializes locale, and creates a `BKChem` instance.
-2. [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py) builds the UI
-   and constructs a [packages/bkchem-app/bkchem/paper.py](packages/bkchem-app/bkchem/paper.py)
-   canvas.
-3. User input routes through modes and interactors into canvas operations.
-4. `chem_paper` maintains a stack of top-level objects (molecules, arrows, text).
-5. Model edits update atoms and bonds, which redraw onto the canvas.
-6. Save and export paths serialize CDML or render SVG/bitmap output through OASA.
-7. Imports use OASA parsers and
-   [packages/bkchem-app/bkchem/oasa_bridge.py](packages/bkchem-app/bkchem/oasa_bridge.py)
-   to create BKChem molecules.
+
+1. [bkchem_qt/cli.py](../packages/bkchem-qt.app/bkchem_qt/cli.py) starts the
+   PySide6 application and `MainWindow` creates or activates a `DocumentSession`.
+2. A session constructs its `Document`, `ChemScene`, `ChemView`, and mode
+   manager.  `MainWindow` binds global controls only to the active session.
+3. Drawing, editing, clipboard, and property actions push `QUndoCommand`
+   instances.  Commands change persistent models and live projections together.
+4. The OASA bridge converts Qt molecule models to and from OASA graphs.  OASA
+   performs chemistry conversion and geometry; the Qt layer keeps visual state
+   and selection separate.
+5. Native save uses the full-document CDML codec: OASA writes molecular CDML,
+   while the frontend writes the surrounding document envelope in canonical
+   top-level order.  Native loads establish a clean source path; non-CDML
+   imports are pathless and dirty so they require Save As.
+6. A session close invalidates workers, disconnects callbacks, disposes scene
+   items, clears undo history and scene state, then queues detached Qt roots for
+   deletion.  This explicit lifecycle avoids PySide/Shiboken wrapper teardown
+   crashes.
 
 ## Testing and verification
-- Tests live under [tests/](tests/) with smoke and lint runners such as
-  [tests/run_smoke.sh](tests/run_smoke.sh) and
-  [tests/test_pyflakes_code_lint.py](tests/test_pyflakes_code_lint.py).
-- Haworth and render ops coverage includes
-  [tests/test_haworth_layout.py](tests/test_haworth_layout.py),
-  [tests/test_oasa_bond_styles.py](tests/test_oasa_bond_styles.py), and
-  [tests/test_render_ops_snapshot.py](tests/test_render_ops_snapshot.py).
-- Reference image checks live in
-  [tests/test_reference_outputs.py](tests/test_reference_outputs.py).
+
+- [packages/oasa/tests/](../packages/oasa/tests/) covers OASA graph, codec,
+  coordinate, rendering, and chemistry behavior.
+- [packages/bkchem-qt.app/tests/](../packages/bkchem-qt.app/tests/) covers
+  document sessions, CDML preservation, undo, menus, modes, clipboard,
+  imports, workers, and offscreen Qt smoke tests.
+- [packages/bkchem-app/tests/](../packages/bkchem-app/tests/) supplies focused
+  Tkinter parity evidence for retained behavior.
+- Qt tests use the offscreen platform and shared teardown fixtures.  The pytest
+  plugin accepts `--kill-after SECONDS` to stop a genuinely hung pointed run
+  with diagnostics; see [QT_CONTRACT.md](QT_CONTRACT.md).
+- Repository-wide structural checks live in [tests/](../tests/), including
+  [test_markdown_links.py](../tests/test_markdown_links.py).
 
 ## Extension points
-- Add new BKChem addons under [packages/bkchem-app/addons/](packages/bkchem-app/addons/)
-  with XML descriptors for discovery.
-- Add export plugins under
-  [packages/bkchem-app/bkchem/plugins/](packages/bkchem-app/bkchem/plugins/).
-- Add templates under
-  [packages/bkchem-app/bkchem_data/templates/](packages/bkchem-app/bkchem_data/templates/)
-  or subfolders scanned by
-  [packages/bkchem-app/bkchem/template_catalog.py](packages/bkchem-app/bkchem/template_catalog.py).
+
+- Add chemistry algorithms or codecs under [packages/oasa/oasa/](../packages/oasa/oasa/)
+  and cover them in [packages/oasa/tests/](../packages/oasa/tests/).
+- Add a persistent Qt feature through a `Document` model, projection, undo
+  command, action, and focused Qt test; use `DocumentSession` rather than a
+  process-global document.
+- Add menu actions in [actions/](../packages/bkchem-qt.app/bkchem_qt/actions/)
+  and menu/mode declarations in the package-owned resource YAML.
+- Add Qt themes and pixmaps under [resources/](../packages/bkchem-qt.app/bkchem_qt/resources/)
+  so wheels carry their runtime assets.
+- Use the Tkinter package to compare behavior where no explicit Qt contract
+  exists; do not add new primary UI features to the compatibility frontend.
 
 ## Known gaps
-- Verify how installer packaging bundles `bkchem_data` assets in macOS and
-  Windows distributions.
+
+- Prefix-qualified core CDML elements remain an explicit strict-roundtrip
+  compatibility boundary; extend the document codec before claiming complete
+  namespace parity.
+- M4 action parity is partial: remaining chemistry and document actions need
+  an inventory, implementation, and focused behavior tests before release.
+- Tkinter tests provide representative compatibility evidence, not proof that
+  every legacy mode, dialog, and plugin has PySide6 parity.

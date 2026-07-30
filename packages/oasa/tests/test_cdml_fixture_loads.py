@@ -53,7 +53,7 @@ VERTEX_ORDERING_CDML = """\
 
 
 #============================================
-def test_custom_attr_cdml_loads():
+def test_custom_attr_cdml_loads() -> None:
 	"""Custom attribute CDML loads without error."""
 	mol = oasa.cdml.text_to_mol(CUSTOM_ATTR_CDML)
 	assert mol is not None
@@ -62,7 +62,7 @@ def test_custom_attr_cdml_loads():
 
 
 #============================================
-def test_wavy_color_cdml_loads():
+def test_wavy_color_cdml_loads() -> None:
 	"""Wavy bond with color CDML loads without error."""
 	mol = oasa.cdml.text_to_mol(WAVY_COLOR_CDML)
 	assert mol is not None
@@ -71,7 +71,7 @@ def test_wavy_color_cdml_loads():
 
 
 #============================================
-def test_vertex_ordering_cdml_loads():
+def test_vertex_ordering_cdml_loads() -> None:
 	"""Wedge bond vertex ordering CDML loads without error."""
 	mol = oasa.cdml.text_to_mol(VERTEX_ORDERING_CDML)
 	assert mol is not None

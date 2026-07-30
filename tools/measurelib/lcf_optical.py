@@ -9,6 +9,7 @@ import xml.etree.ElementTree as StdET
 
 # Third Party
 import cv2
+import defusedxml.ElementTree as SafeET
 import numpy
 import scipy.spatial
 
@@ -32,7 +33,7 @@ _LCF_POS_ATTRS = ('dx', 'dy')
 
 
 #============================================
-def _lcf_get_dimensions_from_root(root) -> dict:
+def _lcf_get_dimensions_from_root(root: object) -> dict:
 	"""Extract viewBox and viewport dimensions from SVG root element."""
 	viewbox_str = root.get('viewBox', '')
 	width_str = root.get('width', '300').replace('px', '').strip()
@@ -59,7 +60,7 @@ def _lcf_get_dimensions_from_root(root) -> dict:
 #============================================
 def _lcf_get_svg_dimensions(svg_path: str) -> dict:
 	"""Extract viewBox and viewport dimensions from SVG file."""
-	tree = StdET.parse(svg_path)  # nosec B314 -- local SVG measurement tool
+	tree = SafeET.parse(svg_path)
 	root = tree.getroot()
 	return _lcf_get_dimensions_from_root(root)
 
@@ -131,7 +132,8 @@ def _lcf_extract_chars_from_string(
 
 
 #============================================
-def _lcf_extract_characters_from_text_element(elem, ns: dict, text_elem_index: int) -> list:
+def _lcf_extract_characters_from_text_element(
+		elem: object, ns: dict, text_elem_index: int) -> list:
 	"""Extract all visible characters from text element including tspans."""
 	characters = []
 	base_x = float(elem.get('x', '0'))
@@ -188,7 +190,7 @@ def _lcf_extract_characters_from_text_element(elem, ns: dict, text_elem_index: i
 #============================================
 def _lcf_parse_svg_file(svg_path: str) -> list:
 	"""Parse SVG and extract all visible characters with their metadata."""
-	tree = StdET.parse(svg_path)  # nosec B314 -- local SVG measurement tool
+	tree = SafeET.parse(svg_path)
 	root = tree.getroot()
 	ns = {'svg': _LCF_SVG_NS}
 	characters = []
@@ -227,7 +229,7 @@ def _lcf_pixel_to_svg(
 #============================================
 def _lcf_build_isolation_svg(svg_path: str, char_meta: dict) -> str:
 	"""Build an SVG string where only the target character is visible."""
-	tree = StdET.parse(svg_path)  # nosec B314 -- local SVG measurement tool
+	tree = SafeET.parse(svg_path)
 	root = tree.getroot()
 	StdET.register_namespace('', _LCF_SVG_NS)
 	new_root = StdET.Element(f'{{{_LCF_SVG_NS}}}svg')
@@ -263,7 +265,7 @@ def _lcf_build_isolation_svg(svg_path: str, char_meta: dict) -> str:
 
 
 #============================================
-def _lcf_isolate_character(text_elem, char_meta: dict) -> None:
+def _lcf_isolate_character(text_elem: object, char_meta: dict) -> None:
 	"""Modify a text element in-place so only the target character is visible."""
 	tspan_idx = char_meta.get('_tspan_index')
 	char_offset = char_meta['_char_offset']
@@ -290,7 +292,8 @@ def _lcf_isolate_character(text_elem, char_meta: dict) -> None:
 
 
 #============================================
-def _lcf_isolate_in_direct_text(text_elem, char_offset: int, fill: str, tspan_tag: str) -> None:
+def _lcf_isolate_in_direct_text(
+		text_elem: object, char_offset: int, fill: str, tspan_tag: str) -> None:
 	"""Isolate a character from the text element's direct text content."""
 	direct_text = text_elem.text or ''
 	text_elem.text = None
@@ -319,7 +322,7 @@ def _lcf_isolate_in_direct_text(text_elem, char_offset: int, fill: str, tspan_ta
 
 #============================================
 def _lcf_split_tspan_for_isolation(
-		text_elem, tspan, char_offset: int, fill: str, tspan_tag: str) -> None:
+		text_elem: object, tspan: object, char_offset: int, fill: str, tspan_tag: str) -> None:
 	"""Split a multi-character tspan to isolate one character."""
 	tspan_text = tspan.text or ''
 	before = tspan_text[:char_offset]

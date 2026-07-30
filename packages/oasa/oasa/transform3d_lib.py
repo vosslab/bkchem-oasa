@@ -29,24 +29,24 @@ class Transform3d(object):
   """Provide basic higher-level interface for coordinate transforms.
 
   """
-  def __init__( self, mat = None):
+  def __init__( self, mat: object = None) -> None:
     if not mat:
       self.mat = matrix( [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
     else:
       self.mat = matrix( mat)
 
-  def transform_xyz( self, x, y, z):
+  def transform_xyz( self, x: object, y: object, z: object) -> tuple:
     x1, y1, z1, one = self.mat.get_multiplied2( [[x],[y],[z],[1]])
     return x1[0], y1[0], z1[0]
 
-  def transform_xy( self, x, y):
+  def transform_xy( self, x: object, y: object) -> tuple:
     """is used only for compatibility with 2D transform, assumes z=0,
     should be used only in cases where it is sure that starting and
     result positions have z0 (pi rotation around one axis etc.)"""
     x0, y0, z0 = self.transform_xyz( x, y, 0)
     return x0, y0
 
-  def transform_xy_flat_list( self, coords):
+  def transform_xy_flat_list( self, coords: object) -> list:
     """ONLY X,Y TRANSFORM, for compatibility with 2D transform!!!,
     transforms a list that cointains alternating x,y values (not list of pairs
     as self.transform_list)"""
@@ -57,62 +57,62 @@ class Transform3d(object):
       ret.append( y)
     return ret
 
-  def transform_xyz_flat_list( self, coords):
+  def transform_xyz_flat_list( self, coords: object) -> list:
     ret = []
     for j in range( 0, len( coords), 3):
       ret += self.transform_xyz( coords[j], coords[j+1], coords[j+2])
     return ret
 
-  def transform_list( self, l):
+  def transform_list( self, l: object) -> list:
     ret = []
     for line in l:
       ret.append( self.transform_xyz( line[0], line[1], line[2]))
     return ret
 
-  def map_transform( self, l):
+  def map_transform( self, l: object) -> tuple:
     "this method can be used with map() function"
     return self.transform_xyz( l[0], l[1], l[2])
 
-  def set_move( self, dx, dy, dz):
+  def set_move( self, dx: object, dy: object, dz: object) -> None:
     "add an moving step to transformation matrix"
     self.mat = matrix( mat=self.mat.get_multiplied( [[1,0,0,dx],[0,1,0,dy],[0,0,1,dz],[0,0,0,1]]))
 
-  def set_rotation( self, xa, ya, za):
+  def set_rotation( self, xa: object, ya: object, za: object) -> None:
     "add an rotation step to transformation matrix"
     self.set_rotation_x( xa)
     self.set_rotation_y( ya)
     self.set_rotation_z( za)
 
-  def set_rotation_x( self, xa):
+  def set_rotation_x( self, xa: object) -> None:
     mat = [[1,0,0,0],
            [0, cos(xa), sin(xa), 0],
            [0, -sin(xa), cos(xa), 0],
            [0,0,0,1]]
     self.mat = matrix( mat=self.mat.get_multiplied( mat))
 
-  def set_rotation_y( self, ya):
+  def set_rotation_y( self, ya: object) -> None:
     mat = [[cos(ya), 0, -sin(ya), 0],
            [0, 1, 0, 0],
            [sin(ya), 0, cos(ya), 0],
            [0,0,0,1]]
     self.mat = matrix( mat=self.mat.get_multiplied( mat))
 
-  def set_rotation_z( self, za):
+  def set_rotation_z( self, za: object) -> None:
     mat = [[cos(za), sin(za), 0, 0],
            [-sin(za), cos(za), 0, 0],
            [0,0,1,0],
            [0,0,0,1]]
     self.mat = matrix( mat=self.mat.get_multiplied( mat))
 
-  def set_scaling_xyz( self, mx, my, mz):
+  def set_scaling_xyz( self, mx: object, my: object, mz: object) -> None:
     "add an scaling step to transformation matrix"
     self.mat = matrix( mat=self.mat.get_multiplied( [[mx,0,0,0],[0,my,0,0],[0,0,mz,0],[0,0,0,1]]))
 
-  def set_scaling( self, scale):
+  def set_scaling( self, scale: object) -> None:
     "add an scaling step to transformation matrix, same scaling for both dimensions"
     self.set_scaling_xyz( scale, scale, scale)
 
-  def get_inverse( self):
+  def get_inverse( self) -> object:
     return Transform3d( mat=self.mat.get_inverse())
 
 
@@ -121,10 +121,10 @@ class matrix(object):
   """Provide common operations for matrix of 3x3 elements.
 
   """
-  def __init__( self, mat):
+  def __init__( self, mat: object) -> None:
     self.mat = mat
 
-  def get_transposed( self):
+  def get_transposed( self) -> list:
     m = self.mat
     ret = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]
     for i in range( len( m)):
@@ -132,8 +132,8 @@ class matrix(object):
         ret[j][i] = m[i][j]
     return ret
 
-  def get_inverse( self):
-    def _part( a, b):
+  def get_inverse( self) -> list:
+    def _part( a: object, b: object) -> list:
       _ret = [[0,0,0],[0,0,0],[0,0,0]]
       for i in range( len( m)):
         if i == a:
@@ -164,7 +164,7 @@ class matrix(object):
     return inv.get_transposed()
 
 
-  def get_multiplied2( self, multi):
+  def get_multiplied2( self, multi: object) -> list:
     "returns matrix multiplied by multi"
     m = []
     if type( multi) != type([]):
@@ -179,7 +179,7 @@ class matrix(object):
           m[i].append( self.mat[i][0]*multi[0][j] + self.mat[i][1]*multi[1][j] + self.mat[i][2]*multi[2][j] + self.mat[i][3]*multi[3][j])
     return  m
 
-  def get_multiplied( self, multi):
+  def get_multiplied( self, multi: object) -> list:
     "returns matrix multiplied by multi"
     m = []
     if type( multi) != type([]):
@@ -194,7 +194,7 @@ class matrix(object):
           m[i].append( multi[i][0]*self.mat[0][j] + multi[i][1]*self.mat[1][j] + multi[i][2]*self.mat[2][j] +  multi[i][3]*self.mat[3][j])
     return  m
 
-  def get_determinant( self):
+  def get_determinant( self) -> object:
     _d3 = matrix._determinant_3
     m = self.mat
     a = m[0][0] * _d3([[m[1][1],m[1][2],m[1][3]],[m[2][1],m[2][2],m[2][3]],[m[3][1],m[3][2],m[3][3]]])
@@ -205,6 +205,5 @@ class matrix(object):
 
 
   @staticmethod
-  def _determinant_3( _m):
+  def _determinant_3( _m: object) -> object:
       return (((_m[0][0] * _m[1][1] * _m[2][2]) + (_m[0][1] * _m[1][2] * _m[2][0]) + (_m[0][2] * _m[1][0] * _m[2][1])) - ((_m[2][1] * _m[1][2] * _m[0][0]) + (_m[2][2] * _m[1][0] * _m[0][1]) + (_m[2][0] * _m[1][1] * _m[0][2])))
-

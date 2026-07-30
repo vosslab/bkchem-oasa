@@ -15,6 +15,10 @@ _default_color = PySide6.QtGui.QColor(0, 0, 0)
 
 # -- default area/paper color for masking backgrounds behind atom labels --
 _default_area_color = PySide6.QtGui.QColor(255, 255, 255)
+# Render ops cache geometry, so use a symbolic fill for atom masks and resolve
+# it while painting.  Theme switches then recolor existing AtomItems without
+# rebuilding their cached ops.
+_DEFAULT_AREA_COLOR_TOKEN = "__bkchem_default_area__"
 
 # -- canvas interaction colors (selection, hover, preview) --
 _canvas_colors = {"selection": "#3399ff", "hover": "#66bbff", "preview": "#888888"}
@@ -356,7 +360,7 @@ def _measure_segments_width(segments: list, font_name: str, font_size: float,
 
 
 #============================================
-def _color_to_qcolor(color) -> PySide6.QtGui.QColor:
+def _color_to_qcolor(color: object) -> PySide6.QtGui.QColor:
 	"""Convert a color spec (hex string, RGB tuple, or None) to QColor.
 
 	Args:
@@ -372,6 +376,8 @@ def _color_to_qcolor(color) -> PySide6.QtGui.QColor:
 		text = color.strip()
 		if not text or text.lower() == "none":
 			return None
+		if text == _DEFAULT_AREA_COLOR_TOKEN:
+			return _default_area_color
 		# normalize through OASA helper then build QColor
 		normalized = oasa.render_ops.color_to_hex(text)
 		if normalized is None:

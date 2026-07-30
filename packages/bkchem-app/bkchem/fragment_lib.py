@@ -34,7 +34,7 @@ class BkFragment( simple_parent):
   # explicit - created by user
   # linear_form - used to track linear forms
 
-  def __init__( self, id="", name="", type="explicit", strict=True):
+  def __init__( self, id: object = "", name: object = "", type: object = "explicit", strict: object = True) -> None:
     self.id = id
     self.name = name
     self.edges = set()
@@ -45,7 +45,7 @@ class BkFragment( simple_parent):
 
 
   @property
-  def name(self):
+  def name(self) -> object:
     """Name of the fragment.
 
     """
@@ -53,12 +53,12 @@ class BkFragment( simple_parent):
 
 
   @name.setter
-  def name(self, name):
+  def name(self, name: object) -> object:
     self._name = name
 
 
   @property
-  def id(self):
+  def id(self) -> object:
     """ID of the fragment.
 
     """
@@ -66,11 +66,11 @@ class BkFragment( simple_parent):
 
 
   @id.setter
-  def id(self, id):
+  def id(self, id: object) -> object:
     self._id = id
 
 
-  def is_consistent(self, molecule):
+  def is_consistent(self, molecule: object) -> object:
     for e in self.edges:
       if e not in molecule.edges:
         return False
@@ -81,7 +81,7 @@ class BkFragment( simple_parent):
 
 
   @property
-  def all_vertices(self):
+  def all_vertices(self) -> object:
     """Vertices associated with fragment bonds.
 
     """
@@ -89,7 +89,7 @@ class BkFragment( simple_parent):
     return vs
 
 
-  def get_package( self, doc):
+  def get_package( self, doc: object) -> object:
     el = doc.createElement( "fragment")
     el.setAttribute( "id", self.id)
     el.setAttribute( "type", self.type)
@@ -110,7 +110,7 @@ class BkFragment( simple_parent):
     return el
 
 
-  def read_package( self, doc):
+  def read_package( self, doc: object) -> object:
     self.id = doc.getAttribute( "id")
     self.type = doc.getAttribute( "type") or "explicit"
     name = dom_ext.getFirstChildNamed( doc, "name")
@@ -134,4 +134,3 @@ class BkFragment( simple_parent):
       t = p.getAttribute( "type")
       typ = types.__dict__[ t]
       self.properties[k] = typ( v)
-

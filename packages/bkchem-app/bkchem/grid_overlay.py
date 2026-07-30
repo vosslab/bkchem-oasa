@@ -43,7 +43,7 @@ class HexGridOverlay:
 	"""
 
 	#============================================
-	def __init__(self, canvas, spacing_cm: str = '0.7cm') -> None:
+	def __init__(self, canvas: object, spacing_cm: str = '0.7cm') -> None:
 		"""Initialize the overlay in hidden state.
 
 		Args:

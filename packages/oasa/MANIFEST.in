@@ -1,4 +1,4 @@
 include README.md
+include LICENSE
 recursive-include docs *.md
-recursive-include oasa *.txt *.txt.gz *.db
-recursive-include oasa_data *.json
+recursive-include oasa_data *.json *.yaml

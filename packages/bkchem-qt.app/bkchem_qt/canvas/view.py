@@ -65,7 +65,10 @@ class ChemView(PySide6.QtWidgets.QGraphicsView):
 	mouse_moved = PySide6.QtCore.Signal(float, float)
 
 	#============================================
-	def __init__(self, scene: ChemScene, parent: PySide6.QtWidgets.QWidget = None):
+	def __init__(
+			self, scene: ChemScene,
+			parent: PySide6.QtWidgets.QWidget | None = None,
+			) -> None:
 		"""Initialize the view with rendering hints and key bindings.
 
 		Args:
@@ -102,15 +105,11 @@ class ChemView(PySide6.QtWidgets.QGraphicsView):
 		# enable mouse tracking so mouseMoveEvent fires without button held
 		self.setMouseTracking(True)
 
-		# keyboard shortcut: Ctrl+0 resets zoom
-		shortcut = PySide6.QtGui.QShortcut(
-			PySide6.QtGui.QKeySequence(self.tr("Ctrl+0")),
-			self,
-		)
-		shortcut.activated.connect(self.reset_zoom)
+		# Window-level shortcuts are owned by KeybindingManager so user
+		# preferences, menu display, and the active document session agree.
 
 	#============================================
-	def set_document(self, doc) -> None:
+	def set_document(self, doc: object) -> None:
 		"""Set the active document for this view.
 
 		Args:
@@ -120,12 +119,12 @@ class ChemView(PySide6.QtWidgets.QGraphicsView):
 
 	#============================================
 	@property
-	def document(self):
+	def document(self) -> object:
 		"""The active Document, or None if not set."""
 		return self._document
 
 	#============================================
-	def set_mode_manager(self, manager) -> None:
+	def set_mode_manager(self, manager: object) -> None:
 		"""Set the mode manager for event dispatch.
 
 		Args:

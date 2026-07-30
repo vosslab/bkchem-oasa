@@ -21,7 +21,7 @@ class StatusBar(PySide6.QtWidgets.QStatusBar):
 	"""
 
 	#============================================
-	def __init__(self, parent: PySide6.QtWidgets.QWidget = None):
+	def __init__(self, parent: PySide6.QtWidgets.QWidget | None = None) -> None:
 		"""Create the status bar with message area and permanent labels."""
 		super().__init__(parent)
 

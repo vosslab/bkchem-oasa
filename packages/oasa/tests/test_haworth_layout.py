@@ -9,6 +9,9 @@ import pytest
 import oasa
 import oasa.atom_lib
 import oasa.bond_lib
+import oasa.cdml
+import oasa.cdml_document
+import oasa.cdml_writer
 import oasa.molecule_lib
 from oasa.haworth import layout as haworth_layout
 from oasa.render_lib.data_types import BondRenderContext
@@ -19,19 +22,19 @@ from oasa import render_out
 
 #============================================
 @pytest.fixture
-def output_dir(request, tmp_path):
+def output_dir(request: object, tmp_path: object) -> object:
 	if request.config.getoption("save"):
 		return os.getcwd()
 	return tmp_path
 
 
 #============================================
-def output_path(output_dir, filename):
+def output_path(output_dir: object, filename: object) -> object:
 	return os.path.join(str(output_dir), filename)
 
 
 #============================================
-def build_ring(size, oxygen_index=None):
+def build_ring(size: object, oxygen_index: object = None) -> object:
 	mol = oasa.molecule_lib.Molecule()
 	atoms = []
 	for idx in range(size):
@@ -53,7 +56,7 @@ def build_ring(size, oxygen_index=None):
 
 
 #============================================
-def test_haworth_pyranose_layout_and_tags():
+def test_haworth_pyranose_layout_and_tags() -> None:
 	mol = build_ring(6)
 	result = haworth_layout.build_haworth(mol, mode="pyranose")
 	assert len(result["ring_atoms"]) == 6
@@ -67,7 +70,7 @@ def test_haworth_pyranose_layout_and_tags():
 
 
 #============================================
-def test_haworth_furanose_layout_and_tags():
+def test_haworth_furanose_layout_and_tags() -> None:
 	mol = build_ring(5)
 	result = haworth_layout.build_haworth(mol, mode="furanose")
 	assert len(result["ring_atoms"]) == 5
@@ -77,7 +80,7 @@ def test_haworth_furanose_layout_and_tags():
 
 
 #============================================
-def test_haworth_places_oxygen_at_top():
+def test_haworth_places_oxygen_at_top() -> None:
 	mol = build_ring(6, oxygen_index=0)
 	result = haworth_layout.build_haworth(mol, mode="pyranose")
 	oxygen_atoms = [a for a in result["ring_atoms"] if a.symbol == 'O']
@@ -88,7 +91,7 @@ def test_haworth_places_oxygen_at_top():
 
 
 #============================================
-def test_haworth_places_furanose_oxygen_at_top():
+def test_haworth_places_furanose_oxygen_at_top() -> None:
 	mol = build_ring(5, oxygen_index=0)
 	result = haworth_layout.build_haworth(mol, mode="furanose")
 	oxygen_atoms = [a for a in result["ring_atoms"] if a.symbol == 'O']
@@ -99,7 +102,7 @@ def test_haworth_places_furanose_oxygen_at_top():
 
 
 #============================================
-def test_haworth_pyranose_oxygen_not_first():
+def test_haworth_pyranose_oxygen_not_first() -> None:
 	"""Test oxygen placement when oxygen is not at index 0."""
 	mol = build_ring(6, oxygen_index=2)
 	result = haworth_layout.build_haworth(mol, mode="pyranose")
@@ -112,7 +115,7 @@ def test_haworth_pyranose_oxygen_not_first():
 
 
 #============================================
-def test_haworth_furanose_oxygen_not_first():
+def test_haworth_furanose_oxygen_not_first() -> None:
 	"""Test oxygen placement when oxygen is not at index 0."""
 	mol = build_ring(5, oxygen_index=3)
 	result = haworth_layout.build_haworth(mol, mode="furanose")
@@ -125,7 +128,7 @@ def test_haworth_furanose_oxygen_not_first():
 
 
 #============================================
-def test_haworth_svg_smoke(output_dir):
+def test_haworth_svg_smoke(output_dir: object) -> None:
 	pyranose = _build_haworth_smoke_mol()
 	svg_path = output_path(output_dir, "haworth_layout_smoke.svg")
 	render_out.mol_to_output(pyranose, svg_path, format="svg")
@@ -137,7 +140,7 @@ def test_haworth_svg_smoke(output_dir):
 
 
 #============================================
-def test_haworth_cairo_smoke(output_dir):
+def test_haworth_cairo_smoke(output_dir: object) -> None:
 	try:
 		import cairo
 		_ = cairo
@@ -153,7 +156,7 @@ def test_haworth_cairo_smoke(output_dir):
 
 
 #============================================
-def test_haworth_front_edge_and_wedges():
+def test_haworth_front_edge_and_wedges() -> None:
 	pyranose = build_ring(6)
 	result = haworth_layout.build_haworth(pyranose, mode="pyranose")
 	_assert_front_edge_and_wedges(result)
@@ -164,7 +167,54 @@ def test_haworth_front_edge_and_wedges():
 
 
 #============================================
-def _assert_front_edge_and_wedges(result):
+def test_reflected_haworth_wedges_keep_front_endpoints_after_cdml_authority() -> None:
+	"""A reflected real Haworth layout retains its directed wedge depiction."""
+	molecule = build_ring(6, oxygen_index=2)
+	haworth_layout.build_haworth(molecule, mode="pyranose")
+	_flip_y(molecule)
+	for index, atom in enumerate(molecule.vertices, start=1):
+		atom.id = f"haworth_a{index}"
+	writer_cdml = oasa.cdml_writer.mol_to_text(molecule)
+	oasa.cdml_document.CDMLDocument.parse(writer_cdml, validation="strict")
+	writer_reloaded = next(oasa.cdml.read_cdml(writer_cdml))
+	proposal = oasa.cdml_writer.molecules_to_insertion_proposal(
+		[writer_reloaded], token_stem="reflected_haworth",
+	)
+	session = oasa.cdml_document.CDMLDocumentSession.load(
+		'<cdml version="26.07" xmlns="http://www.freesoftware.fsf.org/bkchem/cdml"/>',
+	)
+	accepted = session.insert_molecules(
+		oasa.cdml_document.CDMLMoleculeInsertionRequest(
+			expected_revision=session.revision,
+			proposal_cdml=proposal,
+			label="Reflected Haworth",
+		),
+	)
+	oasa.cdml_document.CDMLDocument.parse(accepted.cdml, validation="strict")
+	authoritative_reloaded = next(oasa.cdml.read_cdml(accepted.cdml))
+	assert (
+		_wedges_end_at_haworth_front(writer_reloaded),
+		_wedges_end_at_haworth_front(authoritative_reloaded),
+	) == (True, True)
+
+
+#============================================
+def _wedges_end_at_haworth_front(molecule: object) -> bool:
+	"""Return whether every Haworth wedge base ends at a q-front vertex."""
+	front_vertices = {
+		vertex
+		for bond in molecule.edges
+		if bond.type == "q"
+		for vertex in bond.vertices
+	}
+	wedge_bonds = [bond for bond in molecule.edges if bond.type == "w"]
+	return bool(wedge_bonds) and all(
+		bond.vertices[1] in front_vertices for bond in wedge_bonds
+	)
+
+
+#============================================
+def _assert_front_edge_and_wedges(result: object) -> None:
 	ring_bonds = result["ring_bonds"]
 	front_bonds = [bond for bond in ring_bonds if bond.type == "q"]
 	assert len(front_bonds) == 1
@@ -182,7 +232,7 @@ def _assert_front_edge_and_wedges(result):
 
 
 #============================================
-def _build_haworth_smoke_mol():
+def _build_haworth_smoke_mol() -> object:
 	pyranose = build_ring(6, oxygen_index=0)
 	haworth_layout.build_haworth(pyranose, mode="pyranose")
 
@@ -198,13 +248,13 @@ def _build_haworth_smoke_mol():
 
 
 #============================================
-def _flip_y(mol):
+def _flip_y(mol: object) -> None:
 	for atom in mol.vertices:
 		atom.y = -atom.y
 
 
 #============================================
-def test_haworth_substituent_orientation_ops_alpha():
+def test_haworth_substituent_orientation_ops_alpha() -> None:
 	mol = build_ring(6, oxygen_index=2)
 	layout = haworth_layout.build_haworth(mol, mode="pyranose")
 	ring_atoms = layout["ring_atoms"]
@@ -217,7 +267,7 @@ def test_haworth_substituent_orientation_ops_alpha():
 
 
 #============================================
-def test_haworth_substituent_orientation_ops_beta():
+def test_haworth_substituent_orientation_ops_beta() -> None:
 	mol = build_ring(6, oxygen_index=2)
 	layout = haworth_layout.build_haworth(mol, mode="pyranose")
 	ring_atoms = layout["ring_atoms"]
@@ -230,7 +280,7 @@ def test_haworth_substituent_orientation_ops_beta():
 
 
 #============================================
-def _find_haworth_reference_atoms(ring_atoms):
+def _find_haworth_reference_atoms(ring_atoms: object) -> object:
 	oxygen_index = None
 	for idx, atom in enumerate(ring_atoms):
 		if atom.symbol == "O":
@@ -245,7 +295,7 @@ def _find_haworth_reference_atoms(ring_atoms):
 
 
 #============================================
-def _add_substituent(mol, ring_atom, symbol):
+def _add_substituent(mol: object, ring_atom: object, symbol: object) -> object:
 	sub = oasa.atom_lib.Atom(symbol=symbol)
 	sub.x = ring_atom.x
 	sub.y = ring_atom.y
@@ -257,7 +307,7 @@ def _add_substituent(mol, ring_atom, symbol):
 
 
 #============================================
-def _assert_substituent_direction(ring_atom, sub_atom, bond, expect):
+def _assert_substituent_direction(ring_atom: object, sub_atom: object, bond: object, expect: object) -> None:
 	context = BondRenderContext(
 		molecule=None,
 		line_width=2.0,

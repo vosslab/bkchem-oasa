@@ -1,153 +1,168 @@
-"""Rotation mode for 2D rotation of selected items."""
+"""Backend-authoritative 2D rotation mode for selected durable atoms."""
 
 # Standard Library
 import math
 
 # PIP3 modules
 import PySide6.QtCore
-import PySide6.QtGui
 
 # local repo modules
-import bkchem_qt.modes.base_mode
 import bkchem_qt.canvas.items.atom_item
 import bkchem_qt.canvas.items.bond_item
+import bkchem_qt.modes.base_mode
 
 
 #============================================
 class RotateMode(bkchem_qt.modes.base_mode.BaseMode):
-	"""Mode for rotating selected items around a center point.
-
-	On the first click, the rotation center is set. On drag, selected
-	items rotate around that center by the angle swept by the mouse.
-	On release, the rotation is finalized.
-
-	Args:
-		view: The ChemView widget that owns this mode.
-		parent: Optional parent QObject.
-	"""
+	"""Preview a 2D atom rotation, then submit one backend-owned commit."""
 
 	#============================================
-	def __init__(self, view, parent=None):
-		"""Initialize the rotate mode.
-
-		Args:
-			view: The ChemView widget that dispatches events.
-			parent: Optional parent QObject.
-		"""
+	def __init__(
+			self, view: object, parent: PySide6.QtCore.QObject | None = None,
+			) -> None:
+		"""Initialize a transient preview with no local persistent owner."""
 		super().__init__(view, parent)
 		self._name = "Rotate"
-		# rotation center in scene coordinates
+		self._atom_rotate_operation = None
 		self._center = None
-		# angle at the start of the drag in radians
-		self._start_angle = 0.0
-		# accumulated rotation for the current drag
+		self._last_angle = None
 		self._accumulated_angle = 0.0
-		# original positions of selected atom items before rotation
 		self._original_positions = {}
+		self._targets = ()
+		self._drag_operation = None
 		self._cursor = PySide6.QtCore.Qt.CursorShape.SizeAllCursor
+
+	#============================================
+	def set_atom_rotate_operation(self, operation: object | None) -> None:
+		"""Install the session-owned atom-rotation client callback."""
+		if operation is not None and not callable(operation):
+			raise TypeError("Persistent operation must be callable")
+		self._atom_rotate_operation = operation
 
 	#============================================
 	@property
 	def status_hint(self) -> str:
-		"""Return rotate mode interaction hint for the status bar.
-
-		Returns:
-			A short description of available rotation interactions.
-		"""
-		return "Click and drag to rotate selected items"
+		"""Return the bounded 2D rotation interaction guidance."""
+		return "Click and drag to rotate selected durable atoms in 2D"
 
 	#============================================
-	def mouse_press(self, scene_pos: PySide6.QtCore.QPointF, event) -> None:
-		"""Set the rotation center and record initial positions.
-
-		On the first press, the rotation center is set to the click
-		position. Original positions of all selected atom items are
-		saved for incremental rotation during drag.
-
-		Args:
-			scene_pos: Position in scene coordinates.
-			event: The mouse event.
-		"""
+	def mouse_press(self, scene_pos: PySide6.QtCore.QPointF, event: object) -> None:
+		"""Capture durable atom targets and starting coordinates for one preview."""
 		scene = self._env.scene
-		if scene is None:
+		self._clear_drag_state()
+		if scene is None or self._atom_rotate_operation is None:
+			self.status_message.emit("Rotation unavailable for this document")
 			return
-		# set rotation center to click position
-		self._center = scene_pos
-		self._start_angle = 0.0
-		self._accumulated_angle = 0.0
-		# save original positions of selected atom items
-		self._original_positions = {}
+		targets = []
+		positions = {}
 		for item in scene.selectedItems():
-			if isinstance(item, bkchem_qt.canvas.items.atom_item.AtomItem):
-				model = item.atom_model
-				self._original_positions[id(item)] = (model.x, model.y, item)
-		self.status_message.emit("Drag to rotate selected items")
+			if not isinstance(item, bkchem_qt.canvas.items.atom_item.AtomItem):
+				continue
+			atom = item.atom_model
+			atom_id = atom.backend_durable_id
+			molecule = getattr(atom, "_molecule_model", None)
+			molecule_id = getattr(molecule, "mol_id", None)
+			if not atom_id or not molecule_id:
+				self.status_message.emit("Rotation unavailable: selected atom lacks durable identity")
+				return
+			target = (str(molecule_id), str(atom_id))
+			targets.append(target)
+			positions[target] = (atom.x, atom.y, item)
+		if not targets:
+			self.status_message.emit("No durable atoms selected")
+			return
+		self._center = PySide6.QtCore.QPointF(scene_pos)
+		self._targets = tuple(targets)
+		self._original_positions = positions
+		# The bound session callback is part of this gesture's origin.  A tab or
+		# mode rebind after press must not redirect the accepted persistent intent.
+		self._drag_operation = self._atom_rotate_operation
+		self.status_message.emit("Drag to rotate selected atoms")
 
 	#============================================
-	def mouse_move(self, scene_pos: PySide6.QtCore.QPointF, event) -> None:
-		"""Compute rotation angle and rotate selected items incrementally.
-
-		Calculates the angle between the initial mouse direction and the
-		current mouse position relative to the rotation center, then
-		applies that rotation to all saved atom positions.
-
-		Args:
-			scene_pos: Current position in scene coordinates.
-			event: The mouse event.
-		"""
-		if self._center is None:
+	def mouse_move(self, scene_pos: PySide6.QtCore.QPointF, event: object) -> None:
+		"""Apply a transient unwrapped angular preview to selected atom items."""
+		if self._center is None or not self._original_positions:
 			return
-		if not self._original_positions:
-			return
-		# compute angle from center to current mouse position
 		dx = scene_pos.x() - self._center.x()
 		dy = scene_pos.y() - self._center.y()
-		current_angle = math.atan2(dy, dx)
-		# on the first move, set the start angle
-		if self._start_angle == 0.0 and (abs(dx) > 1.0 or abs(dy) > 1.0):
-			self._start_angle = current_angle
+		if abs(dx) <= 1.0 and abs(dy) <= 1.0 and self._last_angle is None:
 			return
-		# compute the rotation delta from the start
-		rotation = current_angle - self._start_angle
-		# apply rotation to each saved original position
-		cx = self._center.x()
-		cy = self._center.y()
-		cos_r = math.cos(rotation)
-		sin_r = math.sin(rotation)
-		for item_id, (orig_x, orig_y, item) in self._original_positions.items():
-			# translate to origin, rotate, translate back
-			rel_x = orig_x - cx
-			rel_y = orig_y - cy
-			new_x = cx + rel_x * cos_r - rel_y * sin_r
-			new_y = cy + rel_x * sin_r + rel_y * cos_r
-			item.atom_model.set_xyz(new_x, new_y, item.atom_model.z)
-		self._accumulated_angle = rotation
-		# update bond items after moving atoms
+		current_angle = math.atan2(dy, dx)
+		if self._last_angle is None:
+			self._last_angle = current_angle
+			return
+		delta = current_angle - self._last_angle
+		if delta > math.pi:
+			delta -= math.tau
+		elif delta < -math.pi:
+			delta += math.tau
+		self._accumulated_angle += delta
+		self._last_angle = current_angle
+		self._apply_preview()
+
+	#============================================
+	def mouse_release(self, scene_pos: PySide6.QtCore.QPointF, event: object) -> None:
+		"""Restore preview items, then submit exactly one immutable rotation intent."""
+		if self._center is None or not self._original_positions:
+			self._clear_drag_state()
+			return
+		center = (self._center.x(), self._center.y())
+		targets = self._targets
+		angle = self._accumulated_angle
+		operation = self._drag_operation
+		self._restore_original_positions()
+		self._clear_drag_state()
+		if angle == 0.0 or operation is None:
+			self.status_message.emit("Rotate mode active")
+			return
+		outcome = operation(targets, center, angle)
+		self.status_message.emit(outcome.message)
+
+	#============================================
+	def deactivate(self) -> None:
+		"""Cancel any live preview without creating a persistent mutation."""
+		self._restore_original_positions()
+		self._clear_drag_state()
+		super().deactivate()
+
+	#============================================
+	def _apply_preview(self) -> None:
+		"""Project the accumulated transient angle onto the selected atom models."""
+		if self._center is None:
+			return
+		cosine = math.cos(self._accumulated_angle)
+		sine = math.sin(self._accumulated_angle)
+		center_x = self._center.x()
+		center_y = self._center.y()
+		for original_x, original_y, item in self._original_positions.values():
+			x = center_x + (original_x - center_x) * cosine - (original_y - center_y) * sine
+			y = center_y + (original_x - center_x) * sine + (original_y - center_y) * cosine
+			item.atom_model.set_xyz(x, y, item.atom_model.z)
+		self._update_bond_items()
+
+	#============================================
+	def _restore_original_positions(self) -> None:
+		"""Return transient preview atoms to their captured geometry."""
+		for original_x, original_y, item in self._original_positions.values():
+			item.atom_model.set_xyz(original_x, original_y, item.atom_model.z)
+		self._update_bond_items()
+
+	#============================================
+	def _clear_drag_state(self) -> None:
+		"""Release all wrapper references retained by the transient drag."""
+		self._center = None
+		self._last_angle = None
+		self._accumulated_angle = 0.0
+		self._original_positions = {}
+		self._targets = ()
+		self._drag_operation = None
+
+	#============================================
+	def _update_bond_items(self) -> None:
+		"""Refresh bond projections after a preview coordinate update."""
 		scene = self._env.scene
 		if scene is not None:
 			for item in scene.items():
 				if isinstance(item, bkchem_qt.canvas.items.bond_item.BondItem):
 					item.update_from_model()
-
-	#============================================
-	def mouse_release(self, scene_pos: PySide6.QtCore.QPointF, event) -> None:
-		"""Finalize the rotation.
-
-		Clears the saved original positions and rotation state.
-
-		Args:
-			scene_pos: Position in scene coordinates.
-			event: The mouse event.
-		"""
-		self._center = None
-		self._start_angle = 0.0
-		self._accumulated_angle = 0.0
-		self._original_positions = {}
-		self.status_message.emit("Rotate mode active")
-
-	#============================================
-	def deactivate(self) -> None:
-		"""Clean up rotation state when leaving the mode."""
-		self._center = None
-		self._original_positions = {}
-		super().deactivate()

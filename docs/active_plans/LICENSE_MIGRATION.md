@@ -129,13 +129,13 @@ This boundary is not strict, but it is a useful guide.
 ### Adding a new file
 1. Write the file from scratch
 2. Add the SPDX header: `# SPDX-License-Identifier: LGPL-3.0-or-later`
-3. Commit and document in [docs/CHANGELOG.md](CHANGELOG.md)
+3. Commit and document in `CHANGELOG.md`
 
 ### Rewriting an existing file
 1. Verify the file is a complete rewrite with no GPLv2-derived code
 2. Move to a new path if desired (optional but recommended)
 3. Add the SPDX header: `# SPDX-License-Identifier: LGPL-3.0-or-later`
-4. Document the rewrite and relicensing in [docs/CHANGELOG.md](CHANGELOG.md)
+4. Document the rewrite and relicensing in `CHANGELOG.md`
 
 ### Editing an existing file
 1. Do not change the license header
@@ -155,7 +155,7 @@ This boundary is not strict, but it is a useful guide.
 - Build a clean LGPL rendering API
 
 ### Phase 3: Stabilize boundaries
-- Document clear GPL/LGPL boundaries in [docs/CODE_ARCHITECTURE.md](CODE_ARCHITECTURE.md)
+- Document clear GPL/LGPL boundaries in `CODE_ARCHITECTURE.md`
 - Ensure LGPL components are self-contained
 - Maintain GPL-2.0 for BKChem GUI and legacy IO
 
@@ -175,7 +175,7 @@ This boundary is not strict, but it is a useful guide.
 ### Preventing future confusion
 - Explicit SPDX headers in every file
 - This document explains the strategy
-- [docs/CHANGELOG.md](CHANGELOG.md) tracks all relicensing decisions
+- `CHANGELOG.md` tracks all relicensing decisions
 - No "cleanup" PRs that change licenses without provenance review
 
 ### Community trust
@@ -415,7 +415,7 @@ Additional options:
 
 ## See Also
 
-- [LICENSE](../LICENSE): Full GPL-2.0 license text (repository default)
-- [docs/REPO_STYLE.md](REPO_STYLE.md): Repository licensing rules
-- [docs/CHANGELOG.md](CHANGELOG.md): Record of all licensing changes
-- [docs/CODE_ARCHITECTURE.md](CODE_ARCHITECTURE.md): Component boundaries
+- [LICENSE](../../LICENSE): Full GPL-2.0 license text (repository default)
+- [REPO_STYLE.md](../REPO_STYLE.md): Repository licensing rules
+- `CHANGELOG.md`: Record of all licensing changes
+- `CODE_ARCHITECTURE.md`: Component boundaries

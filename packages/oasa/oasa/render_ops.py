@@ -24,6 +24,9 @@ import dataclasses
 import json
 import math
 
+# Third Party
+from lxml import etree
+
 # local repo modules
 from oasa import dom_extensions
 from oasa import safe_xml
@@ -94,7 +97,7 @@ class TextOp:
 
 
 #============================================
-def _text_segments(text):
+def _text_segments(text: object) -> object:
 	if "<" not in text and ">" not in text:
 		return [(text, set())]
 	try:
@@ -103,7 +106,7 @@ def _text_segments(text):
 		return [(text, set())]
 	segments = []
 
-	def _walk(node, attrs):
+	def _walk(node: object, attrs: object) -> object:
 		if node.text:
 			segments.append((node.text, set(attrs)))
 		for child in list(node):
@@ -116,7 +119,7 @@ def _text_segments(text):
 
 
 #============================================
-def _segment_baseline_state(tags):
+def _segment_baseline_state(tags: object) -> object:
 	if "sub" in tags:
 		return "sub"
 	if "sup" in tags:
@@ -131,14 +134,14 @@ SUPERSCRIPT_OFFSET_EM = 0.45
 
 
 #============================================
-def _segment_font_size(font_size, baseline_state):
+def _segment_font_size(font_size: object, baseline_state: object) -> object:
 	if baseline_state in ("sub", "sup"):
 		return font_size * SCRIPT_FONT_SCALE
 	return font_size
 
 
 #============================================
-def _baseline_offset_em(baseline_state):
+def _baseline_offset_em(baseline_state: object) -> object:
 	if baseline_state == "sub":
 		return SUBSCRIPT_OFFSET_EM
 	if baseline_state == "sup":
@@ -147,18 +150,18 @@ def _baseline_offset_em(baseline_state):
 
 
 #============================================
-def _baseline_transition_dy_em(previous_state, next_state):
+def _baseline_transition_dy_em(previous_state: object, next_state: object) -> object:
 	return _baseline_offset_em(next_state) - _baseline_offset_em(previous_state)
 
 
 #============================================
-def _baseline_transition_dy_px(font_size, previous_state, next_state):
+def _baseline_transition_dy_px(font_size: object, previous_state: object, next_state: object) -> object:
 	"""Return absolute SVG dy in user units for one baseline-state change."""
 	return font_size * _baseline_transition_dy_em(previous_state, next_state)
 
 
 #============================================
-def _normalize_hex_color(text):
+def _normalize_hex_color(text: object) -> object:
 	if text.lower() == "none":
 		return "none"
 	if not text.startswith("#"):
@@ -172,7 +175,7 @@ def _normalize_hex_color(text):
 
 
 #============================================
-def _color_tuple_to_hex(color):
+def _color_tuple_to_hex(color: object) -> object:
 	if len(color) not in (3, 4):
 		return None
 	values = list(color[:3])
@@ -190,7 +193,7 @@ def _color_tuple_to_hex(color):
 
 
 #============================================
-def color_to_hex(color):
+def color_to_hex(color: object) -> object:
 	if color is None:
 		return None
 	if isinstance(color, str):
@@ -204,7 +207,7 @@ def color_to_hex(color):
 
 
 #============================================
-def _color_to_rgba(color):
+def _color_to_rgba(color: object) -> object:
 	if color is None:
 		return None
 	if isinstance(color, str):
@@ -243,7 +246,7 @@ def _color_to_rgba(color):
 
 
 #============================================
-def sort_ops(ops):
+def sort_ops(ops: object) -> object:
 	ordered = []
 	for index, op in sorted(enumerate(ops), key=lambda item: (getattr(item[1], "z", 0), item[0])):
 		ordered.append(op)
@@ -251,7 +254,7 @@ def sort_ops(ops):
 
 
 #============================================
-def _serialize_number(value, digits):
+def _serialize_number(value: object, digits: object) -> object:
 	if isinstance(value, int):
 		return value
 	if isinstance(value, float):
@@ -260,12 +263,12 @@ def _serialize_number(value, digits):
 
 
 #============================================
-def _serialize_list(value, digits):
+def _serialize_list(value: object, digits: object) -> object:
 	return [ _serialize_number(item, digits) for item in value ]
 
 
 #============================================
-def ops_to_json_dict(ops, round_digits=3):
+def ops_to_json_dict(ops: object, round_digits: object=3) -> object:
 	serialized = []
 	for op in sort_ops(ops):
 		if isinstance(op, LineOp):
@@ -337,17 +340,17 @@ def ops_to_json_dict(ops, round_digits=3):
 
 
 #============================================
-def ops_to_json_text(ops, round_digits=3):
+def ops_to_json_text(ops: object, round_digits: object=3) -> object:
 	return json.dumps(ops_to_json_dict(ops, round_digits=round_digits), indent=2, sort_keys=True)
 
 
 #============================================
-def supports_text_ops():
+def supports_text_ops() -> object:
 	return True
 
 
 #============================================
-def _set_cairo_color(context, color):
+def _set_cairo_color(context: object, color: object) -> object:
 	rgba = _color_to_rgba(color)
 	if not rgba:
 		return False
@@ -360,7 +363,17 @@ def _set_cairo_color(context, color):
 
 
 #============================================
-def ops_to_svg(parent, ops):
+def _emit_svg_operations(
+	parent: object,
+	ops: object,
+	element_under: object,
+	text_only_element_under: object,
+) -> object:
+	"""Emit controlled SVG operations through one node-creation adapter pair.
+
+	The renderer owns SVG element semantics here.  Output formats provide only
+	the mechanics for creating an element or a text-only element below a parent.
+	"""
 	for op in sort_ops(ops):
 		if isinstance(op, LineOp):
 			color = color_to_hex(op.color) or "#000"
@@ -374,7 +387,7 @@ def ops_to_svg(parent, ops):
 				attrs += (( 'stroke-linecap', op.cap),)
 			if op.join:
 				attrs += (( 'stroke-linejoin', op.join),)
-			dom_extensions.elementUnder(parent, 'line', attrs)
+			element_under(parent, 'line', attrs)
 			continue
 		if isinstance(op, PolygonOp):
 			points_text = " ".join("%s,%s" % (x, y) for x, y in op.points)
@@ -387,7 +400,7 @@ def ops_to_svg(parent, ops):
 						( 'stroke-width', str(op.stroke_width)))
 			else:
 				attrs += (( 'stroke', "none"),)
-			dom_extensions.elementUnder(parent, 'polygon', attrs)
+			element_under(parent, 'polygon', attrs)
 			continue
 		if isinstance(op, CircleOp):
 			fill = color_to_hex(op.fill) or "none"
@@ -401,7 +414,7 @@ def ops_to_svg(parent, ops):
 						( 'stroke-width', str(op.stroke_width)))
 			else:
 				attrs += (( 'stroke', "none"),)
-			dom_extensions.elementUnder(parent, 'circle', attrs)
+			element_under(parent, 'circle', attrs)
 			continue
 		if isinstance(op, PathOp):
 			d_parts = []
@@ -435,7 +448,7 @@ def ops_to_svg(parent, ops):
 				attrs += (( 'stroke-linecap', op.cap),)
 			if op.join:
 				attrs += (( 'stroke-linejoin', op.join),)
-			dom_extensions.elementUnder(parent, 'path', attrs)
+			element_under(parent, 'path', attrs)
 			continue
 		if isinstance(op, TextOp):
 			fill = color_to_hex(op.color) or "#000"
@@ -452,9 +465,9 @@ def ops_to_svg(parent, ops):
 			if op.weight and op.weight != "normal":
 				attrs += (("font-weight", op.weight),)
 			if len(segments) == 1 and not segments[0][1]:
-				dom_extensions.textOnlyElementUnder(parent, "text", op.text, attrs)
+				text_only_element_under(parent, "text", op.text, attrs)
 				continue
-			text_el = dom_extensions.elementUnder(parent, "text", attrs)
+			text_el = element_under(parent, "text", attrs)
 			baseline_state = "base"
 			for chunk, tags in segments:
 				span_attrs = ()
@@ -464,13 +477,61 @@ def ops_to_svg(parent, ops):
 				dy_px = _baseline_transition_dy_px(op.font_size, baseline_state, segment_state)
 				if abs(dy_px) > 1e-9:
 					span_attrs += (("dy", f"{dy_px:.2f}"),)
-				dom_extensions.textOnlyElementUnder(text_el, "tspan", chunk, span_attrs)
+				text_only_element_under(text_el, "tspan", chunk, span_attrs)
 				baseline_state = segment_state
 			continue
 
 
 #============================================
-def ops_to_cairo(context, ops):
+def ops_to_svg(parent: object, ops: object) -> object:
+	"""Append controlled render operations through the legacy minidom facade."""
+	return _emit_svg_operations(
+		parent,
+		ops,
+		dom_extensions.elementUnder,
+		dom_extensions.textOnlyElementUnder,
+	)
+
+
+#============================================
+def _lxml_element_under(parent: object, name: object, attributes: object=()) -> object:
+	"""Create one SVG child while preserving the caller-provided attribute order."""
+	namespace = etree.QName(parent).namespace
+	qualified_name = name
+	if namespace:
+		qualified_name = f"{{{namespace}}}{name}"
+	child = etree.SubElement(parent, qualified_name)
+	for attribute_name, value in attributes:
+		child.set(attribute_name, value)
+	return child
+
+
+#============================================
+def _lxml_text_only_element_under(
+	parent: object,
+	name: object,
+	text: object,
+	attributes: object=(),
+) -> object:
+	"""Create one SVG text child without parsing or accepting XML input."""
+	child = _lxml_element_under(parent, name, attributes)
+	child.text = text
+	return child
+
+
+#============================================
+def ops_to_lxml_svg(parent: object, ops: object) -> object:
+	"""Append controlled render operations to a namespaced lxml SVG element."""
+	return _emit_svg_operations(
+		parent,
+		ops,
+		_lxml_element_under,
+		_lxml_text_only_element_under,
+	)
+
+
+#============================================
+def ops_to_cairo(context: object, ops: object) -> object:
 	for op in sort_ops(ops):
 		if isinstance(op, LineOp):
 			context.set_line_width(op.width)

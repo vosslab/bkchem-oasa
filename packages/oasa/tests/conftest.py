@@ -5,6 +5,8 @@ import os
 import subprocess
 import sys
 
+pytest_plugins = ("pytest_kill_after",)
+
 
 #============================================
 def _get_repo_root() -> str:
@@ -19,7 +21,7 @@ _REPO_ROOT = _get_repo_root()
 
 
 #============================================
-def _ensure_paths():
+def _ensure_paths() -> None:
 	"""Add oasa package and repo tests/ to sys.path."""
 	# oasa package root (packages/oasa)
 	oasa_pkg = os.path.join(_REPO_ROOT, "packages", "oasa")
@@ -32,7 +34,7 @@ def _ensure_paths():
 
 
 #============================================
-def pytest_addoption(parser):
+def pytest_addoption(parser: object) -> None:
 	"""Register custom pytest command-line options."""
 	parser.addoption(
 		"--save",

@@ -31,12 +31,12 @@ All toolbar icons are 24x24 GIF files from the original ~2002 codebase. On
 macOS Retina displays (2x scaling), these appear blurry and pixelated.
 
 - 95 GIF files in
-  [`packages/bkchem-app/bkchem_data/pixmaps/`](../packages/bkchem-app/bkchem_data/pixmaps/)
-- [`pixmaps.py`](../packages/bkchem-app/bkchem/pixmaps.py) already implements
+  `pixmaps`
+- [`pixmaps.py`](../../packages/bkchem-app/bkchem/pixmaps.py) already implements
   PNG-first loading with GIF fallback, but no PNG files existed until this
   review
 - 87 SVG source files exist in
-  [`pixmaps/src/`](../packages/bkchem-app/bkchem_data/pixmaps/src/) ready for
+  `src` ready for
   conversion
 - Missing SVG sources for some icons (undo, redo, repair submodes)
 
@@ -48,17 +48,17 @@ macOS Retina displays (2x scaling), these appear blurry and pixelated.
 **Severity: MEDIUM**
 
 The application uses a flat `#eaeaea` gray palette set via `tk_setPalette()` in
-[`main.py:83`](../packages/bkchem-app/bkchem/main.py). The toolbar, submode
+[`main.py:83`](../../packages/bkchem-app/bkchem/main.py). The toolbar, submode
 ribbon, canvas surround, and status bar all share the same background color,
 creating no visual hierarchy between functional areas.
 
 - Background color defined in
-  [`bkchem_config.py:53`](../packages/bkchem-app/bkchem/bkchem_config.py) as
+  [`bkchem_config.py:53`](../../packages/bkchem-app/bkchem/bkchem_config.py) as
   `#eaeaea`
 - Canvas paper is white, providing the only contrast
 - No gradient, shadow, or border treatment separating toolbar from canvas
 - Entry widget backgrounds are explicitly set to white
-  ([`main.py:81`](../packages/bkchem-app/bkchem/main.py))
+  ([`main.py:81`](../../packages/bkchem-app/bkchem/main.py))
 
 **Recommendation:** Add subtle 1px separator lines between the mode toolbar
 (row 1), submode ribbon (row 2), and canvas area (row 4). Consider a slightly
@@ -70,13 +70,13 @@ surround.
 **Severity: LOW**
 
 - Three guaranteed fonts: helvetica, courier, times
-  ([`data.py`](../packages/bkchem-app/bkchem/data.py))
+  ([`data.py`](../../packages/bkchem-app/bkchem/data.py))
 - macOS correctly uses native system font (San Francisco) by skipping the
-  `*font` option ([`main.py:350-351`](../packages/bkchem-app/bkchem/main.py))
+  `*font` option ([`main.py:350-351`](../../packages/bkchem-app/bkchem/main.py))
 - Linux falls back to Adobe Helvetica ISO-10646
-  ([`main.py:344`](../packages/bkchem-app/bkchem/main.py))
+  ([`main.py:344`](../../packages/bkchem-app/bkchem/main.py))
 - Group labels in the submode ribbon use `sans-serif 8pt`
-  ([`main_modes.py:55`](../packages/bkchem-app/bkchem/main_lib/main_modes.py))
+  ([`main_modes.py:55`](../../packages/bkchem-app/bkchem/main_lib/main_modes.py))
 - Atom labels rendered via `ftext_lib.py` support sub/superscript positioning
 
 **Recommendation:** No urgent changes needed. Typography is adequate for a
@@ -91,11 +91,11 @@ modes (template / biotemplate / usertemplate) sit adjacent but have no visual
 distinction from unrelated modes.
 
 - Mode buttons use `padx=0, pady=0` with `hull_relief='flat'`
-  ([`main.py:473-476`](../packages/bkchem-app/bkchem/main.py))
+  ([`main.py:473-476`](../../packages/bkchem-app/bkchem/main.py))
 - Submode ribbon groups are separated by 1px `#b0b0b0` vertical lines
-  ([`main_modes.py:51`](../packages/bkchem-app/bkchem/main_lib/main_modes.py))
+  ([`main_modes.py:51`](../../packages/bkchem-app/bkchem/main_lib/main_modes.py))
 - Edit pool (text entry) appears/disappears per mode, causing layout shifts
-  ([`main_modes.py:123-126`](../packages/bkchem-app/bkchem/main_lib/main_modes.py))
+  ([`main_modes.py:123-126`](../../packages/bkchem-app/bkchem/main_lib/main_modes.py))
 
 **Recommendation:** Add small spacing gaps between logical mode groups in the
 toolbar (edit/draw, templates, chemistry tools, geometry tools). Reduce layout
@@ -110,11 +110,11 @@ to 1.5px. The hex grid overlay uses subtle colors (`#E8E8E8` lines, `#BFE5D9`
 dots) that do not overwhelm the drawing.
 
 - Bond rendering uses OASA render-ops pipeline
-  ([`bond_render_ops.py`](../packages/bkchem-app/bkchem/bond_render_ops.py))
+  ([`bond_render_ops.py`](../../packages/bkchem-app/bkchem/bond_render_ops.py))
 - Hex grid honeycomb lines clipped to paper boundaries
-  ([`grid_overlay.py`](../packages/bkchem-app/bkchem/grid_overlay.py))
+  ([`grid_overlay.py`](../../packages/bkchem-app/bkchem/grid_overlay.py))
 - Selection handles use 9-point rectangles
-  ([`helper_graphics.py`](../packages/bkchem-app/bkchem/helper_graphics.py))
+  ([`helper_graphics.py`](../../packages/bkchem-app/bkchem/helper_graphics.py))
 
 **Recommendation:** No urgent changes needed.
 
@@ -128,7 +128,7 @@ dots) that do not overwhelm the drawing.
 
 The active mode is indicated by a sunken relief with blue highlight border
 (`#4a90d9`, thickness 2) on the selected toolbar button
-([`main_modes.py:136-139`](../packages/bkchem-app/bkchem/main_lib/main_modes.py)).
+([`main_modes.py:136-139`](../../packages/bkchem-app/bkchem/main_lib/main_modes.py)).
 This is a recent improvement but may still be subtle on some displays.
 
 - 16 toolbar mode buttons (edit, draw, template, biotemplate, usertemplate,
@@ -149,9 +149,9 @@ switching modes. Consider merging the three template modes long-term.
 The menu structure is well-organized with 8 top-level menus: File, Edit,
 Insert, Align, Object, View, Chemistry, Options, Help. Menus are built from
 YAML configuration
-([`menus.yaml`](../packages/bkchem-app/bkchem_data/menus.yaml)) with an
+([`menus.yaml`](../../packages/bkchem-app/bkchem_data/menus.yaml)) with an
 ActionRegistry pattern
-([`action_registry.py`](../packages/bkchem-app/bkchem/actions/action_registry.py)).
+(`action_registry.py`).
 
 - Keyboard accelerators shown but use Emacs-style notation (see U5)
 - Chemistry menu provides SMILES/InChI import/export
@@ -200,7 +200,7 @@ C-a C-t for Align Top). These are unfamiliar to most chemistry software users
 who expect standard shortcuts (Ctrl+S, Ctrl+O, Ctrl+Z).
 
 - Key sequences defined in
-  [`modes_lib.py`](../packages/bkchem-app/bkchem/modes/modes_lib.py) with
+  [`modes_lib.py`](../../packages/bkchem-app/bkchem/modes/modes_lib.py) with
   `_key_sequences` dict and `_specials_pressed` tracker
 - Undo/Redo use C-z / C-S-z (standard-compatible)
 - Most other shortcuts require Emacs-style multi-key sequences
@@ -216,7 +216,7 @@ Add a keyboard shortcut reference in the Help menu.
 
 The status bar shows two fields: a message area (left, expanding) and cursor
 position (right). Messages auto-clear after a calculated timeout
-([`main.py:517-518`](../packages/bkchem-app/bkchem/main.py)). The menu balloon
+([`main.py:517-518`](../../packages/bkchem-app/bkchem/main.py)). The menu balloon
 helper sends hover text to the status bar via `statuscommand`.
 
 - No active mode name displayed in status bar
@@ -232,7 +232,7 @@ Display undo stack depth when available.
 **Severity: LOW**
 
 Multiple drawings supported via Pmw.NoteBook
-([`main.py:98`](../packages/bkchem-app/bkchem/main.py)). Tabs show filename
+([`main.py:98`](../../packages/bkchem-app/bkchem/main.py)). Tabs show filename
 with unsaved-change indicators. Close-tab is available via menu (C-x C-t).
 
 **Recommendation:** No urgent changes needed.
@@ -242,7 +242,7 @@ with unsaved-change indicators. Close-tab is available via menu (C-x C-t).
 **Severity: LOW**
 
 Right-click context menus are dynamically built per selected object type in
-[`context_menu.py`](../packages/bkchem-app/bkchem/context_menu.py). Menus
+`context_menu.py`. Menus
 provide object-specific actions (configure atom, change bond order, etc.).
 
 **Recommendation:** No urgent changes needed.
@@ -306,7 +306,7 @@ feel more responsive and polished without requiring a framework migration.
   32-bit RGBA and antialiased edges. Created 5 new SVG/PNG icons (undo, redo,
   repair, biotemplate, rplus). The `pixmaps.py` loader automatically prefers
   PNG over GIF. Legacy GIF icons removed. Conversion pipeline in
-  [`tools/convert_svg_icons.py`](../tools/convert_svg_icons.py).
+  [convert_svg_icons.py](../../tools/convert_svg_icons.py).
 - **V2 Visual hierarchy:** Toolbar uses darker background (`#e0e0e0`) than
   canvas surround. Two 1px separator lines: one between toolbar and submode
   ribbon, one between submode ribbon and canvas. Theme-aware separator color.

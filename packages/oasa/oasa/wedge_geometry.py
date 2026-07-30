@@ -24,7 +24,8 @@ import math
 
 
 #============================================
-def rounded_wedge_geometry(tip_point, base_point, wide_width, narrow_width=0.0, corner_radius=None):
+def rounded_wedge_geometry(tip_point: object, base_point: object, wide_width: object,
+		narrow_width: object = 0.0, corner_radius: object = None) -> dict:
 	"""Compute rounded wedge geometry from endpoints.
 
 	The wedge is directional: it expands from tip_point (narrow) to base_point
@@ -83,7 +84,8 @@ def rounded_wedge_geometry(tip_point, base_point, wide_width, narrow_width=0.0, 
 
 
 #============================================
-def _compute_wedge_corners(tip_point, base_point, wide_width, narrow_width):
+def _compute_wedge_corners(tip_point: object, base_point: object, wide_width: object,
+		narrow_width: object) -> tuple:
 	_tx, _ty = tip_point
 	_bx, _by = base_point
 	dx = _bx - _tx
@@ -106,7 +108,7 @@ def _compute_wedge_corners(tip_point, base_point, wide_width, narrow_width):
 
 
 #============================================
-def _normalize_vector(dx, dy):
+def _normalize_vector(dx: object, dy: object) -> object:
 	length = math.hypot(dx, dy)
 	if length == 0:
 		return None
@@ -114,14 +116,14 @@ def _normalize_vector(dx, dy):
 
 
 #============================================
-def _angle_between(v1, v2):
+def _angle_between(v1: object, v2: object) -> object:
 	dot = v1[0] * v2[0] + v1[1] * v2[1]
 	dot = max(-1.0, min(1.0, dot))
 	return math.acos(dot)
 
 
 #============================================
-def _arc_angles_for_points(center, start, end):
+def _arc_angles_for_points(center: object, start: object, end: object) -> tuple:
 	angle_start = math.atan2(start[1] - center[1], start[0] - center[0])
 	angle_end = math.atan2(end[1] - center[1], end[0] - center[0])
 	delta = angle_end - angle_start
@@ -133,13 +135,13 @@ def _arc_angles_for_points(center, start, end):
 
 
 #============================================
-def _compute_wedge_area(length, narrow_width, wide_width):
+def _compute_wedge_area(length: object, narrow_width: object, wide_width: object) -> object:
 	return length * (narrow_width + wide_width) / 2.0
 
 
 #============================================
-def rounded_wedge_path_from_corners(narrow_left, narrow_right, wide_left, wide_right,
-									corner_radius=None):
+def rounded_wedge_path_from_corners(narrow_left: object, narrow_right: object,
+		wide_left: object, wide_right: object, corner_radius: object = None) -> dict:
 	wide_width = math.hypot(wide_right[0] - wide_left[0], wide_right[1] - wide_left[1])
 	if corner_radius is None:
 		corner_radius = wide_width * 0.25
@@ -166,7 +168,7 @@ def rounded_wedge_path_from_corners(narrow_left, narrow_right, wide_left, wide_r
 
 
 #============================================
-def _max_corner_radius(angle, edge_limit):
+def _max_corner_radius(angle: object, edge_limit: object) -> object:
 	if angle <= 0:
 		return 0.0
 	half = angle / 2.0
@@ -177,7 +179,8 @@ def _max_corner_radius(angle, edge_limit):
 
 
 #============================================
-def _effective_corner_radius(corner_radius, narrow_left, narrow_right, wide_left, wide_right):
+def _effective_corner_radius(corner_radius: object, narrow_left: object, narrow_right: object,
+		wide_left: object, wide_right: object) -> object:
 	if corner_radius <= 0:
 		return 0.0
 	base_dx = wide_right[0] - wide_left[0]
@@ -202,7 +205,7 @@ def _effective_corner_radius(corner_radius, narrow_left, narrow_right, wide_left
 
 
 #============================================
-def _corner_fillet(corner, dir1, dir2, radius):
+def _corner_fillet(corner: object, dir1: object, dir2: object, radius: object) -> object:
 	if radius <= 0:
 		return None
 	angle = _angle_between(dir1, dir2)
@@ -224,7 +227,8 @@ def _corner_fillet(corner, dir1, dir2, radius):
 
 
 #============================================
-def _wedge_to_path_commands(narrow_left, narrow_right, wide_left, wide_right, corner_radius):
+def _wedge_to_path_commands(narrow_left: object, narrow_right: object, wide_left: object,
+		wide_right: object, corner_radius: object) -> tuple:
 	if corner_radius <= 0:
 		commands = [
 			("M", (narrow_left[0], narrow_left[1])),

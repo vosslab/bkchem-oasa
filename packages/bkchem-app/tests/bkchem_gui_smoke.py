@@ -9,7 +9,7 @@ import sys
 
 
 #============================================
-def parse_args():
+def parse_args() -> argparse.Namespace:
 	"""Parse command-line arguments.
 
 	Returns:
@@ -28,7 +28,7 @@ def parse_args():
 
 
 #============================================
-def ensure_preferences():
+def ensure_preferences() -> None:
 	"""Initialize preference manager for tests."""
 	import os_support
 	import pref_manager
@@ -42,7 +42,7 @@ def ensure_preferences():
 
 
 #============================================
-def main():
+def main() -> None:
 	"""Run the GUI smoke test."""
 	args = parse_args()
 	root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

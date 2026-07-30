@@ -135,16 +135,16 @@ See "Phase -1 Benchmark Results" section above. Decision: **GO.**
 ## Phase 0: Contracts and Test Infrastructure -- COMPLETED
 
 Deliverables:
-- [docs/active_plans/GRAPH_SEMANTICS_MATRIX.md](docs/active_plans/GRAPH_SEMANTICS_MATRIX.md) -- 60+ methods documented
-- [packages/oasa/tests/graph_test_fixtures.py](packages/oasa/tests/graph_test_fixtures.py) -- 10 molecule fixtures
-- [packages/oasa/tests/test_graph_parity.py](packages/oasa/tests/test_graph_parity.py) -- 95 parity tests
-- [packages/oasa/tests/benchmark_graph_algorithms.py](packages/oasa/tests/benchmark_graph_algorithms.py) -- benchmark script
+- [GRAPH_SEMANTICS_MATRIX.md](GRAPH_SEMANTICS_MATRIX.md) -- 60+ methods documented
+- [graph_test_fixtures.py](../../packages/oasa/tests/graph_test_fixtures.py) -- 10 molecule fixtures
+- [test_graph_parity.py](../../packages/oasa/tests/test_graph_parity.py) -- 95 parity tests
+- [benchmark_graph_algorithms.py](../../packages/oasa/tests/benchmark_graph_algorithms.py) -- benchmark script
 
 ## Phase A: Algorithm Swaps -- COMPLETED
 
 Deliverables:
-- [packages/oasa/oasa/graph/rx_backend.py](packages/oasa/oasa/graph/rx_backend.py) -- RxBackend adapter (544 lines)
-- [packages/oasa/tests/test_rx_backend.py](packages/oasa/tests/test_rx_backend.py) -- 48 adapter unit tests
+- [rx_backend.py](../../packages/oasa/oasa/graph/rx_backend.py) -- RxBackend adapter (544 lines)
+- [test_rx_backend.py](../../packages/oasa/tests/test_rx_backend.py) -- 48 adapter unit tests
 - 8 algorithms swapped in `graph_lib.py`, legacy preserved as `_*_legacy` methods
 
 ### End-to-end speedup (old pure Python -> new adapter path, cholesterol)

@@ -35,7 +35,9 @@ def cycle_node_pairs(node_cycle: tuple[int, ...]) -> list[tuple[int, int]]:
 def clustered_endpoint_graph(
 		lines: list[dict],
 		line_indexes: list[int],
-		merge_tol: float = 1.5):
+		merge_tol: float = 1.5) -> tuple[
+			list[tuple[float, float]], dict[int, tuple[int, int]],
+			dict[int, set[int]], dict[tuple[int, int], list[int]]]:
 	"""Build clustered endpoint graph for a subset of line indexes."""
 	nodes: list[tuple[float, float]] = []
 	line_to_nodes: dict[int, tuple[int, int]] = {}

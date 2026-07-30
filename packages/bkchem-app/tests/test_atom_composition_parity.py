@@ -27,46 +27,46 @@ from bkchem import singleton_store
 
 class _DummyPaper(object):
 	"""Minimal paper stub sufficient for atom construction."""
-	def __init__(self, standard):
+	def __init__(self, standard: object) -> None:
 		self.standard = standard
 
-	def screen_to_real_ratio(self):
+	def screen_to_real_ratio(self) -> float:
 		return 1.0
 
-	def screen_to_real_coords(self, coords):
+	def screen_to_real_coords(self, coords: object) -> object:
 		return coords
 
-	def real_to_screen_ratio(self):
+	def real_to_screen_ratio(self) -> float:
 		return 1.0
 
-	def real_to_screen_coords(self, coords):
+	def real_to_screen_coords(self, coords: object) -> object:
 		return coords
 
 
 #============================================
 class _DummyIdManager(object):
 	"""Id manager that auto-generates sequential ids."""
-	def __init__(self):
+	def __init__(self) -> None:
 		self._counts = {}
 
-	def generate_and_register_id(self, obj, prefix=None):
+	def generate_and_register_id(self, obj: object, prefix: str | None = None) -> str:
 		key = prefix or "obj"
 		self._counts[key] = self._counts.get(key, 0) + 1
 		return "%s%d" % (key, self._counts[key])
 
-	def is_registered_object(self, obj):
+	def is_registered_object(self, obj: object) -> bool:
 		return False
 
-	def unregister_object(self, obj):
+	def unregister_object(self, obj: object) -> None:
 		return None
 
-	def register_id(self, obj, obj_id):
+	def register_id(self, obj: object, obj_id: str) -> None:
 		return None
 
 
 #============================================
 @pytest.fixture(autouse=True)
-def bkchem_env():
+def bkchem_env() -> object:
 	"""Set up singleton state needed by bkchem atom construction."""
 	original_manager = singleton_store.Store.id_manager
 	dummy_manager = _DummyIdManager()
@@ -90,27 +90,32 @@ def bkchem_env():
 
 #============================================
 @pytest.fixture
-def standard():
+def standard() -> object:
 	"""Return a fresh bkchem standard object."""
 	return bkchem.classes.standard()
 
 
 #============================================
 @pytest.fixture
-def paper(standard):
+def paper(standard: object) -> object:
 	"""Return a dummy paper backed by the standard."""
 	return _DummyPaper(standard)
 
 
 #============================================
 @pytest.fixture
-def mol(paper):
+def mol(paper: object) -> object:
 	"""Return an empty bkchem molecule."""
 	return bkchem.molecule_lib.BkMolecule(paper=paper)
 
 
 #============================================
-def _make_atom(standard, mol, symbol="C", xy=(100, 200)):
+def _make_atom(
+	standard: object,
+	mol: object,
+	symbol: str = "C",
+	xy: tuple = (100, 200),
+) -> object:
 	"""Create a bkchem atom with given symbol and coordinates."""
 	at = bkchem.atom_lib.BkAtom(standard=standard, xy=xy, molecule=mol)
 	at.set_name(symbol)
@@ -125,86 +130,86 @@ def _make_atom(standard, mol, symbol="C", xy=(100, 200)):
 class TestChemistryProperties:
 	"""Contract section 1.1: OASA-owned chemistry properties."""
 
-	def test_symbol_default_carbon(self, standard, mol):
+	def test_symbol_default_carbon(self, standard: object, mol: object) -> None:
 		"""Default atom symbol is C."""
 		at = _make_atom(standard, mol, "C")
 		assert at.symbol == "C"
 
-	def test_symbol_set_nitrogen(self, standard, mol):
+	def test_symbol_set_nitrogen(self, standard: object, mol: object) -> None:
 		"""Symbol setter updates the symbol."""
 		at = _make_atom(standard, mol, "N")
 		assert at.symbol == "N"
 
-	def test_charge_default_zero(self, standard, mol):
+	def test_charge_default_zero(self, standard: object, mol: object) -> None:
 		"""Default charge is 0."""
 		at = _make_atom(standard, mol, "C")
 		assert at.charge == 0
 
-	def test_charge_set_positive(self, standard, mol):
+	def test_charge_set_positive(self, standard: object, mol: object) -> None:
 		"""Charge can be set to a positive integer."""
 		at = _make_atom(standard, mol, "N")
 		at.charge = 1
 		assert at.charge == 1
 
-	def test_charge_set_negative(self, standard, mol):
+	def test_charge_set_negative(self, standard: object, mol: object) -> None:
 		"""Charge can be set to a negative integer."""
 		at = _make_atom(standard, mol, "O")
 		at.charge = -1
 		assert at.charge == -1
 
-	def test_valency_carbon(self, standard, mol):
+	def test_valency_carbon(self, standard: object, mol: object) -> None:
 		"""Carbon has default valency 4."""
 		at = _make_atom(standard, mol, "C")
 		assert at.valency == 4
 
-	def test_valency_nitrogen(self, standard, mol):
+	def test_valency_nitrogen(self, standard: object, mol: object) -> None:
 		"""Nitrogen has default valency 3."""
 		at = _make_atom(standard, mol, "N")
 		assert at.valency == 3
 
-	def test_valency_oxygen(self, standard, mol):
+	def test_valency_oxygen(self, standard: object, mol: object) -> None:
 		"""Oxygen has default valency 2."""
 		at = _make_atom(standard, mol, "O")
 		assert at.valency == 2
 
-	def test_occupied_valency_isolated(self, standard, mol):
+	def test_occupied_valency_isolated(self, standard: object, mol: object) -> None:
 		"""Isolated atom has occupied_valency 0."""
 		at = _make_atom(standard, mol, "C")
 		assert at.occupied_valency == 0
 
-	def test_free_valency_isolated_carbon(self, standard, mol):
+	def test_free_valency_isolated_carbon(self, standard: object, mol: object) -> None:
 		"""Isolated carbon has free_valency equal to its valency."""
 		at = _make_atom(standard, mol, "C")
 		assert at.free_valency == 4
 
-	def test_multiplicity_default(self, standard, mol):
+	def test_multiplicity_default(self, standard: object, mol: object) -> None:
 		"""Default multiplicity is 1 (singlet)."""
 		at = _make_atom(standard, mol, "C")
 		assert at.multiplicity == 1
 
-	def test_multiplicity_set(self, standard, mol):
+	def test_multiplicity_set(self, standard: object, mol: object) -> None:
 		"""Multiplicity can be changed."""
 		at = _make_atom(standard, mol, "C")
 		at.multiplicity = 3
 		assert at.multiplicity == 3
 
-	def test_isotope_default_none(self, standard, mol):
+	def test_isotope_default_none(self, standard: object, mol: object) -> None:
 		"""Default isotope is None."""
 		at = _make_atom(standard, mol, "C")
 		assert at.isotope is None
 
-	def test_isotope_set(self, standard, mol):
+	def test_isotope_set(self, standard: object, mol: object) -> None:
 		"""Isotope can be set to an integer mass number."""
 		at = _make_atom(standard, mol, "C")
 		at.isotope = 13
 		assert at.isotope == 13
 
-	def test_explicit_hydrogens_default(self, standard, mol):
+	def test_explicit_hydrogens_default(self, standard: object, mol: object) -> None:
 		"""Default explicit_hydrogens is 0."""
 		at = _make_atom(standard, mol, "C")
 		assert at.explicit_hydrogens == 0
 
-	def test_explicit_hydrogens_set(self, standard, mol):
+	def test_explicit_hydrogens_set(self, standard: object, mol: object) -> None:
 		"""explicit_hydrogens can be assigned."""
 		at = _make_atom(standard, mol, "C")
 		at.explicit_hydrogens = 2
@@ -218,7 +223,7 @@ class TestChemistryProperties:
 class TestSymbolSetterSideEffects:
 	"""Symbol setter should auto-set valency from periodic table."""
 
-	def test_symbol_sets_valency(self, standard, mol):
+	def test_symbol_sets_valency(self, standard: object, mol: object) -> None:
 		"""Changing symbol updates valency from periodic table."""
 		at = _make_atom(standard, mol, "C")
 		assert at.valency == 4
@@ -226,7 +231,7 @@ class TestSymbolSetterSideEffects:
 		assert at.symbol == "O"
 		assert at.valency == 2
 
-	def test_symbol_sets_symbol_number(self, standard, mol):
+	def test_symbol_sets_symbol_number(self, standard: object, mol: object) -> None:
 		"""Symbol setter sets symbol_number (atomic number)."""
 		at = _make_atom(standard, mol, "C")
 		# carbon atomic number is 6
@@ -235,7 +240,7 @@ class TestSymbolSetterSideEffects:
 		# nitrogen atomic number is 7
 		assert at.symbol_number == 7
 
-	def test_symbol_non_carbon_shows_automatically(self, standard, mol):
+	def test_symbol_non_carbon_shows_automatically(self, standard: object, mol: object) -> None:
 		"""Setting symbol to non-C sets show=True."""
 		at = _make_atom(standard, mol, "C")
 		at.show = 0
@@ -250,28 +255,28 @@ class TestSymbolSetterSideEffects:
 class TestCoordinateProperties:
 	"""Contract section 1.3: shared coordinates with Screen.any_to_px."""
 
-	def test_x_coordinate(self, standard, mol):
+	def test_x_coordinate(self, standard: object, mol: object) -> None:
 		"""x property stores a pixel value."""
 		at = _make_atom(standard, mol, "C", xy=(50, 75))
 		assert at.x == 50
 
-	def test_y_coordinate(self, standard, mol):
+	def test_y_coordinate(self, standard: object, mol: object) -> None:
 		"""y property stores a pixel value."""
 		at = _make_atom(standard, mol, "C", xy=(50, 75))
 		assert at.y == 75
 
-	def test_z_default_zero(self, standard, mol):
+	def test_z_default_zero(self, standard: object, mol: object) -> None:
 		"""z defaults to 0."""
 		at = _make_atom(standard, mol, "C", xy=(50, 75))
 		assert at.z == 0
 
-	def test_z_setter(self, standard, mol):
+	def test_z_setter(self, standard: object, mol: object) -> None:
 		"""z can be set for 3D stereochemistry."""
 		at = _make_atom(standard, mol, "C", xy=(50, 75))
 		at.z = 1.5
 		assert at.z == 1.5
 
-	def test_x_accepts_cm_string(self, standard, mol):
+	def test_x_accepts_cm_string(self, standard: object, mol: object) -> None:
 		"""x setter uses Screen.any_to_px for cm strings."""
 		at = _make_atom(standard, mol, "C", xy=(0, 0))
 		# 1cm at 72dpi = 72/2.54 ~ 28.346
@@ -279,7 +284,7 @@ class TestCoordinateProperties:
 		expected = singleton_store.Screen.cm_to_px(1)
 		assert abs(at.x - expected) < 0.001
 
-	def test_y_accepts_cm_string(self, standard, mol):
+	def test_y_accepts_cm_string(self, standard: object, mol: object) -> None:
 		"""y setter uses Screen.any_to_px for cm strings."""
 		at = _make_atom(standard, mol, "C", xy=(0, 0))
 		at.y = "2cm"
@@ -294,22 +299,22 @@ class TestCoordinateProperties:
 class TestGraphConnectivity:
 	"""Contract section 1.4: graph connectivity interface."""
 
-	def test_neighbors_empty(self, standard, mol):
+	def test_neighbors_empty(self, standard: object, mol: object) -> None:
 		"""Isolated atom has no neighbors."""
 		at = _make_atom(standard, mol, "C")
 		assert at.neighbors == []
 
-	def test_degree_zero(self, standard, mol):
+	def test_degree_zero(self, standard: object, mol: object) -> None:
 		"""Isolated atom has degree 0."""
 		at = _make_atom(standard, mol, "C")
 		assert at.degree == 0
 
-	def test_neighbor_edges_empty(self, standard, mol):
+	def test_neighbor_edges_empty(self, standard: object, mol: object) -> None:
 		"""Isolated atom has no neighbor_edges."""
 		at = _make_atom(standard, mol, "C")
 		assert at.neighbor_edges == []
 
-	def test_add_neighbor_updates_degree(self, standard, mol):
+	def test_add_neighbor_updates_degree(self, standard: object, mol: object) -> None:
 		"""Adding a neighbor via the molecule increases degree."""
 		at1 = _make_atom(standard, mol, "C", xy=(0, 0))
 		at2 = _make_atom(standard, mol, "O", xy=(50, 0))
@@ -320,7 +325,7 @@ class TestGraphConnectivity:
 		assert at1.degree == 1
 		assert at2.degree == 1
 
-	def test_neighbors_returns_connected_vertex(self, standard, mol):
+	def test_neighbors_returns_connected_vertex(self, standard: object, mol: object) -> None:
 		"""neighbors property returns the connected atom."""
 		at1 = _make_atom(standard, mol, "C", xy=(0, 0))
 		at2 = _make_atom(standard, mol, "N", xy=(50, 0))
@@ -330,7 +335,7 @@ class TestGraphConnectivity:
 		assert at2 in at1.neighbors
 		assert at1 in at2.neighbors
 
-	def test_neighbor_edges_returns_bond(self, standard, mol):
+	def test_neighbor_edges_returns_bond(self, standard: object, mol: object) -> None:
 		"""neighbor_edges returns the connecting bond."""
 		at1 = _make_atom(standard, mol, "C", xy=(0, 0))
 		at2 = _make_atom(standard, mol, "O", xy=(50, 0))
@@ -340,7 +345,7 @@ class TestGraphConnectivity:
 		assert bond in at1.neighbor_edges
 		assert bond in at2.neighbor_edges
 
-	def test_occupied_valency_with_bond(self, standard, mol):
+	def test_occupied_valency_with_bond(self, standard: object, mol: object) -> None:
 		"""occupied_valency reflects bond orders."""
 		at1 = _make_atom(standard, mol, "C", xy=(0, 0))
 		at2 = _make_atom(standard, mol, "O", xy=(50, 0))
@@ -349,7 +354,7 @@ class TestGraphConnectivity:
 		mol.add_edge(at1, at2, bond)
 		assert at1.occupied_valency >= 2
 
-	def test_free_valency_with_bond(self, standard, mol):
+	def test_free_valency_with_bond(self, standard: object, mol: object) -> None:
 		"""free_valency decreases when bonded."""
 		at1 = _make_atom(standard, mol, "C", xy=(0, 0))
 		at2 = _make_atom(standard, mol, "O", xy=(50, 0))
@@ -359,7 +364,7 @@ class TestGraphConnectivity:
 		# carbon valency=4, single bond => free_valency=3
 		assert at1.free_valency == 3
 
-	def test_get_edge_leading_to(self, standard, mol):
+	def test_get_edge_leading_to(self, standard: object, mol: object) -> None:
 		"""get_edge_leading_to returns the bond between two atoms."""
 		at1 = _make_atom(standard, mol, "C", xy=(0, 0))
 		at2 = _make_atom(standard, mol, "N", xy=(50, 0))
@@ -377,18 +382,18 @@ class TestGraphConnectivity:
 class TestDisplayProperties:
 	"""Contract section 1.2: BKChem-owned display properties."""
 
-	def test_show_default_carbon(self, standard, mol):
+	def test_show_default_carbon(self, standard: object, mol: object) -> None:
 		"""Carbon atoms default to show=0 (hidden symbol)."""
 		at = _make_atom(standard, mol, "C")
 		assert at.show == 0
 
-	def test_show_set_integer(self, standard, mol):
+	def test_show_set_integer(self, standard: object, mol: object) -> None:
 		"""show can be set to 1."""
 		at = _make_atom(standard, mol, "C")
 		at.show = 1
 		assert at.show == 1
 
-	def test_show_accepts_yes_no(self, standard, mol):
+	def test_show_accepts_yes_no(self, standard: object, mol: object) -> None:
 		"""show accepts 'yes'/'no' string values."""
 		at = _make_atom(standard, mol, "C")
 		at.show = 'yes'
@@ -396,18 +401,18 @@ class TestDisplayProperties:
 		at.show = 'no'
 		assert at.show == 0
 
-	def test_show_hydrogens_default(self, standard, mol):
+	def test_show_hydrogens_default(self, standard: object, mol: object) -> None:
 		"""show_hydrogens defaults from standard (0)."""
 		at = _make_atom(standard, mol, "C")
 		assert at.show_hydrogens == 0
 
-	def test_show_hydrogens_set(self, standard, mol):
+	def test_show_hydrogens_set(self, standard: object, mol: object) -> None:
 		"""show_hydrogens can be toggled."""
 		at = _make_atom(standard, mol, "C")
 		at.show_hydrogens = 1
 		assert at.show_hydrogens == 1
 
-	def test_show_hydrogens_accepts_on_off(self, standard, mol):
+	def test_show_hydrogens_accepts_on_off(self, standard: object, mol: object) -> None:
 		"""show_hydrogens accepts 'on'/'off' strings."""
 		at = _make_atom(standard, mol, "C")
 		at.show_hydrogens = 'on'
@@ -415,12 +420,12 @@ class TestDisplayProperties:
 		at.show_hydrogens = 'off'
 		assert at.show_hydrogens == 0
 
-	def test_pos_default_none(self, standard, mol):
+	def test_pos_default_none(self, standard: object, mol: object) -> None:
 		"""pos defaults to None before decide_pos is called."""
 		at = _make_atom(standard, mol, "C")
 		assert at.pos is None
 
-	def test_pos_settable(self, standard, mol):
+	def test_pos_settable(self, standard: object, mol: object) -> None:
 		"""pos can be set to center-first or center-last."""
 		at = _make_atom(standard, mol, "C")
 		at.pos = 'center-first'
@@ -428,12 +433,12 @@ class TestDisplayProperties:
 		at.pos = 'center-last'
 		assert at.pos == 'center-last'
 
-	def test_font_size_from_standard(self, standard, mol):
+	def test_font_size_from_standard(self, standard: object, mol: object) -> None:
 		"""font_size is read from standard on init."""
 		at = _make_atom(standard, mol, "C")
 		assert at.font_size == standard.font_size
 
-	def test_font_size_settable(self, standard, mol):
+	def test_font_size_settable(self, standard: object, mol: object) -> None:
 		"""font_size can be overridden."""
 		at = _make_atom(standard, mol, "C")
 		at.font_size = 16
@@ -452,7 +457,7 @@ class TestChargeOverride:
 	chain works correctly.
 	"""
 
-	def test_charge_delegates_to_chem_vertex(self, standard, mol):
+	def test_charge_delegates_to_chem_vertex(self, standard: object, mol: object) -> None:
 		"""Setting charge on bkchem atom stores in _charge."""
 		at = _make_atom(standard, mol, "C")
 		at.charge = 2
@@ -460,14 +465,14 @@ class TestChargeOverride:
 		assert at._charge == 2
 		assert at.charge == 2
 
-	def test_charge_round_trip(self, standard, mol):
+	def test_charge_round_trip(self, standard: object, mol: object) -> None:
 		"""Charge set and get return the same value."""
 		at = _make_atom(standard, mol, "N")
 		for val in (-2, -1, 0, 1, 2):
 			at.charge = val
 			assert at.charge == val
 
-	def test_charge_affects_occupied_valency(self, standard, mol):
+	def test_charge_affects_occupied_valency(self, standard: object, mol: object) -> None:
 		"""Positive charge on nitrogen changes occupied_valency."""
 		at = _make_atom(standard, mol, "N")
 		# isolated N, multiplicity=1, charge=0
@@ -491,29 +496,29 @@ class TestChargeOverride:
 class TestOasaAtomBaseline:
 	"""Verify OASA atom behavior as reference for composition parity."""
 
-	def test_oasa_symbol_sets_valency(self):
+	def test_oasa_symbol_sets_valency(self) -> None:
 		"""OASA atom symbol setter auto-sets valency."""
 		at = oasa.atom_lib.Atom(symbol="C")
 		assert at.valency == 4
 		at.symbol = "O"
 		assert at.valency == 2
 
-	def test_oasa_charge_default(self):
+	def test_oasa_charge_default(self) -> None:
 		"""OASA atom default charge is 0."""
 		at = oasa.atom_lib.Atom(symbol="C")
 		assert at.charge == 0
 
-	def test_oasa_isotope_default(self):
+	def test_oasa_isotope_default(self) -> None:
 		"""OASA atom default isotope is None."""
 		at = oasa.atom_lib.Atom(symbol="C")
 		assert at.isotope is None
 
-	def test_oasa_explicit_hydrogens(self):
+	def test_oasa_explicit_hydrogens(self) -> None:
 		"""OASA atom default explicit_hydrogens is 0."""
 		at = oasa.atom_lib.Atom(symbol="C")
 		assert at.explicit_hydrogens == 0
 
-	def test_oasa_multiplicity_default(self):
+	def test_oasa_multiplicity_default(self) -> None:
 		"""OASA atom default multiplicity is 1."""
 		at = oasa.atom_lib.Atom(symbol="C")
 		assert at.multiplicity == 1
@@ -526,41 +531,41 @@ class TestOasaAtomBaseline:
 class TestCompositionDelegation:
 	"""Tests that verify composition-based atom delegates correctly."""
 
-	def test_has_chem_atom_attribute(self, standard, mol):
+	def test_has_chem_atom_attribute(self, standard: object, mol: object) -> None:
 		"""Composition atom should have a _chem_atom attribute."""
 		at = _make_atom(standard, mol, "C")
 		assert hasattr(at, '_chem_atom')
 		assert isinstance(at._chem_atom, oasa.atom_lib.Atom)
 
-	def test_symbol_delegates_to_chem_atom(self, standard, mol):
+	def test_symbol_delegates_to_chem_atom(self, standard: object, mol: object) -> None:
 		"""symbol should read from _chem_atom.symbol."""
 		at = _make_atom(standard, mol, "N")
 		assert at._chem_atom.symbol == "N"
 
-	def test_charge_delegates_to_chem_atom(self, standard, mol):
+	def test_charge_delegates_to_chem_atom(self, standard: object, mol: object) -> None:
 		"""charge should write through to _chem_atom.charge."""
 		at = _make_atom(standard, mol, "C")
 		at.charge = 2
 		assert at._chem_atom.charge == 2
 
-	def test_valency_delegates_to_chem_atom(self, standard, mol):
+	def test_valency_delegates_to_chem_atom(self, standard: object, mol: object) -> None:
 		"""valency should read from _chem_atom.valency."""
 		at = _make_atom(standard, mol, "N")
 		assert at._chem_atom.valency == 3
 
-	def test_isotope_delegates_to_chem_atom(self, standard, mol):
+	def test_isotope_delegates_to_chem_atom(self, standard: object, mol: object) -> None:
 		"""isotope should write through to _chem_atom."""
 		at = _make_atom(standard, mol, "C")
 		at.isotope = 14
 		assert at._chem_atom.isotope == 14
 
-	def test_multiplicity_delegates_to_chem_atom(self, standard, mol):
+	def test_multiplicity_delegates_to_chem_atom(self, standard: object, mol: object) -> None:
 		"""multiplicity should delegate to _chem_atom."""
 		at = _make_atom(standard, mol, "C")
 		at.multiplicity = 3
 		assert at._chem_atom.multiplicity == 3
 
-	def test_no_oasa_in_mro(self, standard, mol):
+	def test_no_oasa_in_mro(self, standard: object, mol: object) -> None:
 		"""After composition, oasa.atom_lib.Atom should not be in the MRO."""
 		at = _make_atom(standard, mol, "C")
 		# oasa.atom_lib.Atom should not appear in the inheritance chain

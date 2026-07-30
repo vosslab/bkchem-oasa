@@ -8,7 +8,7 @@ and BKChem, remove renderer-specific attachment exceptions, and make overlap
 behavior deterministic across SVG, PNG, PDF, and BKChem canvas rendering.
 
 Follow-on to
-[docs/archive/BOND_LABEL_ATTACHMENT_IMPROVEMENT_PLAN.md](../archive/BOND_LABEL_ATTACHMENT_IMPROVEMENT_PLAN.md),
+[BOND_LABEL_ATTACHMENT_IMPROVEMENT_PLAN.md](BOND_LABEL_ATTACHMENT_IMPROVEMENT_PLAN.md),
 which delivered shared bbox clipping but did not fully remove all specialized
 attachment paths.
 
@@ -33,7 +33,7 @@ Recovery status:
 
 Reopened closure gates:
 - [x] Remove remaining Haworth text-branch endpoint policy in
-  [packages/oasa/oasa/haworth/renderer.py](../../packages/oasa/oasa/haworth/renderer.py)
+  [renderer.py](../../packages/oasa/oasa/haworth/renderer.py)
   (`text in ("OH", "HO")`, `_compute_hydroxyl_endpoint`, and related
   branch/fallback endpoint policy paths).
 - [x] Keep removed bbox compatibility surfaces absent from production APIs/fields.
@@ -291,9 +291,9 @@ The archived plan standardized bbox clipping and token intent (`first|last`),
 but full unification is still incomplete:
 
 - Haworth keeps specialized oxygen-target logic and slot constraints in
-  [packages/oasa/oasa/haworth/renderer.py](../../packages/oasa/oasa/haworth/renderer.py).
+  [renderer.py](../../packages/oasa/oasa/haworth/renderer.py).
 - BKChem still computes attachment clipping in its own path using Tk metrics in
-  [packages/bkchem-app/bkchem/bond.py](../../packages/bkchem-app/bkchem/bond.py).
+  `bond.py`.
 - Some tests still rely on label-class-specific overlap exemptions instead of a
   unified legality contract.
 
@@ -318,11 +318,11 @@ Phase C:
 
 In scope:
 - OASA molecular rendering via
-  [packages/oasa/oasa/render_geometry.py](../../packages/oasa/oasa/render_geometry.py).
+  `render_geometry.py`.
 - OASA Haworth schematic rendering via
-  [packages/oasa/oasa/haworth/renderer.py](../../packages/oasa/oasa/haworth/renderer.py).
+  [renderer.py](../../packages/oasa/oasa/haworth/renderer.py).
 - BKChem attachment paths in
-  [packages/bkchem-app/bkchem/bond.py](../../packages/bkchem-app/bkchem/bond.py) and
+  `bond.py` and
   related label-leader attachment callers.
 - Shared geometry APIs and shared overlap test gates.
 - Nomenclature migration from `bbox` to `target` across production and test
@@ -492,7 +492,7 @@ respects attachment legality.
 ### Target primitives
 
 Add a shared `AttachTarget` abstraction in
-[packages/oasa/oasa/render_geometry.py](../../packages/oasa/oasa/render_geometry.py)
+`render_geometry.py`
 or a dedicated helper module if that keeps responsibilities cleaner.
 
 ```python
@@ -796,7 +796,7 @@ Deliverables:
 - Keep all old entry points functional through wrappers.
 
 Files:
-- [packages/oasa/oasa/render_geometry.py](../../packages/oasa/oasa/render_geometry.py)
+- `render_geometry.py`
 - new helper module if needed (for example
   `packages/oasa/oasa/attachment_geometry.py`)
 
@@ -865,14 +865,14 @@ Deliverables:
   `epsilon = 0.5 px` penetration threshold.
 
 Files:
-- [packages/oasa/oasa/render_geometry.py](../../packages/oasa/oasa/render_geometry.py)
-- [packages/oasa/oasa/haworth/renderer.py](../../packages/oasa/oasa/haworth/renderer.py)
-- [packages/oasa/oasa/haworth/renderer_text.py](../../packages/oasa/oasa/haworth/renderer_text.py)
-- [packages/oasa/oasa/haworth/renderer_layout.py](../../packages/oasa/oasa/haworth/renderer_layout.py)
-- [tests/test_connector_clipping.py](../../tests/test_connector_clipping.py)
-- [tests/test_haworth_renderer.py](../../tests/test_haworth_renderer.py)
-- [tests/smoke/test_haworth_renderer_smoke.py](../../tests/smoke/test_haworth_renderer_smoke.py)
-- [tests/test_phase_c_render_pipeline.py](../../tests/test_phase_c_render_pipeline.py)
+- `render_geometry.py`
+- [renderer.py](../../packages/oasa/oasa/haworth/renderer.py)
+- [renderer_text.py](../../packages/oasa/oasa/haworth/renderer_text.py)
+- [renderer_layout.py](../../packages/oasa/oasa/haworth/renderer_layout.py)
+- [test_connector_clipping.py](../../packages/oasa/tests/test_connector_clipping.py)
+- `test_haworth_renderer.py`
+- `test_haworth_renderer_smoke.py`
+- `test_phase_c_render_pipeline.py`
 
 Tests:
 - OASA endpoint parity across SVG/PDF/PNG must pass.
@@ -901,11 +901,11 @@ placement impression).
 
 In scope:
 - Furanose two-carbon side-chain branch rendering in
-  [packages/oasa/oasa/haworth/renderer.py](../../packages/oasa/oasa/haworth/renderer.py)
+  [renderer.py](../../packages/oasa/oasa/haworth/renderer.py)
 - Related parity tests in
-  [tests/test_haworth_renderer.py](../../tests/test_haworth_renderer.py)
+  `test_haworth_renderer.py`
   and
-  [tests/smoke/test_haworth_renderer_smoke.py](../../tests/smoke/test_haworth_renderer_smoke.py)
+  `test_haworth_renderer_smoke.py`
 
 Out of scope:
 - Reverting current OH/HO readability improvements.
@@ -959,7 +959,7 @@ Deliverables:
   explicitly modeled allowed target apertures).
 
 Files:
-- [packages/bkchem-app/bkchem/bond.py](../../packages/bkchem-app/bkchem/bond.py) (split
+- `bond.py` (split
   into multiple files)
 - BKChem leader-line modules that currently clip directly.
 
@@ -1172,7 +1172,7 @@ This gate is mandatory for Phase B and Phase C completion.
 ### Canonical validator
 
 Add one canonical strict validator in
-[tests/smoke/test_haworth_renderer_smoke.py](../../tests/smoke/test_haworth_renderer_smoke.py):
+`test_haworth_renderer_smoke.py`:
 
 - `assert_no_bond_label_overlap_strict(ops, context)`
 - No label-text exemptions (`OH`, `HO`, etc.).
@@ -1219,7 +1219,7 @@ Failure messages must include:
 ### Unit/regression coverage
 
 Add targeted strict-gate tests in
-[tests/test_haworth_renderer.py](../../tests/test_haworth_renderer.py):
+`test_haworth_renderer.py`:
 
 - forced overlap fails
 - edge-touch passes
@@ -1340,15 +1340,15 @@ Wrappers exist only during migration. Each wrapper must:
 
 When Phase C is complete:
 - Archive
-  [docs/archive/BOND_LABEL_ATTACHMENT_IMPROVEMENT_PLAN.md](../archive/BOND_LABEL_ATTACHMENT_IMPROVEMENT_PLAN.md)
+  [BOND_LABEL_ATTACHMENT_IMPROVEMENT_PLAN.md](BOND_LABEL_ATTACHMENT_IMPROVEMENT_PLAN.md)
   as historical baseline.
 - Update
-  [docs/CDML_FORMAT_SPEC.md](../CDML_FORMAT_SPEC.md)
+  [CDML_FORMAT_SPEC.md](../CDML_FORMAT_SPEC.md)
   to reflect finalized attachment contract semantics.
 - Add final behavior notes to
-  [docs/CODE_ARCHITECTURE.md](../CODE_ARCHITECTURE.md)
+  [CODE_ARCHITECTURE.md](../CODE_ARCHITECTURE.md)
   and
-  [docs/FILE_STRUCTURE.md](../FILE_STRUCTURE.md)
+  [FILE_STRUCTURE.md](../FILE_STRUCTURE.md)
   if module boundaries change.
 
 ## Out-of-scope large files (noted for future plans)
@@ -1369,4 +1369,4 @@ the remainder into focused modules) that can be applied to the others.
 Large OASA-only files (`graph/graph.py`, `inchi_key.py`) are out of scope
 entirely - they are internal to OASA, do not touch attachment or rendering,
 and have no BKChem crossover. InChI key cleanup is tracked in
-[docs/TODO_CODE.md](../TODO_CODE.md).
+[TODO_CODE.md](../TODO_CODE.md).

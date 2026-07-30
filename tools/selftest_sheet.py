@@ -31,7 +31,7 @@ import xml.dom.minidom as xml_minidom
 
 
 #============================================
-def get_repo_root():
+def get_repo_root() -> str:
 	"""Get repository root using git."""
 	result = subprocess.run(
 		["git", "rev-parse", "--show-toplevel"],
@@ -75,7 +75,7 @@ PAGE_SIZES = {
 
 
 #============================================
-def get_page_dims(page, portrait):
+def get_page_dims(page: str, portrait: bool) -> tuple[float, float]:
 	"""Get page dimensions in points.
 
 	Args:
@@ -92,12 +92,12 @@ def get_page_dims(page, portrait):
 
 
 #============================================
-def ops_bbox(ops):
+def ops_bbox(ops: list) -> object:
 	"""Return (minx, miny, maxx, maxy) for a list of render ops."""
 	minx = miny = float("inf")
 	maxx = maxy = float("-inf")
 
-	def take_point(x, y):
+	def take_point(x: object, y: object) -> None:
 		nonlocal minx, miny, maxx, maxy
 		minx = min(minx, x)
 		miny = min(miny, y)
@@ -158,7 +158,7 @@ def ops_bbox(ops):
 
 
 #============================================
-def normalize_to_height(ops, target_height):
+def normalize_to_height(ops: list, target_height: float) -> list:
 	"""Normalize ops to a target height, maintaining aspect ratio.
 
 	Args:
@@ -194,7 +194,9 @@ def normalize_to_height(ops, target_height):
 
 
 #============================================
-def layout_row(vignettes, y_top, page_width, row_height, gutter=20, margin=40):
+def layout_row(
+		vignettes: list, y_top: float, page_width: float, row_height: float,
+		gutter: float = 20, margin: float = 40) -> list:
 	"""Layout multiple vignettes in a horizontal row with equal spacing.
 
 	Args:
@@ -255,7 +257,9 @@ def layout_row(vignettes, y_top, page_width, row_height, gutter=20, margin=40):
 
 
 #============================================
-def place_ops_in_rect(ops, rect, align="center", padding=5, preserve_aspect=True):
+def place_ops_in_rect(
+		ops: list, rect: object, align: str = "center", padding: float = 5,
+		preserve_aspect: bool = True) -> list:
 	"""Place ops inside a rectangle with scaling and alignment.
 
 	Args:
@@ -317,7 +321,7 @@ def place_ops_in_rect(ops, rect, align="center", padding=5, preserve_aspect=True
 
 
 #============================================
-def build_renderer_capabilities_ops(page="letter", seed=0):
+def build_renderer_capabilities_ops(page: str = "letter", seed: int = 0) -> list:
 	"""Build ops for the renderer capabilities sheet.
 
 	Args:
@@ -360,8 +364,9 @@ def build_renderer_capabilities_ops(page="letter", seed=0):
 
 
 #============================================
-def build_renderer_capabilities_sheet(page="letter", backend="svg", seed=0, output_path=None,
-																			cairo_format="png", png_dpi=600):
+def build_renderer_capabilities_sheet(
+		page: str = "letter", backend: str = "svg", seed: int = 0, output_path: object = None,
+		cairo_format: str = "png", png_dpi: int = 600) -> object:
 	"""Build a capabilities sheet showing all rendering features.
 
 	Args:
@@ -441,7 +446,7 @@ def build_renderer_capabilities_sheet(page="letter", backend="svg", seed=0, outp
 
 
 #============================================
-def _build_bond_grid_ops(include_text):
+def _build_bond_grid_ops(include_text: bool) -> list:
 	"""Build bond type x color grid ops (Section A)."""
 	# Bond types to show
 	bond_types = [
@@ -526,7 +531,7 @@ def _build_bond_grid_ops(include_text):
 
 
 #============================================
-def _build_bond_fragment(bond_type, color):
+def _build_bond_fragment(bond_type: str, color: str) -> list:
 	"""Build a tiny C-C bond fragment.
 
 	Args:
@@ -590,7 +595,8 @@ def _build_bond_fragment(bond_type, color):
 
 
 #============================================
-def _transform_ops(ops, dx, dy, scale=1.0):
+def _transform_ops(
+		ops: list, dx: float, dy: float, scale: float = 1.0) -> list:
 	"""Transform op coordinates by translation and scaling.
 
 	Scales coordinates, geometric sizes (radius), and font sizes.
@@ -662,13 +668,13 @@ def _transform_ops(ops, dx, dy, scale=1.0):
 
 
 #============================================
-def _scale_point(point, scale, dx, dy):
+def _scale_point(point: object, scale: float, dx: float, dy: float) -> object:
 	"""Scale and translate a point."""
 	return (point[0] * scale + dx, point[1] * scale + dy)
 
 
 #============================================
-def _mol_render_options():
+def _mol_render_options() -> dict:
 	return {
 		"line_width": 1.0,
 		"bond_width": 3.0,
@@ -686,7 +692,7 @@ def _mol_render_options():
 
 
 #============================================
-def _bond_lengths(mol):
+def _bond_lengths(mol: object) -> list:
 	lengths = []
 	for edge in mol.edges:
 		v1, v2 = edge.vertices
@@ -699,7 +705,7 @@ def _bond_lengths(mol):
 
 
 #============================================
-def _scaled_font_size(mol, ratio, fallback):
+def _scaled_font_size(mol: object, ratio: float, fallback: float) -> float:
 	if ratio <= 0:
 		return fallback
 	lengths = _bond_lengths(mol)
@@ -712,7 +718,7 @@ def _scaled_font_size(mol, ratio, fallback):
 
 
 #============================================
-def _build_molecule_ops(mol, options):
+def _build_molecule_ops(mol: object, options: dict) -> list:
 	"""Build render ops for a molecule using shared bond logic."""
 	if mol is None:
 		raise ValueError("Cannot render a missing molecule.")
@@ -768,7 +774,7 @@ def _build_molecule_ops(mol, options):
 
 
 #============================================
-def _build_cholesterol_mol():
+def _build_cholesterol_mol() -> object:
 	"""Build cholesterol molecule from SMILES."""
 	# Cholesterol SMILES from oasa_data/biomolecule_smiles.yaml
 	smiles = "CC(C)CCCC(C)C1CCC2C3CC=C4C[C@H](O)CC[C@]4(C)C3CC[C@]12C"
@@ -778,7 +784,7 @@ def _build_cholesterol_mol():
 
 #============================================
 #============================================
-def _vignette_layout_params():
+def _vignette_layout_params() -> dict:
 	return {
 		"row1_y": 325,
 		"row1_height": 80,
@@ -792,7 +798,7 @@ def _vignette_layout_params():
 
 
 #============================================
-def _build_vignettes_ops(page_width, include_text):
+def _build_vignettes_ops(page_width: float, include_text: bool) -> list:
 	"""Build complex molecule vignettes using row-based layout."""
 	params = _vignette_layout_params()
 	row1_vignettes = [
@@ -878,7 +884,7 @@ def _build_vignettes_ops(page_width, include_text):
 
 
 #============================================
-def _build_benzene_mol():
+def _build_benzene_mol() -> object:
 	"""Build benzene ring with alternating double bonds."""
 	# Use SMILES with explicit single/double bonds (Kekule structure)
 	mol = _mol_from_smiles("C1=CC=CC=C1", calc_coords=False)
@@ -895,7 +901,7 @@ def _build_benzene_mol():
 
 
 #============================================
-def _mol_from_smiles(smiles_str, calc_coords=True):
+def _mol_from_smiles(smiles_str: str, calc_coords: bool = True) -> object:
 	"""Build molecule from SMILES.
 
 	Args:
@@ -919,7 +925,7 @@ def _mol_from_smiles(smiles_str, calc_coords=True):
 
 
 #============================================
-def _assert_haworth_invariants(mol, mode):
+def _assert_haworth_invariants(mol: object, mode: str) -> None:
 	"""Assert Haworth canonical invariants before rendering.
 
 	Args:
@@ -945,7 +951,7 @@ def _assert_haworth_invariants(mol, mode):
 			f"Haworth front bond must have semantic type (w/h/q), found {bond.type}"
 
 
-def _build_haworth_mol():
+def _build_haworth_mol() -> object:
 	"""Build Haworth projection molecule using canonical layout rules."""
 	# Build pyranose from SMILES (oxygen-first for canonical ordering)
 	pyranose = _mol_from_smiles("O1CCCCC1")
@@ -969,13 +975,13 @@ def _build_haworth_mol():
 	return combined
 
 
-def _build_haworth_ops():
+def _build_haworth_ops() -> list:
 	"""Build Haworth projection ops from canonical molecule layout."""
 	return _build_molecule_ops(_build_haworth_mol(), _mol_render_options())
 
 
 #============================================
-def _build_fischer_mol(show_explicit_hydrogens=False):
+def _build_fischer_mol(show_explicit_hydrogens: bool = False) -> object:
 	"""Build Fischer projection from D-glucose SMILES.
 
 	Fischer projection: vertical backbone with horizontal substituents.
@@ -1159,46 +1165,46 @@ def _build_fischer_mol(show_explicit_hydrogens=False):
 
 
 #============================================
-def _build_benzene_ops():
+def _build_benzene_ops() -> list:
 	return _build_molecule_ops(_build_benzene_mol(), _mol_render_options())
 
 
 #============================================
-def _build_fischer_ops(show_explicit_hydrogens=False):
+def _build_fischer_ops(show_explicit_hydrogens: bool = False) -> list:
 	mol = _build_fischer_mol(show_explicit_hydrogens=show_explicit_hydrogens)
 	return _build_molecule_ops(mol, _mol_render_options())
 
 
 #============================================
-def _build_cholesterol_ops():
+def _build_cholesterol_ops() -> list:
 	options = _mol_render_options()
 	options["show_hydrogens_on_hetero"] = False
 	return _build_molecule_ops(_build_cholesterol_mol(), options)
 
 
 #============================================
-def _build_alpha_d_glucopyranose_ops():
+def _build_alpha_d_glucopyranose_ops() -> list:
 	parsed = sugar_code.parse("ARLRDM")
 	spec = haworth_spec.generate(parsed, ring_type="pyranose", anomeric="alpha")
 	return haworth_renderer.render(spec, bond_length=30, show_hydrogens=False)
 
 
 #============================================
-def _build_beta_d_fructofuranose_ops():
+def _build_beta_d_fructofuranose_ops() -> list:
 	parsed = sugar_code.parse("MKLRDM")
 	spec = haworth_spec.generate(parsed, ring_type="furanose", anomeric="beta")
 	return haworth_renderer.render(spec, bond_length=30, show_hydrogens=False)
 
 
 #============================================
-def _build_alpha_d_tagatopyranose_ops():
+def _build_alpha_d_tagatopyranose_ops() -> list:
 	parsed = sugar_code.parse("MKRRDM")
 	spec = haworth_spec.generate(parsed, ring_type="pyranose", anomeric="alpha")
 	return haworth_renderer.render(spec, bond_length=30, show_hydrogens=False)
 
 
 #============================================
-def _build_alpha_d_psicofuranose_ops():
+def _build_alpha_d_psicofuranose_ops() -> list:
 	parsed = sugar_code.parse("MKLLDM")
 	spec = haworth_spec.generate(parsed, ring_type="furanose", anomeric="alpha")
 	return haworth_renderer.render(spec, bond_length=30, show_hydrogens=False)
@@ -1206,7 +1212,7 @@ def _build_alpha_d_psicofuranose_ops():
 
 #============================================
 #============================================
-def main():
+def main() -> None:
 	"""CLI entry point."""
 	import argparse
 

@@ -1,7 +1,7 @@
 import os.path
 
 
-def main(app):
+def main(app: object) -> None:
 	crop_svg = app.paper.get_paper_property('crop_svg')
 	app.paper.set_paper_properties(crop_svg=0)
 

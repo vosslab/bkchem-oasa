@@ -25,7 +25,7 @@ class GitError(RuntimeError):
 	pass
 
 
-def run_git(args, repo_root):
+def run_git(args: object, repo_root: object) -> object:
 	try:
 		result = subprocess.run(
 			args,
@@ -42,7 +42,7 @@ def run_git(args, repo_root):
 	return result.stdout
 
 
-def iter_python_files(repo_root):
+def iter_python_files(repo_root: object) -> object:
 	paths = [repo_root / "packages", repo_root / "tests"]
 	files = []
 	for root in paths:
@@ -52,7 +52,7 @@ def iter_python_files(repo_root):
 	return sorted(files)
 
 
-def parse_iso_date(text):
+def parse_iso_date(text: object) -> object:
 	if not text:
 		return None
 	try:
@@ -61,20 +61,20 @@ def parse_iso_date(text):
 		return None
 
 
-def cutoff_timestamp(cutoff):
+def cutoff_timestamp(cutoff: object) -> object:
 	cutoff_dt = datetime.datetime.fromisoformat(cutoff)
 	cutoff_dt = cutoff_dt.replace(tzinfo=datetime.timezone.utc)
 	return int(cutoff_dt.timestamp())
 
 
-def as_date_string(text):
+def as_date_string(text: object) -> object:
 	parsed = parse_iso_date(text)
 	if not parsed:
 		return ""
 	return parsed.date().isoformat()
 
 
-def first_commit_date(repo_root, rel_path):
+def first_commit_date(repo_root: object, rel_path: object) -> object:
 	output = run_git(
 		["git", "log", "--follow", "--format=%aI", "--reverse", "--", rel_path],
 		repo_root,
@@ -83,7 +83,7 @@ def first_commit_date(repo_root, rel_path):
 	return lines[0] if lines else ""
 
 
-def last_commit_date(repo_root, rel_path):
+def last_commit_date(repo_root: object, rel_path: object) -> object:
 	output = run_git(
 		["git", "log", "--format=%aI", "-n1", "--", rel_path],
 		repo_root,
@@ -92,7 +92,7 @@ def last_commit_date(repo_root, rel_path):
 	return lines[0] if lines else ""
 
 
-def count_commits(repo_root, rel_path, before=None, since=None):
+def count_commits(repo_root: object, rel_path: object, before: object=None, since: object=None) -> object:
 	cmd = ["git", "log", "--oneline"]
 	if before:
 		cmd.append(f"--before={before}")
@@ -103,7 +103,7 @@ def count_commits(repo_root, rel_path, before=None, since=None):
 	return len([line for line in output.splitlines() if line.strip()])
 
 
-def count_lines_added(repo_root, rel_path, before=None, since=None):
+def count_lines_added(repo_root: object, rel_path: object, before: object=None, since: object=None) -> object:
 	cmd = ["git", "log", "--numstat", "--pretty=%H"]
 	if before:
 		cmd.append(f"--before={before}")
@@ -124,7 +124,7 @@ def count_lines_added(repo_root, rel_path, before=None, since=None):
 	return total
 
 
-def commit_history_stats(repo_root, rel_path, cutoff_ts):
+def commit_history_stats(repo_root: object, rel_path: object, cutoff_ts: object) -> object:
 	"""Collect commit dates/counts for one file with a single git invocation."""
 	output = run_git(
 		["git", "log", "--follow", "--format=%ct|%aI", "--", rel_path],
@@ -175,7 +175,7 @@ def commit_history_stats(repo_root, rel_path, cutoff_ts):
 	}
 
 
-def line_commit_times(repo_root, rel_path):
+def line_commit_times(repo_root: object, rel_path: object) -> object:
 	try:
 		output = run_git(
 			["git", "blame", "--line-porcelain", "--date=unix", "--", rel_path],
@@ -199,7 +199,7 @@ def line_commit_times(repo_root, rel_path):
 	return times
 
 
-def blame_line_samples(repo_root, rel_path, cutoff, sample_size):
+def blame_line_samples(repo_root: object, rel_path: object, cutoff: object, sample_size: object) -> object:
 	try:
 		output = run_git(
 			["git", "blame", "--line-porcelain", "--date=unix", "--", rel_path],
@@ -254,7 +254,7 @@ def blame_line_samples(repo_root, rel_path, cutoff, sample_size):
 	}
 
 
-def line_date_stats(repo_root, rel_path, cutoff):
+def line_date_stats(repo_root: object, rel_path: object, cutoff: object) -> object:
 	times = line_commit_times(repo_root, rel_path)
 	if times is None:
 		return "Untracked"
@@ -283,7 +283,7 @@ def line_date_stats(repo_root, rel_path, cutoff):
 	}
 
 
-def has_pre_cutoff_blame_sample(repo_root, rel_path, cutoff_ts, sample_lines=120):
+def has_pre_cutoff_blame_sample(repo_root: object, rel_path: object, cutoff_ts: object, sample_lines: object=120) -> object:
 	"""Fast conservative check: does top-of-file blame include pre-cutoff lines?"""
 	try:
 		output = run_git(
@@ -319,7 +319,7 @@ def has_pre_cutoff_blame_sample(repo_root, rel_path, cutoff_ts, sample_lines=120
 	return False
 
 
-def gpl_time_percentage(first_date, last_date, cutoff):
+def gpl_time_percentage(first_date: object, last_date: object, cutoff: object) -> object:
 	first_dt = parse_iso_date(first_date)
 	last_dt = parse_iso_date(last_date)
 	if not first_dt or not last_dt:
@@ -341,7 +341,7 @@ def gpl_time_percentage(first_date, last_date, cutoff):
 	return (days_before / total_days) * 100.0
 
 
-def get_spdx_identifier(path):
+def get_spdx_identifier(path: object) -> object:
 	try:
 		lines = path.read_text(encoding="utf-8").splitlines()
 	except (OSError, UnicodeDecodeError):
@@ -353,7 +353,7 @@ def get_spdx_identifier(path):
 	return ""
 
 
-def expected_spdx(classification):
+def expected_spdx(classification: object) -> object:
 	if classification == "Pure LGPL-3.0-or-later":
 		return "LGPL-3.0-or-later"
 	if classification in ("Pure GPL-2.0", "Mixed"):
@@ -361,7 +361,7 @@ def expected_spdx(classification):
 	return ""
 
 
-def progress_bar(index, total, bar_width, label=""):
+def progress_bar(index: object, total: object, bar_width: object, label: object="") -> object:
 	"""Write a progress bar to stderr."""
 	done = int((index / total) * bar_width) if total else bar_width
 	bar = "#" * done + "-" * (bar_width - done)
@@ -372,13 +372,13 @@ def progress_bar(index, total, bar_width, label=""):
 
 #============================================
 def build_records(
-	repo_root,
-	cutoff,
-	include_lines,
-	files=None,
-	show_progress=None,
-	force_blame=False,
-):
+	repo_root: object,
+	cutoff: object,
+	include_lines: object,
+	files: object=None,
+	show_progress: object=None,
+	force_blame: object=False,
+) -> object:
 	if files is None:
 		files = iter_python_files(repo_root)
 	else:
@@ -507,7 +507,7 @@ def build_records(
 	return records
 
 
-def print_summary(records):
+def print_summary(records: object) -> object:
 	total = len(records)
 	counts = {
 		"Pure GPL-2.0": 0,
@@ -545,7 +545,7 @@ def print_summary(records):
 				print(f"    {bucket_label}: {bucket_count} ({bucket_pct:.0f}%)")
 
 
-def print_mixed(records):
+def print_mixed(records: object) -> object:
 	mixed = [r for r in records if r["classification"] == "Mixed"]
 	if not mixed:
 		return
@@ -560,7 +560,7 @@ def print_mixed(records):
 		)
 
 
-def print_spdx_issues(records):
+def print_spdx_issues(records: object) -> object:
 	mismatched = []
 	for record in records:
 		expected = expected_spdx(record["classification"])
@@ -573,7 +573,7 @@ def print_spdx_issues(records):
 			print(f"{path}: {spdx} (expected {expected})")
 
 
-def print_full_report(records, cutoff):
+def print_full_report(records: object, cutoff: object) -> object:
 	print("GPL/LGPL coverage report (reporting only)")
 	print(f"Cutoff date: {cutoff}")
 	print_summary(records)
@@ -581,7 +581,7 @@ def print_full_report(records, cutoff):
 	print_spdx_issues(records)
 
 
-def output_csv(records, include_lines):
+def output_csv(records: object, include_lines: object) -> object:
 	fieldnames = [
 		"path",
 		"classification",
@@ -610,7 +610,7 @@ def output_csv(records, include_lines):
 		writer.writerow(row)
 
 
-def print_file_report(records, file_path, repo_root, cutoff):
+def print_file_report(records: object, file_path: object, repo_root: object, cutoff: object) -> object:
 	matches = [r for r in records if r["path"] == file_path]
 	if not matches:
 		print(f"No data for file: {file_path}")
@@ -651,12 +651,12 @@ def print_file_report(records, file_path, repo_root, cutoff):
 	print_spot_check(repo_root, file_path, cutoff)
 
 
-def print_spot_check(repo_root, rel_path, cutoff, sample_size=3):
+def print_spot_check(repo_root: object, rel_path: object, cutoff: object, sample_size: object=3) -> object:
 	samples = blame_line_samples(repo_root, rel_path, cutoff, sample_size)
 	if samples is None:
 		print("Spot check: no blame samples available.")
 		return
-	def format_entry(entry):
+	def format_entry(entry: object) -> object:
 		timestamp = datetime.datetime.fromtimestamp(
 			entry["committer_time"], tz=datetime.timezone.utc
 		)
@@ -681,13 +681,13 @@ def print_spot_check(repo_root, rel_path, cutoff, sample_size=3):
 		print("(none)")
 
 
-def list_missing_headers(records):
+def list_missing_headers(records: object) -> object:
 	for record in records:
 		if not record["spdx"] and expected_spdx(record["classification"]):
 			print(record["path"])
 
 
-def parse_args():
+def parse_args() -> object:
 	parser = argparse.ArgumentParser(
 		description="Assess GPL/LGPL coverage based on git history (reporting only)."
 	)
@@ -735,7 +735,7 @@ def parse_args():
 	return parser.parse_args()
 
 
-def main():
+def main() -> object:
 	args = parse_args()
 	repo_root = Path(__file__).resolve().parents[1]
 	if not (repo_root / ".git").exists():

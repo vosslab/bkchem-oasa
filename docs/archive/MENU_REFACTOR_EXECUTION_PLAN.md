@@ -34,10 +34,10 @@ translations, plugin integration, and platform handling.
 - Translation key validation test
 
 **Out of scope (separate projects):**
-- Moving format handlers to OASA (see [docs/TODO_CODE.md](docs/TODO_CODE.md))
+- Moving format handlers to OASA (see [TODO_CODE.md](../TODO_CODE.md))
 - Renderer unification
 - Tool framework replacing addons (see
-  [docs/active_plans/MODULAR_MENU_ARCHITECTURE.md](docs/active_plans/MODULAR_MENU_ARCHITECTURE.md))
+  [MODULAR_MENU_ARCHITECTURE.md](MODULAR_MENU_ARCHITECTURE.md))
 - Performance monitoring infrastructure
 - Qt/Gtk/native/web backend abstraction
 - Toolbar/mode button unification (defer to follow-up)
@@ -534,8 +534,8 @@ construct menus. Handle plugin slot injection. Handle state updates.
 2. Delete old `init_menu()` loop code
 3. Delete `_get_menu_component()` if unreferenced
 4. pyflakes full pass
-5. Update [docs/CHANGELOG.md](docs/CHANGELOG.md)
-6. Update [refactor_progress.md](refactor_progress.md)
+5. Update `CHANGELOG.md`
+6. Update [refactor_progress.md](../../refactor_progress.md)
 7. Archive planning docs to `docs/archive/`
 
 **Done checks:**

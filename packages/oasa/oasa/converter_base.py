@@ -36,41 +36,41 @@ class converter_base(object):
 
   default_configuration: dict = {}
 
-  def __init__( self):
+  def __init__(self) -> None:
     self.configuration = {}
     for k, v in list(self.default_configuration.items()):
       self.configuration[k] = v
     self.cleanup()
 
 
-  def clean_logs( self):
+  def clean_logs(self) -> None:
     # here all warnings for the last run should be stored
     self.warnings = []
     # here error messages for the last run will be stored
     self.errors = []
 
 
-  def mols_to_text( self, structures):
+  def mols_to_text(self, structures: object) -> None:
     self.clean_logs()
     pass
 
 
-  def read_text( self, text):
+  def read_text(self, text: object) -> None:
     self.clean_logs()
     pass
 
 
-  def mols_to_file( self, structures, f):
+  def mols_to_file(self, structures: object, f: object) -> None:
     self.clean_logs()
     pass
 
 
-  def read_file( self, f):
+  def read_file(self, f: object) -> None:
     self.clean_logs()
     pass
 
 
-  def cleanup( self):
+  def cleanup(self) -> None:
     self.clean_logs()
     self.result = []
     self.last_status = None

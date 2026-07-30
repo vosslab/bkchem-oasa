@@ -1,0 +1,155 @@
+{
+  "schema": "cdml-conformance-corpus-1",
+  "cases": [
+    {
+      "id": "legacy-groups-template",
+      "source": {
+        "repo_path": "packages/bkchem-app/bkchem_data/templates/groups.cdml"
+      },
+      "expect": {
+        "compat": "valid",
+        "authored-26.07": "invalid"
+      }
+    },
+    {
+      "id": "legacy-groups2-template",
+      "source": {
+        "repo_path": "packages/bkchem-app/bkchem_data/templates/groups2.cdml"
+      },
+      "expect": {
+        "compat": "valid",
+        "authored-26.07": "invalid"
+      }
+    },
+    {
+      "id": "legacy-templates-template",
+      "source": {
+        "repo_path": "packages/bkchem-app/bkchem_data/templates/templates.cdml"
+      },
+      "expect": {
+        "compat": "valid",
+        "authored-26.07": "invalid"
+      }
+    },
+    {
+      "id": "legacy-parallel-beta-template",
+      "source": {
+        "repo_path": "packages/bkchem-app/bkchem_data/templates/parallel_beta.cdml"
+      },
+      "expect": {
+        "compat": "valid",
+        "authored-26.07": "invalid"
+      }
+    },
+    {
+      "id": "authored-minimal-molecule",
+      "source": {
+        "inline_xml": "<cdml xmlns=\"http://www.freesoftware.fsf.org/bkchem/cdml\" version=\"26.07\"><molecule id=\"m1\"><atom id=\"a1\" name=\"C\"><point x=\"0cm\" y=\"0cm\" /></atom><atom id=\"a2\" name=\"O\"><point x=\"1cm\" y=\"0cm\" /></atom><bond id=\"b1\" type=\"n1\" start=\"a1\" end=\"a2\" /></molecule></cdml>"
+      },
+      "expect": {
+        "compat": "valid",
+        "authored-26.07": "valid"
+      }
+    },
+    {
+      "id": "legacy-no-namespace",
+      "source": {
+        "inline_xml": "<cdml version=\"26.02\"><molecule id=\"m1\" /></cdml>"
+      },
+      "expect": {
+        "compat": "valid",
+        "authored-26.07": "invalid"
+      }
+    },
+    {
+      "id": "foreign-opaque-subtree",
+      "source": {
+        "inline_xml": "<cdml xmlns=\"http://www.freesoftware.fsf.org/bkchem/cdml\" xmlns:v=\"urn:vendor\" version=\"26.07\"><v:extension id=\"vendor-1\"><arrow id=\"not-a-cdml-arrow\" /></v:extension></cdml>"
+      },
+      "expect": {
+        "compat": "valid",
+        "authored-26.07": "valid"
+      }
+    },
+    {
+      "id": "whitespace-bearing-rich-text-and-opaque-content",
+      "source": {
+        "inline_xml": "<cdml xmlns=\"http://www.freesoftware.fsf.org/bkchem/cdml\" xmlns:v=\"urn:vendor\" version=\"26.07\"><text id=\"t1\"><point x=\"0cm\" y=\"0cm\" /><ftext> </ftext></text><v:extension> <v:item /> </v:extension></cdml>"
+      },
+      "expect": {
+        "compat": "valid",
+        "authored-26.07": "valid"
+      }
+    },
+    {
+      "id": "comment-pi-and-namespaced-opaque-preservation",
+      "source": {
+        "inline_xml": "<?before check?><cdml xmlns=\"http://www.freesoftware.fsf.org/bkchem/cdml\" xmlns:v=\"urn:vendor\" version=\"26.07\"><!-- persistent note --><v:extension mode=\"keep\">before<v:item />after</v:extension><?inside retain?></cdml><!-- after root -->"
+      },
+      "expect": {
+        "compat": "valid",
+        "authored-26.07": "valid"
+      }
+    },
+    {
+      "id": "duplicate-known-durable-id",
+      "source": {
+        "inline_xml": "<cdml xmlns=\"http://www.freesoftware.fsf.org/bkchem/cdml\" version=\"26.07\"><molecule id=\"m1\" /><arrow id=\"m1\"><point x=\"0cm\" y=\"0cm\" /></arrow></cdml>"
+      },
+      "expect": {
+        "compat": "valid",
+        "authored-26.07": "invalid"
+      }
+    },
+    {
+      "id": "unresolved-bond-reference",
+      "source": {
+        "inline_xml": "<cdml xmlns=\"http://www.freesoftware.fsf.org/bkchem/cdml\" version=\"26.07\"><molecule id=\"m1\"><bond id=\"b1\" type=\"n1\" start=\"missing\" end=\"also-missing\" /></molecule></cdml>"
+      },
+      "expect": {
+        "compat": "valid",
+        "authored-26.07": "invalid"
+      }
+    },
+    {
+      "id": "escaped-provisional-identifier",
+      "source": {
+        "inline_xml": "<cdml xmlns=\"http://www.freesoftware.fsf.org/bkchem/cdml\" version=\"26.07\"><arrow id=\"__bkchem_new__arrow\"><point x=\"0cm\" y=\"0cm\" /></arrow></cdml>"
+      },
+      "expect": {
+        "compat": "valid",
+        "authored-26.07": "invalid"
+      }
+    },
+    {
+      "id": "malformed-xml",
+      "source": {
+        "inline_xml": "<cdml version=\"26.07\"><molecule></cdml>"
+      },
+      "expect": {
+        "compat": "invalid",
+        "authored-26.07": "invalid"
+      }
+    },
+    {
+      "id": "internal-doctype-is-unsafe",
+      "source": {
+        "inline_xml": "<!DOCTYPE cdml [<!ENTITY value \"unsafe\">]><cdml version=\"26.07\">&value;</cdml>"
+      },
+      "expect": {
+        "compat": "invalid",
+        "authored-26.07": "invalid"
+      }
+    },
+    {
+      "id": "external-doctype-is-unsafe",
+      "source": {
+        "inline_xml": "<!DOCTYPE cdml SYSTEM \"https://example.invalid/cdml.dtd\"><cdml version=\"26.07\" />"
+      },
+      "expect": {
+        "compat": "invalid",
+        "authored-26.07": "invalid"
+      }
+    }
+  ]
+}

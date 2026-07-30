@@ -11,7 +11,7 @@ import bkchem_qt.canvas.items.bond_item
 
 
 #============================================
-def find_undo_stack(view):
+def find_undo_stack(view: object) -> object:
 	"""Locate the document's QUndoStack through the view.
 
 	Args:
@@ -26,7 +26,7 @@ def find_undo_stack(view):
 
 
 #============================================
-def find_molecule_for_atom(view, atom_model):
+def find_molecule_for_atom(view: object, atom_model: object) -> object:
 	"""Find the MoleculeModel that contains a given AtomModel.
 
 	Args:
@@ -45,7 +45,7 @@ def find_molecule_for_atom(view, atom_model):
 
 
 #============================================
-def find_molecule_for_bond(view, bond_model):
+def find_molecule_for_bond(view: object, bond_model: object) -> object:
 	"""Find the MoleculeModel that contains a given BondModel.
 
 	Args:
@@ -64,7 +64,7 @@ def find_molecule_for_bond(view, bond_model):
 
 
 #============================================
-def find_connected_bond_items(scene, atom_model):
+def find_connected_bond_items(scene: object, atom_model: object) -> list:
 	"""Find all BondItems connected to an atom.
 
 	Args:

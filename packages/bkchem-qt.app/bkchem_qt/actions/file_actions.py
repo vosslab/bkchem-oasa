@@ -4,40 +4,133 @@
 import os
 
 # PIP3 modules
+import PySide6.QtCore
 import PySide6.QtWidgets
 
 # local repo modules
-import bkchem_qt.io.cdml_io
 import bkchem_qt.bridge.oasa_bridge
 import bkchem_qt.bridge.worker
 import bkchem_qt.canvas.items.atom_item
 import bkchem_qt.canvas.items.bond_item
+import bkchem_qt.canvas.items.group_item
 import bkchem_qt.config.geometry_units
 import bkchem_qt.config.preferences
+import bkchem_qt.dialogs.paper_properties_dialog
+import bkchem_qt.io.import_capabilities
+import bkchem_qt.models.document_session
+import bkchem_qt.undo.commands
 from bkchem_qt.actions.action_registry import MenuAction
 
 # maximum number of entries in the recent files list
 MAX_RECENT_FILES = 10
 
 # file filter strings for QFileDialog
-CDML_FILTER = "CDML Files (*.cdml);;SVG Files (*.svg);;All Files (*)"
-CHEMISTRY_FILTER = (
-	"Chemistry Files (*.cdml *.svg *.mol *.sdf *.smi *.cml *.cdxml);;"
-	"CDML Files (*.cdml);;"
-	"SVG Files (*.svg);;"
-	"MOL Files (*.mol *.sdf);;"
-	"SMILES Files (*.smi);;"
-	"All Files (*)"
-)
+CDML_FILTER = "BKChem CDML (*.cdml);;All Files (*)"
+CHEMISTRY_FILTER = bkchem_qt.io.import_capabilities.chemistry_file_filter()
 
 # map file extensions to OASA codec names for non-CDML formats
 _EXTENSION_TO_CODEC = {
-	".mol": "molfile",
-	".sdf": "molfile",
-	".smi": "smiles",
-	".cml": "cml",
-	".cdxml": "cdxml",
+	extension: capability.codec_name
+	for capability in bkchem_qt.io.import_capabilities.worker_import_capabilities()
+	for extension in capability.extensions
 }
+
+
+#============================================
+class _ImportResultRelay(PySide6.QtCore.QObject):
+	"""Deliver one worker's result through slots owned by the GUI thread."""
+
+	#============================================
+	def __init__(
+			self, main_window: object, worker: PySide6.QtCore.QThread,
+			file_path: str, bond_length_pt: float, on_loaded: object = None,
+			should_deliver: object = None, worker_owner: object = None,
+			on_error: object = None,
+			) -> None:
+		"""Retain request data until the worker's native thread finishes."""
+		super().__init__(main_window)
+		self._main_window = main_window
+		self._worker = worker
+		self._file_path = file_path
+		self._bond_length_pt = bond_length_pt
+		self._on_loaded = on_loaded
+		self._should_deliver = should_deliver
+		# A DocumentSession owns work started for it.  Retain the MainWindow
+		# fallback for callers that predate sessions.
+		self._worker_owner = worker_owner
+		self._on_error = on_error
+
+	#============================================
+	def _request_is_current(self) -> bool:
+		"""Return whether this worker may still update the window."""
+		return (
+			not callable(self._should_deliver)
+			or bool(self._should_deliver())
+		)
+
+	#============================================
+	@PySide6.QtCore.Slot(object)
+	def on_result(self, result: object) -> None:
+		"""Deliver a current worker result through its typed public boundary."""
+		if not self._request_is_current():
+			return
+		if isinstance(result, bkchem_qt.bridge.worker.PreparedCompleteCDML):
+			if callable(self._on_loaded):
+				self._on_loaded(result)
+				return
+			raise TypeError("complete CDML imports require a session-aware delivery")
+		if not result:
+			if callable(self._on_error):
+				self._on_error("No molecules found")
+				return
+			self._main_window.statusBar().showMessage(
+				"No molecules found", 3000,
+			)
+			return
+		molecules = []
+		for part in result:
+			mol_model = bkchem_qt.bridge.oasa_bridge.oasa_mol_to_qt_mol(
+				part, bond_length_pt=self._bond_length_pt,
+			)
+			molecules.append(mol_model)
+		if callable(self._on_loaded):
+			self._on_loaded(molecules)
+			return
+		if molecules:
+			_add_molecules_to_scene(self._main_window, molecules)
+			_record_recent_file(self._main_window, self._file_path)
+		self._main_window.statusBar().showMessage(
+			"Loaded %d molecule(s)" % len(molecules), 3000,
+		)
+
+	#============================================
+	@PySide6.QtCore.Slot(object)
+	def on_error(self, message: object) -> None:
+		"""Show a current import error in the GUI thread."""
+		if not self._request_is_current():
+			return
+		if callable(self._on_error):
+			self._on_error(message)
+			return
+		PySide6.QtWidgets.QMessageBox.warning(
+			self._main_window, "File Read Error", str(message),
+		)
+
+	#============================================
+	@PySide6.QtCore.Slot()
+	def on_thread_finished(self) -> None:
+		"""Release through a terminal-safe window owner when available."""
+		release = getattr(self._main_window, "_release_import_worker", None)
+		if not callable(release):
+			owner = self._worker_owner or self._main_window
+			release = getattr(owner, "release_import_worker", None)
+			if not callable(release):
+				release = getattr(owner, "_release_import_worker", None)
+		if callable(release):
+			release(self._worker)
+		elif getattr(self._main_window, "_active_worker", None) is self._worker:
+			self._main_window._active_worker = None
+		self.deleteLater()
 
 
 #============================================
@@ -80,7 +173,7 @@ def push_recent_file(file_path: str) -> list:
 
 
 #============================================
-def _resolve_scene_bond_length_pt(main_window) -> float:
+def _resolve_scene_bond_length_pt(main_window: object) -> float:
 	"""Resolve canonical bond length from the active scene."""
 	scene = getattr(main_window, "_scene", None)
 	if scene is not None and hasattr(scene, "grid_spacing_pt"):
@@ -89,7 +182,7 @@ def _resolve_scene_bond_length_pt(main_window) -> float:
 
 
 #============================================
-def open_file(main_window) -> None:
+def open_file(main_window: object) -> None:
 	"""Show a file dialog and load the selected chemistry file.
 
 	Prompts the user with a native file dialog filtered to supported
@@ -111,103 +204,149 @@ def open_file(main_window) -> None:
 
 
 #============================================
-def open_file_path(main_window, file_path: str) -> None:
-	"""Load a specific chemistry file by path and add to the scene.
+def import_capability(
+		main_window: object,
+		capability: bkchem_qt.io.import_capabilities.ImportCapability,
+		) -> None:
+	"""Choose one advertised external format and use the common loader.
 
-	Determines the file format from the extension, parses the file
-	through the appropriate loader (CDML or OASA codec), and adds
-	the resulting molecules to the active scene.
+	The action deliberately delegates to ``open_file_path`` rather than
+	starting a worker itself, so MainWindow remains the owner of the session,
+	request token, and worker lifetime.
+	"""
+	if capability.route != "worker":
+		raise ValueError(
+			"File > Import only accepts worker-backed formats, got '%s'."
+			% capability.codec_name
+		)
+	file_path, _selected_filter = PySide6.QtWidgets.QFileDialog.getOpenFileName(
+		main_window,
+		"Import %s" % capability.label,
+		"",
+		bkchem_qt.io.import_capabilities.capability_file_filter(capability),
+	)
+	if file_path:
+		open_file_path(main_window, file_path)
+
+
+#============================================
+def open_file_path(main_window: object, file_path: str) -> None:
+	"""Delegate a specific path to the session-aware document loader.
+
+	MainWindow owns the full-document CDML envelope, tab lifecycle, and
+	async import requests.  This action helper must not parse files itself:
+	the legacy molecule-only CDML loader loses presentation objects and
+	document metadata.
 
 	Args:
-		main_window: MainWindow instance providing scene and document.
+		main_window: Session-aware MainWindow or same-tab replacement host.
 		file_path: Absolute or relative path to the file to load.
 	"""
-	ext = os.path.splitext(file_path)[1].lower()
-	molecules = []
-	bond_length_pt = _resolve_scene_bond_length_pt(main_window)
-
-	if ext == ".cdml":
-		# CDML files are small; load synchronously
-		molecules = bkchem_qt.io.cdml_io.load_cdml_file(
-			file_path, bond_length_pt=bond_length_pt,
-		)
-		if molecules:
-			_add_molecules_to_scene(main_window, molecules)
-			_record_recent_file(main_window, file_path)
-	elif ext in _EXTENSION_TO_CODEC:
-		# use async worker for non-CDML formats (may be large)
-		codec_name = _EXTENSION_TO_CODEC[ext]
-		_load_with_worker(
-			main_window, codec_name, file_path, bond_length_pt=bond_length_pt,
-		)
-	else:
-		# try CDML as a fallback for unknown extensions
-		molecules = bkchem_qt.io.cdml_io.load_cdml_file(
-			file_path, bond_length_pt=bond_length_pt,
-		)
-		if molecules:
-			_add_molecules_to_scene(main_window, molecules)
-			_record_recent_file(main_window, file_path)
+	open_handler = getattr(main_window, "open_file_path", None)
+	if callable(open_handler):
+		open_handler(file_path)
+		return
+	replace_handler = getattr(main_window, "_open_path_replacing_current", None)
+	if callable(replace_handler):
+		replace_handler(file_path)
+		return
+	raise TypeError(
+		"File actions require a session-aware host with open_file_path() "
+		"or _open_path_replacing_current()."
+	)
 
 
 #============================================
 def _load_with_worker(
-	main_window, codec_name: str, file_path: str, bond_length_pt: float,
+	main_window: object, codec_name: str, file_path: str,
+	bond_length_pt: float, on_loaded: object = None,
+	should_deliver: object = None, worker_owner: object = None,
+	on_error: object = None,
 ) -> None:
-	"""Load a non-CDML file asynchronously using FileReaderWorker.
+	"""Load a non-CDML file asynchronously using FileImportWorker.
 
-	Runs the OASA codec reader in a background thread so that large
-	files do not freeze the GUI. On completion, converts the result
-	to MoleculeModels and adds them to the scene.
+	Runs parsing, coordinate generation, and component splitting in a
+	background thread. On completion, converts the result to MoleculeModels
+	in the GUI thread and adds them to the scene.
 
 	Args:
 		main_window: MainWindow instance.
 		codec_name: OASA codec name (e.g. 'molfile', 'smiles').
 		file_path: Path to the chemistry file.
+		on_loaded: Optional callback receiving converted MoleculeModels.
+		should_deliver: Optional callback that rejects a stale request.
+		worker_owner: Optional session-like owner providing
+			``track_import_worker`` and ``release_import_worker``.
+		on_error: Optional GUI-thread callback receiving an import error.
 	"""
-	worker = bkchem_qt.bridge.worker.FileReaderWorker(codec_name, file_path)
+	worker = bkchem_qt.bridge.worker.FileImportWorker(codec_name, file_path)
+	_start_prepared_import_worker(
+		main_window,
+		worker,
+		file_path,
+		bond_length_pt,
+		on_loaded=on_loaded,
+		should_deliver=should_deliver,
+		worker_owner=worker_owner,
+		on_error=on_error,
+	)
 
-	def on_finished(oasa_mol):
-		"""Handle successful file read by converting and displaying."""
-		if oasa_mol is None:
-			main_window.statusBar().showMessage("No molecules found", 3000)
-			return
-		# generate coordinates and convert to MoleculeModels
-		from oasa import coords_generator
-		coords_generator.calculate_coords(oasa_mol, bond_length=1.0, force=0)
-		if not oasa_mol.is_connected():
-			parts = oasa_mol.get_disconnected_subgraphs()
-		else:
-			parts = [oasa_mol]
-		molecules = []
-		for part in parts:
-			mol_model = bkchem_qt.bridge.oasa_bridge.oasa_mol_to_qt_mol(
-				part, bond_length_pt=bond_length_pt,
-			)
-			molecules.append(mol_model)
-		if molecules:
-			_add_molecules_to_scene(main_window, molecules)
-			_record_recent_file(main_window, file_path)
-		main_window.statusBar().showMessage(
-			"Loaded %d molecule(s)" % len(molecules), 3000,
-		)
 
-	def on_error(msg):
-		"""Handle file read error."""
-		PySide6.QtWidgets.QMessageBox.warning(
-			main_window, "File Read Error", msg,
-		)
+#============================================
+def _start_prepared_import_worker(
+		main_window: object, worker: PySide6.QtCore.QThread,
+		source_label: str, bond_length_pt: float, on_loaded: object = None,
+		should_deliver: object = None, worker_owner: object = None,
+		on_error: object = None,
+		) -> None:
+	"""Start one prepared-import worker with the common GUI-thread relay.
 
-	worker.finished.connect(on_finished)
-	worker.error.connect(on_error)
-	# keep a reference so the worker is not garbage collected
-	main_window._active_worker = worker
-	main_window.statusBar().showMessage("Loading file...", 0)
+	Both path imports and interactive text imports use this helper so request
+	tokens, session worker retention, queued delivery, and cleanup stay one
+	contract.  ``source_label`` is only user-facing context for the relay.
+
+	Args:
+		main_window: MainWindow providing status and the QObject relay parent.
+		worker: Started-once worker that produces positioned OASA components.
+		source_label: Human-readable source identity for default delivery.
+		bond_length_pt: Display-space conversion scale for Qt models.
+		on_loaded: Optional GUI-thread callback receiving MoleculeModels.
+		should_deliver: Optional session/token liveness predicate.
+		worker_owner: Optional session-like owner retaining the worker.
+		on_error: Optional GUI-thread callback receiving an error message.
+	"""
+	relay = _ImportResultRelay(
+		main_window,
+		worker,
+		source_label,
+		bond_length_pt,
+		on_loaded=on_loaded,
+		should_deliver=should_deliver,
+		worker_owner=worker_owner,
+		on_error=on_error,
+	)
+	# Keep the Python wrapper reachable until both queued slots and the native
+	# thread completion have been delivered.
+	worker._result_relay = relay
+	connection_type = PySide6.QtCore.Qt.ConnectionType.QueuedConnection
+	worker.result.connect(relay.on_result, connection_type)
+	worker.error.connect(relay.on_error, connection_type)
+	worker.finished.connect(relay.on_thread_finished, connection_type)
+	owner = worker_owner or main_window
+	track = getattr(owner, "track_import_worker", None)
+	if not callable(track):
+		track = getattr(owner, "_track_import_worker", None)
+	if callable(track):
+		track(worker)
+	else:
+		# Compatibility for simple hosts outside MainWindow.
+		main_window._active_worker = worker
+	main_window.statusBar().showMessage("Loading %s..." % source_label, 0)
 	worker.start()
 
 
 #============================================
-def _record_recent_file(main_window, file_path: str) -> None:
+def _record_recent_file(main_window: object, file_path: str) -> None:
 	"""Push a file path to recent files and refresh the submenu.
 
 	Args:
@@ -222,143 +361,211 @@ def _record_recent_file(main_window, file_path: str) -> None:
 
 
 #============================================
-def _add_molecules_to_scene(main_window, molecules: list) -> None:
+def _add_molecules_to_scene(
+		main_window: object, molecules: list, undoable: bool = True,
+		*, session: object = None, document: object = None,
+		scene: object = None,
+		) -> None:
 	"""Add a list of MoleculeModel objects to the active scene.
 
 	For each molecule, creates AtomItem and BondItem graphics items,
-	adds them to the scene, and stores the molecule in the document.
+	then stores the molecule and scene projection as an undo command.
+	File loading may opt out because the loaded state is a clean baseline.
 	Bond items are added before atom items so that atoms render on top.
 
 	Args:
 		main_window: MainWindow instance with ``_scene`` and optionally
-			a ``_document`` attribute.
+			a ``_document`` attribute. Retained as the compatibility target.
 		molecules: List of MoleculeModel instances to display.
+		undoable: Whether insertion belongs on the document undo stack.
+		session: Optional DocumentSession target. Its document and scene are
+			used unless explicitly supplied.
+		document: Optional explicit Document target.
+		scene: Optional explicit QGraphicsScene target.
 	"""
-	scene = main_window._scene
-
-	for mol_model in molecules:
-		# map from AtomModel to AtomItem for bond endpoint lookup
-		atom_items = {}
-
-		# create AtomItems for every atom in the molecule
-		for atom_model in mol_model.atoms:
-			atom_item = bkchem_qt.canvas.items.atom_item.AtomItem(atom_model)
-			scene.addItem(atom_item)
-			atom_items[id(atom_model)] = atom_item
-
-		# create BondItems for every bond in the molecule
-		for bond_model in mol_model.bonds:
-			bond_item = bkchem_qt.canvas.items.bond_item.BondItem(bond_model)
-			scene.addItem(bond_item)
-
-		# register the molecule with the document if available
+	if session is not None:
+		if scene is None:
+			scene = session.scene
+		if document is None:
+			document = session.document
+	if scene is None:
+		scene = main_window._scene
+	if document is None:
 		document = getattr(main_window, "_document", None)
-		if document is not None:
-			document.add_molecule(mol_model)
+	projections = _build_molecule_projections(molecules)
+
+	if document is None:
+		_project_molecule_projections(scene, projections)
+		return
+
+	if undoable:
+		if len(projections) > 1:
+			document.undo_stack.beginMacro("Add Molecules")
+		for mol_model, graphics_items in projections:
+			document.undo_stack.push(
+				bkchem_qt.undo.commands.AddMoleculeCommand(
+					document,
+					scene,
+					mol_model,
+					graphics_items,
+				)
+			)
+		if len(projections) > 1:
+			document.undo_stack.endMacro()
+		return
+
+	for mol_model, graphics_items in projections:
+		document.add_molecule(mol_model, mark_dirty=False)
+		for item in graphics_items:
+			scene.addItem(item)
 
 
 #============================================
-def _save_as_template(app) -> None:
-	"""Save the current document as a template file.
-
-	Prompts for a save location and saves via CDML serialization.
-	Template files are standard CDML files saved to the templates dir.
-
-	Args:
-		app: MainWindow instance.
-	"""
-	if not app.document.molecules:
-		app.statusBar().showMessage("No molecules to save as template", 3000)
-		return
-	file_path = PySide6.QtWidgets.QFileDialog.getSaveFileName(
-		app, "Save As Template", "",
-		"CDML Template (*.cdml);;All Files (*)",
-	)[0]
-	if not file_path:
-		return
-	bkchem_qt.io.cdml_io.save_cdml_file(file_path, app.document)
-	app.statusBar().showMessage("Template saved: %s" % file_path, 3000)
+def _build_molecule_projections(molecules: list) -> list[tuple[object, list]]:
+	"""Construct molecule graphics without changing a document or scene."""
+	projections = []
+	graphics_items = []
+	try:
+		for mol_model in molecules:
+			graphics_items = []
+			for bond_model in mol_model.bonds:
+				item = bkchem_qt.canvas.items.bond_item.BondItem(bond_model)
+				item.molecule_model = mol_model
+				graphics_items.append(item)
+			for atom_model in mol_model.atoms:
+				item = bkchem_qt.canvas.items.atom_item.AtomItem(atom_model)
+				item.molecule_model = mol_model
+				graphics_items.append(item)
+			for group_model in mol_model.groups:
+				item = bkchem_qt.canvas.items.group_item.GroupItem(group_model)
+				item.molecule_model = mol_model
+				graphics_items.append(item)
+			projections.append((mol_model, graphics_items))
+	except Exception:
+		# This helper is the detached construction boundary.  A later wrapper
+		# can fail after earlier molecule items have connected model callbacks;
+		# clean both completed and current molecules before preserving the error.
+		items = [
+			item
+			for _mol_model, molecule_items in projections
+			for item in molecule_items
+		]
+		items.extend(graphics_items)
+		# Delay the import to preserve the existing cdml_document_io ->
+		# file_actions direction while reusing the projection's child-first
+		# detached-item cleanup.
+		from bkchem_qt.canvas.document_projection import dispose_detached_items
+		dispose_detached_items(items)
+		raise
+	return projections
 
 
 #============================================
-def _load_same_tab(app) -> None:
+def _project_molecule_projections(
+		scene: PySide6.QtWidgets.QGraphicsScene,
+		projections: list[tuple[object, list]],
+		) -> None:
+	"""Add already-owned molecule graphics to a scene without model mutation."""
+	for _mol_model, graphics_items in projections:
+		for item in graphics_items:
+			scene.addItem(item)
+
+
+#============================================
+def _project_molecules_to_scene(
+		scene: PySide6.QtWidgets.QGraphicsScene, molecules: list,
+		) -> list[tuple[object, list]]:
+	"""Project molecules already owned by a loaded Document into its scene."""
+	projections = _build_molecule_projections(molecules)
+	_project_molecule_projections(scene, projections)
+	return projections
+
+
+#============================================
+#============================================
+def _load_same_tab(app: object) -> None:
 	"""Open a file replacing the current tab contents.
 
-	Checks for unsaved changes before clearing, then loads the
-	selected file into the current scene and document.
+	Delegates to MainWindow's parse-before-replace lifecycle.
 
 	Args:
 		app: MainWindow instance.
 	"""
-	# dirty guard: prompt to save unsaved changes
-	if app.document.dirty:
-		reply = PySide6.QtWidgets.QMessageBox.question(
-			app, "Unsaved Changes",
-			"Save changes before opening a new file?",
-			(PySide6.QtWidgets.QMessageBox.StandardButton.Save
-				| PySide6.QtWidgets.QMessageBox.StandardButton.Discard
-				| PySide6.QtWidgets.QMessageBox.StandardButton.Cancel),
-			PySide6.QtWidgets.QMessageBox.StandardButton.Save,
-		)
-		if reply == PySide6.QtWidgets.QMessageBox.StandardButton.Cancel:
-			return
-		if reply == PySide6.QtWidgets.QMessageBox.StandardButton.Save:
-			app._on_save()
-	# clear the current scene and document
-	app._scene.clear()
-	app._scene._build_paper()
-	app._scene._build_grid()
-	import bkchem_qt.models.document
-	app._document = bkchem_qt.models.document.Document(app)
-	app._view.set_document(app._document)
-	app._document.set_scene(app._scene)
-	# re-wire predicate signals
-	app._document.selection_changed.connect(app._update_menu_predicates)
-	app._document.undo_stack.canUndoChanged.connect(
-		lambda _: app._update_menu_predicates()
-	)
-	app._document.undo_stack.canRedoChanged.connect(
-		lambda _: app._update_menu_predicates()
-	)
-	# open file into the fresh document
-	open_file(app)
-	# update tab title from loaded file
-	app._tab_widget.setTabText(0, app._document.title())
+	app._on_open_same_tab()
 
 
 #============================================
-def _document_properties(app) -> None:
-	"""Show a document properties dialog.
+def _active_paper_properties_session(app: object) -> object | None:
+	"""Return the one registered active session that owns every live alias."""
+	session = getattr(app, "_active_session", None)
+	document = getattr(app, "document", None)
+	scene = getattr(app, "scene", None)
+	view = getattr(app, "view", None)
+	sessions = getattr(app, "sessions", ())
+	if session is None or document is None or scene is None or view is None:
+		return None
+	if session.is_disposed or session not in sessions:
+		return None
+	if (
+			session.document is not document
+			or session.scene is not scene
+			or session.view is not view
+		):
+		return None
+	return session
 
-	Displays paper size, molecule count, atom count, bond count,
-	and file path in a read-only information dialog.
 
-	Args:
-		app: MainWindow instance.
-	"""
-	doc = app.document
-	n_mols = len(doc.molecules)
-	n_atoms = sum(len(m.atoms) for m in doc.molecules)
-	n_bonds = sum(len(m.bonds) for m in doc.molecules)
-	file_path = doc.file_path or "(unsaved)"
-	# get paper dimensions from the scene
-	paper_rect = app._scene.paper_rect
-	paper_w = int(paper_rect.width())
-	paper_h = int(paper_rect.height())
-	info_text = ""
-	info_text += "File: %s\n" % file_path
-	info_text += "Paper size: %d x %d px\n" % (paper_w, paper_h)
-	info_text += "Molecules: %d\n" % n_mols
-	info_text += "Atoms: %d\n" % n_atoms
-	info_text += "Bonds: %d\n" % n_bonds
-	info_text += "Unsaved changes: %s" % ("Yes" if doc.dirty else "No")
-	PySide6.QtWidgets.QMessageBox.information(
-		app, "Document Properties", info_text,
+#============================================
+def _paper_properties_request(
+		expected_revision: int, changes: tuple[tuple[str, object], ...],
+		) -> object:
+	"""Build one explicit-field backend patch request from dialog intent."""
+	return bkchem_qt.models.document_session.build_paper_properties_request(
+		expected_revision, changes,
 	)
 
 
 #============================================
-def register_file_actions(registry, app) -> None:
+def _document_properties(app: object) -> None:
+	"""Commit accepted document paper scalars through the active backend session."""
+	session = _active_paper_properties_session(app)
+	if session is None or not session.can_commit_persistent_action:
+		app.statusBar().showMessage("Document Properties is unavailable", 3000)
+		return
+	snapshot = session.backend_snapshot
+	try:
+		submit = app.persistent_operation_capability_for(session)
+	except ValueError:
+		app.statusBar().showMessage("Document Properties is unavailable", 3000)
+		return
+	context = session.paper_properties_context()
+	attributes = context["attributes"]
+	default_type = context["default_type"]
+	default_orientation = context["default_orientation"]
+	if (
+		not isinstance(attributes, dict)
+		or not isinstance(default_type, str)
+		or not isinstance(default_orientation, str)
+	):
+		app.statusBar().showMessage("Document Properties is unavailable", 3000)
+		return
+	dialog = bkchem_qt.dialogs.paper_properties_dialog.PaperPropertiesDialog(
+		attributes, session.paper_catalog(), default_type, default_orientation, app,
+	)
+	if dialog.exec() != PySide6.QtWidgets.QDialog.DialogCode.Accepted:
+		return
+	changes = dialog.changes()
+	if _active_paper_properties_session(app) is not session:
+		app.statusBar().showMessage("Document Properties no longer applies to this tab", 3000)
+		return
+	request = _paper_properties_request(snapshot.revision, changes)
+	outcome = submit(request)
+	app._show_persistent_action_outcome(outcome)
+	app._refresh_document_actions()
+
+
+#============================================
+def register_file_actions(registry: object, app: object) -> None:
 	"""Register all File menu actions for BKChem-Qt.
 
 	Maps each file action to the appropriate Qt handler method on the
@@ -369,11 +576,11 @@ def register_file_actions(registry, app) -> None:
 		registry: ActionRegistry instance to register actions with.
 		app: The main BKChem-Qt application object providing handler methods.
 	"""
-	# create a new file in a new tab
+	# create a new file in a new document tab
 	registry.register(MenuAction(
 		id='file.new',
 		label_key='New',
-		help_key='Create a new file in a new tab',
+		help_key='Create a new file',
 		accelerator='(C-n)',
 		handler=app._on_new,
 		enabled_when=None,
@@ -385,7 +592,7 @@ def register_file_actions(registry, app) -> None:
 		help_key='Save the file',
 		accelerator='(C-s)',
 		handler=app._on_save,
-		enabled_when=None,
+		enabled_when=app.can_save_authoritatively,
 	))
 	# save under a different name
 	registry.register(MenuAction(
@@ -394,22 +601,31 @@ def register_file_actions(registry, app) -> None:
 		help_key='Save the file under a different name',
 		accelerator='(C-S-s)',
 		handler=app._on_save_as,
-		enabled_when=None,
+		enabled_when=app.can_save_authoritatively,
+	))
+	# export the authoritative backend snapshot without changing session state
+	registry.register(MenuAction(
+		id='file.recovery_export',
+		label_key='Recovery Export Backend CDML...',
+		help_key='Export the current backend snapshot without saving the document',
+		accelerator=None,
+		handler=app._on_recovery_export,
+		enabled_when=app.can_recovery_export,
 	))
 	# save as a template file
 	registry.register(MenuAction(
 		id='file.save_as_template',
 		label_key='Save As Template',
-		help_key='Save the file as template, certain criteria must be met for this to work',
+		help_key='Export the current backend CDML snapshot as a template',
 		accelerator=None,
-		handler=lambda: _save_as_template(app),
-		enabled_when=None,
+		handler=app._on_save_as_template,
+		enabled_when=app.can_save_as_template,
 	))
 	# open a file in a new tab
 	registry.register(MenuAction(
 		id='file.load',
 		label_key='Open',
-		help_key='Open a file in a new tab',
+		help_key='Open a file',
 		accelerator='(C-o)',
 		handler=app._on_open,
 		enabled_when=None,
@@ -438,7 +654,7 @@ def register_file_actions(registry, app) -> None:
 		label_key='Close tab',
 		help_key='Close the current tab, exit when there is only one tab',
 		accelerator='(C-w)',
-		handler=app.close,
+		handler=lambda: app.close_current_tab(),
 		enabled_when=None,
 	))
 	# exit the application

@@ -43,7 +43,7 @@ OUTPUT_MODES = set(CODEC_CODES.keys())
 
 
 #============================================
-def conversion_type(text):
+def conversion_type(text: str) -> tuple:
 	"""Validate the conversion code.
 
 	Args:
@@ -76,7 +76,7 @@ def conversion_type(text):
 
 
 #============================================
-def parse_args():
+def parse_args() -> argparse.Namespace:
 	"""Parse command-line arguments.
 
 	Returns:
@@ -120,7 +120,7 @@ def parse_args():
 
 
 #============================================
-def write_exception_message(exc):
+def write_exception_message(exc: Exception) -> None:
 	"""Write a short error message for conversion failures."""
 	sys.stderr.write(f"Error: {exc}\n")
 	sys.stderr.write("If you are sure your input is OK, please send a bugreport to ")
@@ -128,7 +128,7 @@ def write_exception_message(exc):
 
 
 #============================================
-def convert_file(in_codec, out_codec, infile, outfile):
+def convert_file(in_codec: object, out_codec: object, infile: object, outfile: object) -> float:
 	"""Convert a file using the selected codecs."""
 	start_time = time.time()
 	try:
@@ -142,7 +142,7 @@ def convert_file(in_codec, out_codec, infile, outfile):
 
 
 #============================================
-def convert_interactive(in_codec, out_codec, outfile, prompt):
+def convert_interactive(in_codec: object, out_codec: object, outfile: object, prompt: str) -> None:
 	"""Run interactive conversion in a prompt loop."""
 	while True:
 		try:
@@ -164,7 +164,7 @@ def convert_interactive(in_codec, out_codec, outfile, prompt):
 
 
 #============================================
-def main():
+def main() -> None:
 	"""Run the conversion utility."""
 	args = parse_args()
 	inmode, outmode = args.conversion

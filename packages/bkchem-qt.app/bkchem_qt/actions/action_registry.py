@@ -5,10 +5,15 @@ the shared contract for the modular menu refactor.
 """
 
 # Standard Library
-import pathlib
 import builtins
 import importlib
 import dataclasses
+
+# local repo modules
+from bkchem_qt.actions.registrar_manifest import (
+	ACTION_REGISTRAR_MODULES,
+	registrar_name,
+)
 
 # gettext i18n translation fallback
 _ = builtins.__dict__.get('_', lambda m: m)
@@ -46,10 +51,15 @@ class MenuAction:
 
 
 #============================================
+class ActionRegistrationError(RuntimeError):
+	"""Report an action module that could not take part in startup."""
+
+
+#============================================
 class ActionRegistry:
 	"""Registry of all menu actions, keyed by action ID."""
 
-	def __init__(self):
+	def __init__(self) -> None:
 		"""Initialize an empty action registry."""
 		self._actions: dict = {}
 
@@ -99,7 +109,7 @@ class ActionRegistry:
 		"""
 		return dict(self._actions)
 
-	def is_enabled(self, action_id: str, context) -> bool:
+	def is_enabled(self, action_id: str, context: object) -> bool:
 		"""Determine whether an action is currently enabled.
 
 		Args:
@@ -122,11 +132,13 @@ class ActionRegistry:
 
 
 #============================================
-def register_all_actions(app) -> ActionRegistry:
+def register_all_actions(app: object) -> ActionRegistry:
 	"""Register all menu actions from per-menu modules.
 
-	Imports each per-menu registration module and calls its registrar
-	function. Modules that have not been written yet are silently skipped.
+	Imports each immutable-manifest registration module and calls its registrar.
+	The manifest remains available in both source and frozen application layouts.
+	Every import and registrar failure names its responsible module, preventing a
+	partially populated menu from looking like a successful application start.
 
 	Args:
 		app: The application object passed to each registrar.
@@ -135,16 +147,26 @@ def register_all_actions(app) -> ActionRegistry:
 		A populated ActionRegistry instance.
 	"""
 	registry = ActionRegistry()
-	# auto-discover *_actions.py modules in this package
-	actions_dir = pathlib.Path(__file__).parent
-	for module_file in sorted(actions_dir.glob("*_actions.py")):
-		module_name = module_file.stem
-		func_name = f"register_{module_name}"
+	for qualified_name in ACTION_REGISTRAR_MODULES:
+		func_name = registrar_name(qualified_name)
 		try:
-			mod = importlib.import_module(f"bkchem_qt.actions.{module_name}")
-			registrar = getattr(mod, func_name, None)
-			if registrar and callable(registrar):
-				registrar(registry, app)
-		except ImportError:
-			pass
+			mod = importlib.import_module(qualified_name)
+		except Exception as exc:
+			message = f"Could not import action module '{qualified_name}': {exc}"
+			raise ActionRegistrationError(message) from exc
+		registrar = getattr(mod, func_name, None)
+		if not callable(registrar):
+			message = (
+				f"Action module '{qualified_name}' does not define callable "
+				f"registrar '{func_name}'."
+			)
+			raise ActionRegistrationError(message)
+		try:
+			registrar(registry, app)
+		except Exception as exc:
+			message = (
+				f"Could not register actions from module '{qualified_name}' "
+				f"through '{func_name}': {exc}"
+			)
+			raise ActionRegistrationError(message) from exc
 	return registry

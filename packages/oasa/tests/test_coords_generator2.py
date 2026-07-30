@@ -8,14 +8,14 @@ import oasa.smiles_lib
 
 
 #============================================
-def _mol_from_smiles(smiles_text: str):
+def _mol_from_smiles(smiles_text: str) -> object:
 	"""Parse SMILES and return an OASA molecule with no coords."""
 	mol = oasa.smiles_lib.text_to_mol(smiles_text, calc_coords=False)
 	return mol
 
 
 #============================================
-def _all_coords_set(mol) -> bool:
+def _all_coords_set(mol: object) -> bool:
 	"""Return True if every atom has non-None x and y."""
 	for a in mol.vertices:
 		if a.x is None or a.y is None:
@@ -24,7 +24,7 @@ def _all_coords_set(mol) -> bool:
 
 
 #============================================
-def _bond_lengths(mol) -> list:
+def _bond_lengths(mol: object) -> list:
 	"""Return list of bond lengths for all edges."""
 	lengths = []
 	for b in mol.edges:
@@ -35,7 +35,7 @@ def _bond_lengths(mol) -> list:
 
 
 #============================================
-def _min_nonbonded_distance(mol) -> float:
+def _min_nonbonded_distance(mol: object) -> float:
 	"""Return minimum distance between non-bonded atom pairs."""
 	atoms = mol.vertices
 	min_d = float("inf")
@@ -57,7 +57,7 @@ def _min_nonbonded_distance(mol) -> float:
 
 #============================================
 class TestSingleAtom:
-	def test_single_atom(self):
+	def test_single_atom(self) -> None:
 		mol = _mol_from_smiles("C")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
 		assert _all_coords_set(mol)
@@ -72,12 +72,12 @@ class TestSingleAtom:
 
 #============================================
 class TestEthanol:
-	def test_all_coords_set(self):
+	def test_all_coords_set(self) -> None:
 		mol = _mol_from_smiles("CCO")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
 		assert _all_coords_set(mol)
 
-	def test_bond_lengths_uniform(self):
+	def test_bond_lengths_uniform(self) -> None:
 		"""All bond lengths should be close to target."""
 		mol = _mol_from_smiles("CCO")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
@@ -85,7 +85,7 @@ class TestEthanol:
 		for bl in lengths:
 			assert abs(bl - 1.0) < 0.15, f"bond length {bl:.3f} too far from 1.0"
 
-	def test_three_atoms(self):
+	def test_three_atoms(self) -> None:
 		mol = _mol_from_smiles("CCO")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
 		assert len(mol.vertices) == 3
@@ -97,17 +97,17 @@ class TestEthanol:
 
 #============================================
 class TestBenzene:
-	def test_all_coords_set(self):
+	def test_all_coords_set(self) -> None:
 		mol = _mol_from_smiles("c1ccccc1")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
 		assert _all_coords_set(mol)
 
-	def test_six_atoms(self):
+	def test_six_atoms(self) -> None:
 		mol = _mol_from_smiles("c1ccccc1")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
 		assert len(mol.vertices) == 6
 
-	def test_hexagonal_bond_lengths(self):
+	def test_hexagonal_bond_lengths(self) -> None:
 		"""All 6 bonds should be near target length."""
 		mol = _mol_from_smiles("c1ccccc1")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
@@ -116,7 +116,7 @@ class TestBenzene:
 		for bl in lengths:
 			assert abs(bl - 1.0) < 0.15, f"benzene bond {bl:.3f} off target"
 
-	def test_ring_symmetry(self):
+	def test_ring_symmetry(self) -> None:
 		"""All atoms should be roughly equidistant from center."""
 		mol = _mol_from_smiles("c1ccccc1")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
@@ -135,17 +135,17 @@ class TestBenzene:
 
 #============================================
 class TestNaphthalene:
-	def test_all_coords_set(self):
+	def test_all_coords_set(self) -> None:
 		mol = _mol_from_smiles("c1ccc2ccccc2c1")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
 		assert _all_coords_set(mol)
 
-	def test_ten_atoms(self):
+	def test_ten_atoms(self) -> None:
 		mol = _mol_from_smiles("c1ccc2ccccc2c1")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
 		assert len(mol.vertices) == 10
 
-	def test_bond_lengths(self):
+	def test_bond_lengths(self) -> None:
 		mol = _mol_from_smiles("c1ccc2ccccc2c1")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
 		lengths = _bond_lengths(mol)
@@ -159,12 +159,12 @@ class TestNaphthalene:
 
 #============================================
 class TestAceticAcid:
-	def test_all_coords_set(self):
+	def test_all_coords_set(self) -> None:
 		mol = _mol_from_smiles("CC(=O)O")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
 		assert _all_coords_set(mol)
 
-	def test_four_atoms(self):
+	def test_four_atoms(self) -> None:
 		mol = _mol_from_smiles("CC(=O)O")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
 		assert len(mol.vertices) == 4
@@ -176,12 +176,12 @@ class TestAceticAcid:
 
 #============================================
 class TestCyclohexane:
-	def test_all_coords_set(self):
+	def test_all_coords_set(self) -> None:
 		mol = _mol_from_smiles("C1CCCCC1")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
 		assert _all_coords_set(mol)
 
-	def test_six_atoms(self):
+	def test_six_atoms(self) -> None:
 		mol = _mol_from_smiles("C1CCCCC1")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
 		assert len(mol.vertices) == 6
@@ -193,7 +193,7 @@ class TestCyclohexane:
 
 #============================================
 class TestSpiro:
-	def test_spiro_coords_set(self):
+	def test_spiro_coords_set(self) -> None:
 		"""Spiro[4.4]nonane: two 5-membered rings sharing one atom."""
 		mol = _mol_from_smiles("C1CCC2(C1)CCCC2")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
@@ -206,14 +206,14 @@ class TestSpiro:
 
 #============================================
 class TestSteroid:
-	def test_steroid_coords_set(self):
+	def test_steroid_coords_set(self) -> None:
 		"""Steroid core: four fused rings (6-6-6-5)."""
 		smiles_text = "C1CCC2C(C1)CCC3C2CCC4CCCC34"
 		mol = _mol_from_smiles(smiles_text)
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
 		assert _all_coords_set(mol)
 
-	def test_steroid_atom_count(self):
+	def test_steroid_atom_count(self) -> None:
 		smiles_text = "C1CCC2C(C1)CCC3C2CCC4CCCC34"
 		mol = _mol_from_smiles(smiles_text)
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
@@ -226,7 +226,7 @@ class TestSteroid:
 
 #============================================
 class TestForceParameter:
-	def test_force_recalculates(self):
+	def test_force_recalculates(self) -> None:
 		"""Setting force=1 should recalculate even if coords exist."""
 		mol = _mol_from_smiles("CC")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
@@ -236,7 +236,7 @@ class TestForceParameter:
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
 		assert mol.vertices[0].x != 999.0
 
-	def test_no_force_keeps_existing(self):
+	def test_no_force_keeps_existing(self) -> None:
 		"""Without force, existing coords should be preserved."""
 		mol = _mol_from_smiles("CC")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
@@ -251,13 +251,13 @@ class TestForceParameter:
 
 #============================================
 class TestLongChain:
-	def test_hexane(self):
+	def test_hexane(self) -> None:
 		mol = _mol_from_smiles("CCCCCC")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
 		assert _all_coords_set(mol)
 		assert len(mol.vertices) == 6
 
-	def test_zigzag_pattern(self):
+	def test_zigzag_pattern(self) -> None:
 		"""Long chain should not fold back on itself."""
 		mol = _mol_from_smiles("CCCCCCCCCC")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
@@ -276,7 +276,7 @@ class TestLongChain:
 
 #============================================
 class TestTripleBond:
-	def test_acetylene_linear(self):
+	def test_acetylene_linear(self) -> None:
 		"""Triple bond atoms should be roughly linear."""
 		mol = _mol_from_smiles("C#C")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
@@ -289,19 +289,19 @@ class TestTripleBond:
 
 #============================================
 class TestCubane:
-	def test_cubane_coords_set(self):
+	def test_cubane_coords_set(self) -> None:
 		"""Cubane: all 8 atoms should get coordinates."""
 		mol = _mol_from_smiles("C12C3C4C1C5C4C3C25")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
 		assert _all_coords_set(mol)
 
-	def test_cubane_atom_count(self):
+	def test_cubane_atom_count(self) -> None:
 		"""Cubane has 8 heavy atoms."""
 		mol = _mol_from_smiles("C12C3C4C1C5C4C3C25")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
 		assert len(mol.vertices) == 8
 
-	def test_cubane_no_overlap(self):
+	def test_cubane_no_overlap(self) -> None:
 		"""No two non-bonded atoms should overlap."""
 		mol = _mol_from_smiles("C12C3C4C1C5C4C3C25")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
@@ -315,19 +315,19 @@ class TestCubane:
 
 #============================================
 class TestAdamantane:
-	def test_adamantane_coords_set(self):
+	def test_adamantane_coords_set(self) -> None:
 		"""Adamantane: all 10 atoms should get coordinates."""
 		mol = _mol_from_smiles("C1C2CC3CC1CC(C2)C3")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
 		assert _all_coords_set(mol)
 
-	def test_adamantane_atom_count(self):
+	def test_adamantane_atom_count(self) -> None:
 		"""Adamantane has 10 heavy atoms."""
 		mol = _mol_from_smiles("C1C2CC3CC1CC(C2)C3")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
 		assert len(mol.vertices) == 10
 
-	def test_adamantane_no_overlap(self):
+	def test_adamantane_no_overlap(self) -> None:
 		"""No two non-bonded atoms should overlap."""
 		mol = _mol_from_smiles("C1C2CC3CC1CC(C2)C3")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
@@ -341,13 +341,13 @@ class TestAdamantane:
 
 #============================================
 class TestNorbornane:
-	def test_norbornane_coords_set(self):
+	def test_norbornane_coords_set(self) -> None:
 		"""Norbornane: all 7 atoms should get coordinates."""
 		mol = _mol_from_smiles("C1CC2CCC1C2")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
 		assert _all_coords_set(mol)
 
-	def test_norbornane_atom_count(self):
+	def test_norbornane_atom_count(self) -> None:
 		"""Norbornane has 7 heavy atoms."""
 		mol = _mol_from_smiles("C1CC2CCC1C2")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
@@ -359,7 +359,7 @@ class TestNorbornane:
 # ======================================================
 
 #============================================
-def _ring_centroid(mol, ring_atoms: list) -> tuple:
+def _ring_centroid(mol: object, ring_atoms: list) -> tuple:
 	"""Compute centroid of a set of ring atoms."""
 	cx = sum(a.x for a in ring_atoms) / len(ring_atoms)
 	cy = sum(a.y for a in ring_atoms) / len(ring_atoms)
@@ -367,7 +367,7 @@ def _ring_centroid(mol, ring_atoms: list) -> tuple:
 
 
 #============================================
-def _ring_internal_angles(mol, ring_atoms: list) -> list:
+def _ring_internal_angles(mol: object, ring_atoms: list) -> list:
 	"""Compute internal angles at each vertex of a ring.
 
 	Ring atoms must be in order around the ring.
@@ -396,13 +396,13 @@ def _ring_internal_angles(mol, ring_atoms: list) -> list:
 
 #============================================
 class TestBiphenyl:
-	def test_biphenyl_coords_set(self):
+	def test_biphenyl_coords_set(self) -> None:
 		"""Both phenyl rings should get coordinates."""
 		mol = _mol_from_smiles("c1ccc(-c2ccccc2)cc1")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
 		assert _all_coords_set(mol)
 
-	def test_biphenyl_ring_systems_separated(self):
+	def test_biphenyl_ring_systems_separated(self) -> None:
 		"""The two hexagons must not overlap; centroids > 1 bond length apart."""
 		mol = _mol_from_smiles("c1ccc(-c2ccccc2)cc1")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
@@ -413,7 +413,7 @@ class TestBiphenyl:
 		dist = math.sqrt((c1[0] - c2[0]) ** 2 + (c1[1] - c2[1]) ** 2)
 		assert dist > 1.0, f"ring centroids too close: {dist:.3f}"
 
-	def test_biphenyl_bond_lengths(self):
+	def test_biphenyl_bond_lengths(self) -> None:
 		"""All bonds should be close to target after proper ring placement."""
 		mol = _mol_from_smiles("c1ccc(-c2ccccc2)cc1")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
@@ -428,7 +428,7 @@ class TestBiphenyl:
 
 #============================================
 class TestSpiroQuality:
-	def test_spiro44_bond_lengths(self):
+	def test_spiro44_bond_lengths(self) -> None:
 		"""Spiro[4.4]nonane bonds should be near target."""
 		mol = _mol_from_smiles("C1CCC2(C1)CCCC2")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
@@ -436,7 +436,7 @@ class TestSpiroQuality:
 		for bl in lengths:
 			assert abs(bl - 1.0) < 0.25, f"spiro bond {bl:.3f} off target"
 
-	def test_spiro55_bond_lengths(self):
+	def test_spiro55_bond_lengths(self) -> None:
 		"""Spiro[5.5]undecane bonds should be near target."""
 		mol = _mol_from_smiles("C1CCCCC12CCCCC2")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
@@ -451,7 +451,7 @@ class TestSpiroQuality:
 
 #============================================
 class TestRingGeometryPreservation:
-	def test_benzene_angles_after_pipeline(self):
+	def test_benzene_angles_after_pipeline(self) -> None:
 		"""Benzene internal angles should be ~120 deg."""
 		mol = _mol_from_smiles("c1ccccc1")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
@@ -465,7 +465,7 @@ class TestRingGeometryPreservation:
 				f"benzene angle {ang:.1f} deg, expected {ideal:.1f}"
 			)
 
-	def test_naphthalene_ring_angles(self):
+	def test_naphthalene_ring_angles(self) -> None:
 		"""Naphthalene hexagon angles should be near 120 deg."""
 		mol = _mol_from_smiles("c1ccc2ccccc2c1")
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
@@ -481,7 +481,7 @@ class TestRingGeometryPreservation:
 					f"angle {ang:.1f} deg, expected {ideal:.1f}"
 				)
 
-	def test_cholesterol_skeleton_bond_lengths(self):
+	def test_cholesterol_skeleton_bond_lengths(self) -> None:
 		"""Steroid skeleton bonds should be near target length."""
 		smiles_text = "C1CCC2C(C1)CCC1C2CCC2CCCC21"
 		mol = _mol_from_smiles(smiles_text)
@@ -507,13 +507,13 @@ class TestSucrose:
 		"[C@H](O)[C@@H](O)[C@@H]1O"
 	)
 
-	def test_sucrose_all_coords_set(self):
+	def test_sucrose_all_coords_set(self) -> None:
 		"""Every atom in sucrose gets non-None x,y coordinates."""
 		mol = _mol_from_smiles(self.SMILES)
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
 		assert _all_coords_set(mol)
 
-	def test_sucrose_rings_separated(self):
+	def test_sucrose_rings_separated(self) -> None:
 		"""Centroids of the two ring systems must be > 1.5 bond lengths apart."""
 		mol = _mol_from_smiles(self.SMILES)
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
@@ -526,7 +526,7 @@ class TestSucrose:
 			f"ring centroids too close: {dist:.3f}, rings overlap"
 		)
 
-	def test_sucrose_bond_lengths(self):
+	def test_sucrose_bond_lengths(self) -> None:
 		"""All bonds should be within tolerance of target bond_length."""
 		mol = _mol_from_smiles(self.SMILES)
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
@@ -551,13 +551,13 @@ class TestRaffinose:
 		"[C@H](O)[C@@H](O)[C@@H]2O)[C@H](O)[C@@H](O)[C@@H]1O"
 	)
 
-	def test_raffinose_all_coords_set(self):
+	def test_raffinose_all_coords_set(self) -> None:
 		"""Every atom in raffinose gets non-None x,y coordinates."""
 		mol = _mol_from_smiles(self.SMILES)
 		cg.calculate_coords(mol, bond_length=1.0, force=1)
 		assert _all_coords_set(mol)
 
-	def test_raffinose_rings_separated(self):
+	def test_raffinose_rings_separated(self) -> None:
 		"""All ring system centroids must be pairwise separated."""
 		mol = _mol_from_smiles(self.SMILES)
 		cg.calculate_coords(mol, bond_length=1.0, force=1)

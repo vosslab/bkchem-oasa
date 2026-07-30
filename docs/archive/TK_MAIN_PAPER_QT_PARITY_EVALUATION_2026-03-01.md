@@ -3,8 +3,8 @@
 ## Purpose
 
 This document evaluates how the Tk implementation centered on
-[`packages/bkchem-app/bkchem/main.py`](../../packages/bkchem-app/bkchem/main.py)
-and [`packages/bkchem-app/bkchem/paper.py`](../../packages/bkchem-app/bkchem/paper.py)
+[main.py](../../packages/bkchem-app/bkchem/main.py)
+and [paper.py](../../packages/bkchem-app/bkchem/paper.py)
 actually works, with the explicit goal of preserving the strongest behavior in
 the Qt port.
 
@@ -16,37 +16,37 @@ interaction seams that make Tk BKChem feel complete.
 
 Primary entry points:
 
-- [`packages/bkchem-app/bkchem/main.py`](../../packages/bkchem-app/bkchem/main.py)
-- [`packages/bkchem-app/bkchem/paper.py`](../../packages/bkchem-app/bkchem/paper.py)
+- [main.py](../../packages/bkchem-app/bkchem/main.py)
+- [paper.py](../../packages/bkchem-app/bkchem/paper.py)
 
 Main submodules:
 
-- [`packages/bkchem-app/bkchem/main_lib/main_tabs.py`](../../packages/bkchem-app/bkchem/main_lib/main_tabs.py)
-- [`packages/bkchem-app/bkchem/main_lib/main_modes.py`](../../packages/bkchem-app/bkchem/main_lib/main_modes.py)
-- [`packages/bkchem-app/bkchem/main_lib/main_file_io.py`](../../packages/bkchem-app/bkchem/main_lib/main_file_io.py)
-- [`packages/bkchem-app/bkchem/main_lib/main_chemistry_io.py`](../../packages/bkchem-app/bkchem/main_lib/main_chemistry_io.py)
+- [main_tabs.py](../../packages/bkchem-app/bkchem/main_lib/main_tabs.py)
+- [main_modes.py](../../packages/bkchem-app/bkchem/main_lib/main_modes.py)
+- [main_file_io.py](../../packages/bkchem-app/bkchem/main_lib/main_file_io.py)
+- [main_chemistry_io.py](../../packages/bkchem-app/bkchem/main_lib/main_chemistry_io.py)
 
 Paper submodules:
 
-- [`packages/bkchem-app/bkchem/paper_lib/paper_events.py`](../../packages/bkchem-app/bkchem/paper_lib/paper_events.py)
-- [`packages/bkchem-app/bkchem/paper_lib/paper_selection.py`](../../packages/bkchem-app/bkchem/paper_lib/paper_selection.py)
-- [`packages/bkchem-app/bkchem/paper_lib/paper_zoom.py`](../../packages/bkchem-app/bkchem/paper_lib/paper_zoom.py)
-- [`packages/bkchem-app/bkchem/paper_lib/paper_cdml.py`](../../packages/bkchem-app/bkchem/paper_lib/paper_cdml.py)
-- [`packages/bkchem-app/bkchem/paper_lib/paper_properties.py`](../../packages/bkchem-app/bkchem/paper_lib/paper_properties.py)
-- [`packages/bkchem-app/bkchem/paper_lib/paper_layout.py`](../../packages/bkchem-app/bkchem/paper_lib/paper_layout.py)
-- [`packages/bkchem-app/bkchem/paper_lib/paper_factories.py`](../../packages/bkchem-app/bkchem/paper_lib/paper_factories.py)
-- [`packages/bkchem-app/bkchem/paper_lib/paper_transforms.py`](../../packages/bkchem-app/bkchem/paper_lib/paper_transforms.py)
-- [`packages/bkchem-app/bkchem/paper_lib/paper_id_manager.py`](../../packages/bkchem-app/bkchem/paper_lib/paper_id_manager.py)
+- [paper_events.py](../../packages/bkchem-app/bkchem/paper_lib/paper_events.py)
+- [paper_selection.py](../../packages/bkchem-app/bkchem/paper_lib/paper_selection.py)
+- [paper_zoom.py](../../packages/bkchem-app/bkchem/paper_lib/paper_zoom.py)
+- [paper_cdml.py](../../packages/bkchem-app/bkchem/paper_lib/paper_cdml.py)
+- [paper_properties.py](../../packages/bkchem-app/bkchem/paper_lib/paper_properties.py)
+- [paper_layout.py](../../packages/bkchem-app/bkchem/paper_lib/paper_layout.py)
+- [paper_factories.py](../../packages/bkchem-app/bkchem/paper_lib/paper_factories.py)
+- [paper_transforms.py](../../packages/bkchem-app/bkchem/paper_lib/paper_transforms.py)
+- [paper_id_manager.py](../../packages/bkchem-app/bkchem/paper_lib/paper_id_manager.py)
 
 Supporting contracts used by main/paper:
 
-- [`packages/bkchem-app/bkchem/modes/mode_loader.py`](../../packages/bkchem-app/bkchem/modes/mode_loader.py)
-- [`packages/bkchem-app/bkchem/modes/modes_lib.py`](../../packages/bkchem-app/bkchem/modes/modes_lib.py)
-- [`packages/bkchem-app/bkchem/modes/config.py`](../../packages/bkchem-app/bkchem/modes/config.py)
-- [`packages/bkchem-app/bkchem_data/modes.yaml`](../../packages/bkchem-app/bkchem_data/modes.yaml)
-- [`packages/bkchem-app/bkchem/platform_menu.py`](../../packages/bkchem-app/bkchem/platform_menu.py)
-- [`packages/bkchem-app/bkchem/theme_manager.py`](../../packages/bkchem-app/bkchem/theme_manager.py)
-- [`packages/bkchem-app/bkchem/grid_overlay.py`](../../packages/bkchem-app/bkchem/grid_overlay.py)
+- [mode_loader.py](../../packages/bkchem-app/bkchem/modes/mode_loader.py)
+- [modes_lib.py](../../packages/bkchem-app/bkchem/modes/modes_lib.py)
+- [config.py](../../packages/bkchem-app/bkchem/modes/config.py)
+- [modes.yaml](../../packages/bkchem-app/bkchem_data/modes.yaml)
+- [platform_menu.py](../../packages/bkchem-app/bkchem/platform_menu.py)
+- [theme_manager.py](../../packages/bkchem-app/bkchem/theme_manager.py)
+- [grid_overlay.py](../../packages/bkchem-app/bkchem/grid_overlay.py)
 
 
 ## System architecture summary
@@ -120,9 +120,9 @@ Qt implication:
 ## 3) Modes are YAML-defined but runtime-aware
 
 Toolbar and submodes are declared in
-[`packages/bkchem-app/bkchem_data/modes.yaml`](../../packages/bkchem-app/bkchem_data/modes.yaml),
-loaded by [`modes/config.py`](../../packages/bkchem-app/bkchem/modes/config.py),
-instantiated by [`modes/mode_loader.py`](../../packages/bkchem-app/bkchem/modes/mode_loader.py).
+[modes.yaml](../../packages/bkchem-app/bkchem_data/modes.yaml),
+loaded by [config.py](../../packages/bkchem-app/bkchem/modes/config.py),
+instantiated by [mode_loader.py](../../packages/bkchem-app/bkchem/modes/mode_loader.py).
 
 Strong behaviors:
 

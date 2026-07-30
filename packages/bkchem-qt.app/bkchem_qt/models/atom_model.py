@@ -26,7 +26,7 @@ class AtomModel(PySide6.QtCore.QObject):
 	property_changed = PySide6.QtCore.Signal(str, object)
 
 	#============================================
-	def __init__(self, oasa_atom: oasa.atom_lib.Atom = None, parent: PySide6.QtCore.QObject = None):
+	def __init__(self, oasa_atom: oasa.atom_lib.Atom = None, parent: PySide6.QtCore.QObject = None) -> None:
 		"""Initialize the atom model.
 
 		Args:
@@ -36,6 +36,10 @@ class AtomModel(PySide6.QtCore.QObject):
 		super().__init__(parent)
 		# chemistry backend
 		self._chem_atom = oasa_atom or oasa.atom_lib.Atom()
+		# The projection can allocate a private linkage ID for an ID-less legacy
+		# atom.  Keep the backend-issued identity separate so a local repair
+		# cannot become a target in an authoritative request.
+		self._backend_durable_id: str | None = None
 		# coordinates (display layer owns these)
 		self._x = 0.0
 		self._y = 0.0
@@ -44,11 +48,38 @@ class AtomModel(PySide6.QtCore.QObject):
 		self._show = True
 		self._show_hydrogens = True
 		self._font_size = 12
+		self._font_family = "Arial"
 		self._line_color = "#000000"
+		# Atom numbering is a frontend projection of backend-owned CDML depiction
+		# state. It remains separate from the OASA chemistry atom.
+		self._number: int | None = None
+		self._show_number = True
+		# Fields explicitly supplied by CDML or changed through the Qt model.
+		# This avoids writing display defaults merely because a model was created.
+		self._cdml_display_fields: set[str] = set()
 
 	# ------------------------------------------------------------------
 	# Chemistry properties delegated to _chem_atom
 	# ------------------------------------------------------------------
+
+	#============================================
+	@property
+	def atom_id(self) -> str | None:
+		"""Return the persisted CDML atom identifier without exposing OASA state."""
+		return self._chem_atom.id
+
+	#============================================
+	@property
+	def backend_durable_id(self) -> str | None:
+		"""Return an authoritative atom ID only while local linkage agrees."""
+		if self._backend_durable_id and self.atom_id == self._backend_durable_id:
+			return self._backend_durable_id
+		return None
+
+	#============================================
+	def bind_backend_durable_id(self, identifier: str | None) -> None:
+		"""Bind this projection to an ID present in the backend snapshot."""
+		self._backend_durable_id = str(identifier) if identifier else None
 
 	#============================================
 	@property
@@ -58,7 +89,7 @@ class AtomModel(PySide6.QtCore.QObject):
 
 	#============================================
 	@symbol.setter
-	def symbol(self, value: str):
+	def symbol(self, value: str) -> None:
 		self._chem_atom.symbol = value
 		self.property_changed.emit("symbol", value)
 
@@ -70,7 +101,7 @@ class AtomModel(PySide6.QtCore.QObject):
 
 	#============================================
 	@charge.setter
-	def charge(self, value: int):
+	def charge(self, value: int) -> None:
 		self._chem_atom.charge = value
 		self.property_changed.emit("charge", value)
 
@@ -82,19 +113,19 @@ class AtomModel(PySide6.QtCore.QObject):
 
 	#============================================
 	@valency.setter
-	def valency(self, value: int):
+	def valency(self, value: int) -> None:
 		self._chem_atom.valency = value
 		self.property_changed.emit("valency", value)
 
 	#============================================
 	@property
-	def isotope(self):
+	def isotope(self) -> int | None:
 		"""Mass number (int or None)."""
 		return self._chem_atom.isotope
 
 	#============================================
 	@isotope.setter
-	def isotope(self, value):
+	def isotope(self, value: int | None) -> None:
 		self._chem_atom.isotope = value
 		self.property_changed.emit("isotope", value)
 
@@ -106,9 +137,33 @@ class AtomModel(PySide6.QtCore.QObject):
 
 	#============================================
 	@multiplicity.setter
-	def multiplicity(self, value: int):
+	def multiplicity(self, value: int) -> None:
 		self._chem_atom.multiplicity = value
 		self.property_changed.emit("multiplicity", value)
+
+	#============================================
+	@property
+	def free_sites(self) -> int:
+		"""Coordination sites beyond normal valency."""
+		return self._chem_atom.free_sites
+
+	#============================================
+	@free_sites.setter
+	def free_sites(self, value: int) -> None:
+		self._chem_atom.free_sites = value
+		self.property_changed.emit("free_sites", value)
+
+	#============================================
+	@property
+	def explicit_hydrogens(self) -> int:
+		"""Explicitly declared hydrogen count."""
+		return self._chem_atom.explicit_hydrogens
+
+	#============================================
+	@explicit_hydrogens.setter
+	def explicit_hydrogens(self, value: int) -> None:
+		self._chem_atom.explicit_hydrogens = int(value)
+		self.property_changed.emit("explicit_hydrogens", int(value))
 
 	#============================================
 	@property
@@ -146,7 +201,7 @@ class AtomModel(PySide6.QtCore.QObject):
 
 	#============================================
 	@x.setter
-	def x(self, value: float):
+	def x(self, value: float) -> None:
 		self._x = float(value)
 		# sync to OASA atom so render ops see correct coordinates
 		self._chem_atom.x = self._x
@@ -160,7 +215,7 @@ class AtomModel(PySide6.QtCore.QObject):
 
 	#============================================
 	@y.setter
-	def y(self, value: float):
+	def y(self, value: float) -> None:
 		self._y = float(value)
 		# sync to OASA atom so render ops see correct coordinates
 		self._chem_atom.y = self._y
@@ -174,7 +229,7 @@ class AtomModel(PySide6.QtCore.QObject):
 
 	#============================================
 	@z.setter
-	def z(self, value: float):
+	def z(self, value: float) -> None:
 		self._z = float(value)
 		# sync to OASA atom so render ops see correct coordinates
 		self._chem_atom.z = self._z
@@ -192,8 +247,10 @@ class AtomModel(PySide6.QtCore.QObject):
 
 	#============================================
 	@show.setter
-	def show(self, value: bool):
+	def show(self, value: bool) -> None:
 		self._show = bool(value)
+		self._cdml_display_fields.add("show")
+		self._chem_atom.properties_["show"] = "yes" if self._show else "no"
 		self.property_changed.emit("show", self._show)
 
 	#============================================
@@ -204,8 +261,10 @@ class AtomModel(PySide6.QtCore.QObject):
 
 	#============================================
 	@show_hydrogens.setter
-	def show_hydrogens(self, value: bool):
+	def show_hydrogens(self, value: bool) -> None:
 		self._show_hydrogens = bool(value)
+		self._cdml_display_fields.add("show_hydrogens")
+		self._chem_atom.properties_["show_hydrogens"] = "on" if self._show_hydrogens else "off"
 		self.property_changed.emit("show_hydrogens", self._show_hydrogens)
 
 	#============================================
@@ -216,9 +275,23 @@ class AtomModel(PySide6.QtCore.QObject):
 
 	#============================================
 	@font_size.setter
-	def font_size(self, value: int):
+	def font_size(self, value: int) -> None:
 		self._font_size = int(value)
+		self._cdml_display_fields.add("font_size")
 		self.property_changed.emit("font_size", self._font_size)
+
+	#============================================
+	@property
+	def font_family(self) -> str:
+		"""Font family for the atom label."""
+		return self._font_family
+
+	#============================================
+	@font_family.setter
+	def font_family(self, value: str) -> None:
+		self._font_family = str(value)
+		self._cdml_display_fields.add("font_family")
+		self.property_changed.emit("font_family", self._font_family)
 
 	#============================================
 	@property
@@ -228,9 +301,40 @@ class AtomModel(PySide6.QtCore.QObject):
 
 	#============================================
 	@line_color.setter
-	def line_color(self, value: str):
+	def line_color(self, value: str) -> None:
 		self._line_color = str(value)
+		self._cdml_display_fields.add("line_color")
 		self.property_changed.emit("line_color", self._line_color)
+
+	#============================================
+	@property
+	def number(self) -> int | None:
+		"""Optional persistent atom number shown by the canvas projection."""
+		return self._number
+
+	#============================================
+	@number.setter
+	def number(self, value: int | None) -> None:
+		"""Set the optional atom number without changing its visibility policy."""
+		if value is not None and (not isinstance(value, int) or isinstance(value, bool)):
+			raise TypeError("atom number must be an integer or None")
+		self._number = value
+		self.property_changed.emit("number", self._number)
+
+	#============================================
+	@property
+	def show_number(self) -> bool:
+		"""Whether an assigned atom number is projected on the canvas."""
+		return self._show_number
+
+	#============================================
+	@show_number.setter
+	def show_number(self, value: bool) -> None:
+		"""Set whether the assigned number is visible in the canvas projection."""
+		if not isinstance(value, bool):
+			raise TypeError("show_number must be a bool")
+		self._show_number = value
+		self.property_changed.emit("show_number", self._show_number)
 
 	# ------------------------------------------------------------------
 	# Methods
@@ -246,7 +350,7 @@ class AtomModel(PySide6.QtCore.QObject):
 		return (self._x, self._y, self._z)
 
 	#============================================
-	def set_xyz(self, x: float, y: float, z: float = 0.0):
+	def set_xyz(self, x: float, y: float, z: float = 0.0) -> None:
 		"""Set all three coordinates at once and emit signals.
 
 		Args:

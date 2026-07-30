@@ -11,18 +11,18 @@ Comparisons use direct render-op assertions. This is OASA-level only
 # Standard Library
 import math
 import os
-import defusedxml.minidom as safe_dom
-import xml.dom.minidom as std_dom
 
 # PIP3 modules
+from lxml import etree
 import pytest
 
 # local repo modules
-import git_file_utils
+import file_utils
 import oasa.atom_lib
 import oasa.bond_lib
 import oasa.molecule_lib
 import oasa.render_ops
+import oasa.safe_xml
 from oasa import dom_extensions
 from oasa import svg_out
 from oasa.render_lib.bond_ops import build_bond_ops
@@ -52,7 +52,7 @@ _O_POS = (60.0, 20.0)
 
 #============================================
 @pytest.fixture
-def methanol():
+def methanol() -> object:
 	"""Build a methanol molecule: C at (0,0), O at (40,0), single bond."""
 	mol = oasa.molecule_lib.Molecule()
 	c = oasa.atom_lib.Atom(symbol="C")
@@ -69,9 +69,9 @@ def methanol():
 
 #============================================
 @pytest.fixture
-def output_smoke_dir():
+def output_smoke_dir() -> object:
 	"""Return repo-level output_smoke directory for deterministic SVG artifacts."""
-	repo_root = git_file_utils.get_repo_root()
+	repo_root = file_utils.get_repo_root()
 	out_dir = os.path.join(repo_root, "output_smoke")
 	os.makedirs(out_dir, exist_ok=True)
 	return out_dir
@@ -79,7 +79,7 @@ def output_smoke_dir():
 
 #============================================
 @pytest.fixture
-def variant_a_ops(methanol):
+def variant_a_ops(methanol: object) -> object:
 	"""Variant A: full-length bond + label mask (no clipping targets).
 
 	BondRenderContext has empty targets so build_bond_ops draws the
@@ -134,7 +134,7 @@ def variant_a_ops(methanol):
 
 #============================================
 @pytest.fixture
-def variant_b_ops(methanol):
+def variant_b_ops(methanol: object) -> object:
 	"""Variant B: clipped bond + no mask (real label/attach targets).
 
 	build_label_attach_targets computes real targets for the O label,
@@ -250,42 +250,50 @@ def _max_bond_line_length(bond_ops: list) -> float:
 
 
 #============================================
-def _svg_line_lengths(document: std_dom.Document) -> list:
+def _parse_svg(path: str) -> etree._ElementTree:
+	"""Parse generated SVG with an isolated hardened lxml parser."""
+	parser = etree.XMLParser(
+		resolve_entities=False,
+		no_network=True,
+		load_dtd=False,
+		dtd_validation=False,
+		recover=False,
+		huge_tree=False,
+	)
+	return etree.parse(path, parser)
+
+
+#============================================
+def _svg_line_lengths(document: etree._ElementTree) -> list:
 	"""Extract <line> segment lengths from one SVG DOM document."""
 	lengths = []
-	for line in document.getElementsByTagName("line"):
-		x1 = float(line.getAttribute("x1"))
-		y1 = float(line.getAttribute("y1"))
-		x2 = float(line.getAttribute("x2"))
-		y2 = float(line.getAttribute("y2"))
+	for line in document.xpath("//svg:line", namespaces={"svg": "http://www.w3.org/2000/svg"}):
+		x1 = float(line.attrib["x1"])
+		y1 = float(line.attrib["y1"])
+		x2 = float(line.attrib["x2"])
+		y2 = float(line.attrib["y2"])
 		lengths.append(_line_length((x1, y1), (x2, y2)))
 	return lengths
 
 
 #============================================
-def _svg_text_values(document: std_dom.Document) -> list:
+def _svg_text_values(document: etree._ElementTree) -> list:
 	"""Extract visible text content from <text> nodes in one SVG DOM document."""
 	values = []
-	for node in document.getElementsByTagName("text"):
-		if node.firstChild is None:
-			continue
-		values.append(node.firstChild.nodeValue or "")
+	for node in document.xpath("//svg:text", namespaces={"svg": "http://www.w3.org/2000/svg"}):
+		values.append("".join(node.itertext()))
 	return values
 
 
 #============================================
 def _dump_svg(ops: list, out_path: str, width: int = 100, height: int = 40) -> None:
 	"""Optional debug helper: serialize ops to SVG file for visual inspection."""
-	document = std_dom.Document()
-	root = dom_extensions.elementUnder(
-		document, "svg",
-		attributes=(
-			("xmlns", "http://www.w3.org/2000/svg"),
-			("version", "1.0"),
-			("width", str(width)),
-			("height", str(height)),
-		),
+	svg_text = (
+		'<svg xmlns="http://www.w3.org/2000/svg" version="1.0" '
+		f'width="{width}" height="{height}" />'
 	)
+	document = oasa.safe_xml.parse_dom_from_string(svg_text)
+	root = document.documentElement
 	group = dom_extensions.elementUnder(root, "g")
 	oasa.render_ops.ops_to_svg(group, ops)
 	text = svg_out.pretty_print_svg(document.toxml("utf-8"))
@@ -298,7 +306,7 @@ def _dump_svg(ops: list, out_path: str, width: int = 100, height: int = 40) -> N
 #============================================
 
 #============================================
-def test_methanol_ab_endpoint_shortening(variant_a_ops, variant_b_ops):
+def test_methanol_ab_endpoint_shortening(variant_a_ops: object, variant_b_ops: object) -> None:
 	"""Variant B bond endpoint is shorter than variant A (clipped at label)."""
 	end_x_a = _rightmost_bond_x(variant_a_ops["bond_ops"])
 	end_x_b = _rightmost_bond_x(variant_b_ops["bond_ops"])
@@ -329,7 +337,7 @@ def test_methanol_ab_endpoint_shortening(variant_a_ops, variant_b_ops):
 
 
 #============================================
-def test_methanol_ab_mask_presence_difference(variant_a_ops, variant_b_ops):
+def test_methanol_ab_mask_presence_difference(variant_a_ops: object, variant_b_ops: object) -> None:
 	"""Variant A has a mask polygon behind O label; variant B does not."""
 	masks_a = _find_mask_polygons(variant_a_ops["oxygen_ops"])
 	masks_b = _find_mask_polygons(variant_b_ops["oxygen_ops"])
@@ -342,7 +350,7 @@ def test_methanol_ab_mask_presence_difference(variant_a_ops, variant_b_ops):
 
 
 #============================================
-def test_methanol_ab_endpoint_not_inside_label_target(variant_b_ops):
+def test_methanol_ab_endpoint_not_inside_label_target(variant_b_ops: object) -> None:
 	"""Variant B bond endpoint is outside the O atom label target boundary.
 
 	build_bond_ops falls back to label_targets when attach_targets is
@@ -380,7 +388,7 @@ def test_methanol_ab_endpoint_not_inside_label_target(variant_b_ops):
 
 
 #============================================
-def test_methanol_ab_both_have_text_ops(variant_a_ops, variant_b_ops):
+def test_methanol_ab_both_have_text_ops(variant_a_ops: object, variant_b_ops: object) -> None:
 	"""Both variants render the oxygen label as TextOps."""
 	text_ops_a = [op for op in variant_a_ops["oxygen_ops"]
 		if isinstance(op, oasa.render_ops.TextOp)]
@@ -397,7 +405,7 @@ def test_methanol_ab_both_have_text_ops(variant_a_ops, variant_b_ops):
 
 
 #============================================
-def test_methanol_ab_carbon_hidden(variant_a_ops, variant_b_ops):
+def test_methanol_ab_carbon_hidden(variant_a_ops: object, variant_b_ops: object) -> None:
 	"""Carbon vertex produces no render ops in either variant (it is hidden)."""
 	assert len(variant_a_ops["carbon_ops"]) == 0, (
 		"Carbon should have no render ops in variant A"
@@ -408,7 +416,7 @@ def test_methanol_ab_carbon_hidden(variant_a_ops, variant_b_ops):
 
 
 #============================================
-def test_methanol_ab_shown_vertices(variant_b_ops):
+def test_methanol_ab_shown_vertices(variant_b_ops: object) -> None:
 	"""Variant B correctly identifies O as a shown vertex (C is hidden)."""
 	shown = variant_b_ops["shown_vertices"]
 	edge = variant_b_ops["edge"]
@@ -418,7 +426,7 @@ def test_methanol_ab_shown_vertices(variant_b_ops):
 
 
 #============================================
-def test_methanol_ab_svg_output_smoke(variant_a_ops, variant_b_ops, output_smoke_dir):
+def test_methanol_ab_svg_output_smoke(variant_a_ops: object, variant_b_ops: object, output_smoke_dir: object) -> None:
 	"""Write canonical methanol A/B smoke SVGs and assert structural correctness."""
 	path_a = os.path.join(output_smoke_dir, _OUTPUT_SVG_A)
 	path_b = os.path.join(output_smoke_dir, _OUTPUT_SVG_B)
@@ -432,8 +440,8 @@ def test_methanol_ab_svg_output_smoke(variant_a_ops, variant_b_ops, output_smoke
 	with open(path_b, encoding="utf-8") as handle:
 		svg_text_b = handle.read()
 	assert svg_text_a != svg_text_b, "A and B SVG outputs should differ"
-	document_a = safe_dom.parse(path_a)
-	document_b = safe_dom.parse(path_b)
+	document_a = _parse_svg(path_a)
+	document_b = _parse_svg(path_b)
 	line_lengths_a = _svg_line_lengths(document_a)
 	line_lengths_b = _svg_line_lengths(document_b)
 	assert line_lengths_a, "Variant A SVG must contain at least one <line>"
@@ -451,7 +459,7 @@ def test_methanol_ab_svg_output_smoke(variant_a_ops, variant_b_ops, output_smoke
 	text_values_b = _svg_text_values(document_b)
 	assert "OH" in text_values_a, "Variant A SVG should include OH label text"
 	assert "OH" in text_values_b, "Variant B SVG should include OH label text"
-	polygons_a = document_a.getElementsByTagName("polygon")
-	polygons_b = document_b.getElementsByTagName("polygon")
+	polygons_a = document_a.xpath("//svg:polygon", namespaces={"svg": "http://www.w3.org/2000/svg"})
+	polygons_b = document_b.xpath("//svg:polygon", namespaces={"svg": "http://www.w3.org/2000/svg"})
 	assert len(polygons_a) >= 1, "Variant A SVG should include a label mask polygon"
 	assert len(polygons_b) == 0, "Variant B SVG should not include mask polygons"

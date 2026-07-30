@@ -31,7 +31,7 @@ class selection_rect(object):
   Provide user interaction for resizing, moving etc.
   """
 
-  def __init__( self, paper, obj, resize_event=None, move_event=None, coords=()):
+  def __init__( self, paper: object, obj: object, resize_event: object=None, move_event: object=None, coords: object=()) -> None:
     self.object_type = 'selection_rect'
     self.paper = paper
     self.object = obj
@@ -45,10 +45,10 @@ class selection_rect(object):
     if move_event:
       self.move_event = move_event
 
-  def set_coords( self, coords):
+  def set_coords( self, coords: object) -> None:
     self.coords = list( coords)
 
-  def draw( self):
+  def draw( self) -> None:
     if not self.coords:
       return
     x1, y1, x2, y2 = self.coords
@@ -65,7 +65,7 @@ class selection_rect(object):
     self._rb = self.paper.create_rectangle( (x2-2, y2-2, x2, y2), outline=self.color, fill=self.color, tags=('helper_rect'))
     [self.paper.register_id( i, self) for i in self.get_items()]
 
-  def redraw( self):
+  def redraw( self) -> None:
     if not self._rect:
       self.draw()
       return
@@ -82,23 +82,23 @@ class selection_rect(object):
     self.paper.coords( self._mb, (xm-1, y2-2, xm+1, y2))
     self.paper.coords( self._rb, (x2-2, y2-2, x2, y2))
 
-  def get_items( self):
+  def get_items( self) -> tuple:
     return (self._rect, self._lt, self._mt, self._rt, self._lm, self._rm, self._lb, self._mb, self._rb)
 
-  def delete( self):
+  def delete( self) -> None:
     [self.paper.delete( i) for i in self.get_items()]
 
-  def move( self, dx, dy):
+  def move( self, dx: object, dy: object) -> None:
     [self.paper.move( i, dx, dy) for i in self.get_items()]
     self.coords[0] += dx
     self.coords[2] += dx
     self.coords[1] += dy
     self.coords[3] += dy
 
-  def get_cursor( self, x, y):
+  def get_cursor( self, x: object, y: object) -> str:
     return "cross"
 
-  def focus( self, item=None):
+  def focus( self, item: object=None) -> None:
     if item:
       if item == self._rect:
         self._active_item = self._rect
@@ -127,11 +127,11 @@ class selection_rect(object):
         self.paper['cursor'] = "bottom_right_corner"
         self._active_item = self._rb
 
-  def unfocus( self):
+  def unfocus( self) -> None:
     self.paper['cursor'] = ''
     self._active_item = None
 
-  def drag( self, x, y, fix=()):
+  def drag( self, x: object, y: object, fix: object=()) -> bool:
     if self._active_item == self._rect and fix:
       # we drag the whole rectangle
       x2, y2 = fix
@@ -157,7 +157,7 @@ class selection_rect(object):
         self.object.resize( self.coords)
       return False
 
-  def lift( self):
+  def lift( self) -> None:
     [self.paper.lift( i) for i in self.get_items()]
 
 
@@ -168,7 +168,7 @@ class selection_square(selection_rect):
   Provide user interaction for resizing, moving etc.
   """
 
-  def draw( self):
+  def draw( self) -> None:
     if not self.coords:
       return
     x1, y1, x2, y2 = self.coords
@@ -179,7 +179,7 @@ class selection_square(selection_rect):
     self._rb = self.paper.create_rectangle( (x2-2, y2-2, x2, y2), outline=self.color, fill=self.color, tags=('helper_rect'))
     [self.paper.register_id( i, self) for i in self.get_items()]
 
-  def redraw( self):
+  def redraw( self) -> None:
     if not self._rect:
       self.draw()
       return
@@ -190,10 +190,10 @@ class selection_square(selection_rect):
     self.paper.coords( self._lb, (x1, y2-2, x1+2, y2))
     self.paper.coords( self._rb, (x2-2, y2-2, x2, y2))
 
-  def get_items( self):
+  def get_items( self) -> tuple:
     return (self._rect, self._lt, self._rt, self._lb, self._rb)
 
-  def focus( self, item=None):
+  def focus( self, item: object=None) -> None:
     if item:
       if item == self._rect:
         self._active_item = self._rect
@@ -210,14 +210,14 @@ class selection_square(selection_rect):
         self.paper['cursor'] = "bottom_right_corner"
         self._active_item = self._rb
 
-  def drag( self, x, y, fix=()):
+  def drag( self, x: object, y: object, fix: object=()) -> None:
     x1, y1, x2, y2 = fix + (x, y)
     if self.object:
       self.object.resize( (x1, y1, x2, y2), fix=fix)
       self.coords = list( self.object.coords)
     self.redraw()
 
-  def get_fix( self):
+  def get_fix( self) -> list:
     """Return coords that should be fixed if we now drag selected corner.
 
     """

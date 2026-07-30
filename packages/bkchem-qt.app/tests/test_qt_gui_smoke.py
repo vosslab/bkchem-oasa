@@ -50,7 +50,7 @@ def _hex_points(cx: float, cy: float, radius: float) -> list:
 
 
 #============================================
-def _save_screenshot(widget, test_name: str) -> str:
+def _save_screenshot(widget: object, test_name: str) -> str:
 	"""Grab a screenshot of the widget and save to output_smoke/.
 
 	Args:
@@ -68,7 +68,7 @@ def _save_screenshot(widget, test_name: str) -> str:
 
 
 #============================================
-def _sample_pixel_color(widget, x: int, y: int) -> tuple:
+def _sample_pixel_color(widget: object, x: int, y: int) -> tuple:
 	"""Sample the pixel color at (x, y) from a widget grab.
 
 	Args:
@@ -86,7 +86,7 @@ def _sample_pixel_color(widget, x: int, y: int) -> tuple:
 
 
 #============================================
-def test_qt_gui_launch_smoke(qapp, main_window):
+def test_qt_gui_launch_smoke(qapp: object, main_window: object) -> None:
 	"""Verify that the Qt GUI launches and creates core widgets."""
 	# verify core widgets exist
 	assert main_window._scene is not None, "scene should not be None"
@@ -100,7 +100,7 @@ def test_qt_gui_launch_smoke(qapp, main_window):
 
 
 #============================================
-def test_qt_window_icon_uses_standard_file_icon(qapp, main_window):
+def test_qt_window_icon_uses_standard_file_icon(qapp: object, main_window: object) -> None:
 	"""App and window icons should match Qt's standard file icon."""
 	expected = qapp.style().standardIcon(
 		PySide6.QtWidgets.QStyle.StandardPixmap.SP_FileIcon
@@ -124,7 +124,7 @@ def test_qt_window_icon_uses_standard_file_icon(qapp, main_window):
 
 
 #============================================
-def test_default_main_window_width_is_1280(qapp, theme_manager):
+def test_default_main_window_width_is_1280(qapp: object, theme_manager: object) -> None:
 	"""New windows should start with a 1280px default width."""
 	window = bkchem_qt.main_window.MainWindow(theme_manager)
 	try:
@@ -139,7 +139,9 @@ def test_default_main_window_width_is_1280(qapp, theme_manager):
 
 
 #============================================
-def test_qt_dark_mode_smoke(qapp, theme_manager, main_window):
+def test_qt_dark_mode_smoke(
+	qapp: object, theme_manager: object, main_window: object,
+) -> None:
 	"""Verify that theme toggling between dark and light works."""
 	assert main_window._scene is not None, "scene should exist during theme test"
 	# verify initial theme is one of the expected values
@@ -218,7 +220,7 @@ def test_qt_dark_mode_smoke(qapp, theme_manager, main_window):
 
 
 #============================================
-def test_qt_status_bar_coords_smoke(qapp, main_window):
+def test_qt_status_bar_coords_smoke(qapp: object, main_window: object) -> None:
 	"""Verify that status bar labels update with coords, zoom, and mode."""
 	main_window.show()
 	qapp.processEvents()
@@ -241,7 +243,7 @@ def test_qt_status_bar_coords_smoke(qapp, main_window):
 
 
 #============================================
-def test_qt_draw_benzene_smoke(qapp, main_window):
+def test_qt_draw_benzene_smoke(qapp: object, main_window: object) -> None:
 	"""Verify programmatic benzene ring construction on the canvas."""
 	# local repo modules
 	import bkchem_qt.models.molecule_model
@@ -292,7 +294,7 @@ def test_qt_draw_benzene_smoke(qapp, main_window):
 
 
 #============================================
-def test_qt_zoom_smoke(qapp, main_window):
+def test_qt_zoom_smoke(qapp: object, main_window: object) -> None:
 	"""Verify zoom scale and reset on the graphics view."""
 	main_window.show()
 	qapp.processEvents()
@@ -323,7 +325,7 @@ def test_qt_zoom_smoke(qapp, main_window):
 
 
 #============================================
-def test_qt_import_cholesterol_smoke(qapp, main_window):
+def test_qt_import_cholesterol_smoke(qapp: object, main_window: object) -> None:
 	"""Verify SMILES import of cholesterol populates the document."""
 	# local repo modules
 	import bkchem_qt.bridge.oasa_bridge
@@ -367,7 +369,7 @@ def test_qt_import_cholesterol_smoke(qapp, main_window):
 
 
 #============================================
-def test_qt_mode_cycling_smoke(qapp, main_window):
+def test_qt_mode_cycling_smoke(qapp: object, main_window: object) -> None:
 	"""Verify cycling through all registered modes without crashing."""
 	main_window.show()
 	qapp.processEvents()
@@ -393,37 +395,14 @@ def test_qt_mode_cycling_smoke(qapp, main_window):
 
 
 #============================================
-def test_qt_grid_toggle_smoke(qapp, main_window):
-	"""Verify grid toggle shows and hides grid lines."""
+def test_qt_grid_toggle_smoke(qapp: object, main_window: object) -> None:
+	"""Verify the grid overlay renders inside its paper projection."""
 	main_window.show()
 	qapp.processEvents()
 	scene = main_window._scene
-	# verify grid starts visible by default
-	assert scene.grid_visible, "grid should be visible by default"
-	qapp.processEvents()
-	# verify grid group exists and is visible
-	grid_group = scene._grid_group
-	assert grid_group is not None, "grid group should exist"
-	assert grid_group.isVisible(), "grid group should be visible"
-	# count grid items in the group (lines + dots)
-	grid_children = grid_group.childItems()
-	assert len(grid_children) > 0, (
-		f"grid group should contain items, got {len(grid_children)}"
-	)
-	# verify grid line items are within paper boundaries
+	overlay = scene._grid_overlay
 	paper_rect = scene.paper_rect
-	for child in grid_children[:20]:
-		# skip dot ellipses, only check line items
-		if not hasattr(child, "line"):
-			continue
-		line = child.line()
-		# check that line endpoints are within the paper rect (with margin)
-		assert line.x1() >= paper_rect.x() - 1, (
-			f"grid line x1={line.x1()} outside paper left={paper_rect.x()}"
-		)
-		assert line.x2() <= paper_rect.x() + paper_rect.width() + 1, (
-			f"grid line x2={line.x2()} outside paper right"
-		)
+	assert overlay.isVisible() and overlay.boundingRect() == paper_rect
 	# scroll to center the paper to see grid lines
 	view = main_window._view
 	paper_cx = paper_rect.x() + paper_rect.width() / 2.0
@@ -435,8 +414,7 @@ def test_qt_grid_toggle_smoke(qapp, main_window):
 	# disable the grid
 	scene.set_grid_visible(False)
 	qapp.processEvents()
-	assert not scene.grid_visible, "grid should be hidden after set_grid_visible(False)"
-	assert not grid_group.isVisible(), "grid group should be hidden"
+	assert not scene.grid_visible and not overlay.isVisible()
 	# take screenshot with grid hidden
 	_save_screenshot(main_window, "grid_off")
 	# re-enable the grid so subsequent tests see it visible

@@ -27,22 +27,21 @@ class Plugin(object):
   read = 0
   write = 0
 
-  def __init__(self):
+  def __init__(self) -> None:
     pass
 
 
-  def set_structure(self, structure):
+  def set_structure(self, structure: object) -> object:
     pass
 
 
-  def get_structure(self, structure):
+  def get_structure(self, structure: object) -> object:
     pass
 
 
-  def read_file(self, file):
+  def read_file(self, file: object) -> object:
     pass
 
 
-  def write_file(self, file):
+  def write_file(self, file: object) -> object:
     pass
-

@@ -29,7 +29,7 @@ plurals = ['reactants', 'products', 'arrows', 'conditions', 'pluses']
 
 class BkReaction( object):
 
-  def __init__( self):
+  def __init__( self) -> None:
     self.reactants = []
     self.products = []
     self.arrows = []
@@ -37,11 +37,11 @@ class BkReaction( object):
     self.pluses = []
 
 
-  def add_reactant( self, mol):
+  def add_reactant( self, mol: object) -> None:
     self.reactants.append( mol)
 
 
-  def get_package( self, doc):
+  def get_package( self, doc: object) -> object:
     """returns a DOM element describing the object in CDML,
     doc is the parent document which is used for element creation
     (the returned element is not inserted into the document)"""
@@ -55,23 +55,22 @@ class BkReaction( object):
     return e
 
 
-  def is_empty( self):
+  def is_empty( self) -> bool:
     for name in ('reactants','products','conditions', 'pluses'):
       if self.__dict__[ name]:
         return 0
     return 1
 
 
-  def read_package( self, doc):
+  def read_package( self, doc: object) -> None:
     for el in dom_extensions.childNodesWithoutEmptySpaces( doc):
       if el.nodeName in singulars:
         i = singulars.index( el.nodeName)
         self.__dict__[ plurals[ i]].append( Store.id_manager.get_object_with_id( el.getAttribute( 'idref')))
 
 
-  def check_the_references( self, available):
+  def check_the_references( self, available: object) -> None:
     for name in ('reactants','products','conditions', 'pluses'):
       for obj in self.__dict__[ name]:
         if obj not in available:
           self.__dict__[ name].remove( obj)
-

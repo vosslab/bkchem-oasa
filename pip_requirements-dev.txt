@@ -1,5 +1,6 @@
 # Development dependencies
 bandit  # security linting for Python code
+build  # local frontend-wheel metadata staging for Qt PyInstaller experiments
 packaging  # version parsing/comparison helpers used by tooling/tests
 pdfplumber
 pillow
@@ -9,3 +10,4 @@ pytest  # automated test runner
 pytest-qt  # Qt widget testing with qtbot fixture
 reportlab
 rich  # formatted terminal output in developer tools
+shiboken6  # Qt wrapper-lifetime checks used by PySide6 regression tests

@@ -7,7 +7,7 @@ import oasa.sugar_code as sugar_code
 
 
 #============================================
-def test_parse_simple_aldose():
+def test_parse_simple_aldose() -> None:
 	parsed = sugar_code.parse("ARLRDM")
 	assert parsed.prefix == "ALDO"
 	assert parsed.config == "DEXTER"
@@ -17,7 +17,7 @@ def test_parse_simple_aldose():
 
 
 #============================================
-def test_parse_pentose():
+def test_parse_pentose() -> None:
 	parsed = sugar_code.parse("ARRDM")
 	assert parsed.prefix == "ALDO"
 	assert parsed.config == "DEXTER"
@@ -25,7 +25,7 @@ def test_parse_pentose():
 
 
 #============================================
-def test_parse_ketose():
+def test_parse_ketose() -> None:
 	parsed = sugar_code.parse("MKLRDM")
 	assert parsed.prefix == "KETO"
 	assert parsed.config == "DEXTER"
@@ -33,7 +33,7 @@ def test_parse_ketose():
 
 
 #============================================
-def test_parse_letter_code():
+def test_parse_letter_code() -> None:
 	parsed = sugar_code.parse("AdRDM")
 	assert parsed.prefix == "ALDO"
 	assert parsed.positions[1][0] == "d"
@@ -41,7 +41,7 @@ def test_parse_letter_code():
 
 
 #============================================
-def test_parse_with_footnotes():
+def test_parse_with_footnotes() -> None:
 	parsed = sugar_code.parse("A2LRDM[2R=CH3]")
 	assert parsed.sugar_code == "A2LRDM"
 	assert parsed.sugar_code_raw == "A2LRDM[2R=CH3]"
@@ -50,7 +50,7 @@ def test_parse_with_footnotes():
 
 
 #============================================
-def test_parse_raw_and_body_split():
+def test_parse_raw_and_body_split() -> None:
 	parsed = sugar_code.parse("A2LRDM[2R=CH3]")
 	assert parsed.sugar_code == "A2LRDM"
 	assert parsed.sugar_code_raw == "A2LRDM[2R=CH3]"
@@ -58,7 +58,7 @@ def test_parse_raw_and_body_split():
 
 
 #============================================
-def test_parse_mixed():
+def test_parse_mixed() -> None:
 	parsed = sugar_code.parse("AdLRD6[6=sulfate]")
 	assert parsed.prefix == "ALDO"
 	assert parsed.footnotes["6"] == "sulfate"
@@ -66,14 +66,14 @@ def test_parse_mixed():
 
 
 #============================================
-def test_parse_meso_forms():
+def test_parse_meso_forms() -> None:
 	parsed = sugar_code.parse("MKM")
 	assert parsed.prefix == "KETO"
 	assert parsed.config == "MESO"
 
 
 #============================================
-def test_parse_meso_modified_triose():
+def test_parse_meso_modified_triose() -> None:
 	parsed = sugar_code.parse("MKp")
 	assert parsed.prefix == "KETO"
 	assert parsed.config == "MESO"
@@ -81,7 +81,7 @@ def test_parse_meso_modified_triose():
 
 
 #============================================
-def test_parse_config_normalization():
+def test_parse_config_normalization() -> None:
 	dexter = sugar_code.parse("ARLRDM")
 	laevus = sugar_code.parse("ARLRLM")
 	assert dexter.config == "DEXTER"
@@ -89,7 +89,7 @@ def test_parse_config_normalization():
 
 
 #============================================
-def test_parse_numeric_pathway_override():
+def test_parse_numeric_pathway_override() -> None:
 	parsed = sugar_code.parse("c23[2C=C3(EPO3),3C=CH2]")
 	assert parsed.prefix == "ALDO"
 	assert parsed.config == "MESO"
@@ -98,26 +98,26 @@ def test_parse_numeric_pathway_override():
 
 
 #============================================
-def test_parse_numeric_pathway_carbon_state():
+def test_parse_numeric_pathway_carbon_state() -> None:
 	parsed = sugar_code.parse("c23[2C=C3(EPO3),3C=CH2]")
 	assert "carbon=C3(EPO3)" in parsed.positions[1][1]
 	assert "carbon=CH2" in parsed.positions[2][1]
 
 
 #============================================
-def test_parse_numeric_pathway_duplicate_index_invalid():
+def test_parse_numeric_pathway_duplicate_index_invalid() -> None:
 	with pytest.raises(ValueError):
 		sugar_code.parse("c23[2=OH,2C=CH2,3C=CH2]")
 
 
 #============================================
-def test_parse_invalid_key_mix_same_index():
+def test_parse_invalid_key_mix_same_index() -> None:
 	with pytest.raises(ValueError):
 		sugar_code.parse("A2M[2C=CH2,2L=OH]")
 
 
 #============================================
-def test_parse_compound_carbon_state_single_key():
+def test_parse_compound_carbon_state_single_key() -> None:
 	parsed = sugar_code.parse("c23[2C=C3(EPO3),3C=CH2]")
 	assert parsed.footnotes["2C"] == "C3(EPO3)"
 	with pytest.raises(ValueError):
@@ -125,28 +125,28 @@ def test_parse_compound_carbon_state_single_key():
 
 
 #============================================
-def test_parse_side_qualified_footnotes():
+def test_parse_side_qualified_footnotes() -> None:
 	parsed = sugar_code.parse("A2M[2L=COOH,2R=CH3]")
 	assert parsed.footnotes["2L"] == "COOH"
 	assert parsed.footnotes["2R"] == "CH3"
 
 
 #============================================
-def test_parse_side_qualified_footnotes_single_defaults_h():
+def test_parse_side_qualified_footnotes_single_defaults_h() -> None:
 	parsed = sugar_code.parse("A2M[2L=OH]")
 	assert parsed.footnotes["2L"] == "OH"
 	assert parsed.footnotes["2R"] == "H"
 
 
 #============================================
-def test_parse_side_qualified_footnotes_single_defaults_h_right():
+def test_parse_side_qualified_footnotes_single_defaults_h_right() -> None:
 	parsed = sugar_code.parse("A2M[2R=OH]")
 	assert parsed.footnotes["2R"] == "OH"
 	assert parsed.footnotes["2L"] == "H"
 
 
 #============================================
-def test_parse_invalid_raises():
+def test_parse_invalid_raises() -> None:
 	with pytest.raises(ValueError):
 		sugar_code.parse("ARLRMM")
 	with pytest.raises(ValueError):
@@ -156,19 +156,19 @@ def test_parse_invalid_raises():
 
 
 #============================================
-def test_parse_invalid_digit_position():
+def test_parse_invalid_digit_position() -> None:
 	with pytest.raises(ValueError):
 		sugar_code.parse("A1LRDM[1=CH3]")
 
 
 #============================================
-def test_parse_invalid_chiral_plain_key():
+def test_parse_invalid_chiral_plain_key() -> None:
 	with pytest.raises(ValueError):
 		sugar_code.parse("A2LRDM[2=CH3]")
 
 
 #============================================
-def test_parse_too_short_invalid():
+def test_parse_too_short_invalid() -> None:
 	with pytest.raises(ValueError):
 		sugar_code.parse("A")
 	with pytest.raises(ValueError):
@@ -176,7 +176,7 @@ def test_parse_too_short_invalid():
 
 
 #============================================
-def test_parse_mrk_mlk_prefix_supported():
+def test_parse_mrk_mlk_prefix_supported() -> None:
 	mrk = sugar_code.parse("MRKDM")
 	mlk = sugar_code.parse("MLKDM")
 	assert mrk.prefix == "3-KETO"
@@ -186,7 +186,7 @@ def test_parse_mrk_mlk_prefix_supported():
 
 
 #============================================
-def test_parse_prefix_only_invalid():
+def test_parse_prefix_only_invalid() -> None:
 	with pytest.raises(ValueError):
 		sugar_code.parse("MRK")
 	with pytest.raises(ValueError):
@@ -194,7 +194,7 @@ def test_parse_prefix_only_invalid():
 
 
 #============================================
-def test_parse_unknown_letter_code_raises():
+def test_parse_unknown_letter_code_raises() -> None:
 	with pytest.raises(ValueError) as error:
 		sugar_code.parse("AzRDM")
 	assert "z" in str(error.value)
@@ -202,14 +202,14 @@ def test_parse_unknown_letter_code_raises():
 
 
 #============================================
-def test_parse_unknown_letter_code_uppercase_not_affected():
+def test_parse_unknown_letter_code_uppercase_not_affected() -> None:
 	parsed = sugar_code.parse("ARLRDM")
 	assert parsed.config == "DEXTER"
 	assert parsed.terminal[0] == "M"
 
 
 #============================================
-def test_parse_pathway_profile_haworth_ineligible_marker():
+def test_parse_pathway_profile_haworth_ineligible_marker() -> None:
 	parsed = sugar_code.parse("c23[2C=C3(EPO3),3C=CH2]")
 	assert parsed.prefix == "ALDO"
 	assert "2C" in parsed.footnotes

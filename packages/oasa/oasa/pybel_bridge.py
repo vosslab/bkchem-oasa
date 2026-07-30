@@ -39,7 +39,7 @@ class PybelConverter( object):
   ## -------------------- Pybel to OASA --------------------
 
   @classmethod
-  def pybel_to_oasa_atom( self, patom):
+  def pybel_to_oasa_atom( self, patom: object) -> object:
     oatom = atom()
     psymbol = num2symbol[patom.atomicnum]
     oatom.symbol = psymbol
@@ -48,13 +48,13 @@ class PybelConverter( object):
     return oatom
 
   @classmethod
-  def pybel_to_oasa_bond( self, pbond):
+  def pybel_to_oasa_bond( self, pbond: object) -> object:
     obond = bond()
     obond.order = pbond.GetBondOrder()
     return obond
 
   @classmethod
-  def pybel_to_oasa_molecule_with_atom_map( self, pmol):
+  def pybel_to_oasa_molecule_with_atom_map( self, pmol: object) -> object:
     omol = molecule()
     patom_idx2oatom = {}
     for pa in pmol.atoms:
@@ -71,7 +71,7 @@ class PybelConverter( object):
     return omol, patom_idx2oatom
 
   @classmethod
-  def pybel_to_oasa_molecule( self, *args):
+  def pybel_to_oasa_molecule( self, *args) -> object:
     omol, patom_idx2oatom = self.pybel_to_oasa_molecule_with_atom_map( *args)
     return omol
 
@@ -80,7 +80,7 @@ class PybelConverter( object):
   ## -------------------- OASA to Pybel --------------------
 
   @classmethod
-  def oasa_to_ob_atom( self, oatom):
+  def oasa_to_ob_atom( self, oatom: object) -> object:
     num = PT[ oatom.symbol]['ord']
     obatom = openbabel.OBAtom()
     obatom.SetAtomicNum( num)
@@ -91,13 +91,13 @@ class PybelConverter( object):
     return obatom
 
   @classmethod
-  def oasa_to_ob_bond( self, obond):
+  def oasa_to_ob_bond( self, obond: object) -> object:
     pbond = openbabel.OBBond()
     pbond.SetBondOrder( obond.order)
     return pbond
 
   @classmethod
-  def oasa_to_pybel_molecule_with_atom_map( self, omol):
+  def oasa_to_pybel_molecule_with_atom_map( self, omol: object) -> object:
     obmol = openbabel.OBMol()
     oatom2obatom_idx = {}
     for i,oa in enumerate( omol.atoms):
@@ -114,7 +114,7 @@ class PybelConverter( object):
     return pmol, oatom2obatom_idx
 
   @classmethod
-  def oasa_to_pybel_molecule( self, *args):
+  def oasa_to_pybel_molecule( self, *args) -> object:
     omol, patom_idx2oatom = self.oasa_to_pybel_molecule_with_atom_map( *args)
     return omol
 
@@ -123,7 +123,7 @@ class PybelConverter( object):
   ## -------------------- conversion --------------------
 
   @classmethod
-  def read_text( self, format, text):
+  def read_text( self, format: object, text: object) -> object:
     """returns a list of OASA molecules from a string"""
     obc = openbabel.OBConversion()
     if not obc.SetInFormat( format):
@@ -146,7 +146,7 @@ class PybelConverter( object):
   ## not needed - pybel provides this functionality, I just overlooked it
 
   @classmethod
-  def get_supported_input_formats( self):
+  def get_supported_input_formats( self) -> object:
     conv = openbabel.OBConversion()
     ret = []
     for form in conv.GetSupportedInputFormat():
@@ -155,7 +155,7 @@ class PybelConverter( object):
     return ret
 
   @classmethod
-  def get_supported_output_formats( self):
+  def get_supported_output_formats( self) -> object:
     conv = openbabel.OBConversion()
     ret = []
     for form in conv.GetSupportedOutputFormat():
@@ -168,7 +168,7 @@ class PybelConverter( object):
 class ForceFieldOptimizer( object):
   """provides the forcefield interface for oasa molecules"""
 
-  def __init__( self, mol, forcefield_name="Ghemical"):
+  def __init__( self, mol: object, forcefield_name: object = "Ghemical") -> None:
     self.mol = mol
     self._amol, self._oatom2patom_idx = PybelConverter.oasa_to_pybel_molecule_with_atom_map( self.mol)
     self._patom_idx2oatom = dict((v, k) for k, v in list(self._oatom2patom_idx.items()))
@@ -176,7 +176,7 @@ class ForceFieldOptimizer( object):
     self.ff = openbabel.OBForceField.FindForceField( self.forcefield_name)
     self.ff.Setup( self._amol.OBMol)
 
-  def conjugate_gradients( self, step_size=10, max_steps=100):
+  def conjugate_gradients( self, step_size: object = 10, max_steps: object = 100) -> object:
     """partial result will be yielded after the 'step_size' number of iteration has
     been performed. When false is yielded, we did not reach convergence criteria yet.
     'max_steps' is the number of repetitions of this, so the real number of iterations
@@ -189,7 +189,7 @@ class ForceFieldOptimizer( object):
       if not do_continue:
         break
 
-  def update_coords( self):
+  def update_coords( self) -> None:
     self.ff.UpdateCoordinates( self._amol.OBMol)
     for patom in self._amol:
       oatom = self._patom_idx2oatom[ patom.idx]
@@ -239,4 +239,3 @@ if __name__ == "__main__":
 
   for mol in PybelConverter.read_text( "cdx", t):
     print(mol)
-

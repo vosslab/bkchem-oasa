@@ -18,7 +18,7 @@ import pytest
 
 
 #============================================
-def _ensure_gettext_fallbacks():
+def _ensure_gettext_fallbacks() -> None:
 	"""Ensure gettext helpers exist for module-level strings."""
 	if "_" not in builtins.__dict__:
 		builtins.__dict__["_"] = lambda m: m
@@ -27,7 +27,7 @@ def _ensure_gettext_fallbacks():
 
 
 #============================================
-def _verify_tkinter():
+def _verify_tkinter() -> None:
 	"""Verify Tk is available for GUI-backed tests."""
 	try:
 		import tkinter
@@ -42,7 +42,7 @@ def _verify_tkinter():
 
 
 #============================================
-def _flush_events(app, delay=0.05):
+def _flush_events(app: object, delay: float=0.05) -> None:
 	"""Process Tk events with a brief delay for GUI updates."""
 	app.update_idletasks()
 	app.update()
@@ -52,7 +52,7 @@ def _flush_events(app, delay=0.05):
 
 
 #============================================
-def _run_theme_change_simulation():
+def _run_theme_change_simulation() -> None:
 	"""Exercise theme switching in a live BKChem GUI."""
 	_ensure_gettext_fallbacks()
 	_verify_tkinter()
@@ -182,14 +182,14 @@ def _run_theme_change_simulation():
 
 
 #============================================
-def main():
+def main() -> None:
 	"""Entry point for running the theme change simulation directly."""
 	_run_theme_change_simulation()
 	print("Theme change smoke test passed.")
 
 
 #============================================
-def test_gui_theme_change():
+def test_gui_theme_change() -> None:
 	"""Run theme switch test in a subprocess to isolate Tk."""
 	cmd = [sys.executable, os.path.abspath(__file__)]
 	result = subprocess.run(cmd, capture_output=True, text=True, check=False)

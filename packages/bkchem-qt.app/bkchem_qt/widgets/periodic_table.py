@@ -75,7 +75,7 @@ class PeriodicTablePopup(PySide6.QtWidgets.QDialog):
 	element_selected = PySide6.QtCore.Signal(str)
 
 	#============================================
-	def __init__(self, parent=None):
+	def __init__(self, parent: object = None) -> None:
 		"""Initialize the periodic table popup.
 
 		Args:
@@ -107,7 +107,7 @@ class PeriodicTablePopup(PySide6.QtWidgets.QDialog):
 			layout.addWidget(btn, row, col)
 
 	#============================================
-	def _make_handler(self, symbol: str):
+	def _make_handler(self, symbol: str) -> object:
 		"""Create a click handler that selects the given element.
 
 		Args:
@@ -116,7 +116,7 @@ class PeriodicTablePopup(PySide6.QtWidgets.QDialog):
 		Returns:
 			A callable that emits the signal and closes the dialog.
 		"""
-		def handler():
+		def handler() -> None:
 			self._selected_symbol = symbol
 			self.element_selected.emit(symbol)
 			self.accept()
@@ -124,7 +124,7 @@ class PeriodicTablePopup(PySide6.QtWidgets.QDialog):
 
 	#============================================
 	@staticmethod
-	def pick_element(parent=None) -> str:
+	def pick_element(parent: object = None) -> str:
 		"""Show popup, return selected element symbol or empty string.
 
 		Args:

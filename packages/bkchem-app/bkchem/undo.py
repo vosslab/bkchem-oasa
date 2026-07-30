@@ -44,14 +44,14 @@ class undo_manager(object):
   """
   MAX_RECORDS = 50
 
-  def __init__( self, paper):
+  def __init__( self, paper: object) -> None:
     """well, init"""
     self.paper = paper
     self._records = []
     self.clean()
     self.start_new_record()
 
-  def start_new_record( self, name=''):
+  def start_new_record( self, name: str='') -> None:
     """starts new undo_record closing the recent
     name may be set for a record"""
     if len( self._records)-1 > self._pos:
@@ -62,7 +62,7 @@ class undo_manager(object):
     self._records.append( state_record( self.paper, name=name))
     self._pos += 1
 
-  def undo( self):
+  def undo( self) -> int:
     """undoes the last step and returns the number of undo records available"""
     self._pos -= 1
     if self._pos >= 0:
@@ -71,7 +71,7 @@ class undo_manager(object):
       self._pos = 0
     return self._pos
 
-  def redo( self):
+  def redo( self) -> int:
     """redoes the last undone step, returns number of redos available"""
     self._pos += 1
     if self._pos < len( self._records):
@@ -80,7 +80,7 @@ class undo_manager(object):
       self._pos = len( self._records)-1
     return len( self._records) - self._pos -1
 
-  def clean( self):
+  def clean( self) -> None:
     """removes all undo informations, does not start new undo record"""
     self._pos = -1
     for record in self._records:
@@ -89,20 +89,20 @@ class undo_manager(object):
     self._records = []
 
 
-  def mrproper( self):
+  def mrproper( self) -> None:
     self.clean()
     del self.paper
     del self._records
 
 
-  def get_last_record_name( self):
+  def get_last_record_name( self) -> str | None:
     """returns the last closed record name"""
     if self._pos >= 1:
       return self._records[ self._pos-1].name
     else:
       return None
 
-  def delete_last_record( self):
+  def delete_last_record( self) -> None:
     """deletes the last record, useful for concatenation of several records to one;
     especially powerfull in combination with named records;
     use with care - it could cause problems"""
@@ -110,18 +110,18 @@ class undo_manager(object):
       del self._records[ self._pos-1]
       self._pos -= 1
 
-  def get_number_of_records( self):
+  def get_number_of_records( self) -> int:
     return len( self._records)
 
 
-  def can_undo( self):
+  def can_undo( self) -> bool:
     return bool( self._pos)
 
-  def can_redo( self):
+  def can_redo( self) -> bool:
     return bool( self.get_number_of_records() - self._pos - 1)
 
 
-  def compare_records( self, o, state_rec1, state_rec2):
+  def compare_records( self, o: object, state_rec1: object, state_rec2: object) -> bool:
     """returns True if the object o changed between ref1 and ref2"""
     x1 = o in state_rec1.objects
     x2 = o in state_rec2.objects
@@ -156,7 +156,7 @@ class undo_manager(object):
     return True
 
 
-  def get_changed_molecules( self):
+  def get_changed_molecules( self) -> list:
     rec = self._records[ self._pos]
     ret = []
     for m in self.paper.molecules:
@@ -164,7 +164,7 @@ class undo_manager(object):
         ret.append( m)
     return ret
 
-  def get_last_record( self):
+  def get_last_record( self) -> object | None:
     if self._pos >= 1:
       return self._records[ self._pos]
     else:
@@ -177,7 +177,7 @@ class state_record(object):
   """Class for storing and setting state of the whole system.
 
   """
-  def __init__( self, paper, name=''):
+  def __init__( self, paper: object, name: str='') -> None:
     """hmmm, what is supposed to be in comment for __init__?"""
     self.paper = paper
     self.objects = []
@@ -187,7 +187,7 @@ class state_record(object):
     self.record_state()
 
 
-  def clean( self):
+  def clean( self) -> None:
     del self.stack
     del self.paper
     del self.objects
@@ -195,7 +195,7 @@ class state_record(object):
     del self.name
 
 
-  def record_state( self):
+  def record_state( self) -> None:
     """stores all necessary information about the system, so that its than able to
     fully recover that state."""
     self.stack = copy.copy( self.paper.stack)
@@ -204,7 +204,7 @@ class state_record(object):
       self.record_object( o)
 
 
-  def record_object( self, o):
+  def record_object( self, o: object) -> None:
     rec = {}
     for a in o.meta__undo_fake:
       rec[a] = getattr( o, a)
@@ -227,12 +227,12 @@ class state_record(object):
         self.record_object( obj)
 
 
-  def undo( self, previous):
+  def undo( self, previous: object) -> None:
     """does undo, actually only calls self.set_state"""
     self.set_state( previous)
 
 
-  def set_state( self, previous):
+  def set_state( self, previous: object) -> None:
     """sets the system to the recorded state (update is done only where necessary,
     not changed values are not touched)."""
     # we need to know about deleted bonds before we try to redraw them (when updating atom)
@@ -331,14 +331,14 @@ class state_record(object):
     self.paper.add_bindings()
 
 
-  def get_record( self, o):
+  def get_record( self, o: object) -> dict | None:
     if o in self.objects:
       i = self.objects.index(o)
       return self.records[i]
     else:
       return None
 
-  def object_changed( self, o):
+  def object_changed( self, o: object) -> bool:
     """returns True if the object o differs from the state recorded here"""
     rec = self.get_record( o)
     if rec == None:
@@ -369,30 +369,30 @@ class state_record(object):
 
 REDRAW_PREFERENCES = ("atom", "bond")
 
-def cmp_to_key(mycmp):
+def cmp_to_key(mycmp: object) -> object:
     """Convert a cmp= function into a key= function.
 
     """
     class K(object):
-        def __init__(self, obj, *args):
+        def __init__(self, obj: object, *args) -> None:
             self.obj = obj
-        def __lt__(self, other):
+        def __lt__(self, other: object) -> bool:
             return mycmp(self.obj, other.obj) < 0
-        def __gt__(self, other):
+        def __gt__(self, other: object) -> bool:
             return mycmp(self.obj, other.obj) > 0
-        def __eq__(self, other):
+        def __eq__(self, other: object) -> bool:
             return mycmp(self.obj, other.obj) == 0
-        def __le__(self, other):
+        def __le__(self, other: object) -> bool:
             return mycmp(self.obj, other.obj) <= 0
-        def __ge__(self, other):
+        def __ge__(self, other: object) -> bool:
             return mycmp(self.obj, other.obj) >= 0
-        def __ne__(self, other):
+        def __ne__(self, other: object) -> bool:
             return mycmp(self.obj, other.obj) != 0
     return K
 
 
 @cmp_to_key
-def _redraw_sorting( o1, o2):
+def _redraw_sorting( o1: object, o2: object) -> int:
   for obj_type in REDRAW_PREFERENCES:
     if o1.object_type == obj_type:
       return -1

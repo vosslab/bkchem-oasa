@@ -61,7 +61,7 @@ class editPool( Frame):
 	}
 
 
-	def __init__( self, master, **kw):
+	def __init__( self, master: object, **kw: object) -> None:
 		Frame.__init__( self, master, **kw)
 		self.text = ''
 		self.interpret = 1
@@ -100,7 +100,7 @@ class editPool( Frame):
 
 
 	#============================================
-	def _resolve_command( self, command_key: str):
+	def _resolve_command( self, command_key: str) -> object:
 		"""Map a YAML command key to a callable."""
 		entry = self.COMMAND_MAP[command_key]
 		if isinstance(entry, tuple):
@@ -155,7 +155,7 @@ class editPool( Frame):
 
 
 	#============================================
-	def destroy_buttons( self):
+	def destroy_buttons( self) -> None:
 		"""Destroy the button frame and reset all button references."""
 		if self._button_frame is not None:
 			self._button_frame.destroy()
@@ -173,12 +173,12 @@ class editPool( Frame):
 
 
 	#============================================
-	def _all_buttons( self) -> list:
+	def _all_buttons( self) -> list[object]:
 		"""Return list of all button widgets (may be empty before create_buttons)."""
 		return list(self._buttons_by_key.values())
 
 
-	def _interpretButtonPressed( self, *e):
+	def _interpretButtonPressed( self, *e: object) -> None:
 		t = self.editPool.get()
 		if t.lower() in GROUPS_TABLE:
 			self._setText( t)
@@ -190,24 +190,24 @@ class editPool( Frame):
 		self._quit()
 
 
-	def _setButtonPressed( self, *e):
+	def _setButtonPressed( self, *e: object) -> None:
 		self._setText( self.editPool.get())
 		self.interpret = 0
 		self._quit()
 
 
-	def _numbersToSubButtonPressed( self, *e):
+	def _numbersToSubButtonPressed( self, *e: object) -> None:
 		self._setText( re.sub( r"\d+", r"<sub>\g<0></sub>", self.editPool.get()))
 		self._quit()
 
 
-	def _cancel( self, e):
+	def _cancel( self, e: object) -> None:
 		self._setText( None)
 		self.active = False
 		self._quit()
 
 
-	def _quit( self):
+	def _quit( self) -> None:
 		# release grab on toplevel since buttons may live outside this Frame
 		self.winfo_toplevel().grab_release()
 		self._disable()
@@ -216,32 +216,32 @@ class editPool( Frame):
 		self.quit()
 
 
-	def _disable( self):
+	def _disable( self) -> None:
 		# disable all buttons that currently exist
 		for btn in self._all_buttons():
 			btn.configure( state='disabled')
 		self.editPool.configure( state='disabled')
 
 
-	def _enable( self):
+	def _enable( self) -> None:
 		# enable all buttons that currently exist
 		for btn in self._all_buttons():
 			btn.configure( state='normal')
 		self.editPool.configure( state='normal')
 
 
-	def _setText( self, text):
+	def _setText( self, text: str | None) -> None:
 		self.text = text
 		self._update()
 
 
-	def _update( self):
+	def _update( self) -> None:
 		self.editPool.delete(0, last='end')
 		if self.text:
 			self.editPool.insert(0, self.text)
 
 
-	def activate( self, text=None, select=1):
+	def activate( self, text: str | None = None, select: int = 1) -> str | None:
 		"""activates edit_pool and returns inserted value (None if cancel occured),
 		if parameter text is None it preserves the old one, use text='' to delete old text"""
 		self.active = True
@@ -265,7 +265,7 @@ class editPool( Frame):
 			return None
 
 
-	def _tag_it( self, tag):
+	def _tag_it( self, tag: str) -> None:
 		if self.editPool.selection_present():
 			self.editPool.insert( tkinter.SEL_FIRST, '<%s>' % tag)
 			self.editPool.insert( tkinter.SEL_LAST, '</%s>' % tag)
@@ -274,7 +274,7 @@ class editPool( Frame):
 			self.editPool.icursor( self.editPool.index( tkinter.INSERT) - len( tag) - 3)
 
 
-	def _key( self, event):
+	def _key( self, event: object) -> str | None:
 		if len(event.keysym) > 1 and event.keysym in get_keysyms():
 			if self.editPool.selection_present():
 				self.editPool.delete( "anchor", "insert")
@@ -282,12 +282,12 @@ class editPool( Frame):
 			return "break"
 
 
-	def _specialCharButtonPressed( self):
+	def _specialCharButtonPressed( self) -> None:
 		dialog = special_character_menu( self._insertText)
 		dialog.post( self.specialCharButton.winfo_rootx(), self.specialCharButton.winfo_rooty())
 
 
-	def _insertText( self, text):
+	def _insertText( self, text: str | None) -> None:
 		if text is not None:
 			self.editPool.insert( tkinter.INSERT, text)
 		self.winfo_toplevel().grab_set()
@@ -303,7 +303,7 @@ class special_character_menu( tkinter.Menu):
 		_("new line"): "\\n",
 	}
 
-	def __init__( self, callback, **kw):
+	def __init__( self, callback: object, **kw: object) -> None:
 		self.callback = callback
 		tkinter.Menu.__init__( self, Store.app, tearoff=0, **kw)
 		keys = sorted(self.chars.keys())
@@ -312,11 +312,11 @@ class special_character_menu( tkinter.Menu):
 		self.char = None
 
 
-	def itemselected( self, k):
+	def itemselected( self, k: str) -> None:
 		self.callback( saxutils.unescape( self.chars[k]))
 
 
-	def post( self, x, y):
+	def post( self, x: int, y: int) -> None:
 		tkinter.Menu.post( self, x, y)
 		if os.name != 'nt':
 			self.grab_set()

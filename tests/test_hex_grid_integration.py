@@ -8,10 +8,10 @@ import subprocess
 import tempfile
 
 # local repo modules
-import git_file_utils
+import file_utils
 import oasa.hex_grid
 
-REPO_ROOT = git_file_utils.get_repo_root()
+REPO_ROOT = file_utils.get_repo_root()
 
 # path to the templates CDML file used by several tests
 TEMPLATES_CDML = os.path.join(
@@ -59,7 +59,7 @@ def _benzene_bond_pairs() -> list:
 
 
 #============================================
-def test_benzene_on_hex_grid():
+def test_benzene_on_hex_grid() -> None:
 	"""A perfect benzene hexagon should lie on the hex grid."""
 	spacing = 1.0
 	coords = _benzene_coords(spacing)
@@ -77,7 +77,7 @@ def test_benzene_on_hex_grid():
 
 
 #============================================
-def test_snap_benzene_cdml_roundtrip():
+def test_snap_benzene_cdml_roundtrip() -> None:
 	"""Snap the benzene molecule from templates.cdml and verify atoms land on grid."""
 	assert os.path.isfile(TEMPLATES_CDML), f"missing: {TEMPLATES_CDML}"
 	# use the snap CLI in non-dry-run mode via subprocess
@@ -133,7 +133,7 @@ def test_snap_benzene_cdml_roundtrip():
 
 
 #============================================
-def test_zigzag_chain_on_hex_grid():
+def test_zigzag_chain_on_hex_grid() -> None:
 	"""A zigzag chain of atoms on hex grid points should pass grid check."""
 	spacing = 1.0
 	# build a zigzag: alternating between e1 and e2-e1 directions
@@ -162,7 +162,7 @@ def test_zigzag_chain_on_hex_grid():
 
 
 #============================================
-def test_snap_preserves_bond_lengths():
+def test_snap_preserves_bond_lengths() -> None:
 	"""After snapping, all neighbor distances should be multiples of spacing."""
 	spacing = 1.0
 	# slightly perturbed benzene
@@ -185,7 +185,7 @@ def test_snap_preserves_bond_lengths():
 
 
 #============================================
-def test_snap_cli_dry_run():
+def test_snap_cli_dry_run() -> None:
 	"""The CLI in dry-run mode should print a report but not write the output."""
 	assert os.path.isfile(TEMPLATES_CDML), f"missing: {TEMPLATES_CDML}"
 	with tempfile.NamedTemporaryFile(suffix=".cdml", delete=False) as tmp:
@@ -213,7 +213,7 @@ def test_snap_cli_dry_run():
 
 
 #============================================
-def test_snap_cli_output():
+def test_snap_cli_output() -> None:
 	"""The CLI in write mode should produce a valid CDML output file."""
 	assert os.path.isfile(TEMPLATES_CDML), f"missing: {TEMPLATES_CDML}"
 	with tempfile.NamedTemporaryFile(suffix=".cdml", delete=False) as tmp:
@@ -241,7 +241,7 @@ def test_snap_cli_output():
 
 
 #============================================
-def test_grid_points_cover_a4_page():
+def test_grid_points_cover_a4_page() -> None:
 	"""A4-sized bounding box should produce a reasonable number of grid points."""
 	# A4 in points: 595 x 842 (roughly)
 	pts_per_cm = 72.0 / 2.54
@@ -265,7 +265,7 @@ def test_grid_points_cover_a4_page():
 
 
 #============================================
-def test_find_best_origin_improves_fit():
+def test_find_best_origin_improves_fit() -> None:
 	"""find_best_grid_origin should reduce total snap distance vs default origin."""
 	spacing = 1.0
 	# build benzene centered at (0.3, 0.3) so default origin is suboptimal

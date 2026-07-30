@@ -43,7 +43,7 @@ class Graph(object):
   uses_cache = True
 
 
-  def __init__( self, vertices=None):
+  def __init__( self, vertices: object=None) -> None:
     if vertices:
       self.vertices = vertices
     else:
@@ -55,12 +55,12 @@ class Graph(object):
     self._rx_backend = RxBackend()
 
 
-  def __str__( self):
+  def __str__( self) -> object:
     str = "graph G(V,E), |V|=%d, |E|=%d" % ( len( self.vertices), len( self.edges))
     return str
 
 
-  def copy( self):
+  def copy( self) -> object:
     """provides a really shallow copy, the vertex and edge objects will remain the same,
     only the graph itself is different"""
     c = self.create_graph()
@@ -71,7 +71,7 @@ class Graph(object):
     return c
 
 
-  def deep_copy( self):
+  def deep_copy( self) -> object:
     """provides a deep copy of the graph. The result is an isomorphic graph,
     all the used objects are different"""
     c = self.create_graph()
@@ -87,24 +87,24 @@ class Graph(object):
     return c
 
 
-  def create_vertex( self):
+  def create_vertex( self) -> object:
     return Vertex()
 
 
-  def create_edge( self):
+  def create_edge( self) -> object:
     return Edge()
 
 
-  def create_graph( self):
+  def create_graph( self) -> object:
     return self.__class__()
 
 
-  def delete_vertex( self, v):
+  def delete_vertex( self, v: object) -> object:
     self.vertices.remove( v)
     self._flush_cache()
 
 
-  def add_vertex( self, v=None):
+  def add_vertex( self, v: object=None) -> object:
     """adds a vertex to a graph, if v argument is not given creates a new one.
     returns None if vertex is already present or the vertex instance if successful"""
     if not v:
@@ -118,7 +118,7 @@ class Graph(object):
     return v
 
 
-  def add_edge( self, v1, v2, e=None):
+  def add_edge( self, v1: object, v2: object, e: object=None) -> object:
     """adds an edge to a graph connecting vertices v1 and v2, if e argument is not given creates a new one.
     returns None if operation fails or the edge instance if successful"""
     i1 = self._get_vertex_index( v1)
@@ -139,14 +139,14 @@ class Graph(object):
     return e
 
 
-  def insert_a_graph( self, gr):
+  def insert_a_graph( self, gr: object) -> object:
     """inserts all edges and vertices to the graph"""
     self.vertices.extend( gr.vertices)
     self.edges.update( gr.edges)
     self._flush_cache()
 
 
-  def disconnect( self, v1, v2):
+  def disconnect( self, v1: object, v2: object) -> object:
     """disconnects vertices v1 and v2, on success returns the edge"""
     if v1 is not None and v2 is not None:
       e = self.get_edge_between( v1, v2)
@@ -160,7 +160,7 @@ class Graph(object):
       return None
 
 
-  def disconnect_edge( self, e):
+  def disconnect_edge( self, e: object) -> object:
     self.edges.remove( e)
     v1, v2 = e.get_vertices()
     v1.remove_edge_and_neighbor( e)
@@ -169,13 +169,13 @@ class Graph(object):
     self._flush_cache()
 
 
-  def remove_vertex( self, v):
+  def remove_vertex( self, v: object) -> object:
     for neigh in v.neighbors:
       self.disconnect( v, neigh)
     self.delete_vertex( v)
 
 
-  def get_edge_between( self, v1, v2):
+  def get_edge_between( self, v1: object, v2: object) -> object:
     """takes two vertices"""
     for e in v1.neighbor_edges:
       if e in v2.neighbor_edges:
@@ -183,7 +183,7 @@ class Graph(object):
     return None
 
 
-  def temporarily_disconnect_edge( self, e):
+  def temporarily_disconnect_edge( self, e: object) -> object:
     self.edges.remove( e)
     self.disconnected_edges.add( e)
     e.disconnected = True
@@ -191,7 +191,7 @@ class Graph(object):
     return e
 
 
-  def reconnect_temporarily_disconnected_edge( self, e):
+  def reconnect_temporarily_disconnected_edge( self, e: object) -> object:
     assert e in self.disconnected_edges
     self.disconnected_edges.remove( e)
     self.edges.add( e)
@@ -199,7 +199,7 @@ class Graph(object):
     self._flush_cache()
 
 
-  def reconnect_temporarily_disconnected_edges( self):
+  def reconnect_temporarily_disconnected_edges( self) -> object:
     while self.disconnected_edges:
       e = self.disconnected_edges.pop()
       e.disconnected = False
@@ -210,24 +210,24 @@ class Graph(object):
   ## PROPERTIES METHODS
   ## BOOLEAN
 
-  def is_connected( self):
+  def is_connected( self) -> object:
     """Test whether the graph is connected using rustworkx (13x faster)."""
     return self._rx_backend.is_connected(self)
 
 
-  def is_tree( self):
+  def is_tree( self) -> object:
     if self.is_connected():
       return len( self.vertices)-1 == len( self.edges)
     else:
       return len( self.vertices)-len( list( self.get_connected_components())) == len( self.edges)
 
 
-  def contains_cycle( self):
+  def contains_cycle( self) -> object:
     """this assumes that the graph is connected"""
     return not self.is_tree()
 
 
-  def is_edge_a_bridge( self, e):
+  def is_edge_a_bridge( self, e: object) -> object:
     """Test whether an edge is a bridge using rustworkx bridges detection."""
     # compute all bridges at once, then check membership
     bridge_edges = self._rx_backend.bridges(self)
@@ -236,7 +236,7 @@ class Graph(object):
     return 0
 
 
-  def is_edge_a_bridge_fast_and_dangerous( self, e):
+  def is_edge_a_bridge_fast_and_dangerous( self, e: object) -> object:
     """should be used only in case of repetitive questions for the same edge in cases
     where no edges are added to the graph between the questions (if brigde==1 the value
     is stored and returned, which is safe only in case no edges are added)"""
@@ -250,7 +250,7 @@ class Graph(object):
         return 0
 
 
-  def get_pieces_after_edge_removal( self, e):
+  def get_pieces_after_edge_removal( self, e: object) -> object:
     self.temporarily_disconnect_edge( e)
     ps = [i for i in self.get_connected_components()]
     self.reconnect_temporarily_disconnected_edge( e)
@@ -258,7 +258,7 @@ class Graph(object):
 
 
   ## ANALYSIS
-  def get_connected_components( self):
+  def get_connected_components( self) -> object:
     """Return connected components as list of sets of vertices.
 
     Uses rustworkx connected_components for performance (9x faster).
@@ -266,7 +266,7 @@ class Graph(object):
     return self._rx_backend.get_connected_components(self)
 
 
-  def get_disconnected_subgraphs( self):
+  def get_disconnected_subgraphs( self) -> object:
     """returns the subgraphs of self, it is dangerous as it reuses the original vertices and
     edges, therefore it should be used only when the old self is no longer needed."""
     vss = self.get_connected_components()
@@ -276,7 +276,7 @@ class Graph(object):
     return out
 
 
-  def get_induced_subgraph_from_vertices( self, vs):
+  def get_induced_subgraph_from_vertices( self, vs: object) -> object:
     """it creates a new graph, however uses the old vertices and edges!"""
     g = self.create_graph()
     for v in vs:
@@ -288,7 +288,7 @@ class Graph(object):
     return g
 
 
-  def get_induced_copy_subgraph_from_vertices_and_edges( self, vertices, edges, add_back_links=False):
+  def get_induced_copy_subgraph_from_vertices_and_edges( self, vertices: object, edges: object, add_back_links: object=False) -> object:
     """it creates a new graph, populates it with copies of vertices and edges;
     it only uses the vertices and edges that are supplied as argument;
     add_back_links - add x.properties_['original'] link to the original edges and vertices
@@ -313,7 +313,7 @@ class Graph(object):
     return c
 
 
-  def get_smallest_independent_cycles( self):
+  def get_smallest_independent_cycles( self) -> object:
     """Return list of sets of vertices forming smallest independent cycles.
 
     Uses rustworkx cycle_basis for performance (215x faster than pure Python).
@@ -321,7 +321,7 @@ class Graph(object):
     return self._rx_backend.cycle_basis(self)
 
 
-  def get_smallest_independent_cycles_dangerous_and_cached( self):
+  def get_smallest_independent_cycles_dangerous_and_cached( self) -> object:
     try:
       return self._cache['cycles']
     except KeyError:
@@ -330,7 +330,7 @@ class Graph(object):
 
 
 
-  def get_smallest_independent_cycles_e( self):
+  def get_smallest_independent_cycles_e( self) -> object:
     """Return smallest independent cycles as frozensets of edges.
 
     Uses rustworkx cycle_basis (vertex version) and converts each
@@ -340,11 +340,11 @@ class Graph(object):
     return self._rx_backend.cycle_basis_edges(self)
 
 
-  def get_all_cycles_e( self):
+  def get_all_cycles_e( self) -> object:
     return list(map( self.vertex_subgraph_to_edge_subgraph, self.get_all_cycles()))
 
 
-  def get_all_cycles( self):
+  def get_all_cycles( self) -> object:
     """
     implementation of:
     A New Algorithm for Exhaustive Ring Perception in a Molecular Graph
@@ -362,7 +362,7 @@ class Graph(object):
     return final_rings
 
 
-  def _get_p_graph( self):
+  def _get_p_graph( self) -> object:
     """helper method for p-graph (path graph) generation"""
     p = self.deep_copy()
     p.temporarily_strip_bridge_edges()
@@ -378,7 +378,7 @@ class Graph(object):
 
 
   @staticmethod
-  def _p_graph_remove( v, pgraph):
+  def _p_graph_remove( v: object, pgraph: object) -> object:
     rings = set()
     neighbor_edge_vertex_pairs = list( v.get_neighbor_edge_pairs())
     new_edges = []
@@ -402,7 +402,7 @@ class Graph(object):
     return rings
 
 
-  def mark_vertices_with_distance_from( self, v):
+  def mark_vertices_with_distance_from( self, v: object) -> object:
     """Mark all reachable vertices with BFS distance from v (2x faster).
 
     Side effect: sets v.properties_['d'] on each reachable vertex.
@@ -413,7 +413,7 @@ class Graph(object):
     return self._rx_backend.distance_from(self, v)
 
 
-  def clean_distance_from_vertices( self):
+  def clean_distance_from_vertices( self) -> object:
     for i in self.vertices:
       try:
         del i.properties_['d']
@@ -421,7 +421,7 @@ class Graph(object):
         pass
 
 
-  def mark_edges_with_distance_from( self, e1):
+  def mark_edges_with_distance_from( self, e1: object) -> object:
     for e in self.edges:
       try:
         del e.properties_['d']
@@ -443,7 +443,7 @@ class Graph(object):
       marked.update( new)
 
 
-  def get_path_between_edges( self, e1, e2):
+  def get_path_between_edges( self, e1: object, e2: object) -> object:
     self.mark_edges_with_distance_from( e1)
     if not "dist" in e2.properties_:
       return None
@@ -457,7 +457,7 @@ class Graph(object):
 
 
 
-  def get_diameter( self):
+  def get_diameter( self) -> object:
     """Return graph diameter using rustworkx distance matrix.
 
     Caches the result for repeated queries on unchanged graphs.
@@ -471,7 +471,7 @@ class Graph(object):
     return result
 
 
-  def vertex_subgraph_to_edge_subgraph( self, cycle):
+  def vertex_subgraph_to_edge_subgraph( self, cycle: object) -> object:
     ret = set()
     for v1 in cycle:
       for (e,n) in v1.get_neighbor_edge_pairs():
@@ -480,7 +480,7 @@ class Graph(object):
     return ret
 
 
-  def edge_subgraph_to_vertex_subgraph( self, cycle):
+  def edge_subgraph_to_vertex_subgraph( self, cycle: object) -> object:
     ret = set()
     for e in cycle:
       v1, v2 = e.get_vertices()
@@ -489,7 +489,7 @@ class Graph(object):
     return ret
 
 
-  def get_new_induced_subgraph( self, vertices, edges):
+  def get_new_induced_subgraph( self, vertices: object, edges: object) -> object:
     """returns a induced subgraph that is newly created and can be therefore freely
     changed without worry about the original."""
     sub = self.create_graph()
@@ -507,17 +507,17 @@ class Graph(object):
     return sub
 
 
-  def defines_connected_subgraph_e( self, edges):
+  def defines_connected_subgraph_e( self, edges: object) -> object:
     sub = self.get_new_induced_subgraph( self.edge_subgraph_to_vertex_subgraph( edges), edges)
     return sub.is_connected()
 
 
-  def defines_connected_subgraph_v( self, vertices):
+  def defines_connected_subgraph_v( self, vertices: object) -> object:
     sub = self.get_new_induced_subgraph( vertices, self.vertex_subgraph_to_edge_subgraph( vertices))
     return sub.is_connected()
 
 
-  def find_path_between( self, start, end, dont_go_through=None):
+  def find_path_between( self, start: object, end: object, dont_go_through: object=None) -> object:
     """Find path between two vertices using rustworkx (7x faster).
 
     Args:
@@ -535,7 +535,7 @@ class Graph(object):
     )
 
 
-  def sort_vertices_in_path( self, path, start_from=None):
+  def sort_vertices_in_path( self, path: object, start_from: object=None) -> object:
     """returns None if there is no path"""
     rng = copy.copy( path)
     if start_from:
@@ -562,7 +562,7 @@ class Graph(object):
     return out
 
 
-  def temporarily_strip_bridge_edges( self):
+  def temporarily_strip_bridge_edges( self) -> object:
     """strip all edges that are a bridge, thus leaving only the cycles connected"""
     bridge_found = True
     while bridge_found:
@@ -583,14 +583,14 @@ class Graph(object):
         self.temporarily_disconnect_edge( e)
 
 
-  def path_exists( self, a1, a2):
+  def path_exists( self, a1: object, a2: object) -> object:
     """Test whether a path exists between two vertices (5x faster)."""
     return self._rx_backend.has_path(self, a1, a2)
 
 
   ## MAXIMUM MATCHING RELATED STUFF
   ## MAXIMUM MATCHING
-  def get_maximum_matching( self):
+  def get_maximum_matching( self) -> object:
     """Return maximum cardinality matching using rustworkx.
 
     Returns:
@@ -602,7 +602,7 @@ class Graph(object):
 
 
   # PRIVATE METHODS
-  def _get_vertex_index( self, v):
+  def _get_vertex_index( self, v: object) -> object:
     """if v is already an index, return v, otherwise return index of v on None"""
     if isinstance(v, int) and v < len(self.vertices):
       return v
@@ -612,19 +612,18 @@ class Graph(object):
       return None
 
 
-  def _flush_cache( self):
+  def _flush_cache( self) -> object:
     self._cache = {}
     # invalidate rustworkx backend so it rebuilds before next algorithm call
     self._rx_backend.mark_dirty()
 
 
-  def _set_cache( self, name, value):
+  def _set_cache( self, name: object, value: object) -> object:
     if self.uses_cache:
       self._cache[ name] = value
 
 
-  def _get_cache( self, name):
+  def _get_cache( self, name: object) -> object:
     return self._cache.get( name, None)
-
 
 

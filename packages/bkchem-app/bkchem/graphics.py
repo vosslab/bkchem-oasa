@@ -46,7 +46,7 @@ class vector_graphics_item( meta_enabled, drawable, interactive, with_line, top_
   meta__undo_copy = ('coords',)
 
 
-  def __init__( self, paper, coords=(), package=None, width=1):
+  def __init__( self, paper: object, coords: object = (), package: object = None, width: object = 1) -> None:
     self.paper = paper
     meta_enabled.__init__( self, standard=paper.standard)
     self.selector = None
@@ -58,17 +58,17 @@ class vector_graphics_item( meta_enabled, drawable, interactive, with_line, top_
       self.read_package( package)
 
 
-  def read_standard_values( self, standard, old_standard=None):
+  def read_standard_values( self, standard: object, old_standard: object = None) -> object:
     meta_enabled.read_standard_values( self, standard, old_standard=old_standard)
     if not old_standard or (self.paper.standard.line_width != old_standard.line_width):
       self.line_width = Screen.any_to_px( self.paper.standard.line_width)
 
 
-  def draw( self):
+  def draw( self) -> object:
     pass
 
 
-  def delete( self):
+  def delete( self) -> object:
     self.paper.delete( self.item)
     self.paper.unregister_id( self.item)
     self.item = None
@@ -77,30 +77,30 @@ class vector_graphics_item( meta_enabled, drawable, interactive, with_line, top_
       self.selector = None
 
 
-  def focus( self):
+  def focus( self) -> object:
     pass
 
 
-  def unfocus( self):
+  def unfocus( self) -> object:
     pass
 
 
-  def select( self):
+  def select( self) -> object:
     self.selector = hg.selection_rect( self.paper, self, coords=tuple( self.coords), resize_event=self.resize, move_event=self.move)
 
 
-  def unselect( self):
+  def unselect( self) -> object:
     if self.selector:
       self.selector.delete()
       self.selector = None
 
 
-  def resize( self, coords, fix=()):
+  def resize( self, coords: object, fix: object = ()) -> object:
     self.coords = bkchem_utils.normalize_coords( coords)
     self.paper.coords( self.item, self.coords)
 
 
-  def move( self, dx, dy):
+  def move( self, dx: object, dy: object) -> object:
     self.paper.move( self.item, dx, dy)
     c = self.coords
     self.coords = ( c[0]+dx, c[1]+dy, c[2]+dx, c[3]+dy)
@@ -108,24 +108,24 @@ class vector_graphics_item( meta_enabled, drawable, interactive, with_line, top_
       self.selector.move( dx, dy)
 
 
-  def get_package( self, doc):
+  def get_package( self, doc: object) -> object:
     """returns a DOM element describing the object in CDML,
     doc is the parent document which is used for element creation
     (the returned element is not inserted into the document)"""
     pass
 
 
-  def read_package( self, pack):
+  def read_package( self, pack: object) -> object:
     """reads the dom element pack and sets internal state according to it"""
     pass
 
 
-  def bbox( self):
+  def bbox( self) -> object:
     """returns the bounding box of the object as a list of [x1,y1,x2,y2]"""
     return self.coords
 
 
-  def lift( self):
+  def lift( self) -> object:
     if self.item:
       self.paper.lift( self.item)
     if self.selector:
@@ -142,11 +142,11 @@ class rect( vector_graphics_item, area_colored):
                           area_colored.meta__undo_properties
 
 
-  def __init__( self, paper, coords=(), package=None, width=1):
+  def __init__( self, paper: object, coords: object = (), package: object = None, width: object = 1) -> None:
     vector_graphics_item.__init__( self, paper, coords=coords, package=package, width=width)
 
 
-  def draw( self):
+  def draw( self) -> object:
     # map colors through theme so default-colored shapes follow dark/light theme
     _lc = theme_manager.map_chemistry_color(self.line_color)
     _ac = theme_manager.map_chemistry_color(self.area_color, color_type='area')
@@ -158,7 +158,7 @@ class rect( vector_graphics_item, area_colored):
     self.paper.register_id( self.item, self)
 
 
-  def redraw( self):
+  def redraw( self) -> object:
     if not self.item:
       self.draw()
     else:
@@ -168,7 +168,7 @@ class rect( vector_graphics_item, area_colored):
       self.paper.itemconfig( self.item, width=self.line_width, fill=_ac, outline=_lc)
 
 
-  def get_package( self, doc):
+  def get_package( self, doc: object) -> object:
     """returns a DOM element describing the object in CDML,
     doc is the parent document which is used for element creation
     (the returned element is not inserted into the document)"""
@@ -184,7 +184,7 @@ class rect( vector_graphics_item, area_colored):
     return pack
 
 
-  def read_package( self, pack):
+  def read_package( self, pack: object) -> object:
     """reads the dom element pack and sets internal state according to it"""
     self.coords = self.paper.real_to_screen_coords( list(map( Screen.any_to_px,
                                                          dom_extensions.getAttributes( pack, ['x1', 'y1', 'x2', 'y2']))))
@@ -203,7 +203,7 @@ class rect( vector_graphics_item, area_colored):
 # SQUARE
 class square( rect):
 
-  def get_package( self, doc):
+  def get_package( self, doc: object) -> object:
     """returns a DOM element describing the object in CDML,
     doc is the parent document which is used for element creation
     (the returned element is not inserted into the document)"""
@@ -219,11 +219,11 @@ class square( rect):
     return pack
 
 
-  def select( self):
+  def select( self) -> object:
     self.selector = hg.selection_square( self.paper, self, coords=tuple( self.coords))
 
 
-  def resize( self, coords, fix=()):
+  def resize( self, coords: object, fix: object = ()) -> object:
     if not fix:
       x1, y1, x2, y2 = bkchem_utils.normalize_coords( coords)
       dx = x2 - x1
@@ -249,11 +249,11 @@ class oval( vector_graphics_item):
                           area_colored.meta__undo_properties
 
 
-  def __init__( self, paper, coords=(), package=None):
+  def __init__( self, paper: object, coords: object = (), package: object = None) -> None:
     vector_graphics_item.__init__( self, paper, coords=coords, package=package)
 
 
-  def draw( self):
+  def draw( self) -> object:
     # map colors through theme so default-colored shapes follow dark/light theme
     _lc = theme_manager.map_chemistry_color(self.line_color)
     _ac = theme_manager.map_chemistry_color(self.area_color, color_type='area')
@@ -265,7 +265,7 @@ class oval( vector_graphics_item):
     self.paper.register_id( self.item, self)
 
 
-  def redraw( self):
+  def redraw( self) -> object:
     if not self.item:
       self.draw()
     else:
@@ -275,7 +275,7 @@ class oval( vector_graphics_item):
       self.paper.itemconfig( self.item, width=self.line_width, fill=_ac, outline=_lc)
 
 
-  def get_package( self, doc):
+  def get_package( self, doc: object) -> object:
     """returns a DOM element describing the object in CDML,
     doc is the parent document which is used for element creation
     (the returned element is not inserted into the document)"""
@@ -291,7 +291,7 @@ class oval( vector_graphics_item):
     return pack
 
 
-  def read_package( self, pack):
+  def read_package( self, pack: object) -> object:
     """reads the dom element pack and sets internal state according to it"""
     self.coords = self.paper.real_to_screen_coords( list(map( Screen.any_to_px,
                                                          dom_extensions.getAttributes( pack, ['x1', 'y1', 'x2', 'y2']))))
@@ -311,7 +311,7 @@ class oval( vector_graphics_item):
 # CIRCLE
 class circle( oval):
 
-  def get_package( self, doc):
+  def get_package( self, doc: object) -> object:
     """returns a DOM element describing the object in CDML,
     doc is the parent document which is used for element creation
     (the returned element is not inserted into the document)"""
@@ -327,11 +327,11 @@ class circle( oval):
     return pack
 
 
-  def select( self):
+  def select( self) -> object:
     self.selector = hg.selection_square( self.paper, self, coords=tuple( self.coords), resize_event=self.resize, move_event=self.move)
 
 
-  def resize( self, coords, fix=()):
+  def resize( self, coords: object, fix: object = ()) -> object:
     if not fix:
       x1, y1, x2, y2 = bkchem_utils.normalize_coords( coords)
       dx = x2 - x1
@@ -363,7 +363,7 @@ class polygon( vector_graphics_item, container, area_colored):
   meta__undo_children_to_record = ('points',)
 
 
-  def __init__( self, paper, coords=(), package=None, width=1):
+  def __init__( self, paper: object, coords: object = (), package: object = None, width: object = 1) -> None:
     area_colored.__init__( self)
     vector_graphics_item.__init__( self, paper, coords=coords, package=package, width=width)
     del self.coords # polygon does use points for storage of coord information
@@ -375,7 +375,7 @@ class polygon( vector_graphics_item, container, area_colored):
         self.points.append( classes.point( self.paper, xy=( x, y), arrow=self))
 
 
-  def draw( self):
+  def draw( self) -> object:
     [p.draw() for p in self.points]
     coords = (j for i in [b.get_xy() for b in self.points]
                   for j in i)
@@ -390,12 +390,12 @@ class polygon( vector_graphics_item, container, area_colored):
     self.paper.register_id( self.item, self)
 
 
-  def move( self, dx, dy):
+  def move( self, dx: object, dy: object) -> object:
     [p.move( dx, dy) for p in self.points]
     self.paper.move( self.item, dx, dy)
 
 
-  def redraw( self):
+  def redraw( self) -> object:
     if not self.item:
       self.draw()
     else:
@@ -407,21 +407,21 @@ class polygon( vector_graphics_item, container, area_colored):
       self.paper.itemconfig( self.item, width=self.line_width, fill=_ac, outline=_lc)
 
 
-  def select( self):
+  def select( self) -> object:
     #self.selector = hg.selection_square( self.paper, self, coords=tuple( self.bbox()))
     [o.select() for o in self.points]
 
 
-  def unselect( self):
+  def unselect( self) -> object:
     [o.unselect() for o in self.points]
 
 
-  def bbox( self):
+  def bbox( self) -> object:
     """returns the bounding box of the object as a list of [x1,y1,x2,y2]"""
     return self.paper.bbox( self.item)
 
 
-  def get_package( self, doc):
+  def get_package( self, doc: object) -> object:
     """returns a DOM element describing the object in CDML,
     doc is the parent document which is used for element creation
     (the returned element is not inserted into the document)"""
@@ -434,7 +434,7 @@ class polygon( vector_graphics_item, container, area_colored):
     return pack
 
 
-  def read_package( self, pack):
+  def read_package( self, pack: object) -> object:
     """reads the dom element pack and sets internal state according to it"""
     self.points = []
     for p in pack.getElementsByTagName( 'point'):
@@ -451,7 +451,7 @@ class polygon( vector_graphics_item, container, area_colored):
       self.line_width = 1.0
 
 
-  def lift( self):
+  def lift( self) -> object:
     if self.selector:
       self.selector.lift()
     if self.item:
@@ -459,7 +459,7 @@ class polygon( vector_graphics_item, container, area_colored):
     [o.lift() for o in self.points]
 
 
-  def delete_point( self, pnt):
+  def delete_point( self, pnt: object) -> object:
     try:
       self.points.remove( pnt)
     except IndexError:
@@ -467,11 +467,11 @@ class polygon( vector_graphics_item, container, area_colored):
     pnt.delete()
 
 
-  def is_empty_or_single_point( self):
+  def is_empty_or_single_point( self) -> object:
     return len( self.points) < 3
 
 
-  def delete( self):
+  def delete( self) -> object:
     [o.delete() for o in self.points]
     self.points = []
     self.paper.delete( self.item)
@@ -481,7 +481,7 @@ class polygon( vector_graphics_item, container, area_colored):
 
   # shape_defining_points
   @property
-  def shape_defining_points(self):
+  def shape_defining_points(self) -> object:
     """List of point_drawable instances.
 
     """
@@ -505,7 +505,7 @@ class polyline( vector_graphics_item, container, line_colored):
   meta__undo_children_to_record = ('points',)
 
 
-  def __init__( self, paper, coords=(), package=None, width=1, spline=False):
+  def __init__( self, paper: object, coords: object = (), package: object = None, width: object = 1, spline: object = False) -> None:
     self.spline = spline
     line_colored.__init__( self)
     vector_graphics_item.__init__( self, paper, coords=coords, package=package, width=width)
@@ -518,7 +518,7 @@ class polyline( vector_graphics_item, container, line_colored):
         self.points.append( classes.point( self.paper, xy=( x, y), arrow=self))
 
 
-  def draw( self):
+  def draw( self) -> object:
     [p.draw() for p in self.points]
     coords = (j for i in [b.get_xy_on_screen() for b in self.points]
                   for j in i)
@@ -532,7 +532,7 @@ class polyline( vector_graphics_item, container, line_colored):
     self.paper.register_id( self.item, self)
 
 
-  def move( self, dx, dy, use_paper_coords=False):
+  def move( self, dx: object, dy: object, use_paper_coords: object = False) -> object:
     [p.move( dx, dy, use_paper_coords) for p in self.points]
     if not use_paper_coords:
       dx = self.paper.real_to_canvas(dx)
@@ -540,7 +540,7 @@ class polyline( vector_graphics_item, container, line_colored):
     self.paper.move( self.item, dx, dy)
 
 
-  def redraw( self):
+  def redraw( self) -> object:
     if not self.item:
       self.draw()
     else:
@@ -550,27 +550,27 @@ class polyline( vector_graphics_item, container, line_colored):
       _lc = theme_manager.map_chemistry_color(self.line_color)
       self.paper.itemconfig( self.item, width=self.line_width, fill=_lc, smooth=self.spline)
 
-  def focus(self):
+  def focus(self) -> object:
     self.paper.itemconfig( self.item, width=self.line_width+2)
 
-  def unfocus(self):
+  def unfocus(self) -> object:
     self.paper.itemconfig( self.item, width=self.line_width)
 
-  def select( self):
+  def select( self) -> object:
     #self.selector = hg.selection_square( self.paper, self, coords=tuple( self.bbox()))
     [o.select() for o in self.points]
 
 
-  def unselect( self):
+  def unselect( self) -> object:
     [o.unselect() for o in self.points]
 
 
-  def bbox( self):
+  def bbox( self) -> object:
     """returns the bounding box of the object as a list of [x1,y1,x2,y2]"""
     return self.paper.bbox( self.item)
 
 
-  def get_package( self, doc):
+  def get_package( self, doc: object) -> object:
     """returns a DOM element describing the object in CDML,
     doc is the parent document which is used for element creation
     (the returned element is not inserted into the document)"""
@@ -584,7 +584,7 @@ class polyline( vector_graphics_item, container, line_colored):
     return pack
 
 
-  def read_package( self, pack):
+  def read_package( self, pack: object) -> object:
     """reads the dom element pack and sets internal state according to it"""
     self.points = []
     for p in pack.getElementsByTagName( 'point'):
@@ -606,7 +606,7 @@ class polyline( vector_graphics_item, container, line_colored):
       self.spline = False
 
 
-  def lift( self):
+  def lift( self) -> object:
     if self.selector:
       self.selector.lift()
     if self.item:
@@ -614,7 +614,7 @@ class polyline( vector_graphics_item, container, line_colored):
     [o.lift() for o in self.points]
 
 
-  def delete_point( self, pnt):
+  def delete_point( self, pnt: object) -> object:
     try:
       self.points.remove( pnt)
     except IndexError:
@@ -622,11 +622,11 @@ class polyline( vector_graphics_item, container, line_colored):
     pnt.delete()
 
 
-  def is_empty_or_single_point( self):
+  def is_empty_or_single_point( self) -> object:
     return len( self.points) < 2
 
 
-  def delete( self):
+  def delete( self) -> object:
     [o.delete() for o in self.points]
     self.points = []
     self.paper.delete( self.item)
@@ -636,7 +636,7 @@ class polyline( vector_graphics_item, container, line_colored):
 
   # shape_defining_points
   @property
-  def shape_defining_points(self):
+  def shape_defining_points(self) -> object:
     """List of point_drawable instances.
 
     """

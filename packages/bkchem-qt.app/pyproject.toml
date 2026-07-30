@@ -1,18 +1,20 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "bkchem-qt"
-version = "26.02a1"
+version = "26.07"
 description = "BKChem Qt frontend - 2D molecular structure editor"
 readme = {text = "BKChem Qt frontend built with PySide6.", content-type = "text/markdown"}
 requires-python = ">=3.10"
-license = {text = "GPL-2.0-only"}
+license = "GPL-2.0-only"
+license-files = ["LICENSE"]
 authors = [{name = "Neil Voss"}]
 dependencies = [
     "PySide6>=6.7",
     "pyyaml",
+    "oasa>=26.07",
 ]
 
 [project.urls]
@@ -28,3 +30,12 @@ include-package-data = true
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["bkchem_qt*"]
+
+[tool.setuptools.package-data]
+bkchem_qt = [
+    "resources/*.yaml",
+    "resources/themes/*.yaml",
+    "resources/pixmaps/png/*.png",
+    "resources/pixmaps/png-dark/*.png",
+    "resources/app_icon.svg",
+]

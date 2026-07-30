@@ -32,15 +32,15 @@ class Codec(object):
 
 	def __init__(
 		self,
-		name,
-		module=None,
-		extensions=None,
-		description=None,
-		text_to_mol=None,
-		mol_to_text=None,
-		file_to_mol=None,
-		mol_to_file=None,
-	):
+		name: object,
+		module: object=None,
+		extensions: object=None,
+		description: object=None,
+		text_to_mol: object=None,
+		mol_to_text: object=None,
+		file_to_mol: object=None,
+		mol_to_file: object=None,
+	) -> None:
 		self.name = _normalize_name(name)
 		if not self.name:
 			raise ValueError("Codec name is required.")
@@ -67,14 +67,14 @@ class Codec(object):
 
 
 	#============================================
-	def read_text(self, text, **kwargs):
+	def read_text(self, text: object, **kwargs) -> object:
 		if not self.text_to_mol:
 			raise ValueError(f"Codec '{self.name}' does not support text input.")
 		return self.text_to_mol(text, **kwargs)
 
 
 	#============================================
-	def read_file(self, file_obj, **kwargs):
+	def read_file(self, file_obj: object, **kwargs) -> object:
 		if self.file_to_mol:
 			return self.file_to_mol(file_obj, **kwargs)
 		if not self.text_to_mol:
@@ -83,14 +83,14 @@ class Codec(object):
 
 
 	#============================================
-	def write_text(self, mol, **kwargs):
+	def write_text(self, mol: object, **kwargs) -> object:
 		if not self.mol_to_text:
 			raise ValueError(f"Codec '{self.name}' does not support text output.")
 		return self.mol_to_text(mol, **kwargs)
 
 
 	#============================================
-	def write_file(self, mol, file_obj, **kwargs):
+	def write_file(self, mol: object, file_obj: object, **kwargs) -> object:
 		if self.mol_to_file:
 			return self.mol_to_file(mol, file_obj, **kwargs)
 		if not self.mol_to_text:
@@ -103,7 +103,7 @@ class Codec(object):
 
 
 #============================================
-def register_codec(codec, aliases=None, replace=False):
+def register_codec(codec: object, aliases: object=None, replace: object=False) -> object:
 	name = _normalize_name(codec.name)
 	if not name:
 		raise ValueError("Codec name is required.")
@@ -123,7 +123,7 @@ def register_codec(codec, aliases=None, replace=False):
 
 
 #============================================
-def register_alias(alias, name, replace=False):
+def register_alias(alias: object, name: object, replace: object=False) -> None:
 	alias_key = _normalize_name(alias)
 	name_key = _normalize_name(name)
 	if not alias_key or not name_key:
@@ -134,7 +134,13 @@ def register_alias(alias, name, replace=False):
 
 
 #============================================
-def register_module_codec(name, module, extensions=None, description=None, aliases=None):
+def register_module_codec(
+	name: object,
+	module: object,
+	extensions: object=None,
+	description: object=None,
+	aliases: object=None,
+) -> object:
 	codec = Codec(
 		name=name,
 		module=module,
@@ -145,7 +151,7 @@ def register_module_codec(name, module, extensions=None, description=None, alias
 
 
 #============================================
-def reset_registry():
+def reset_registry() -> None:
 	global _DEFAULTS_REGISTERED
 	_CODECS.clear()
 	_ALIASES.clear()
@@ -154,14 +160,14 @@ def reset_registry():
 
 
 #============================================
-def _normalize_name(name):
+def _normalize_name(name: object) -> str:
 	if not name:
 		return ""
 	return str(name).strip().lower()
 
 
 #============================================
-def _normalize_extension(ext):
+def _normalize_extension(ext: object) -> str:
 	if not ext:
 		return ""
 	text = str(ext).strip().lower()
@@ -173,7 +179,7 @@ def _normalize_extension(ext):
 
 
 #============================================
-def _normalize_extensions(extensions):
+def _normalize_extensions(extensions: object) -> list:
 	if not extensions:
 		return []
 	result = []
@@ -185,7 +191,7 @@ def _normalize_extensions(extensions):
 
 
 #============================================
-def _ensure_defaults_registered():
+def _ensure_defaults_registered() -> None:
 	global _DEFAULTS_REGISTERED
 	if _DEFAULTS_REGISTERED:
 		return
@@ -342,7 +348,7 @@ def _ensure_defaults_registered():
 
 
 #============================================
-def get_codec(name):
+def get_codec(name: object) -> Codec:
 	_ensure_defaults_registered()
 	key = _normalize_name(name)
 	if key in _ALIASES:
@@ -354,13 +360,13 @@ def get_codec(name):
 
 
 #============================================
-def list_codecs():
+def list_codecs() -> list:
 	_ensure_defaults_registered()
 	return sorted(_CODECS.keys())
 
 
 #============================================
-def get_codec_by_extension(ext):
+def get_codec_by_extension(ext: object) -> Codec:
 	_ensure_defaults_registered()
 	key = _normalize_extension(ext)
 	if not key:
@@ -372,7 +378,7 @@ def get_codec_by_extension(ext):
 
 
 #============================================
-def get_registry_snapshot():
+def get_registry_snapshot() -> dict:
 	"""Return registry capabilities for runtime discovery."""
 	_ensure_defaults_registered()
 	snapshot = {}

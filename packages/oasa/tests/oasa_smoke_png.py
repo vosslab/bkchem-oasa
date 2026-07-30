@@ -31,7 +31,7 @@ DEFAULT_NAME = "alpha-d-glucopyranose"
 
 
 #============================================
-def parse_args():
+def parse_args() -> argparse.Namespace:
 	"""Parse command-line arguments."""
 	parser = argparse.ArgumentParser(
 		description="Render a SMILES string to a PNG using OASA.",
@@ -59,7 +59,7 @@ def parse_args():
 
 
 #============================================
-def ensure_parent_dir(path):
+def ensure_parent_dir(path: str) -> None:
 	"""Create output directory if needed."""
 	parent = os.path.dirname(os.path.abspath(path))
 	if parent and not os.path.isdir(parent):
@@ -67,7 +67,7 @@ def ensure_parent_dir(path):
 
 
 #============================================
-def build_molecule(smiles_text):
+def build_molecule(smiles_text: str) -> object:
 	"""Convert SMILES to an OASA molecule with coordinates."""
 	mol = oasa.smiles_lib.text_to_mol(smiles_text, calc_coords=False)
 	if not mol:
@@ -79,7 +79,7 @@ def build_molecule(smiles_text):
 
 
 #============================================
-def resolve_format(output_path, output_format):
+def resolve_format(output_path: str, output_format: object) -> object:
 	"""Infer format from the extension unless explicitly set."""
 	if output_format:
 		return output_format
@@ -90,7 +90,7 @@ def resolve_format(output_path, output_format):
 
 
 #============================================
-def render_molecule(mol, output_path, output_format):
+def render_molecule(mol: object, output_path: str, output_format: object) -> None:
 	"""Render the molecule using the cairo backend."""
 	import oasa.cairo_out as cairo_out
 	renderer = cairo_out.cairo_out(color_bonds=True, color_atoms=True)
@@ -104,7 +104,7 @@ def render_molecule(mol, output_path, output_format):
 
 
 #============================================
-def main():
+def main() -> None:
 	args = parse_args()
 	ensure_parent_dir(args.output_path)
 	mol = build_molecule(args.smiles_text)

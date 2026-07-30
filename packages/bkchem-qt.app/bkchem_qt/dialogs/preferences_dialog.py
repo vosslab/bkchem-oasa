@@ -23,7 +23,9 @@ class PreferencesDialog(PySide6.QtWidgets.QDialog):
 	"""
 
 	#============================================
-	def __init__(self, parent=None):
+	def __init__(
+			self, parent: PySide6.QtWidgets.QWidget | None = None,
+			) -> None:
 		"""Initialize the preferences dialog with all tabs.
 
 		Args:
@@ -249,7 +251,11 @@ class PreferencesDialog(PySide6.QtWidgets.QDialog):
 		"""Fill the shortcuts table from keybinding defaults and prefs."""
 		# import here to avoid circular dependency at module level
 		import bkchem_qt.config.keybindings
-		bindings = dict(bkchem_qt.config.keybindings.DEFAULT_KEYBINDINGS)
+		manager = getattr(self.parent(), "_keybinding_manager", None)
+		if manager is None:
+			bindings = dict(bkchem_qt.config.keybindings.DEFAULT_KEYBINDINGS)
+		else:
+			bindings = manager.get_all_bindings()
 		# override with any saved values from preferences
 		for action_name in bindings:
 			saved = self._prefs.value("keybindings/" + action_name)
@@ -274,7 +280,11 @@ class PreferencesDialog(PySide6.QtWidgets.QDialog):
 	def _reset_shortcuts(self) -> None:
 		"""Reset the shortcuts table to default values."""
 		import bkchem_qt.config.keybindings
-		bindings = bkchem_qt.config.keybindings.DEFAULT_KEYBINDINGS
+		manager = getattr(self.parent(), "_keybinding_manager", None)
+		if manager is None:
+			bindings = bkchem_qt.config.keybindings.DEFAULT_KEYBINDINGS
+		else:
+			bindings = manager.default_bindings()
 		sorted_actions = sorted(bindings.keys())
 		self._shortcuts_table.setRowCount(len(sorted_actions))
 		for row, action_name in enumerate(sorted_actions):
@@ -348,7 +358,9 @@ class PreferencesDialog(PySide6.QtWidgets.QDialog):
 
 	#============================================
 	@staticmethod
-	def show_preferences(parent=None) -> bool:
+	def show_preferences(
+			parent: PySide6.QtWidgets.QWidget | None = None,
+			) -> bool:
 		"""Convenience method: show dialog, return True if applied.
 
 		Args:

@@ -3,7 +3,7 @@
 ## Objective
 - Generate geometry and styling decisions once, then paint through SVG and Cairo.
 - Remove Haworth-specific drawing logic from renderer backends.
-- Keep this plan aligned with [docs/HAWORTH_IMPLEMENTATION_PLAN.md](docs/HAWORTH_IMPLEMENTATION_PLAN.md).
+- Keep this plan aligned with `HAWORTH_IMPLEMENTATION_PLAN.md`.
 
 ## Guiding rules
 - Layout and bond styling generate geometry once.

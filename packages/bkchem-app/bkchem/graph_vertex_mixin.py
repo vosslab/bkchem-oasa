@@ -24,7 +24,7 @@ class GraphVertexMixin:
 	attrs_to_copy: tuple[str, ...] = ("value",)
 
 	#============================================
-	def __init__(self):
+	def __init__(self) -> None:
 		"""Initialize vertex state: properties, value, neighbors, and cache."""
 		self.properties_ = {}
 		self.value = None
@@ -42,7 +42,7 @@ class GraphVertexMixin:
 		self._cache = {}
 
 	#============================================
-	def copy(self):
+	def copy(self) -> object:
 		"""Create a shallow copy of this vertex, copying attrs_to_copy fields.
 
 		Returns:
@@ -54,7 +54,7 @@ class GraphVertexMixin:
 		return other
 
 	#============================================
-	def add_neighbor(self, v, e) -> None:
+	def add_neighbor(self, v: object, e: object) -> None:
 		"""Add a neighbor connected via edge e.
 
 		Args:
@@ -65,7 +65,7 @@ class GraphVertexMixin:
 		self._neighbors[e] = v
 
 	#============================================
-	def remove_neighbor(self, v) -> None:
+	def remove_neighbor(self, v: object) -> None:
 		"""Remove neighbor v and the edge connecting to it.
 
 		Args:
@@ -86,7 +86,7 @@ class GraphVertexMixin:
 			raise Exception("Cannot remove non-existing neighbor")
 
 	#============================================
-	def remove_edge_and_neighbor(self, e) -> None:
+	def remove_edge_and_neighbor(self, e: object) -> None:
 		"""Remove edge e and its associated neighbor.
 
 		Args:
@@ -109,7 +109,7 @@ class GraphVertexMixin:
 				if not e.disconnected]
 
 	#============================================
-	def get_neighbor_connected_via(self, e):
+	def get_neighbor_connected_via(self, e: object) -> object:
 		"""Return the neighbor connected via edge e.
 
 		Args:
@@ -121,7 +121,7 @@ class GraphVertexMixin:
 		return self._neighbors[e]
 
 	#============================================
-	def get_edge_leading_to(self, a):
+	def get_edge_leading_to(self, a: object) -> object:
 		"""Return the edge leading to vertex a, or None.
 
 		Args:
@@ -142,7 +142,7 @@ class GraphVertexMixin:
 		return len(self.neighbors)
 
 	#============================================
-	def get_neighbors_with_distance(self, d) -> list:
+	def get_neighbors_with_distance(self, d: object) -> list:
 		"""Return neighbors whose properties_ dict has 'd' equal to d.
 
 		Args:
@@ -158,7 +158,7 @@ class GraphVertexMixin:
 		return ret
 
 	#============================================
-	def get_neighbor_edge_pairs(self):
+	def get_neighbor_edge_pairs(self) -> object:
 		"""Yield (edge, vertex) pairs for all active connections."""
 		for e, v in list(self._neighbors.items()):
 			if not e.disconnected:

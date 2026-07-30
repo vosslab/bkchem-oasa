@@ -14,7 +14,7 @@ def _build(code: str, ring_type: str, anomeric: str) -> haworth_spec.HaworthSpec
 
 
 #============================================
-def test_haworth_spec_smoke_matrix():
+def test_haworth_spec_smoke_matrix() -> None:
 	cases = [
 		("ARLRDM", "pyranose"),
 		("ARLRDM", "furanose"),
@@ -39,7 +39,7 @@ def test_haworth_spec_smoke_matrix():
 
 #============================================
 @pytest.mark.parametrize("ring_type", ["furanose", "pyranose"])
-def test_haworth_spec_smoke_meso_ring_capacity_error(ring_type):
+def test_haworth_spec_smoke_meso_ring_capacity_error(ring_type: str) -> None:
 	parsed = sugar_code.parse("MKM")
 	with pytest.raises(ValueError) as error:
 		haworth_spec.generate(parsed, ring_type=ring_type, anomeric="alpha")

@@ -270,7 +270,7 @@ def recolor_svg_text(svg_text: str, fg_color: str,
 	"""
 	fg_normalized = normalize_hex(fg_color)
 
-	def replace_color(match):
+	def replace_color(match: object) -> object:
 		"""Replace a hex color if it is dark ink."""
 		original = match.group(0)
 		normalized = normalize_hex(original)
@@ -466,7 +466,7 @@ def generate_theme_pngs(
 
 
 #============================================
-def main():
+def main() -> None:
 	"""Generate per-theme PNG icon sets from SVG sources."""
 	args = parse_args()
 

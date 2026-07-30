@@ -9,49 +9,49 @@ from bkchem import singleton_store
 
 
 class _DummyPaper(object):
-	def __init__(self):
+	def __init__(self) -> None:
 		self.created = []
 
-	def real_to_canvas(self, value):
+	def real_to_canvas(self, value: object) -> object:
 		return value
 
-	def create_polygon(self, coords, **kwargs):
+	def create_polygon(self, coords: object, **kwargs) -> object:
 		self.created.append(("polygon", coords, kwargs))
 		return len(self.created)
 
-	def create_line(self, coords, **kwargs):
+	def create_line(self, coords: object, **kwargs) -> object:
 		self.created.append(("line", coords, kwargs))
 		return len(self.created)
 
-	def addtag_withtag(self, tag, item):
+	def addtag_withtag(self, tag: object, item: object) -> object:
 		return None
 
-	def register_id(self, item, obj):
+	def register_id(self, item: object, obj: object) -> object:
 		return None
 
 
 class _DummyParent(object):
-	def __init__(self, paper):
+	def __init__(self, paper: object) -> None:
 		self.paper = paper
 
 
 class _DummyAtom(object):
-	def __init__(self, x, y):
+	def __init__(self, x: object, y: object) -> None:
 		self.x = x
 		self.y = y
 		self.show = False
 		self.neighbors = []
 		self.occupied_valency = 0
 
-	def get_xy_on_paper(self):
+	def get_xy_on_paper(self) -> object:
 		return (self.x, self.y)
 
-	def bbox(self, substract_font_descent=True):
+	def bbox(self, substract_font_descent: object=True) -> object:
 		return (self.x - 1.0, self.y - 1.0, self.x + 1.0, self.y + 1.0)
 
 
 #============================================
-def test_bkchem_rounded_wedge_polygon():
+def test_bkchem_rounded_wedge_polygon() -> None:
 	standard = bkchem.classes.standard()
 	singleton_store.Screen.dpi = 72
 	bond = bkchem.bond_lib.BkBond(standard=standard, type="w", order=1)
@@ -66,7 +66,7 @@ def test_bkchem_rounded_wedge_polygon():
 
 
 #============================================
-def test_bkchem_haworth_q_draws_round_line():
+def test_bkchem_haworth_q_draws_round_line() -> None:
 	standard = bkchem.classes.standard()
 	singleton_store.Screen.dpi = 72
 	bond = bkchem.bond_lib.BkBond(standard=standard, type="q", order=1)

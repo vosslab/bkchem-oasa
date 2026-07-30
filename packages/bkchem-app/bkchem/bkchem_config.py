@@ -17,33 +17,15 @@
 
 #--------------------------------------------------------------------------
 
-
-import os
+# local repo modules
+import bkchem.versioning
 
 debug = 0
 devel = 0
 
-current_CDML_version = '26.02'
+current_CDML_version = '26.07'
 
-def _read_repo_version( key, fallback):
-	version_path = os.path.abspath( os.path.join( os.path.dirname( __file__), "..", "..", "..", "version.txt"))
-	if not os.path.isfile( version_path):
-		return fallback
-	with open( version_path, "r") as handle:
-		for line in handle:
-			text = line.strip()
-			if not text or text.startswith( "#"):
-				continue
-			if "=" not in text:
-				continue
-			name, value = [part.strip() for part in text.split( "=", 1)]
-			if name.lower() == "version" and value:
-				return value
-			if name.lower() == key.lower() and value:
-				return value
-	return fallback
-
-current_BKChem_version = _read_repo_version( "bkchem", "26.02a1")
+current_BKChem_version = bkchem.versioning.application_version()
 
 
 

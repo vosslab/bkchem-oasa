@@ -3,7 +3,7 @@
 ## Scope
 
 This report closes Phase B of
-[docs/archive/PURE_OASA_BACKEND_REFACTOR.md](docs/archive/PURE_OASA_BACKEND_REFACTOR.md):
+[PURE_OASA_BACKEND_REFACTOR.md](PURE_OASA_BACKEND_REFACTOR.md):
 
 - B1 option inventory and classification.
 - B2 GUI manifest schema validation.

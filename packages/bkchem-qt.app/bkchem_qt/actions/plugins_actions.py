@@ -2,7 +2,7 @@
 
 
 #============================================
-def register_plugins_actions(registry, app) -> None:
+def register_plugins_actions(registry: object, app: object) -> None:
 	"""Register Plugins menu actions (currently none).
 
 	Args:

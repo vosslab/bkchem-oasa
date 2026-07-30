@@ -28,7 +28,8 @@ class TextItem(PySide6.QtWidgets.QGraphicsTextItem):
 	"""
 
 	#============================================
-	def __init__(self, text="", parent=None):
+	def __init__(self, text: str = "",
+			parent: PySide6.QtWidgets.QGraphicsItem = None) -> None:
 		"""Initialize the text item.
 
 		Args:
@@ -47,11 +48,8 @@ class TextItem(PySide6.QtWidgets.QGraphicsTextItem):
 			PySide6.QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable,
 			True,
 		)
-		self.setFlag(
-			PySide6.QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable,
-			True,
-		)
 		self.setAcceptHoverEvents(True)
+		self._disposed = False
 
 	# ------------------------------------------------------------------
 	# Convenience methods
@@ -91,7 +89,7 @@ class TextItem(PySide6.QtWidgets.QGraphicsTextItem):
 	# ------------------------------------------------------------------
 
 	#============================================
-	def hoverEnterEvent(self, event) -> None:
+	def hoverEnterEvent(self, event: PySide6.QtWidgets.QGraphicsSceneHoverEvent) -> None:
 		"""Show a subtle highlight when the mouse enters the text.
 
 		Args:
@@ -101,7 +99,7 @@ class TextItem(PySide6.QtWidgets.QGraphicsTextItem):
 		self.update()
 
 	#============================================
-	def hoverLeaveEvent(self, event) -> None:
+	def hoverLeaveEvent(self, event: PySide6.QtWidgets.QGraphicsSceneHoverEvent) -> None:
 		"""Remove the highlight when the mouse leaves the text.
 
 		Args:
@@ -137,3 +135,8 @@ class TextItem(PySide6.QtWidgets.QGraphicsTextItem):
 			painter.drawRect(self.boundingRect())
 		# draw the text itself
 		super().paint(painter, option, widget)
+
+	#============================================
+	def dispose(self) -> None:
+		"""Release projection-owned callbacks before scene teardown."""
+		self._disposed = True

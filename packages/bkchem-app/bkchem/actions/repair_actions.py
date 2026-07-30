@@ -12,7 +12,7 @@ except ImportError:
 
 
 #============================================
-def register_repair_actions(registry, app) -> None:
+def register_repair_actions(registry: object, app: object) -> None:
 	"""Register all Repair menu actions.
 
 	Args:

@@ -4,18 +4,8 @@
 import PySide6.QtCore
 import PySide6.QtWidgets
 
-
-# bond type display names mapped to internal type characters
-_BOND_TYPES = [
-	("Normal", "n"),
-	("Wedge", "w"),
-	("Hatch", "h"),
-	("Bold", "b"),
-	("Wavy", "a"),
-	("Dotted", "d"),
-	("Dashed", "o"),
-	("Bold Wedge", "q"),
-]
+# local repo modules
+import bkchem_qt.bond_presentation
 
 
 #============================================
@@ -38,7 +28,7 @@ class EditRibbon(PySide6.QtWidgets.QWidget):
 	bond_type_changed = PySide6.QtCore.Signal(str)
 
 	#============================================
-	def __init__(self, parent=None):
+	def __init__(self, parent: object = None) -> None:
 		"""Initialize the edit ribbon layout and widgets.
 
 		Args:
@@ -68,7 +58,7 @@ class EditRibbon(PySide6.QtWidgets.QWidget):
 		type_label = PySide6.QtWidgets.QLabel("Type:")
 		layout.addWidget(type_label)
 		self._type_combo = PySide6.QtWidgets.QComboBox()
-		for display_name, type_char in _BOND_TYPES:
+		for type_char, display_name in bkchem_qt.bond_presentation.ORDINARY_BOND_TYPE_CHOICES:
 			self._type_combo.addItem(display_name, type_char)
 		self._type_combo.setToolTip("Bond type for new bonds")
 		layout.addWidget(self._type_combo)

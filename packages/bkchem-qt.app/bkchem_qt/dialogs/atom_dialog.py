@@ -27,7 +27,7 @@ class AtomDialog(PySide6.QtWidgets.QDialog):
 	"""
 
 	#============================================
-	def __init__(self, atom_model, parent=None):
+	def __init__(self, atom_model: object, parent: object | None = None) -> None:
 		"""Initialize the atom properties dialog.
 
 		Args:
@@ -35,8 +35,18 @@ class AtomDialog(PySide6.QtWidgets.QDialog):
 			parent: Optional parent widget.
 		"""
 		super().__init__(parent)
-		self._atom_model = atom_model
-		self._color = atom_model.line_color
+		self._initial_values = {
+			"symbol": atom_model.symbol,
+			"charge": atom_model.charge,
+			"valency": atom_model.valency,
+			"isotope": atom_model.isotope,
+			"multiplicity": atom_model.multiplicity,
+			"show": atom_model.show,
+			"show_hydrogens": atom_model.show_hydrogens,
+			"font_size": atom_model.font_size,
+			"line_color": atom_model.line_color,
+		}
+		self._color = self._initial_values["line_color"]
 		self.setWindowTitle("Atom Properties")
 		self.setMinimumWidth(300)
 		self._build_ui()
@@ -108,23 +118,23 @@ class AtomDialog(PySide6.QtWidgets.QDialog):
 	#============================================
 	def _populate_from_model(self) -> None:
 		"""Fill dialog fields from the current atom model values."""
-		self._symbol_edit.setText(self._atom_model.symbol)
-		self._charge_spin.setValue(self._atom_model.charge)
-		self._valency_spin.setValue(self._atom_model.valency)
+		self._symbol_edit.setText(self._initial_values["symbol"])
+		self._charge_spin.setValue(self._initial_values["charge"])
+		self._valency_spin.setValue(self._initial_values["valency"])
 		# isotope: None maps to 0 in the spin box
-		isotope_val = self._atom_model.isotope
+		isotope_val = self._initial_values["isotope"]
 		if isotope_val is None:
 			isotope_val = 0
 		self._isotope_spin.setValue(isotope_val)
 		# multiplicity
-		mult_label = _MULTIPLICITY_LABELS.get(self._atom_model.multiplicity, "Singlet")
+		mult_label = _MULTIPLICITY_LABELS.get(self._initial_values["multiplicity"], "Singlet")
 		idx = self._multiplicity_combo.findText(mult_label)
 		if idx >= 0:
 			self._multiplicity_combo.setCurrentIndex(idx)
-		self._show_check.setChecked(self._atom_model.show)
-		self._hydrogens_check.setChecked(self._atom_model.show_hydrogens)
-		self._font_spin.setValue(self._atom_model.font_size)
-		self._color = self._atom_model.line_color
+		self._show_check.setChecked(self._initial_values["show"])
+		self._hydrogens_check.setChecked(self._initial_values["show_hydrogens"])
+		self._font_spin.setValue(self._initial_values["font_size"])
+		self._color = self._initial_values["line_color"]
 		self._update_color_button()
 
 	#============================================
@@ -172,8 +182,19 @@ class AtomDialog(PySide6.QtWidgets.QDialog):
 		return values
 
 	#============================================
+	def changes(self) -> tuple[tuple[str, object], ...]:
+		"""Return only changed plain backend field/value pairs."""
+		values = self.get_values()
+		changed = []
+		for field_name, value in values.items():
+			if value == self._initial_values[field_name]:
+				continue
+			changed.append(("element" if field_name == "symbol" else field_name, value))
+		return tuple(changed)
+
+	#============================================
 	@staticmethod
-	def edit_atom(atom_model, parent=None) -> bool:
+	def edit_atom(atom_model: object, parent: object | None = None) -> bool:
 		"""Convenience: show dialog, apply changes if accepted.
 
 		Args:

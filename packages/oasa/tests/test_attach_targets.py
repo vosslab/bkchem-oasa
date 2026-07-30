@@ -18,13 +18,13 @@ from oasa.render_lib.attach_resolution import validate_attachment_paint
 
 
 #============================================
-def _is_on_circle_boundary(point, center, radius, tol=1e-6):
+def _is_on_circle_boundary(point: tuple, center: tuple, radius: float, tol: float = 1e-6) -> bool:
 	distance = ((point[0] - center[0]) ** 2 + (point[1] - center[1]) ** 2) ** 0.5
 	return abs(distance - radius) <= tol
 
 
 #============================================
-def test_attach_target_centroid_box_circle_composite():
+def test_attach_target_centroid_box_circle_composite() -> None:
 	box = make_box_target((0.0, 2.0, 10.0, 12.0))
 	circle = make_circle_target((5.0, -4.0), 3.0)
 	composite = make_composite_target((circle, box))
@@ -34,7 +34,7 @@ def test_attach_target_centroid_box_circle_composite():
 
 
 #============================================
-def test_attach_target_contains_box_and_circle():
+def test_attach_target_contains_box_and_circle() -> None:
 	box = make_box_target((0.0, 0.0, 10.0, 10.0))
 	circle = make_circle_target((0.0, 0.0), 5.0)
 	assert box.contains((5.0, 5.0))
@@ -44,7 +44,7 @@ def test_attach_target_contains_box_and_circle():
 
 
 #============================================
-def test_attach_target_boundary_intersection_circle():
+def test_attach_target_boundary_intersection_circle() -> None:
 	target = make_circle_target((0.0, 0.0), 5.0)
 	endpoint = target.boundary_intersection(bond_start=(-20.0, 0.0))
 	assert _is_on_circle_boundary(endpoint, (0.0, 0.0), 5.0, tol=1e-6)
@@ -52,7 +52,7 @@ def test_attach_target_boundary_intersection_circle():
 
 
 #============================================
-def test_resolve_attach_endpoint_box_vertical_lock():
+def test_resolve_attach_endpoint_box_vertical_lock() -> None:
 	target = make_box_target((0.0, 0.0, 10.0, 10.0))
 	constraints = AttachConstraints(vertical_lock=True)
 	endpoint = resolve_attach_endpoint(
@@ -65,7 +65,7 @@ def test_resolve_attach_endpoint_box_vertical_lock():
 
 
 #============================================
-def test_validate_attachment_paint_circle_legality_boundary_then_penetration():
+def test_validate_attachment_paint_circle_legality_boundary_then_penetration() -> None:
 	target = make_circle_target((0.0, 0.0), 5.0)
 	boundary_endpoint = resolve_attach_endpoint(
 		bond_start=(-12.0, 0.0),
@@ -93,7 +93,7 @@ def test_validate_attachment_paint_circle_legality_boundary_then_penetration():
 
 
 #============================================
-def test_validate_attachment_paint_long_segment_circle_false_negative_regression():
+def test_validate_attachment_paint_long_segment_circle_false_negative_regression() -> None:
 	forbidden = make_circle_target((0.5, 0.0), 0.2)
 	assert not validate_attachment_paint(
 		line_start=(0.0, 0.0),
@@ -106,7 +106,7 @@ def test_validate_attachment_paint_long_segment_circle_false_negative_regression
 
 
 #============================================
-def test_validate_attachment_paint_allowed_box_carveout_false_negative_regression():
+def test_validate_attachment_paint_allowed_box_carveout_false_negative_regression() -> None:
 	forbidden = make_box_target(
 		(-0.9948500452311335, -0.27878791276789094, -0.8635941180998662, 0.07419065418791237)
 	)
@@ -124,7 +124,7 @@ def test_validate_attachment_paint_allowed_box_carveout_false_negative_regressio
 
 
 #============================================
-def test_resolve_attach_endpoint_composite_uses_fallback_children():
+def test_resolve_attach_endpoint_composite_uses_fallback_children() -> None:
 	invalid_primary = AttachTarget(kind="unknown")
 	fallback_box = make_box_target((0.0, 0.0, 10.0, 10.0))
 	composite = make_composite_target((invalid_primary, fallback_box))
@@ -138,7 +138,7 @@ def test_resolve_attach_endpoint_composite_uses_fallback_children():
 
 
 #============================================
-def test_render_geometry_shim_removed():
+def test_render_geometry_shim_removed() -> None:
 	"""Verify the backward-compat shim module no longer exists."""
 	import importlib
 	with pytest.raises(ImportError):
@@ -147,7 +147,7 @@ def test_render_geometry_shim_removed():
 
 
 #============================================
-def test_directional_attach_line_policy_matches_legacy_clip():
+def test_directional_attach_line_policy_matches_legacy_clip() -> None:
 	box = (0.0, 0.0, 10.0, 10.0)
 	start = (-10.0, 2.0)
 	target = (5.0, 5.0)
@@ -167,7 +167,7 @@ def test_directional_attach_line_policy_matches_legacy_clip():
 
 
 #============================================
-def test_directional_attach_auto_policy_snaps_to_canonical_lattice_for_box():
+def test_directional_attach_auto_policy_snaps_to_canonical_lattice_for_box() -> None:
 	box = (0.0, 0.0, 10.0, 10.0)
 	start = (-10.0, 1.0)
 	target = (5.0, 5.0)
@@ -181,7 +181,7 @@ def test_directional_attach_auto_policy_snaps_to_canonical_lattice_for_box():
 
 
 #============================================
-def test_resolve_attach_endpoint_circle_auto_policy_snaps_to_canonical_lattice():
+def test_resolve_attach_endpoint_circle_auto_policy_snaps_to_canonical_lattice() -> None:
 	target = make_circle_target((0.0, 0.0), 5.0)
 	endpoint = resolve_attach_endpoint(
 		bond_start=(-10.0, 2.0),
@@ -202,14 +202,14 @@ def test_resolve_attach_endpoint_circle_auto_policy_snaps_to_canonical_lattice()
 		("NH3+", "end", -5.0, 4.0, 16.0, (-46.3515625, -1.7279999999999998, -5.0, 10.128)),
 	),
 )
-def test_label_target_legacy_geometry_values(text, anchor, x, y, font_size, expected):
+def test_label_target_legacy_geometry_values(text: str, anchor: str, x: float, y: float, font_size: float, expected: tuple) -> None:
 	target = label_target(x, y, text, anchor, font_size)
 	assert target.kind == "box"
 	assert target.box == pytest.approx(expected)
 
 
 #============================================
-def test_label_attach_target_legacy_geometry_values():
+def test_label_attach_target_legacy_geometry_values() -> None:
 	target = label_attach_target(
 		0.0,
 		0.0,
@@ -227,7 +227,7 @@ def test_label_attach_target_legacy_geometry_values():
 
 
 #============================================
-def test_label_attach_selector_precedence_uses_element_before_attach_atom():
+def test_label_attach_selector_precedence_uses_element_before_attach_atom() -> None:
 	with_element = label_attach_target(
 		0.0,
 		0.0,
@@ -250,7 +250,7 @@ def test_label_attach_selector_precedence_uses_element_before_attach_atom():
 
 #============================================
 @pytest.mark.parametrize("text", ("CH2OH", "HOH2C"))
-def test_label_attach_element_targets_core_span_not_decorated_span(text):
+def test_label_attach_element_targets_core_span_not_decorated_span(text: str) -> None:
 	core_target = label_attach_target(
 		0.0,
 		0.0,
@@ -282,7 +282,7 @@ def test_label_attach_element_targets_core_span_not_decorated_span(text):
 
 #============================================
 @pytest.mark.parametrize("text", ("CH2OH", "HOH2C"))
-def test_label_attach_element_stem_site_is_left_of_core_site(text):
+def test_label_attach_element_stem_site_is_left_of_core_site(text: str) -> None:
 	core_target = label_attach_target(
 		0.0,
 		0.0,
@@ -311,7 +311,7 @@ def test_label_attach_element_stem_site_is_left_of_core_site(text):
 
 #============================================
 @pytest.mark.parametrize("text", ("CH2OH", "HOH2C"))
-def test_label_attach_element_core_center_is_right_of_stem_center(text):
+def test_label_attach_element_core_center_is_right_of_stem_center(text: str) -> None:
 	core_target = label_attach_target(
 		0.0,
 		0.0,
@@ -350,7 +350,7 @@ def test_label_attach_element_core_center_is_right_of_stem_center(text):
 
 
 #============================================
-def test_label_attach_element_works_for_single_decorated_token_hydroxyl():
+def test_label_attach_element_works_for_single_decorated_token_hydroxyl() -> None:
 	core_target = label_attach_target(
 		0.0,
 		0.0,
@@ -373,7 +373,7 @@ def test_label_attach_element_works_for_single_decorated_token_hydroxyl():
 
 
 #============================================
-def test_label_attach_invalid_attach_atom_raises_even_with_attach_element():
+def test_label_attach_invalid_attach_atom_raises_even_with_attach_element() -> None:
 	with pytest.raises(ValueError, match=r"Invalid attach_atom value: 'frist'"):
 		label_attach_target(
 			0.0,
@@ -387,7 +387,7 @@ def test_label_attach_invalid_attach_atom_raises_even_with_attach_element():
 
 
 #============================================
-def test_label_attach_invalid_attach_site_raises():
+def test_label_attach_invalid_attach_site_raises() -> None:
 	with pytest.raises(ValueError, match=r"Invalid attach_site value: 'bad_site'"):
 		label_attach_target(
 			0.0,
@@ -402,7 +402,7 @@ def test_label_attach_invalid_attach_site_raises():
 
 
 #============================================
-def test_retreat_endpoint_until_legal_returns_original_when_legal():
+def test_retreat_endpoint_until_legal_returns_original_when_legal() -> None:
 	forbidden = make_box_target((10.0, -2.0, 20.0, 2.0))
 	start = (0.0, 0.0)
 	end = (8.0, 0.0)
@@ -417,7 +417,7 @@ def test_retreat_endpoint_until_legal_returns_original_when_legal():
 
 
 #============================================
-def test_retreat_endpoint_until_legal_box_penetration_retreats_and_is_legal():
+def test_retreat_endpoint_until_legal_box_penetration_retreats_and_is_legal() -> None:
 	forbidden = make_box_target((0.0, -2.0, 10.0, 2.0))
 	start = (-12.0, 0.0)
 	end = (5.0, 0.0)
@@ -447,7 +447,7 @@ def test_retreat_endpoint_until_legal_box_penetration_retreats_and_is_legal():
 
 
 #============================================
-def test_retreat_endpoint_until_legal_circle_penetration_retreats_and_is_legal():
+def test_retreat_endpoint_until_legal_circle_penetration_retreats_and_is_legal() -> None:
 	forbidden = make_circle_target((0.0, 0.0), 5.0)
 	start = (-12.0, 0.0)
 	end = (0.0, 0.0)
@@ -469,7 +469,7 @@ def test_retreat_endpoint_until_legal_circle_penetration_retreats_and_is_legal()
 
 
 #============================================
-def test_retreat_endpoint_until_legal_returns_start_when_no_legal_prefix():
+def test_retreat_endpoint_until_legal_returns_start_when_no_legal_prefix() -> None:
 	forbidden = make_box_target((-1.0, -1.0, 1.0, 1.0))
 	start = (0.0, 0.0)
 	end = (10.0, 0.0)

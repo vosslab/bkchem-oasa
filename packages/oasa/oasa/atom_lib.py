@@ -31,7 +31,7 @@ class Atom(chem_vertex):
   ## ("value","charge","x","y","z","multiplicity","valency","charge","free_sites")
   attrs_to_copy = chem_vertex.attrs_to_copy + ("symbol", "isotope","explicit_hydrogens")
 
-  def __init__( self, symbol='C', charge=0, coords=None):
+  def __init__( self, symbol: str='C', charge: int=0, coords: object=None) -> None:
     chem_vertex.__init__( self, coords=coords)
     self.symbol = symbol
     self.charge = charge
@@ -39,7 +39,7 @@ class Atom(chem_vertex):
     self.explicit_hydrogens = 0
 
 
-  def matches( self, other):
+  def matches( self, other: object) -> bool:
     if not isinstance( other, Atom):
       return False
     if self.symbol == other.symbol and self.valency == other.valency and self.multiplicity == other.multiplicity:
@@ -51,7 +51,7 @@ class Atom(chem_vertex):
 
 
   @property
-  def symbol(self):
+  def symbol(self) -> str:
     """Atom symbol.
 
     """
@@ -59,7 +59,7 @@ class Atom(chem_vertex):
 
 
   @symbol.setter
-  def symbol(self, symbol):
+  def symbol(self, symbol: str) -> None:
     self._clean_cache()
     try:
       self.valency = PT.periodic_table[ symbol]['valency'][0]
@@ -71,7 +71,7 @@ class Atom(chem_vertex):
 
   # Overrides chem_vertex occupied_valency
   @property
-  def occupied_valency(self):
+  def occupied_valency(self) -> object:
     """Atoms occupied valency.
 
     """
@@ -128,7 +128,7 @@ class Atom(chem_vertex):
 
   # Overrides chem_vertex multiplicity
   @property
-  def multiplicity(self):
+  def multiplicity(self) -> object:
     """Atom multiplicity.
 
     """
@@ -136,14 +136,14 @@ class Atom(chem_vertex):
 
 
   @multiplicity.setter
-  def multiplicity(self, multiplicity):
+  def multiplicity(self, multiplicity: object) -> None:
     chem_vertex.multiplicity.__set__(self, multiplicity)
     if self.free_valency < 0:
       self.raise_valency_to_senseful_value()
 
 
   @property
-  def free_sites(self):
+  def free_sites(self) -> object:
     """Atoms free_sites.
 
     """
@@ -153,12 +153,12 @@ class Atom(chem_vertex):
 
 
   @free_sites.setter
-  def free_sites(self, free_sites):
+  def free_sites(self, free_sites: object) -> None:
     self._free_sites = free_sites
 
 
   @property
-  def isotope(self):
+  def isotope(self) -> int | None:
     """Isotope.
 
     """
@@ -166,7 +166,7 @@ class Atom(chem_vertex):
 
 
   @isotope.setter
-  def isotope(self, isotope):
+  def isotope(self, isotope: int | None) -> None:
     if isotope is not None and not isinstance(isotope, int):
       # isotope must be a number or None
       raise oasa_invalid_value( "isotope", isotope)
@@ -174,7 +174,7 @@ class Atom(chem_vertex):
 
 
   @property
-  def electronegativity(self):
+  def electronegativity(self) -> object:
     """Atom's electronegativity.
 
     """
@@ -185,7 +185,7 @@ class Atom(chem_vertex):
 
 
   @property
-  def oxidation_number(self):
+  def oxidation_number(self) -> object:
     """Atom's oxidation number.
 
     """
@@ -199,18 +199,18 @@ class Atom(chem_vertex):
 
 
   @property
-  def electron_pairs(self):
+  def electron_pairs(self) -> float:
     """Number of electron pairs on the atom.
 
     """
     return (PT.periodic_table[self.symbol]['els'] - sum([b.order for b in self.neighbor_edges]) - self.charge - self.free_valency - self.multiplicity + 1) / 2.0
 
 
-  def __str__( self):
+  def __str__( self) -> str:
     return "atom '%s'" % str( self.symbol)
 
 
-  def get_formula_dict(self):
+  def get_formula_dict(self) -> dict:
     """Return formula as dictionary.
 
     That can be passed to functions in periodic_table.
@@ -221,7 +221,7 @@ class Atom(chem_vertex):
     return ret
 
 
-  def raise_valency_to_senseful_value(self):
+  def raise_valency_to_senseful_value(self) -> None:
     """Set atom valency to the lowest possible.
 
     So that free_valency if non-negative (when possible) or highest possible,
@@ -232,7 +232,7 @@ class Atom(chem_vertex):
         return
 
 
-  def raise_valency(self):
+  def raise_valency(self) -> bool:
     """Used if valency < occupied_valency to try to find a higher one.
 
     """
@@ -244,11 +244,11 @@ class Atom(chem_vertex):
     return False
 
 
-  def get_hydrogen_count(self):
+  def get_hydrogen_count(self) -> object:
     return self.explicit_hydrogens + self.free_valency
 
 
-  def is_chiral(self):
+  def is_chiral(self) -> bool:
     """This code is CIP (Cahn-Ingold-Prelog) based.
 
     And therefore not necessarily the fastest for this job,
@@ -278,7 +278,7 @@ class Atom(chem_vertex):
     return True
 
 
-  def get_neighbors_CIP_sorted(self):
+  def get_neighbors_CIP_sorted(self) -> list:
     """Return neighbors sorted according to the CIP rules.
 
     """
@@ -305,7 +305,7 @@ class Atom(chem_vertex):
     return [cip[1] for cip in cips]
 
 
-  def gen_CIP_sequence(self, iter_over=None, came_from=None):
+  def gen_CIP_sequence(self, iter_over: object=None, came_from: object=None) -> object:
     """Generate the CIP (Cahn-Ingold-Prelog) stream of atoms.
 
     Suitable for comparison in searches for chiral centres,
@@ -347,7 +347,7 @@ class Atom(chem_vertex):
       yield None
 
 
-  def get_highest_possible_free_valency(self):
+  def get_highest_possible_free_valency(self) -> object:
     """Used in case of aromatic bonds.
 
     Takes all aromatic bonds as single, thus giving the maximum free valency
@@ -357,7 +357,7 @@ class Atom(chem_vertex):
 
 
 
-def cip_sorting_function(a, b):
+def cip_sorting_function(a: object, b: object) -> int:
   if a[0] == b[0]:
     return 0
   elif a[0] < b[0]:
@@ -371,4 +371,3 @@ def cip_sorting_function(a, b):
 # TODO
 
 # chirality for those possesing a free electron pair
-

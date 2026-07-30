@@ -14,7 +14,7 @@ except ImportError:
 
 
 #============================================
-def _show_theme_dialog(app) -> None:
+def _show_theme_dialog(app: object) -> None:
 	"""Open theme selector dialog and apply the chosen theme.
 
 	Args:
@@ -33,7 +33,7 @@ def _show_theme_dialog(app) -> None:
 
 
 #============================================
-def register_options_actions(registry, app) -> None:
+def register_options_actions(registry: object, app: object) -> None:
 	"""Register all Options menu actions.
 
 	Args:

@@ -49,11 +49,11 @@ class simple_parent(object):
 	meta__undo_children_to_record = ()
 
 
-	def __init__( self):
+	def __init__( self) -> None:
 		pass
 
 
-	def copy_settings( self, other):
+	def copy_settings( self, other: object) -> None:
 		pass
 
 
@@ -62,20 +62,20 @@ class id_enabled(simple_parent):
 	"""Basic parent that has something to do with the paper, provides id support.
 
 	"""
-	def __init__( self):
+	def __init__( self) -> None:
 		simple_parent.__init__( self)
 
 
-	def generate_id( self):
+	def generate_id( self) -> None:
 		self.id = self._generate_id()
 
 
-	def _generate_id( self):
+	def _generate_id( self) -> object:
 		return Store.id_manager.generate_and_register_id( self, prefix=self.object_type)
 
 
 	@property
-	def id(self):
+	def id(self) -> object:
 		try:
 			return self.__id
 		except AttributeError:
@@ -84,14 +84,14 @@ class id_enabled(simple_parent):
 
 
 	@id.setter
-	def id(self, id):
+	def id(self, id: object) -> None:
 		if Store.id_manager.is_registered_object( self):
 			Store.id_manager.unregister_object( self)
 		Store.id_manager.register_id( self, id)
 		self.__id = id
 
 
-	def copy_settings(self, other):
+	def copy_settings(self, other: object) -> None:
 		"""Copy settings of self to other.
 
 		Does not check if other is capable of receiving it."""
@@ -105,13 +105,13 @@ class meta_enabled(id_enabled):
 	"""
 	meta__used_standard_values = []
 
-	def __init__( self, standard=None):
+	def __init__( self, standard: object=None) -> None:
 		id_enabled.__init__( self)
 		if standard:
 			self.read_standard_values( standard)
 
 
-	def read_standard_values(self, standard, old_standard=None):
+	def read_standard_values(self, standard: object, old_standard: object=None) -> None:
 		"""Intelligent changes of standard properties of existing drawing.
 
 		If old_standard is given the recent value is read from standard
@@ -138,31 +138,31 @@ class drawable(simple_parent):
 
 	Sets the dirty property and the move, draw and redraw methods.
 	"""
-	def __init__( self):
+	def __init__( self) -> None:
 		simple_parent.__init__( self)
 		self.dirty = 0
 
 
 	@property
-	def dirty(self):
+	def dirty(self) -> object:
 		return self.__dirty
 
 
 	@dirty.setter
-	def dirty(self, dirty):
+	def dirty(self, dirty: object) -> None:
 		self.__dirty = dirty
 
 
 	# public methods
-	def move( self, dx, dy):
+	def move( self, dx: object, dy: object) -> None:
 		pass
 
 
-	def draw( self):
+	def draw( self) -> None:
 		pass
 
 
-	def redraw( self):
+	def redraw( self) -> None:
 		pass
 
 
@@ -174,35 +174,35 @@ class point_drawable(drawable):
 	"""
 	meta__undo_properties = ("x","y")
 
-	def __init__( self):
+	def __init__( self) -> None:
 		drawable.__init__( self)
 		self.x = 0
 		self.y = 0
 
 
 	@property
-	def x(self):
+	def x(self) -> object:
 		return self.__x
 
 
 	@x.setter
-	def x(self, x):
+	def x(self, x: object) -> None:
 		self.__x = x
 		self.dirty = 1
 
 
 	@property
-	def y(self):
+	def y(self) -> object:
 		return self.__y
 
 
 	@y.setter
-	def y(self, y):
+	def y(self, y: object) -> None:
 		self.__y = y
 		self.dirty = 1
 
 
-	def copy_settings(self, other):
+	def copy_settings(self, other: object) -> None:
 		"""Copy settings of self to other.
 
 		Does not check if other is capable of receiving it.
@@ -218,17 +218,17 @@ class with_line(simple_parent):
 	meta__undo_properties = ("line_width",)
 
 	@property
-	def line_width(self):
+	def line_width(self) -> object:
 		return self.__line_width
 
 
 	@line_width.setter
-	def line_width(self, line_width):
+	def line_width(self, line_width: object) -> None:
 		self.__line_width = line_width
 		self.dirty = 1
 
 
-	def copy_settings(self, other):
+	def copy_settings(self, other: object) -> None:
 		"""Copy settings of self to other.
 
 		Does not check if other is capable of receiving it.
@@ -244,23 +244,23 @@ class line_colored(simple_parent):
 	"""
 	meta__undo_properties = ("line_color",)
 
-	def __init__( self):
+	def __init__( self) -> None:
 		simple_parent.__init__( self)
 		self.line_color = '#000'
 
 
 	@property
-	def line_color(self):
+	def line_color(self) -> object:
 		return self.__line_color
 
 
 	@line_color.setter
-	def line_color(self, line_color):
+	def line_color(self, line_color: object) -> None:
 		self.__line_color = line_color
 		self.dirty = 1
 
 
-	def copy_settings(self, other):
+	def copy_settings(self, other: object) -> None:
 		"""Copy settings of self to other.
 
 		Does not check if other is capable of receiving it.
@@ -275,23 +275,23 @@ class area_colored(line_colored):
 	meta__undo_properties = line_colored.meta__undo_properties + \
 													("area_color",)
 
-	def __init__( self):
+	def __init__( self) -> None:
 		line_colored.__init__( self)
 		self.area_color = '#ffffff'
 
 
 	@property
-	def area_color(self):
+	def area_color(self) -> object:
 		return self._area_color
 
 
 	@area_color.setter
-	def area_color(self, area_color):
+	def area_color(self, area_color: object) -> None:
 		self._area_color = area_color
 		self.dirty = 1
 
 
-	def copy_settings(self, other):
+	def copy_settings(self, other: object) -> None:
 		"""Copy settings of self to other.
 
 		Does not check if other is capable of receiving it.
@@ -308,34 +308,34 @@ class with_font(simple_parent):
 	"""
 	meta__undo_properties = ("font_size", "font_family")
 
-	def __init__( self):
+	def __init__( self) -> None:
 		simple_parent.__init__( self)
 		self.font_size = 10
 		self.font_family = 'helvetica'
 
 
 	@property
-	def font_size(self):
+	def font_size(self) -> object:
 		return self.__font_size
 
 	@font_size.setter
-	def font_size(self, font_size):
+	def font_size(self, font_size: object) -> None:
 		self.__font_size = font_size
 		self.dirty = 1
 
 
 	@property
-	def font_family(self):
+	def font_family(self) -> object:
 		return self.__font_family
 
 
 	@font_family.setter
-	def font_family(self, font_family):
+	def font_family(self, font_family: object) -> None:
 		self.__font_family = font_family
 		self.dirty = 1
 
 
-	def copy_settings(self, other):
+	def copy_settings(self, other: object) -> None:
 		"""Copy settings of self to other.
 
 		Does not check if other is capable of receiving it.
@@ -350,12 +350,12 @@ class text_like(with_font):
 	"""For text like objects with font_size, font_family properties, variable text, xml_ftext.
 
 	"""
-	def __init__(self):
+	def __init__(self) -> None:
 		with_font.__init__(self)
 
 
 	@property
-	def text(self):
+	def text(self) -> str:
 		"""Unmarked plain-text representing the object.
 
 		Taken from xml_ftext and the markup is stripped.
@@ -365,7 +365,7 @@ class text_like(with_font):
 
 
 	@property
-	def xml_ftext(self):
+	def xml_ftext(self) -> str:
 		"""Text used for rendering using the ftext class.
 
 		"""
@@ -375,19 +375,19 @@ class text_like(with_font):
 
 class interactive(simple_parent):
 
-	def focus(self):
+	def focus(self) -> None:
 		pass
 
 
-	def unfocus(self):
+	def unfocus(self) -> None:
 		pass
 
 
-	def select(self):
+	def select(self) -> None:
 		pass
 
 
-	def unselect(self):
+	def unselect(self) -> None:
 		pass
 
 
@@ -395,7 +395,7 @@ class interactive(simple_parent):
 class container(simple_parent):
 
 	@property
-	def shape_defining_points(self):
+	def shape_defining_points(self) -> list:
 		"""List of point_drawable instances.
 
 		"""
@@ -403,7 +403,7 @@ class container(simple_parent):
 
 
 	@property
-	def children(self):
+	def children(self) -> list:
 		"""List of child instances.
 
 		By default is alias for self.shape_defining_points.
@@ -415,18 +415,18 @@ class container(simple_parent):
 class child(simple_parent):
 
 	@property
-	def parent(self):
+	def parent(self) -> object:
 		"""Container.
 
 		"""
 		return None
 
 	@parent.setter
-	def parent(self, par):
+	def parent(self, par: object) -> None:
 		pass
 
 
-	def copy_settings(self, other):
+	def copy_settings(self, other: object) -> None:
 		"""Copy settings of self to other.
 
 		Does not check if other is capable of receiving it.
@@ -445,7 +445,7 @@ class top_level(object):
 class with_paper(object):
 
 	@property
-	def paper(self):
+	def paper(self) -> object:
 		"""Paper that the object is drawn onto.
 
 		"""
@@ -453,7 +453,7 @@ class with_paper(object):
 
 
 	@paper.setter
-	def paper(self, paper):
+	def paper(self, paper: object) -> None:
 		self._paper = paper
 
 
@@ -461,7 +461,7 @@ class with_paper(object):
 class child_with_paper(child, with_paper):
 
 	@property
-	def paper(self):
+	def paper(self) -> object:
 		"""Paper that the object is drawn onto.
 
 		"""
@@ -472,5 +472,5 @@ class child_with_paper(child, with_paper):
 
 
 	@paper.setter
-	def paper(self, paper):
+	def paper(self, paper: object) -> None:
 		raise KeyError("Trying to set paper in a child - set it in parent instead.")

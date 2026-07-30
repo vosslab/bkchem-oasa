@@ -17,20 +17,41 @@
 #
 #--------------------------------------------------------------------------
 
-"""Bond semantics and normalization helpers."""
+"""Frontend-neutral CDML bond semantics and compatibility helpers."""
 
 
-BOND_TYPES = (
-	"n",
-	"w",
-	"h",
-	"a",
-	"b",
-	"d",
-	"o",
-	"s",
-	"q",
-)
+# The canonical 26.07 meaning belongs to the CDML/OASA boundary.  Qt labels
+# live separately in bkchem_qt.bond_presentation so presentation wording does
+# not become a backend concern.
+BOND_TYPE_SEMANTICS = {
+	"n": "normal",
+	"w": "directed solid wedge",
+	"h": "directed hashed wedge",
+	"a": "adder or unspecified stereochemistry",
+	"b": "bold",
+	"d": "dashed",
+	"o": "dotted",
+	"s": "wavy",
+	"q": "Haworth front edge",
+}
+
+# Ordinary styles retain their established single, double, and triple forms.
+# A Haworth front edge is one explicit drawing convention rather than a
+# generic fourth bond order.
+AUTHORED_BOND_ORDERS = {
+	"n": (1, 2, 3),
+	"w": (1, 2, 3),
+	"h": (1, 2, 3),
+	"a": (1, 2, 3),
+	"b": (1, 2, 3),
+	"d": (1, 2, 3),
+	"o": (1, 2, 3),
+	"s": (1, 2, 3),
+	"q": (1,),
+}
+
+# Retain the long-standing public constant for OASA callers.
+BOND_TYPES = tuple(BOND_TYPE_SEMANTICS)
 LEGACY_BOND_TYPES = {
 	"l": "h",
 	"r": "h",
@@ -38,7 +59,37 @@ LEGACY_BOND_TYPES = {
 
 
 #============================================
-def normalize_bond_type_char(bond_type):
+def authored_bond_orders(bond_type: str) -> tuple:
+	"""Return authored orders for one canonical CDML bond type.
+
+	Args:
+		bond_type: Canonical one-character CDML bond style.
+
+	Returns:
+		Tuple of permitted integer orders, or an empty tuple for an unknown type.
+	"""
+	orders = AUTHORED_BOND_ORDERS.get(bond_type)
+	if orders is None:
+		return ()
+	return orders
+
+
+#============================================
+def is_authored_bond_order(bond_type: str, order: int) -> bool:
+	"""Return whether one canonical CDML style/order pair is authorable.
+
+	Args:
+		bond_type: Canonical one-character CDML bond style.
+		order: Requested integer bond order.
+
+	Returns:
+		True when the pair is part of the authored CDML profile.
+	"""
+	return order in authored_bond_orders(bond_type)
+
+
+#============================================
+def normalize_bond_type_char(bond_type: str) -> tuple:
 	"""Normalize a single-character bond type.
 
 	Args:
@@ -55,7 +106,7 @@ def normalize_bond_type_char(bond_type):
 
 
 #============================================
-def parse_cdml_bond_type(value):
+def parse_cdml_bond_type(value: str) -> tuple:
 	"""Parse a CDML bond type string like "n1".
 
 	Args:
@@ -79,7 +130,7 @@ def parse_cdml_bond_type(value):
 
 
 #============================================
-def canonicalize_bond_vertices(bond, layout_ctx=None):
+def canonicalize_bond_vertices(bond: object, layout_ctx: object=None) -> object:
 	"""Canonicalize bond vertices for deterministic wedge/hashed direction.
 
 	Args:
@@ -104,7 +155,7 @@ def canonicalize_bond_vertices(bond, layout_ctx=None):
 
 
 #============================================
-def _resolve_front_vertex(v1, v2, layout_ctx=None):
+def _resolve_front_vertex(v1: object, v2: object, layout_ctx: object=None) -> object | None:
 	"""Select the front vertex using layout context or geometry."""
 	front_vertices = _get_layout_value(layout_ctx, "front_vertices")
 	if front_vertices:
@@ -132,7 +183,7 @@ def _resolve_front_vertex(v1, v2, layout_ctx=None):
 
 
 #============================================
-def _get_layout_value(layout_ctx, name):
+def _get_layout_value(layout_ctx: object, name: str) -> object | None:
 	"""Fetch a layout attribute from an object or dict."""
 	if layout_ctx is None:
 		return None
@@ -144,7 +195,7 @@ def _get_layout_value(layout_ctx, name):
 
 
 #============================================
-def _get_vertex_xy(vertex):
+def _get_vertex_xy(vertex: object) -> tuple | None:
 	"""Return (x, y) for a vertex if available."""
 	if vertex is None:
 		return None

@@ -4,6 +4,9 @@
 import PySide6.QtGui
 import PySide6.QtWidgets
 
+# local repo modules
+import bkchem_qt.bond_presentation
+
 
 # -- bond order labels indexed by value --
 _ORDER_LABELS = {
@@ -12,21 +15,6 @@ _ORDER_LABELS = {
 	3: "Triple",
 }
 _ORDER_VALUES = {v: k for k, v in _ORDER_LABELS.items()}
-
-# -- bond type labels indexed by type character --
-_TYPE_LABELS = {
-	"n": "Normal",
-	"w": "Wedge",
-	"h": "Hashed",
-	"b": "Bold",
-	"a": "Aromatic",
-	"d": "Dotted",
-	"o": "Dashed",
-	"s": "Stereo",
-	"q": "Wavy",
-}
-_TYPE_VALUES = {v: k for k, v in _TYPE_LABELS.items()}
-
 
 #============================================
 class BondDialog(PySide6.QtWidgets.QDialog):
@@ -41,16 +29,27 @@ class BondDialog(PySide6.QtWidgets.QDialog):
 	"""
 
 	#============================================
-	def __init__(self, bond_model, parent=None):
-		"""Initialize the bond properties dialog.
+	def __init__(self, bond_model: object, parent: object | None = None) -> None:
+		"""Initialize a detached bond-properties value editor.
 
 		Args:
 			bond_model: The BondModel whose properties to edit.
 			parent: Optional parent widget.
 		"""
 		super().__init__(parent)
-		self._bond_model = bond_model
-		self._color = bond_model.line_color
+		# Copy every display scalar before constructing Qt controls.  The accepted
+		# backend patch can replace the projected BondModel while this dialog still
+		# exists, so it must never retain or later inspect that transient wrapper.
+		self._initial_values = {
+			"order": bond_model.order,
+			"type": bond_model.type,
+			"center": bool(bond_model.center),
+			"line_width": bond_model.line_width,
+			"bond_width": bond_model.bond_width,
+			"wedge_width": bond_model.wedge_width,
+			"color": bond_model.line_color,
+		}
+		self._color = self._initial_values["color"]
 		self.setWindowTitle("Bond Properties")
 		self.setMinimumWidth(300)
 		self._build_ui()
@@ -70,8 +69,10 @@ class BondDialog(PySide6.QtWidgets.QDialog):
 
 		# type
 		self._type_combo = PySide6.QtWidgets.QComboBox()
-		for label in _TYPE_LABELS.values():
-			self._type_combo.addItem(label)
+		for type_char, label in bkchem_qt.bond_presentation.choices_for_display(
+				self._initial_values["type"],
+			):
+			self._type_combo.addItem(label, type_char)
 		form.addRow("Type:", self._type_combo)
 
 		# center double bond
@@ -120,24 +121,23 @@ class BondDialog(PySide6.QtWidgets.QDialog):
 	def _populate_from_model(self) -> None:
 		"""Fill dialog fields from the current bond model values."""
 		# order
-		order_label = _ORDER_LABELS.get(self._bond_model.order, "Single")
+		order_label = _ORDER_LABELS.get(self._initial_values["order"], "Single")
 		idx = self._order_combo.findText(order_label)
 		if idx >= 0:
 			self._order_combo.setCurrentIndex(idx)
 		# type
-		type_label = _TYPE_LABELS.get(self._bond_model.type, "Normal")
-		idx = self._type_combo.findText(type_label)
+		idx = self._type_combo.findData(self._initial_values["type"])
 		if idx >= 0:
 			self._type_combo.setCurrentIndex(idx)
 		# center
-		center_val = self._bond_model.center
+		center_val = self._initial_values["center"]
 		self._center_check.setChecked(bool(center_val))
 		# widths
-		self._line_width_spin.setValue(self._bond_model.line_width)
-		self._bond_width_spin.setValue(self._bond_model.bond_width)
-		self._wedge_width_spin.setValue(self._bond_model.wedge_width)
+		self._line_width_spin.setValue(self._initial_values["line_width"])
+		self._bond_width_spin.setValue(self._initial_values["bond_width"])
+		self._wedge_width_spin.setValue(self._initial_values["wedge_width"])
 		# color
-		self._color = self._bond_model.line_color
+		self._color = self._initial_values["color"]
 		self._update_color_button()
 
 	#============================================
@@ -166,8 +166,7 @@ class BondDialog(PySide6.QtWidgets.QDialog):
 		"""
 		order_label = self._order_combo.currentText()
 		order_val = _ORDER_VALUES.get(order_label, 1)
-		type_label = self._type_combo.currentText()
-		type_val = _TYPE_VALUES.get(type_label, "n")
+		type_val = self._type_combo.currentData()
 		values = {
 			"order": order_val,
 			"type": type_val,
@@ -180,8 +179,23 @@ class BondDialog(PySide6.QtWidgets.QDialog):
 		return values
 
 	#============================================
+	def changes(self) -> tuple[tuple[str, object], ...]:
+		"""Return only deliberate value changes using backend CDML field names."""
+		values = self.get_values()
+		current = {
+			"order": values["order"], "type": values["type"],
+			"center": values["center"], "line_width": values["line_width"],
+			"bond_width": values["bond_width"], "wedge_width": values["wedge_width"],
+			"color": values["line_color"],
+		}
+		return tuple(
+			(name, value) for name, value in current.items()
+			if value != self._initial_values[name]
+		)
+
+	#============================================
 	@staticmethod
-	def edit_bond(bond_model, parent=None) -> bool:
+	def edit_bond(bond_model: object, parent: object | None = None) -> bool:
 		"""Convenience: show dialog, apply changes if accepted.
 
 		Args:
@@ -198,4 +212,4 @@ class BondDialog(PySide6.QtWidgets.QDialog):
 		values = dialog.get_values()
 		for key, value in values.items():
 			setattr(bond_model, key, value)
-		return True
+		return bool(dialog.changes())

@@ -37,7 +37,7 @@ _ = builtins.__dict__.get( '_', lambda m: m)
 ## -------------------- TEMPLATE MODE --------------------
 class template_mode( edit_mode):
 
-	def __init__( self):
+	def __init__( self) -> None:
 		edit_mode.__init__( self)
 		# name loaded from YAML; determine template source from YAML config
 		yaml_key = type(self).__name__.replace('_mode', '')
@@ -53,7 +53,7 @@ class template_mode( edit_mode):
 		self._user_selected_template = ''
 
 
-	def mouse_click( self, event):
+	def mouse_click( self, event: object) -> None:
 		if self.submodes == [[]]:
 			Store.log( _("No template is available"))
 			return
@@ -108,7 +108,7 @@ class template_mode( edit_mode):
 		Store.app.paper.add_bindings()
 
 
-	def _mark_focused_as_template_atom_or_bond( self):
+	def _mark_focused_as_template_atom_or_bond( self) -> None:
 		if self.focused and bkchem.chem_compat.is_chemistry_vertex( self.focused):
 			self.focused.molecule.mark_template_atom( self.focused)
 			Store.log( _("focused atom marked as 'template atom'"))
@@ -117,7 +117,7 @@ class template_mode( edit_mode):
 			Store.log( _("focused bond marked as 'template bond'"))
 
 
-	def _build_flat_submodes( self):
+	def _build_flat_submodes( self) -> None:
 		"""Build a simple flat list of template names as submodes."""
 		names = self.template_manager.get_template_names()
 		if names:
@@ -126,7 +126,7 @@ class template_mode( edit_mode):
 			self.submode = [0]
 
 
-	def _build_categorized_submodes( self):
+	def _build_categorized_submodes( self) -> None:
 		"""Build category + template submodes from biomolecule_loader YAML."""
 		from bkchem import biomolecule_loader
 		entries = biomolecule_loader.load_biomolecule_entries()
@@ -186,7 +186,7 @@ class template_mode( edit_mode):
 				self.tooltip_map[mol_name] = mol_name.replace('_', ' ')
 
 
-	def _apply_category_selection( self, label):
+	def _apply_category_selection( self, label: object) -> None:
 		"""Update template lists for the selected category label."""
 		key = self._category_label_to_key.get(label)
 		if not key and self._category_keys:
@@ -201,7 +201,7 @@ class template_mode( edit_mode):
 			self._template_indices = []
 
 
-	def _update_template_menu( self):
+	def _update_template_menu( self) -> None:
 		"""Refresh the template button grid in the UI."""
 		if not hasattr(Store.app, "subbuttons"):
 			return
@@ -211,7 +211,7 @@ class template_mode( edit_mode):
 		Store.app.refresh_submode_buttons(1)
 
 
-	def _get_selected_template_index( self):
+	def _get_selected_template_index( self) -> object:
 		"""Get the template manager index for the currently selected template."""
 		if not hasattr(self, '_template_indices') or not self._template_indices:
 			return None
@@ -223,7 +223,7 @@ class template_mode( edit_mode):
 		return self._template_indices[index]
 
 
-	def on_submode_switch( self, submode_index, name=''):
+	def on_submode_switch( self, submode_index: object, name: str = '') -> None:
 		"""When category changes, refresh template list."""
 		if submode_index == 0 and hasattr(self, '_category_keys'):
 			self._apply_category_selection(name)
@@ -234,7 +234,7 @@ class template_mode( edit_mode):
 			self._update_template_menu()
 
 
-	def _get_transformed_template( self, name, coords, type='empty', paper=None):
+	def _get_transformed_template( self, name: object, coords: object, type: str = 'empty', paper: object = None) -> object:
 		# for categorized modes, use the resolved template index
 		if hasattr(self, '_template_indices') and self._template_indices:
 			template_index = self._get_selected_template_index()
@@ -243,7 +243,7 @@ class template_mode( edit_mode):
 		return self.template_manager.get_transformed_template( self.submode[0], coords, type=type, paper=paper)
 
 
-	def _get_templates_valency( self, template_index=None):
+	def _get_templates_valency( self, template_index: object = None) -> object:
 		# for categorized modes, use the resolved template index
 		if template_index is not None:
 			return self.template_manager.get_templates_valency(template_index)

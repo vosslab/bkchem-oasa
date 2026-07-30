@@ -16,7 +16,7 @@ may exceed sugar-code length.
 Two-carbon "sugars" are out of scope; monosaccharides here start at 3 carbons.
 Codes with fewer than 3 total characters are invalid.
 
-**Source of truth**: [packages/oasa/oasa_data/sugar_codes.yaml](packages/oasa/oasa_data/sugar_codes.yaml).
+**Source of truth**: [sugar_codes.yaml](../packages/oasa/oasa_data/sugar_codes.yaml).
 
 ## Normative Language
 
@@ -98,7 +98,7 @@ For open-chain pathway encoding, the carbonyl marker position defines the family
 ### Representative examples (full mapping lives in sugar_codes.yaml)
 
 For complete code-to-name data, use
-[packages/oasa/oasa_data/sugar_codes.yaml](packages/oasa/oasa_data/sugar_codes.yaml).
+[sugar_codes.yaml](../packages/oasa/oasa_data/sugar_codes.yaml).
 This spec intentionally shows only minimal examples needed to explain format.
 
 ```

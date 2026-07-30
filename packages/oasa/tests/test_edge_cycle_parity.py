@@ -38,7 +38,7 @@ MOLECULES = {**CYCLIC_MOLECULES, **ACYCLIC_MOLECULES}
 
 
 #============================================
-def vertex_cycles_to_edge_cycles(mol, vertex_cycles: list) -> set:
+def vertex_cycles_to_edge_cycles(mol: object, vertex_cycles: list) -> set:
 	"""Convert rustworkx vertex-based cycle basis to edge-based cycle sets.
 
 	This is the proposed replacement wrapper for Gasteiger. It takes the
@@ -121,7 +121,7 @@ def _normalize_cycle_set(cycles: set) -> set:
 
 
 #============================================
-def _parse_smiles(smiles: str):
+def _parse_smiles(smiles: str) -> object:
 	"""Parse a SMILES string into an OASA molecule.
 
 	Args:
@@ -142,7 +142,7 @@ class TestEdgeCycleParity:
 	"""Compare Gasteiger edge cycles vs rustworkx vertex cycles + edge conversion."""
 
 	@pytest.fixture(params=list(MOLECULES.keys()))
-	def molecule_pair(self, request):
+	def molecule_pair(self, request: object) -> object:
 		"""Fixture providing (mol, name) pairs for each test molecule."""
 		name = request.param
 		smiles = MOLECULES[name]
@@ -151,7 +151,7 @@ class TestEdgeCycleParity:
 			pytest.skip(f"Could not parse SMILES for {name}")
 		return (mol, name)
 
-	def test_cycle_count_matches(self, molecule_pair):
+	def test_cycle_count_matches(self, molecule_pair: object) -> None:
 		"""Gasteiger and wrapper must find the same number of independent cycles."""
 		mol, name = molecule_pair
 		gasteiger_cycles = mol.get_smallest_independent_cycles_e()
@@ -162,7 +162,7 @@ class TestEdgeCycleParity:
 			f"wrapper found {len(wrapper_cycles)}"
 		)
 
-	def test_cycle_sizes_match(self, molecule_pair):
+	def test_cycle_sizes_match(self, molecule_pair: object) -> None:
 		"""Each cycle must have the same number of edges."""
 		mol, name = molecule_pair
 		gasteiger_cycles = mol.get_smallest_independent_cycles_e()
@@ -175,7 +175,7 @@ class TestEdgeCycleParity:
 			f"{name}: Gasteiger cycle sizes {g_sizes} != wrapper cycle sizes {w_sizes}"
 		)
 
-	def test_edge_sets_match(self, molecule_pair):
+	def test_edge_sets_match(self, molecule_pair: object) -> None:
 		"""The actual edge sets must be identical (same edges in each cycle)."""
 		mol, name = molecule_pair
 		gasteiger_cycles = mol.get_smallest_independent_cycles_e()
@@ -188,7 +188,7 @@ class TestEdgeCycleParity:
 			f"  Wrapper only:   {wrapper_cycles - gasteiger_cycles}"
 		)
 
-	def test_edge_count_per_cycle_equals_vertex_count(self, molecule_pair):
+	def test_edge_count_per_cycle_equals_vertex_count(self, molecule_pair: object) -> None:
 		"""In a simple cycle, edge count must equal vertex count."""
 		mol, name = molecule_pair
 		vertex_cycles = mol.get_smallest_independent_cycles()
@@ -203,7 +203,7 @@ class TestEdgeCycleParity:
 				f"{name}: cycle has {len(edge_cycle)} edges but {len(verts)} vertices"
 			)
 
-	def test_theoretical_cycle_count(self, molecule_pair):
+	def test_theoretical_cycle_count(self, molecule_pair: object) -> None:
 		"""Both methods must find E - V + C cycles (circuit rank formula)."""
 		mol, name = molecule_pair
 		num_edges = len(mol.edges)
@@ -228,7 +228,7 @@ class TestEdgeCycleParity:
 class TestWrapperEdgeCases:
 	"""Test edge conversion wrapper on tricky topologies."""
 
-	def test_single_atom(self):
+	def test_single_atom(self) -> None:
 		"""Single atom graph has no cycles."""
 		mol = oasa.molecule_lib.Molecule()
 		v = oasa.atom_lib.Atom("C")
@@ -237,7 +237,7 @@ class TestWrapperEdgeCases:
 		wrapper_cycles = vertex_cycles_to_edge_cycles(mol, vertex_cycles)
 		assert len(wrapper_cycles) == 0
 
-	def test_two_atoms_one_bond(self):
+	def test_two_atoms_one_bond(self) -> None:
 		"""Two atoms with one bond has no cycles."""
 		mol = oasa.molecule_lib.Molecule()
 		v1 = oasa.atom_lib.Atom("C")
@@ -249,7 +249,7 @@ class TestWrapperEdgeCases:
 		wrapper_cycles = vertex_cycles_to_edge_cycles(mol, vertex_cycles)
 		assert len(wrapper_cycles) == 0
 
-	def test_triangle(self):
+	def test_triangle(self) -> None:
 		"""Triangle (3 vertices, 3 edges) should give exactly 1 cycle of 3 edges."""
 		mol = oasa.molecule_lib.Molecule()
 		v1 = oasa.atom_lib.Atom("C")
@@ -269,7 +269,7 @@ class TestWrapperEdgeCases:
 		# the cycle should contain all 3 edges
 		assert cycle == frozenset([e1, e2, e3])
 
-	def test_disconnected_rings(self):
+	def test_disconnected_rings(self) -> None:
 		"""Two disconnected triangles should give 2 independent cycles."""
 		mol = oasa.molecule_lib.Molecule()
 		# first triangle
@@ -305,7 +305,7 @@ class TestAcyclicMolecules:
 	"""Verify acyclic molecules return empty cycle sets from both methods."""
 
 	@pytest.fixture(params=list(ACYCLIC_MOLECULES.keys()))
-	def acyclic_pair(self, request):
+	def acyclic_pair(self, request: object) -> object:
 		"""Fixture providing (mol, name) pairs for acyclic molecules."""
 		name = request.param
 		smiles = ACYCLIC_MOLECULES[name]
@@ -314,7 +314,7 @@ class TestAcyclicMolecules:
 			pytest.skip(f"Could not parse SMILES for {name}")
 		return (mol, name)
 
-	def test_acyclic_returns_empty(self, acyclic_pair):
+	def test_acyclic_returns_empty(self, acyclic_pair: object) -> None:
 		"""Acyclic molecules should return empty cycle sets from both methods."""
 		mol, name = acyclic_pair
 		gasteiger_cycles = mol.get_smallest_independent_cycles_e()

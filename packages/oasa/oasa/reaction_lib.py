@@ -25,13 +25,13 @@ class Reaction(object):
   """Reaction representation.
 
   """
-  def __init__( self, reactants=None, products=None, reagents=None):
+  def __init__( self, reactants: object = None, products: object = None, reagents: object = None) -> None:
     self.reactants = reactants or []
     self.products = products or []
     self.reagents = reagents or []
 
 
-  def __str__(self):
+  def __str__(self) -> str:
     s = "\nreactants:\n"
     for i in self.reactants:
       s += "    {0}\n".format(i)
@@ -50,36 +50,35 @@ class ReactionComponent(object):
   """Represents one component of a reaction.
 
   """
-  def __init__( self, mol=None, stoichiometry=1):
+  def __init__( self, mol: object = None, stoichiometry: object = 1) -> None:
     self.stoichiometry = stoichiometry
     self.molecule = mol
 
 
   @property
-  def molecule(self):
+  def molecule(self) -> object:
     return self._molecule
 
 
   @molecule.setter
-  def molecule(self, mol):
+  def molecule(self, mol: object) -> None:
     assert isinstance(mol, molecule)
     self._molecule = mol
 
 
   @property
-  def stoichiometry(self):
+  def stoichiometry(self) -> object:
     return self._stoichiometry
 
 
   @stoichiometry.setter
-  def stoichiometry(self, stoich):
+  def stoichiometry(self, stoich: object) -> None:
     assert isinstance(stoich, (int, float))
     self._stoichiometry = stoich
 
 
-  def __str__( self):
+  def __str__( self) -> str:
     return "%s * (%s)" % (self.stoichiometry, self.molecule)
 
 
 reaction_component = ReactionComponent
-

@@ -10,7 +10,7 @@ from bkchem.actions.object_actions import register_object_actions
 
 
 #============================================
-def _make_mock_app():
+def _make_mock_app() -> object:
 	"""Build a mock app with the attributes needed by edit and object actions.
 
 	Returns:
@@ -41,7 +41,7 @@ def _make_mock_app():
 
 
 #============================================
-def _build_edit_registry():
+def _build_edit_registry() -> object:
 	"""Register edit actions and return the registry and app.
 
 	Returns:
@@ -54,7 +54,7 @@ def _build_edit_registry():
 
 
 #============================================
-def _build_object_registry():
+def _build_object_registry() -> object:
 	"""Register object actions and return the registry and app.
 
 	Returns:
@@ -67,7 +67,7 @@ def _build_object_registry():
 
 
 #============================================
-def test_edit_register_count():
+def test_edit_register_count() -> None:
 	"""Verify exactly 7 edit actions are registered."""
 	registry, _app = _build_edit_registry()
 	actions = registry.all_actions()
@@ -75,7 +75,7 @@ def test_edit_register_count():
 
 
 #============================================
-def test_object_register_count():
+def test_object_register_count() -> None:
 	"""Verify exactly 7 object actions are registered."""
 	registry, _app = _build_object_registry()
 	actions = registry.all_actions()
@@ -83,7 +83,7 @@ def test_object_register_count():
 
 
 #============================================
-def test_edit_action_ids():
+def test_edit_action_ids() -> None:
 	"""Verify all 7 edit action IDs are present."""
 	registry, _app = _build_edit_registry()
 	expected_ids = {
@@ -100,7 +100,7 @@ def test_edit_action_ids():
 
 
 #============================================
-def test_object_action_ids():
+def test_object_action_ids() -> None:
 	"""Verify all 7 object action IDs are present."""
 	registry, _app = _build_object_registry()
 	expected_ids = {
@@ -117,7 +117,7 @@ def test_object_action_ids():
 
 
 #============================================
-def test_edit_enabled_when_types():
+def test_edit_enabled_when_types() -> None:
 	"""Verify enabled_when values have the correct types for each edit action."""
 	registry, _app = _build_edit_registry()
 	actions = registry.all_actions()
@@ -135,7 +135,7 @@ def test_edit_enabled_when_types():
 
 
 #============================================
-def test_object_enabled_when_types():
+def test_object_enabled_when_types() -> None:
 	"""Verify enabled_when values have the correct types for each object action."""
 	registry, _app = _build_object_registry()
 	actions = registry.all_actions()

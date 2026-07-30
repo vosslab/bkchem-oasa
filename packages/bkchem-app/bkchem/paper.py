@@ -97,7 +97,7 @@ class chem_paper(
 	highlight_color = 'blue'
 
 
-	def __init__( self, master = None, file_name={}, **kw):
+	def __init__( self, master: object = None, file_name: object = {}, **kw) -> None:
 		Canvas.__init__( self, master, kw)
 
 		self.clipboard = None
@@ -140,20 +140,20 @@ class chem_paper(
 
 
 	#============================================
-	def _ensure_hex_grid_overlay(self):
+	def _ensure_hex_grid_overlay(self) -> None:
 		"""Lazily create the hex grid overlay."""
 		if self._hex_grid_overlay is None:
 			self._hex_grid_overlay = bkchem.grid_overlay.HexGridOverlay(
 				self, self.standard.bond_length)
 
 	#============================================
-	def toggle_hex_grid(self):
+	def toggle_hex_grid(self) -> None:
 		"""Toggle hex grid dot visibility (does not affect snap)."""
 		self._ensure_hex_grid_overlay()
 		self._hex_grid_overlay.toggle()
 
 	#============================================
-	def toggle_hex_grid_snap(self):
+	def toggle_hex_grid_snap(self) -> None:
 		"""Toggle snap-to-grid on or off (does not affect dot visibility)."""
 		self.hex_grid_snap_enabled = not self.hex_grid_snap_enabled
 		# log the change so user has feedback
@@ -163,19 +163,19 @@ class chem_paper(
 			Store.log(_("Hex grid snap disabled"))
 
 	#============================================
-	def show_hex_grid(self):
+	def show_hex_grid(self) -> None:
 		"""Show hex grid dots."""
 		self._ensure_hex_grid_overlay()
 		self._hex_grid_overlay.show()
 
 	#============================================
-	def hide_hex_grid(self):
+	def hide_hex_grid(self) -> None:
 		"""Hide hex grid dots."""
 		if self._hex_grid_overlay is not None:
 			self._hex_grid_overlay.hide()
 
 
-	def selected_to_clipboard( self, delete_afterwards=0, strict=0):
+	def selected_to_clipboard( self, delete_afterwards: object = 0, strict: object = 0) -> object:
 		"""strict means that only what is selected is copied, not the whole molecule"""
 		if self.selected:
 			cp, unique = self.selected_to_unique_top_levels()
@@ -200,7 +200,7 @@ class chem_paper(
 			return [xmin, ymin, xmax, ymax]
 
 
-	def paste_clipboard( self, xy):
+	def paste_clipboard( self, xy: object) -> object:
 		"""pastes items from clipboard to position xy"""
 		clipboard = Store.app.get_clipboard()
 		clipboard_pos = Store.app.get_clipboard_pos()
@@ -235,7 +235,7 @@ class chem_paper(
 			self.start_new_undo_record()
 
 
-	def selected_to_real_clipboard_as_SVG( self):
+	def selected_to_real_clipboard_as_SVG( self) -> object:
 		"""exports selected molecules as SVG to system clipboard"""
 		selected_mols = self.selected_mols
 		if not selected_mols:
@@ -254,7 +254,7 @@ class chem_paper(
 		Store.log( _("selected molecules were exported to clipboard in SVG"))
 
 
-	def undo( self):
+	def undo( self) -> object:
 		self.unselect_all()
 		i = self.um.undo()
 		self.changes_made = 1
@@ -267,7 +267,7 @@ class chem_paper(
 		self.event_generate( "<<undo>>")
 
 
-	def redo( self):
+	def redo( self) -> object:
 		self.unselect_all()
 		i = self.um.redo()
 		self.changes_made = 1
@@ -280,7 +280,7 @@ class chem_paper(
 		self.event_generate( "<<redo>>")
 
 
-	def start_new_undo_record( self, name=''):
+	def start_new_undo_record( self, name: object = '') -> object:
 		if name != "arrow-key-move":
 			self.before_undo_record()
 		if not self.changes_made:
@@ -289,13 +289,13 @@ class chem_paper(
 		self.after_undo_record()
 
 
-	def before_undo_record( self):
+	def before_undo_record( self) -> None:
 		"""this method is place where periodical checks and other things that should be done before
 		undo is recorded should be done"""
 		checks.check_linear_fragments( self)
 
 
-	def after_undo_record( self):
+	def after_undo_record( self) -> None:
 		"""similar to before_undo_record but is run after the undo was recorded"""
 		# check the bbox to see if we need to update scroll region
 		if not hasattr( self, "_old_bbox"):
@@ -307,7 +307,7 @@ class chem_paper(
 				self.update_scrollregion()
 
 
-	def display_weight_of_selected( self):
+	def display_weight_of_selected( self) -> None:
 		s_mols = [m for m in self.selected_to_unique_top_levels()[0] if m.object_type == 'molecule']
 		w = 0
 		for m in s_mols:
@@ -315,7 +315,7 @@ class chem_paper(
 		Store.app.update_status( str( w))
 
 
-	def display_info_on_selected( self):
+	def display_info_on_selected( self) -> None:
 		s_mols = [m for m in self.selected_to_unique_top_levels()[0] if m.object_type == 'molecule']
 		if not s_mols:
 			return
@@ -357,7 +357,7 @@ class chem_paper(
 		dialog.activate()
 
 
-	def check_chemistry_of_selected( self):
+	def check_chemistry_of_selected( self) -> None:
 		from bkchem import validator
 		val = validator.validator()
 		s_mols = [m for m in self.selected_to_unique_top_levels()[0] if m.object_type == 'molecule']

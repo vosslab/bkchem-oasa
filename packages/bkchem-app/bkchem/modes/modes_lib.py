@@ -33,7 +33,7 @@ _ = builtins.__dict__.get( '_', lambda m: m)
 
 
 #============================================
-def event_to_key( event):
+def event_to_key( event: object) -> str:
 	"""Convert a tkinter key event to a normalized key string."""
 	from bkchem import data
 	key = event.keysym
@@ -61,7 +61,7 @@ def event_to_key( event):
 class mode( object):
 	"""abstract parent for all modes. No to be used for inheritation because the more specialized
 	edit mode has all the methods for editing - just override what you need to change"""
-	def __init__( self):
+	def __init__( self) -> None:
 		# derive YAML key from class name: draw_mode -> 'draw'
 		yaml_key = type(self).__name__.replace('_mode', '')
 		cfg = get_modes_config()['modes'].get(yaml_key, {})
@@ -96,43 +96,43 @@ class mode( object):
 		self._specials_pressed = { 'C':0, 'A':0, 'M':0, 'S':0} # C-A-M-S
 
 
-	def mouse_down( self, event, modifiers=[]):
+	def mouse_down( self, event: object, modifiers: object = []) -> None:
 		pass
 
 
-	def mouse_down3( self, event, modifiers=[]):
+	def mouse_down3( self, event: object, modifiers: object = []) -> None:
 		pass
 
 
-	def mouse_down2( self, event, modifiers=[]):
+	def mouse_down2( self, event: object, modifiers: object = []) -> None:
 		pass
 
 
-	def mouse_up( self, event):
+	def mouse_up( self, event: object) -> None:
 		pass
 
 
-	def mouse_click( self, event):
+	def mouse_click( self, event: object) -> None:
 		pass
 
 
-	def mouse_drag( self, event):
+	def mouse_drag( self, event: object) -> None:
 		pass
 
 
-	def enter_object( self, object, event):
+	def enter_object( self, object: object, event: object) -> None:
 		pass
 
 
-	def leave_object( self, event):
+	def leave_object( self, event: object) -> None:
 		pass
 
 
-	def mouse_move( self, event):
+	def mouse_move( self, event: object) -> None:
 		pass
 
 
-	def key_pressed( self, event):
+	def key_pressed( self, event: object) -> None:
 		key = event_to_key( event) # Note: event.state can be used to query CAMS
 		# first filter off specials (CAMS)
 		if len( key) == 1 and key in 'CAMS':
@@ -175,13 +175,13 @@ class mode( object):
 				self._recent_key_seq = ''
 
 
-	def key_released( self, event):
+	def key_released( self, event: object) -> None:
 		key = event_to_key( event)
 		if len( key) == 1 and key in 'CAMS':
 			self._specials_pressed[ key] = 0
 
 
-	def clean_key_queue( self):
+	def clean_key_queue( self) -> None:
 		"""cleans status of all special keys;
 		needed because especially after C-x C-f the C-release is grabbed by dialog
 		and never makes it to paper, therefore paper calls this after a file was read"""
@@ -189,17 +189,17 @@ class mode( object):
 			self._specials_pressed[ key] = 0
 
 
-	def get_name( self):
+	def get_name( self) -> object:
 		return self.name
 
 
-	def get_submode( self, i):
+	def get_submode( self, i: object) -> object:
 		if i < len( self.submodes):
 			return self.submodes[i][ self.submode[i]]
 		raise ValueError("invalid submode index")
 
 
-	def set_submode( self, name):
+	def set_submode( self, name: object) -> None:
 		for sms in self.submodes:
 			if name in sms:
 				i = self.submodes.index( sms)
@@ -213,7 +213,7 @@ class mode( object):
 				break
 
 
-	def register_key_sequence( self, sequence, function, use_warning = 1):
+	def register_key_sequence( self, sequence: object, function: object, use_warning: object = 1) -> None:
 		"""registers a function with its coresponding key sequence
 		when use_warning is true (default) than issues warning about overriden
 		or shadowed bindings. In most cases its good idea to let it check the bindings."""
@@ -237,7 +237,7 @@ class mode( object):
 		self._key_sequences[ sequence] = function
 
 
-	def register_key_sequence_ending_with_number_range( self, sequence_base, function, numbers=None, attrs=None):
+	def register_key_sequence_ending_with_number_range( self, sequence_base: object, function: object, numbers: object = None, attrs: object = None) -> None:
 		if not numbers:
 			numbers = []
 		for i in numbers:
@@ -250,18 +250,18 @@ class mode( object):
 			self.register_key_sequence( b+str(i), bkchem_utils.lazy_apply( function, (i,), attrs=attrs))
 
 
-	def unregister_all_sequences( self):
+	def unregister_all_sequences( self) -> None:
 		self._key_sequences = {}
 
 
-	def cleanup( self, paper=None):
+	def cleanup( self, paper: object = None) -> None:
 		"""called when switching to another mode"""
 		if self.focused:
 			self.focused.unfocus()
 			self.focused = None
 
 
-	def startup( self):
+	def startup( self) -> None:
 		"""called when switching to this mode"""
 		txt_name = self.__class__.__name__+"_startup"
 		message = messages.__dict__.get( txt_name, "")
@@ -269,17 +269,17 @@ class mode( object):
 			Store.log( message, delay=20, message_type="hint")
 
 
-	def on_submode_switch( self, submode_index, name=''):
+	def on_submode_switch( self, submode_index: object, name: object = '') -> None:
 		"""called when submode is switched"""
 		pass
 
 
-	def on_paper_switch( self, old_paper, new_paper):
+	def on_paper_switch( self, old_paper: object, new_paper: object) -> None:
 		"""called when paper is switched"""
 		pass
 
 
-	def copy_settings( self, old_mode):
+	def copy_settings( self, old_mode: object) -> None:
 		"""called when modes are changed, enables new mode to copy settings from old_mode"""
 		self._specials_pressed = dict( old_mode._specials_pressed)
 
@@ -290,25 +290,25 @@ class simple_mode( mode):
 	"""Little more sophisticated parent mode.
 
 	"""
-	def __init__( self):
+	def __init__( self) -> None:
 		mode.__init__( self)
 		self.focused = None
 
 
-	def enter_object( self, object, event):
+	def enter_object( self, object: object, event: object) -> None:
 		if self.focused:
 			self.focused.unfocus()
 		self.focused = object
 		self.focused.focus()
 
 
-	def leave_object( self, event):
+	def leave_object( self, event: object) -> None:
 		if self.focused:
 			self.focused.unfocus()
 			self.focused = None
 
 
-	def on_paper_switch( self, old_paper, new_paper):
+	def on_paper_switch( self, old_paper: object, new_paper: object) -> None:
 		"""called when paper is switched"""
 		self.focused = None
 
@@ -316,7 +316,7 @@ class simple_mode( mode):
 
 class basic_mode( simple_mode):
 
-	def __init__( self):
+	def __init__( self) -> None:
 		simple_mode.__init__( self)
 		# name loaded from YAML via base class (no override needed)
 		# standard cross-platform shortcuts (Ctrl)
@@ -353,21 +353,21 @@ class basic_mode( simple_mode):
 		self.register_key_sequence( 'C-p', lambda : Store.app.paper.print_all_coords())
 		self.register_key_sequence( 'C-r', lambda : Store.app.paper.redraw_all())
 
-	def undo( self):
+	def undo( self) -> None:
 		Store.app.paper.undo()
 		if self.focused and not Store.app.paper.is_registered_object( self.focused):
 			# focused object was deleted
 			self.focused = None
 
 
-	def redo( self):
+	def redo( self) -> None:
 		Store.app.paper.redo()
 		if self.focused and not Store.app.paper.is_registered_object( self.focused):
 			# focused object was deleted
 			self.focused = None
 
 
-	def switch_mode( self, n, add=0):
+	def switch_mode( self, n: object, add: object = 0) -> None:
 		index = n+add-1
 		if index < len( Store.app.modes_sort):
 			self.cleanup()

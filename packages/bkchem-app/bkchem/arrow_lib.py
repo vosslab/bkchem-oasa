@@ -68,7 +68,7 @@ class BkArrow( meta_enabled, drawable, with_line, line_colored, container, inter
 
 
 
-  def __init__( self, paper, type="normal", points=[], shape=(8,10,3), pin=1, spline=0, package=None, fill="#000"):
+  def __init__( self, paper: object, type: str="normal", points: list=[], shape: tuple=(8,10,3), pin: int=1, spline: int=0, package: object | None=None, fill: str="#000") -> None:
     meta_enabled.__init__( self, standard=paper.standard)
     drawable.__init__( self)
     with_line.__init__( self)
@@ -97,7 +97,7 @@ class BkArrow( meta_enabled, drawable, with_line, line_colored, container, inter
 
   # shape_defining_points
   @property
-  def shape_defining_points(self):
+  def shape_defining_points(self) -> list:
     """Should give list of point_drawable instances.
 
     """
@@ -105,7 +105,7 @@ class BkArrow( meta_enabled, drawable, with_line, line_colored, container, inter
 
 
   @property
-  def BkReaction(self):
+  def BkReaction(self) -> object:
     """Reaction associated with this arrow.
 
     """
@@ -113,21 +113,21 @@ class BkArrow( meta_enabled, drawable, with_line, line_colored, container, inter
 
 
   @BkReaction.setter
-  def BkReaction(self, BkReaction):
+  def BkReaction(self, BkReaction: object) -> None:
     self.__reaction = BkReaction
 
 
   # // PROPERTIES
 
 
-  def read_standard_values( self, standard, old_standard=None):
+  def read_standard_values( self, standard: object, old_standard: object | None=None) -> None:
     meta_enabled.read_standard_values( self, standard, old_standard=old_standard)
     if not old_standard or (standard.line_width != old_standard.line_width):
       self.line_width = Screen.any_to_px( standard.line_width)
 
 
 
-  def draw( self):
+  def draw( self) -> None:
     if len( self.points) > 1:
       #type = self.spline and 'circle' or 'invisible'
       type = 'invisible'
@@ -138,30 +138,30 @@ class BkArrow( meta_enabled, drawable, with_line, line_colored, container, inter
       self.items = getattr(self,'_draw_'+self.type)()
       [self.paper.register_id( i, self) for i in self.items]
 
-  def redraw( self):
+  def redraw( self) -> None:
     if self.items:
       list(map( self.paper.unregister_id, self.items))
       list(map( self.paper.delete, self.items))
     self.draw()
 
-  def focus( self):
+  def focus( self) -> None:
     [self.paper.itemconfig( i, width=self.line_width+2) for i in self.items if not "arrow_no_focus" in self.paper.gettags(i)]
 
-  def unfocus( self):
+  def unfocus( self) -> None:
     [self.paper.itemconfig( i, width=self.line_width) for i in self.items if not "arrow_no_focus" in self.paper.gettags(i)]
 
 #  def get_id( self):
 #    return self.id
 
-  def select( self):
+  def select( self) -> None:
     #self.selector = hg.selection_rect( self.paper, self, coords=self.bbox())
     [pnt.select() for pnt in self.points]
 
-  def unselect( self):
+  def unselect( self) -> None:
     #self.selector.delete()
     [pnt.unselect() for pnt in self.points]
 
-  def create_new_point( self, x, y, position=-1, use_paper_coords=False):
+  def create_new_point( self, x: object, y: object, position: int=-1, use_paper_coords: bool=False) -> object:
     "creates new point, position specifies relative position of point in points, usually -1 or 0"
     if use_paper_coords:
       xy = self.paper.canvas_to_real((x,y))
@@ -176,28 +176,28 @@ class BkArrow( meta_enabled, drawable, with_line, line_colored, container, inter
         warn( "bad position for adding point in arrow", UserWarning, 2)
     return pnt
 
-  def delete_point( self, pnt):
+  def delete_point( self, pnt: object) -> None:
     try:
       self.points.remove( pnt)
     except IndexError:
       warn( "trying to remove nonexisting point from arrow")
     pnt.delete()
 
-  def delete( self):
+  def delete( self) -> None:
     [p.delete() for p in self.points]
     self.points = []
     list(map( self.paper.unregister_id, self.items))
     list(map( self.paper.delete, self.items))
     self.items = []
 
-  def is_empty_or_single_point( self):
+  def is_empty_or_single_point( self) -> bool:
     return len( self.points) < 2
 
-  def move( self, dx, dy, use_paper_coords=False):
+  def move( self, dx: object, dy: object, use_paper_coords: bool=False) -> None:
     [p.move( dx, dy, use_paper_coords) for p in self.points]
     self.redraw()
 
-  def read_package( self, package):
+  def read_package( self, package: object) -> None:
     """reads the dom element package and sets internal state according to it"""
     if package.getAttribute( 'id'):
       self.id = package.getAttribute( 'id')
@@ -220,7 +220,7 @@ class BkArrow( meta_enabled, drawable, with_line, line_colored, container, inter
     for p in package.getElementsByTagName( 'point'):
       self.points.append( point( self.paper, arrow=self, package=p))
 
-  def get_package( self, doc):
+  def get_package( self, doc: object) -> object:
     """returns a DOM element describing the object in CDML,
     doc is the parent document which is used for element creation
     (the returned element is not inserted into the document)"""
@@ -243,17 +243,17 @@ class BkArrow( meta_enabled, drawable, with_line, line_colored, container, inter
       arr.appendChild( p.get_package( doc))
     return arr
 
-  def change_direction( self):
+  def change_direction( self) -> None:
     self.pin += 1
     if self.pin > 3:
       self.pin = 0
     self.redraw()
 
-  def bbox( self):
+  def bbox( self) -> object:
     """returns the bounding box of the object as a list of [x1,y1,x2,y2]"""
     return self.paper.list_bbox( self.items)
 
-  def set_pins( self, start=None, end=None):
+  def set_pins( self, start: object | None=None, end: object | None=None) -> None:
     st, en = self.get_pins()
     if start != None:
       st = start
@@ -261,17 +261,17 @@ class BkArrow( meta_enabled, drawable, with_line, line_colored, container, inter
       en = end
     self.pin = en + 2*st
 
-  def get_pins( self):
+  def get_pins( self) -> tuple:
     """returns tuple of boolean values (start, end)"""
     return divmod( self.pin, 2)
 
-  def lift( self):
+  def lift( self) -> None:
     if self.items:
       list(map( self.paper.lift, self.items))
     [o.lift() for o in self.points]
 
 
-  def transform( self, tr):
+  def transform( self, tr: object) -> None:
     """applies given transformation to its children"""
     for p in self.points:
       p.transform( tr)
@@ -279,7 +279,7 @@ class BkArrow( meta_enabled, drawable, with_line, line_colored, container, inter
 
   # -- private drawing methods for different arrow types --
 
-  def _draw_normal( self):
+  def _draw_normal( self) -> list:
     coords = [p.get_xy_on_paper() for p in self.points]
     pins = []
     if self.pin in (2,3):
@@ -308,7 +308,7 @@ class BkArrow( meta_enabled, drawable, with_line, line_colored, container, inter
 
 
 
-  def _draw_electron( self):
+  def _draw_electron( self) -> list:
     coords = [p.get_xy_on_screen() for p in self.points]
     pins = []
     if self.pin in (2,3):
@@ -336,7 +336,7 @@ class BkArrow( meta_enabled, drawable, with_line, line_colored, container, inter
     return items
 
 
-  def _draw_retro( self):
+  def _draw_retro( self) -> list:
     width = self.paper.real_to_canvas(3)
     head_param = self.paper.real_to_canvas(8) # just a placeholder for "8"
     coords = [p.get_xy_on_screen() for p in self.points]
@@ -362,7 +362,7 @@ class BkArrow( meta_enabled, drawable, with_line, line_colored, container, inter
     return items
 
 
-  def _draw_equilibrium( self):
+  def _draw_equilibrium( self) -> list:
     width = self.paper.real_to_canvas(3)
     orig_coords = [p.get_xy_on_screen() for p in self.points]
     # map line color through theme so default-colored arrows follow dark/light theme
@@ -390,7 +390,7 @@ class BkArrow( meta_enabled, drawable, with_line, line_colored, container, inter
     return items
 
 
-  def _draw_equilibrium2( self):
+  def _draw_equilibrium2( self) -> list:
     width = 3
     orig_coords = [p.get_xy_on_screen() for p in self.points]
     # map line color through theme so default-colored arrows follow dark/light theme
@@ -436,7 +436,7 @@ class BkArrow( meta_enabled, drawable, with_line, line_colored, container, inter
 
 
 
-def retro_arrow_head (x1,y1,x2,y2,length,width,d):
+def retro_arrow_head (x1: object, y1: object, x2: object, y2: object, length: object, width: object, d: object) -> tuple:
   r"""arrow head at 2
 #                    length
 #                   |---|  _
@@ -460,7 +460,7 @@ def retro_arrow_head (x1,y1,x2,y2,length,width,d):
   return (xc,yc, xh,yh, xf,yf)
 
 
-def single_sided_arrow_head (x1,y1,x2,y2,a,b,c,lw):
+def single_sided_arrow_head (x1: object, y1: object, x2: object, y2: object, a: object, b: object, c: object, lw: object) -> tuple:
   '''last two points of arrow 1->2
   a,b,c like tkinter
   a = leght from point 2 where the head touches the line (out point A)
@@ -478,7 +478,7 @@ def single_sided_arrow_head (x1,y1,x2,y2,a,b,c,lw):
   return xa,ya, xc,yc, xb,yb
 
 
-def double_sided_arrow_head (x1,y1,x2,y2,a,b,c):
+def double_sided_arrow_head (x1: object, y1: object, x2: object, y2: object, a: object, b: object, c: object) -> tuple:
   '''last two points of arrow 1->2
   a,b,c like tkinter
   a = leght from point 2 where the head touches the line (out point A)
@@ -492,4 +492,3 @@ def double_sided_arrow_head (x1,y1,x2,y2,a,b,c):
   xd,yd = geometry.point_at_distance_from_line (x1,y1,xp,yp,-c)
   xc,yc = geometry.elongate_line (x1,y1,x2,y2,-a)
   return xa,ya, xb,yb, xc,yc, xd,yd
-

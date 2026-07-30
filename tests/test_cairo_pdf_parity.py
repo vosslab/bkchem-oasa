@@ -8,13 +8,13 @@ import pathlib
 import pytest
 
 # Local repo modules
-import git_file_utils
+import file_utils
 
-REPO_ROOT = pathlib.Path(git_file_utils.get_repo_root())
+REPO_ROOT = pathlib.Path(file_utils.get_repo_root())
 
 
 #============================================
-def _load_tool_module(module_name: str, relative_path: str):
+def _load_tool_module(module_name: str, relative_path: str) -> object:
 	"""Load a module from the tools directory."""
 	tool_path = REPO_ROOT / relative_path
 	spec = importlib.util.spec_from_file_location(module_name, tool_path)
@@ -26,7 +26,7 @@ def _load_tool_module(module_name: str, relative_path: str):
 
 
 #============================================
-def _get_measurelib_module(name: str):
+def _get_measurelib_module(name: str) -> object:
 	"""Import a measurelib submodule by ensuring tools/ is on sys.path."""
 	import sys
 	tools_dir = str(REPO_ROOT / "tools")
@@ -42,7 +42,7 @@ def _get_measurelib_module(name: str):
 class TestCollectPdfLinesExtractsCoordinates:
 	"""Test that collect_pdf_lines extracts coordinates and flips Y."""
 
-	def test_basic_line(self, tmp_path: pathlib.Path):
+	def test_basic_line(self, tmp_path: pathlib.Path) -> None:
 		"""Verify a simple PDF with a line yields correct extracted coords."""
 		# create a minimal PDF with reportlab
 		pytest.importorskip("reportlab")
@@ -74,7 +74,7 @@ class TestCollectPdfLinesExtractsCoordinates:
 class TestCollectPdfLabelsExtractsText:
 	"""Test that collect_pdf_labels extracts text content."""
 
-	def test_basic_text(self, tmp_path: pathlib.Path):
+	def test_basic_text(self, tmp_path: pathlib.Path) -> None:
 		"""Verify a PDF with text yields a label with correct content."""
 		pytest.importorskip("reportlab")
 		from reportlab.lib.pagesizes import letter
@@ -99,7 +99,7 @@ class TestCollectPdfLabelsExtractsText:
 class TestCollectPdfLabelsCallsCanonicalize:
 	"""Test that collect_pdf_labels uses canonicalize_label_text."""
 
-	def test_canonical_text_field(self, tmp_path: pathlib.Path):
+	def test_canonical_text_field(self, tmp_path: pathlib.Path) -> None:
 		"""Verify labels have canonical_text key populated."""
 		pytest.importorskip("reportlab")
 		from reportlab.lib.pagesizes import letter
@@ -123,7 +123,7 @@ class TestCollectPdfLabelsCallsCanonicalize:
 class TestYCoordinateFlip:
 	"""Test that PDF-to-SVG Y coordinate normalization works."""
 
-	def test_flip_y(self):
+	def test_flip_y(self) -> None:
 		"""Verify _flip_y inverts Y relative to page height."""
 		pdf_parse = _get_measurelib_module("pdf_parse")
 		page_height = 792.0
@@ -141,7 +141,7 @@ class TestYCoordinateFlip:
 class TestMatchLinesFindNearest:
 	"""Test that match_lines finds nearest-neighbor matches."""
 
-	def test_exact_match(self):
+	def test_exact_match(self) -> None:
 		"""Identical line sets should produce perfect matches."""
 		parity = _get_measurelib_module("parity")
 		svg_lines = [
@@ -159,7 +159,7 @@ class TestMatchLinesFindNearest:
 		for m in matched:
 			assert m["midpoint_delta"] < 0.01
 
-	def test_unmatched_svg_line(self):
+	def test_unmatched_svg_line(self) -> None:
 		"""Extra SVG line with no PDF partner should be flagged unmatched."""
 		parity = _get_measurelib_module("parity")
 		svg_lines = [
@@ -180,7 +180,7 @@ class TestMatchLinesFindNearest:
 class TestMatchLabelsByText:
 	"""Test that match_labels uses text content then position."""
 
-	def test_same_text_matches(self):
+	def test_same_text_matches(self) -> None:
 		"""Labels with same canonical text should match."""
 		parity = _get_measurelib_module("parity")
 		svg_labels = [
@@ -195,7 +195,7 @@ class TestMatchLabelsByText:
 		matched = [m for m in matches if m["matched"]]
 		assert len(matched) == 2
 
-	def test_different_text_no_match(self):
+	def test_different_text_no_match(self) -> None:
 		"""Labels with different text should not match."""
 		parity = _get_measurelib_module("parity")
 		svg_labels = [
@@ -213,7 +213,7 @@ class TestMatchLabelsByText:
 class TestParityScorePerfectMatch:
 	"""Test that identical inputs give parity score 1.0."""
 
-	def test_perfect_score(self):
+	def test_perfect_score(self) -> None:
 		"""All matched primitives should give parity score of 1.0."""
 		parity = _get_measurelib_module("parity")
 		line_matches = [
@@ -232,7 +232,7 @@ class TestParityScorePerfectMatch:
 class TestParityScoreWithOffset:
 	"""Test that shifted coordinates lower the parity score."""
 
-	def test_partial_match(self):
+	def test_partial_match(self) -> None:
 		"""Mixed matched/unmatched primitives lower the score below 1.0."""
 		parity = _get_measurelib_module("parity")
 		line_matches = [
@@ -252,7 +252,7 @@ class TestParityScoreWithOffset:
 class TestFilePairingByStem:
 	"""Test that SVG/PDF file pairing by stem works correctly."""
 
-	def test_matching_stems(self, tmp_path: pathlib.Path):
+	def test_matching_stems(self, tmp_path: pathlib.Path) -> None:
 		"""Files with same stem should be paired."""
 		# load the CLI tool module
 		tool = _load_tool_module(
@@ -276,7 +276,7 @@ class TestFilePairingByStem:
 		stems = {p[0].stem for p in pairs}
 		assert stems == {"mol_a", "mol_b"}
 
-	def test_no_matching_stems(self, tmp_path: pathlib.Path):
+	def test_no_matching_stems(self, tmp_path: pathlib.Path) -> None:
 		"""Files with no common stems yield empty pairs."""
 		tool = _load_tool_module(
 			"measure_cairo_pdf_parity",
@@ -294,7 +294,7 @@ class TestFilePairingByStem:
 class TestPdfParseOpenPage:
 	"""Test open_pdf_page functionality."""
 
-	def test_empty_pdf_raises(self, tmp_path: pathlib.Path):
+	def test_empty_pdf_raises(self, tmp_path: pathlib.Path) -> None:
 		"""A corrupt/empty file should raise an error."""
 		pdf_parse = _get_measurelib_module("pdf_parse")
 		bad_pdf = tmp_path / "empty.pdf"
@@ -307,7 +307,7 @@ class TestPdfParseOpenPage:
 class TestCollectPdfRingPrimitives:
 	"""Test ring primitive extraction from PDF."""
 
-	def test_no_rings_in_simple_pdf(self, tmp_path: pathlib.Path):
+	def test_no_rings_in_simple_pdf(self, tmp_path: pathlib.Path) -> None:
 		"""A PDF with only a line should have no ring primitives."""
 		pytest.importorskip("reportlab")
 		from reportlab.lib.pagesizes import letter
@@ -328,7 +328,7 @@ class TestCollectPdfRingPrimitives:
 class TestCollectPdfWedgeBonds:
 	"""Test wedge bond extraction from PDF."""
 
-	def test_no_wedges_in_simple_pdf(self, tmp_path: pathlib.Path):
+	def test_no_wedges_in_simple_pdf(self, tmp_path: pathlib.Path) -> None:
 		"""A PDF with only text should have no wedge bonds."""
 		pytest.importorskip("reportlab")
 		from reportlab.lib.pagesizes import letter
@@ -350,7 +350,7 @@ class TestCollectPdfWedgeBonds:
 class TestMatchRingPrimitives:
 	"""Test ring primitive matching."""
 
-	def test_exact_centroid_match(self):
+	def test_exact_centroid_match(self) -> None:
 		"""Rings at same centroid should match."""
 		parity = _get_measurelib_module("parity")
 		svg_rings = [{"centroid": (50.0, 50.0), "bbox": (40, 40, 60, 60), "kind": "polygon"}]
@@ -364,7 +364,7 @@ class TestMatchRingPrimitives:
 class TestMatchWedgeBonds:
 	"""Test wedge bond matching."""
 
-	def test_exact_spine_match(self):
+	def test_exact_spine_match(self) -> None:
 		"""Wedge bonds with same spine should match."""
 		parity = _get_measurelib_module("parity")
 		svg_wedges = [{"spine_start": (10.0, 10.0), "spine_end": (50.0, 10.0)}]
@@ -378,7 +378,7 @@ class TestMatchWedgeBonds:
 class TestPdfAnalysis:
 	"""Test standalone PDF analysis via pdf_analysis module."""
 
-	def test_analyze_pdf_returns_dict(self, tmp_path: pathlib.Path):
+	def test_analyze_pdf_returns_dict(self, tmp_path: pathlib.Path) -> None:
 		"""analyze_pdf_file should return a dict with expected keys."""
 		pytest.importorskip("reportlab")
 		from reportlab.lib.pagesizes import letter
@@ -402,7 +402,7 @@ class TestPdfAnalysis:
 class TestResolvePdfPaths:
 	"""Test PDF path resolution."""
 
-	def test_resolve_finds_files(self, tmp_path: pathlib.Path):
+	def test_resolve_finds_files(self, tmp_path: pathlib.Path) -> None:
 		"""resolve_pdf_paths should find PDF files matching the glob."""
 		pdf_parse = _get_measurelib_module("pdf_parse")
 		# create test PDF files

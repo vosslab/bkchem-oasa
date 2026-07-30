@@ -89,7 +89,7 @@ def resolve_bond_length(
 
 
 #============================================
-def _bond_style_for_edge(edge) -> str:
+def _bond_style_for_edge(edge: object) -> str:
 	"""Map one render edge to the canonical bond-style policy key."""
 	try:
 		order = int(getattr(edge, "order", 1) or 1)
@@ -106,6 +106,4 @@ def _bond_style_for_edge(edge) -> str:
 		return "hashed_wedge"
 	if type_text == "s":
 		return "wavy"
-	if type_text == "d":
-		return "dashed_hbond"
 	return "single"

@@ -24,7 +24,7 @@ _EXPECTED_GUI_KEYS = [
 
 
 #============================================
-def test_dark_yaml_gui_keys_exist():
+def test_dark_yaml_gui_keys_exist() -> None:
 	"""Verify all expected gui keys exist in dark.yaml via get_gui_colors."""
 	gui = bkchem_qt.themes.theme_loader.get_gui_colors('dark')
 	for key in _EXPECTED_GUI_KEYS:
@@ -33,7 +33,7 @@ def test_dark_yaml_gui_keys_exist():
 
 
 #============================================
-def test_light_yaml_gui_keys_exist():
+def test_light_yaml_gui_keys_exist() -> None:
 	"""Verify all expected gui keys exist in light.yaml via get_gui_colors."""
 	gui = bkchem_qt.themes.theme_loader.get_gui_colors('light')
 	for key in _EXPECTED_GUI_KEYS:
@@ -42,7 +42,7 @@ def test_light_yaml_gui_keys_exist():
 
 
 #============================================
-def test_dark_qss_uses_yaml_values():
+def test_dark_qss_uses_yaml_values() -> None:
 	"""Verify dark QSS contains YAML values, not old hardcoded values."""
 	qss = bkchem_qt.themes.palettes.build_qss('dark')
 	assert '#2b2b2b' in qss, 'Expected YAML dark background'
@@ -50,7 +50,7 @@ def test_dark_qss_uses_yaml_values():
 
 
 #============================================
-def test_light_qss_uses_yaml_values():
+def test_light_qss_uses_yaml_values() -> None:
 	"""Verify light QSS contains YAML values, not old hardcoded values."""
 	qss = bkchem_qt.themes.palettes.build_qss('light')
 	assert '#eaeaea' in qss, 'Expected YAML light background'
@@ -58,7 +58,7 @@ def test_light_qss_uses_yaml_values():
 
 
 #============================================
-def test_dark_palette_returns_qpalette(qapp):
+def test_dark_palette_returns_qpalette(qapp: object) -> None:
 	"""Verify build_palette('dark') returns a QPalette instance."""
 	import PySide6.QtGui
 	palette = bkchem_qt.themes.palettes.build_palette('dark')
@@ -68,7 +68,7 @@ def test_dark_palette_returns_qpalette(qapp):
 
 
 #============================================
-def test_light_palette_returns_qpalette(qapp):
+def test_light_palette_returns_qpalette(qapp: object) -> None:
 	"""Verify build_palette('light') returns a QPalette instance."""
 	import PySide6.QtGui
 	palette = bkchem_qt.themes.palettes.build_palette('light')
@@ -83,7 +83,7 @@ _EXPECTED_CANVAS_KEYS = ['selection', 'hover', 'preview']
 
 
 #============================================
-def test_dark_yaml_canvas_keys_exist():
+def test_dark_yaml_canvas_keys_exist() -> None:
 	"""Verify canvas section exists in dark.yaml with required keys."""
 	colors = bkchem_qt.themes.theme_loader.get_canvas_colors('dark')
 	for key in _EXPECTED_CANVAS_KEYS:
@@ -92,7 +92,7 @@ def test_dark_yaml_canvas_keys_exist():
 
 
 #============================================
-def test_light_yaml_canvas_keys_exist():
+def test_light_yaml_canvas_keys_exist() -> None:
 	"""Verify canvas section exists in light.yaml with required keys."""
 	colors = bkchem_qt.themes.theme_loader.get_canvas_colors('light')
 	for key in _EXPECTED_CANVAS_KEYS:
@@ -103,7 +103,7 @@ def test_light_yaml_canvas_keys_exist():
 # -- chemistry charge color tests --
 
 #============================================
-def test_dark_yaml_charge_colors_exist():
+def test_dark_yaml_charge_colors_exist() -> None:
 	"""Verify chemistry section has charge_plus and charge_minus in dark."""
 	chem = bkchem_qt.themes.theme_loader.get_chemistry_colors('dark')
 	assert 'charge_plus' in chem, 'Missing charge_plus in dark chemistry'
@@ -111,7 +111,7 @@ def test_dark_yaml_charge_colors_exist():
 
 
 #============================================
-def test_light_yaml_charge_colors_exist():
+def test_light_yaml_charge_colors_exist() -> None:
 	"""Verify chemistry section has charge_plus and charge_minus in light."""
 	chem = bkchem_qt.themes.theme_loader.get_chemistry_colors('light')
 	assert 'charge_plus' in chem, 'Missing charge_plus in light chemistry'
@@ -126,7 +126,7 @@ _EXPECTED_NEW_GUI_KEYS = [
 
 
 #============================================
-def test_dark_yaml_new_gui_keys_exist():
+def test_dark_yaml_new_gui_keys_exist() -> None:
 	"""Verify tooltip and high_contrast keys exist in dark.yaml gui."""
 	gui = bkchem_qt.themes.theme_loader.get_gui_colors('dark')
 	for key in _EXPECTED_NEW_GUI_KEYS:
@@ -134,7 +134,7 @@ def test_dark_yaml_new_gui_keys_exist():
 
 
 #============================================
-def test_light_yaml_new_gui_keys_exist():
+def test_light_yaml_new_gui_keys_exist() -> None:
 	"""Verify tooltip and high_contrast keys exist in light.yaml gui."""
 	gui = bkchem_qt.themes.theme_loader.get_gui_colors('light')
 	for key in _EXPECTED_NEW_GUI_KEYS:

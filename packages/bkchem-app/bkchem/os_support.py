@@ -55,40 +55,40 @@ except:
   site_config = None
 
 
-def _get_bkchem_data_dir():
+def _get_bkchem_data_dir() -> str | None:
   spec = importlib.util.find_spec('bkchem_data')
   if not spec or not spec.origin:
     return None
   return os.path.dirname( spec.origin)
 
 
-def _get_repo_root():
+def _get_repo_root() -> str:
   return os.path.abspath( os.path.join( os.path.dirname( __file__), '..'))
 
 
-def _get_prefix_share_dir():
+def _get_prefix_share_dir() -> str:
   return os.path.join( sys.prefix, 'share', 'bkchem')
 
 
-def _get_source_dir( file_category):
+def _get_source_dir(file_category: str) -> str:
   repo_root = _get_repo_root()
   if file_category == 'plugin':
     return os.path.join( repo_root, 'addons')
   return os.path.join( repo_root, 'bkchem_data', data_subdirs[ file_category])
 
 
-def _get_data_dir( file_category):
+def _get_data_dir(file_category: str) -> str | None:
   data_root = _get_bkchem_data_dir()
   if not data_root:
     return None
   return os.path.join( data_root, data_subdirs[ file_category])
 
 
-def _get_share_dir( file_category):
+def _get_share_dir(file_category: str) -> str:
   return os.path.join( _get_prefix_share_dir(), data_subdirs[ file_category])
 
 
-def get_path( filename, file_category):
+def get_path(filename: str, file_category: str) -> str | None:
   dir = None
   dirs = get_dirs( file_category)
   for dir in dirs:
@@ -103,7 +103,7 @@ def get_path( filename, file_category):
   return None
 
 
-def get_config_filename( name, level="global", mode="r"):
+def get_config_filename(name: str, level: str = "global", mode: str = "r") -> str | None:
   dir = None
   if level == "global":
     if os.name in ('posix', 'nt'):
@@ -135,7 +135,7 @@ def get_config_filename( name, level="global", mode="r"):
   return None
 
 
-def get_dirs( file_category):
+def get_dirs(file_category: str) -> list[str]:
   if os.name in ('posix', 'nt'):
     dirs = []
     if os.getenv( env_vars[ file_category]):
@@ -158,18 +158,18 @@ def get_dirs( file_category):
   return dirs
 
 
-def get_local_templates():
+def get_local_templates() -> list[str]:
   dir = get_local_templates_path()
   if os.path.isdir( dir):
     return [os.path.join( dir, d) for d in os.listdir( dir) if os.path.splitext( d)[1] in ('.cdml', '.cdgz', '.svg', '.svgz')]
   return []
 
 
-def get_personal_config_directory():
+def get_personal_config_directory() -> str:
   return get_bkchem_private_dir()
 
 
-def create_personal_config_directory( path=""):
+def create_personal_config_directory(path: str = "") -> str | None:
   if not path:
     dir = get_personal_config_directory()
   else:
@@ -187,27 +187,27 @@ def create_personal_config_directory( path=""):
   return None
 
 
-def get_local_templates_path():
+def get_local_templates_path() -> str:
   return os.path.join( get_personal_config_directory(), 'templates')
 
 
-def get_module_path():
+def get_module_path() -> str:
   dir = (site_config and site_config.BKCHEM_MODULE_PATH) or os.getenv( 'BKCHEM_MODULE_PATH') or './'
   return dir
 
 
-def get_opened_config_file( name, level="global", mode="r"):
+def get_opened_config_file(name: str, level: str = "global", mode: str = "r") -> object | None:
   fname = get_config_filename( name, level=level, mode=mode)
   if fname:
     return open(fname, mode=mode)
 
 
-def set_bkchem_private_dir( dir):
+def set_bkchem_private_dir(dir: str) -> None:
   if os.path.exists( dir):
     os_support_store.private_dir_override = dir
 
 
-def get_bkchem_private_dir():
+def get_bkchem_private_dir() -> str:
   # this allows users to override the private dir
   if os_support_store.private_dir_override and os.path.exists( os_support_store.private_dir_override):
     return os_support_store.private_dir_override
@@ -226,7 +226,7 @@ def get_bkchem_private_dir():
   return dir
 
 
-def get_bkchem_run_dir():
+def get_bkchem_run_dir() -> str:
   """returns directory from which BKChem is run"""
   path = sys.path[0]
   if not os.path.isdir( path):

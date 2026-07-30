@@ -30,16 +30,16 @@ ALL_BOND_ORDERS = (1, 2, 3, 4)
 class _DummyAtom:
 	"""Minimal atom stand-in for bond endpoint tests."""
 
-	def __init__(self, atom_id: str = "a1", x: float = 0.0, y: float = 0.0):
+	def __init__(self, atom_id: str = "a1", x: float = 0.0, y: float = 0.0) -> None:
 		self.id = atom_id
 		self.x = x
 		self.y = y
 
-	def bond_order_changed(self):
+	def bond_order_changed(self) -> object:
 		"""No-op stub required by oasa.bond.order setter."""
 		pass
 
-	def __repr__(self):
+	def __repr__(self) -> object:
 		return f"_DummyAtom({self.id!r})"
 
 
@@ -47,10 +47,10 @@ class _DummyAtom:
 class _DummyPaper:
 	"""Minimal paper stand-in for bond standard init."""
 
-	def __init__(self, standard):
+	def __init__(self, standard: object) -> None:
 		self.standard = standard
 
-	def screen_to_real_ratio(self):
+	def screen_to_real_ratio(self) -> object:
 		return 1.0
 
 
@@ -58,7 +58,7 @@ class _DummyPaper:
 class _DummyParent:
 	"""Minimal parent stand-in for bond.parent."""
 
-	def __init__(self, paper):
+	def __init__(self, paper: object) -> None:
 		self.paper = paper
 
 
@@ -66,22 +66,22 @@ class _DummyParent:
 class _DummyIdManager:
 	"""Minimal id manager for singleton_store."""
 
-	def generate_and_register_id(self, obj, prefix=None):
+	def generate_and_register_id(self, obj: object, prefix: object=None) -> object:
 		return "%s1" % (prefix or "obj")
 
-	def is_registered_object(self, obj):
+	def is_registered_object(self, obj: object) -> object:
 		return False
 
-	def unregister_object(self, obj):
+	def unregister_object(self, obj: object) -> object:
 		return None
 
-	def register_id(self, obj, obj_id):
+	def register_id(self, obj: object, obj_id: object) -> object:
 		return None
 
 
 #============================================
 @pytest.fixture
-def standard():
+def standard() -> object:
 	"""Provide a standard configuration object."""
 	singleton_store.Screen.dpi = 72
 	return bkchem.classes.standard()
@@ -89,21 +89,21 @@ def standard():
 
 #============================================
 @pytest.fixture
-def paper(standard):
+def paper(standard: object) -> object:
 	"""Provide a dummy paper with standard."""
 	return _DummyPaper(standard)
 
 
 #============================================
 @pytest.fixture
-def parent(paper):
+def parent(paper: object) -> object:
 	"""Provide a dummy parent with paper."""
 	return _DummyParent(paper)
 
 
 #============================================
 @pytest.fixture
-def id_manager():
+def id_manager() -> object:
 	"""Temporarily replace singleton id_manager."""
 	original = singleton_store.Store.id_manager
 	singleton_store.Store.id_manager = _DummyIdManager()
@@ -113,7 +113,7 @@ def id_manager():
 
 #============================================
 def _make_bond(
-	standard,
+	standard: object,
 	bond_type: str = "n",
 	order: int = 1,
 	atoms: tuple = (),
@@ -142,7 +142,7 @@ def _make_bond(
 
 #============================================
 @pytest.mark.parametrize("bond_type", ALL_BOND_TYPES)
-def test_bond_type_construction(standard, bond_type):
+def test_bond_type_construction(standard: object, bond_type: object) -> None:
 	"""Verify each bond type can be constructed and stored."""
 	b = _make_bond(standard, bond_type=bond_type)
 	assert b.type == bond_type
@@ -150,7 +150,7 @@ def test_bond_type_construction(standard, bond_type):
 
 #============================================
 @pytest.mark.parametrize("bond_type", ALL_BOND_TYPES)
-def test_bond_type_mutation(standard, bond_type):
+def test_bond_type_mutation(standard: object, bond_type: object) -> None:
 	"""Verify bond type can be changed after construction."""
 	b = _make_bond(standard, bond_type="n")
 	b.type = bond_type
@@ -163,7 +163,7 @@ def test_bond_type_mutation(standard, bond_type):
 
 #============================================
 @pytest.mark.parametrize("order", ALL_BOND_ORDERS)
-def test_bond_order_construction(standard, order):
+def test_bond_order_construction(standard: object, order: object) -> None:
 	"""Verify each bond order can be constructed and read back."""
 	b = _make_bond(standard, order=order)
 	assert b.order == order
@@ -171,7 +171,7 @@ def test_bond_order_construction(standard, order):
 
 #============================================
 @pytest.mark.parametrize("order", ALL_BOND_ORDERS)
-def test_bond_order_mutation(standard, order):
+def test_bond_order_mutation(standard: object, order: object) -> None:
 	"""Verify bond order can be changed after construction."""
 	a1 = _DummyAtom("a1")
 	a2 = _DummyAtom("a2")
@@ -181,7 +181,7 @@ def test_bond_order_mutation(standard, order):
 
 
 #============================================
-def test_bond_order_4_sets_aromatic(standard):
+def test_bond_order_4_sets_aromatic(standard: object) -> None:
 	"""Order 4 sets aromatic flag and stores _order as None."""
 	a1 = _DummyAtom("a1")
 	a2 = _DummyAtom("a2")
@@ -193,7 +193,7 @@ def test_bond_order_4_sets_aromatic(standard):
 
 
 #============================================
-def test_bond_order_normal_does_not_clear_aromatic(standard):
+def test_bond_order_normal_does_not_clear_aromatic(standard: object) -> None:
 	"""Setting normal order does not force aromatic to None."""
 	a1 = _DummyAtom("a1")
 	a2 = _DummyAtom("a2")
@@ -209,7 +209,7 @@ def test_bond_order_normal_does_not_clear_aromatic(standard):
 # ================================================================
 
 #============================================
-def test_atom1_atom2_access(standard):
+def test_atom1_atom2_access(standard: object) -> None:
 	"""Verify atom1 and atom2 are readable after assignment."""
 	a1 = _DummyAtom("a1")
 	a2 = _DummyAtom("a2")
@@ -219,7 +219,7 @@ def test_atom1_atom2_access(standard):
 
 
 #============================================
-def test_atom1_atom2_mutation(standard):
+def test_atom1_atom2_mutation(standard: object) -> None:
 	"""Verify atom1 and atom2 can be reassigned."""
 	a1 = _DummyAtom("a1")
 	a2 = _DummyAtom("a2")
@@ -233,7 +233,7 @@ def test_atom1_atom2_mutation(standard):
 
 
 #============================================
-def test_atom1_none_when_empty(standard):
+def test_atom1_none_when_empty(standard: object) -> None:
 	"""atom1 returns None when no vertices are set."""
 	b = _make_bond(standard)
 	# bond created with no atoms should return None
@@ -244,7 +244,7 @@ def test_atom1_none_when_empty(standard):
 
 
 #============================================
-def test_atom2_none_when_single_vertex(standard):
+def test_atom2_none_when_single_vertex(standard: object) -> None:
 	"""atom2 returns None when only one vertex is set."""
 	a1 = _DummyAtom("a1")
 	b = _make_bond(standard)
@@ -253,7 +253,7 @@ def test_atom2_none_when_single_vertex(standard):
 
 
 #============================================
-def test_atoms_property_returns_vertices(standard):
+def test_atoms_property_returns_vertices(standard: object) -> None:
 	"""atoms property returns the _vertices list."""
 	a1 = _DummyAtom("a1")
 	a2 = _DummyAtom("a2")
@@ -263,7 +263,7 @@ def test_atoms_property_returns_vertices(standard):
 
 
 #============================================
-def test_atoms_setter(standard):
+def test_atoms_setter(standard: object) -> None:
 	"""atoms property setter replaces the vertex list."""
 	a1 = _DummyAtom("a1")
 	a2 = _DummyAtom("a2")
@@ -280,7 +280,7 @@ def test_atoms_setter(standard):
 # ================================================================
 
 #============================================
-def test_order_delegates_to_oasa(standard):
+def test_order_delegates_to_oasa(standard: object) -> None:
 	"""Verify BKChem bond.order uses oasa.bond.order descriptor."""
 	a1 = _DummyAtom("a1")
 	a2 = _DummyAtom("a2")
@@ -291,7 +291,7 @@ def test_order_delegates_to_oasa(standard):
 
 
 #============================================
-def test_order_setter_marks_dirty(standard):
+def test_order_setter_marks_dirty(standard: object) -> None:
 	"""Setting order marks the bond as dirty."""
 	a1 = _DummyAtom("a1")
 	a2 = _DummyAtom("a2")
@@ -307,7 +307,7 @@ def test_order_setter_marks_dirty(standard):
 # ================================================================
 
 #============================================
-def test_aromatic_default_none(standard):
+def test_aromatic_default_none(standard: object) -> None:
 	"""Aromatic is None by default for non-aromatic bond."""
 	b = _make_bond(standard, order=1)
 	# aromatic may be None or not set, depends on init order
@@ -316,7 +316,7 @@ def test_aromatic_default_none(standard):
 
 
 #============================================
-def test_aromatic_set_by_order_4(standard):
+def test_aromatic_set_by_order_4(standard: object) -> None:
 	"""Setting order to 4 sets aromatic to 1."""
 	a1 = _DummyAtom("a1")
 	a2 = _DummyAtom("a2")
@@ -326,7 +326,7 @@ def test_aromatic_set_by_order_4(standard):
 
 
 #============================================
-def test_type_property_matches_init(standard):
+def test_type_property_matches_init(standard: object) -> None:
 	"""Bond type from property matches what was passed to init."""
 	for btype in ALL_BOND_TYPES:
 		b = _make_bond(standard, bond_type=btype)
@@ -334,14 +334,14 @@ def test_type_property_matches_init(standard):
 
 
 #============================================
-def test_stereochemistry_default_none(standard):
+def test_stereochemistry_default_none(standard: object) -> None:
 	"""Stereochemistry is None by default."""
 	b = _make_bond(standard)
 	assert b.stereochemistry is None
 
 
 #============================================
-def test_stereochemistry_assignable(standard):
+def test_stereochemistry_assignable(standard: object) -> None:
 	"""Stereochemistry can be set to an arbitrary object."""
 	b = _make_bond(standard)
 	b.stereochemistry = "cis"
@@ -353,7 +353,7 @@ def test_stereochemistry_assignable(standard):
 # ================================================================
 
 #============================================
-def test_vertices_is_list(standard):
+def test_vertices_is_list(standard: object) -> None:
 	"""_vertices is a list, not a set or tuple."""
 	a1 = _DummyAtom("a1")
 	a2 = _DummyAtom("a2")
@@ -362,7 +362,7 @@ def test_vertices_is_list(standard):
 
 
 #============================================
-def test_vertices_length(standard):
+def test_vertices_length(standard: object) -> None:
 	"""_vertices has length 2 when both atoms are set."""
 	a1 = _DummyAtom("a1")
 	a2 = _DummyAtom("a2")
@@ -371,7 +371,7 @@ def test_vertices_length(standard):
 
 
 #============================================
-def test_vertices_direct_index_access(standard):
+def test_vertices_direct_index_access(standard: object) -> None:
 	"""_vertices[0] and _vertices[1] match atom1 and atom2."""
 	a1 = _DummyAtom("a1")
 	a2 = _DummyAtom("a2")
@@ -381,7 +381,7 @@ def test_vertices_direct_index_access(standard):
 
 
 #============================================
-def test_vertices_mutation_reflects_in_atoms(standard):
+def test_vertices_mutation_reflects_in_atoms(standard: object) -> None:
 	"""Direct _vertices mutation is visible through atom1/atom2."""
 	a1 = _DummyAtom("a1")
 	a2 = _DummyAtom("a2")
@@ -396,14 +396,14 @@ def test_vertices_mutation_reflects_in_atoms(standard):
 # ================================================================
 
 #============================================
-def test_center_default_none(standard):
+def test_center_default_none(standard: object) -> None:
 	"""center is None by default."""
 	b = _make_bond(standard)
 	assert b.center is None
 
 
 #============================================
-def test_center_settable(standard):
+def test_center_settable(standard: object) -> None:
 	"""center can be set to True/False."""
 	b = _make_bond(standard)
 	b.center = True
@@ -413,7 +413,7 @@ def test_center_settable(standard):
 
 
 #============================================
-def test_center_marks_dirty(standard):
+def test_center_marks_dirty(standard: object) -> None:
 	"""Setting center marks bond as dirty."""
 	b = _make_bond(standard)
 	b.dirty = 0
@@ -422,7 +422,7 @@ def test_center_marks_dirty(standard):
 
 
 #============================================
-def test_bond_width_settable(standard):
+def test_bond_width_settable(standard: object) -> None:
 	"""bond_width can be set and read back."""
 	b = _make_bond(standard)
 	b.bond_width = 5.0
@@ -430,7 +430,7 @@ def test_bond_width_settable(standard):
 
 
 #============================================
-def test_bond_width_marks_dirty(standard):
+def test_bond_width_marks_dirty(standard: object) -> None:
 	"""Setting bond_width marks bond as dirty."""
 	b = _make_bond(standard)
 	b.dirty = 0
@@ -439,7 +439,7 @@ def test_bond_width_marks_dirty(standard):
 
 
 #============================================
-def test_wedge_width_settable(standard):
+def test_wedge_width_settable(standard: object) -> None:
 	"""wedge_width can be set and read back."""
 	b = _make_bond(standard)
 	b.wedge_width = 6.0
@@ -447,7 +447,7 @@ def test_wedge_width_settable(standard):
 
 
 #============================================
-def test_wedge_width_marks_dirty(standard):
+def test_wedge_width_marks_dirty(standard: object) -> None:
 	"""Setting wedge_width marks bond as dirty."""
 	b = _make_bond(standard)
 	b.dirty = 0
@@ -456,14 +456,14 @@ def test_wedge_width_marks_dirty(standard):
 
 
 #============================================
-def test_bond_width_initialized_from_standard(standard):
+def test_bond_width_initialized_from_standard(standard: object) -> None:
 	"""bond_width is initialized to a non-zero value from standard."""
 	b = _make_bond(standard)
 	assert b.bond_width != 0
 
 
 #============================================
-def test_wedge_width_initialized_from_standard(standard):
+def test_wedge_width_initialized_from_standard(standard: object) -> None:
 	"""wedge_width is initialized to a non-zero value from standard."""
 	b = _make_bond(standard)
 	assert b.wedge_width != 0
@@ -476,7 +476,7 @@ def test_wedge_width_initialized_from_standard(standard):
 #============================================
 @pytest.mark.parametrize("bond_type", ALL_BOND_TYPES)
 @pytest.mark.parametrize("order", ALL_BOND_ORDERS)
-def test_type_order_matrix(standard, bond_type, order):
+def test_type_order_matrix(standard: object, bond_type: object, order: object) -> None:
 	"""All combinations of bond type and order can be created."""
 	a1 = _DummyAtom("a1")
 	a2 = _DummyAtom("a2")
@@ -490,7 +490,7 @@ def test_type_order_matrix(standard, bond_type, order):
 # ================================================================
 
 #============================================
-def test_composition_bond_has_chem_bond(standard):
+def test_composition_bond_has_chem_bond(standard: object) -> None:
 	"""Composition bond should have _chem_bond attribute."""
 	b = _make_bond(standard)
 	assert hasattr(b, "_chem_bond")
@@ -498,7 +498,7 @@ def test_composition_bond_has_chem_bond(standard):
 
 
 #============================================
-def test_composition_bond_order_delegates_to_chem_bond(standard):
+def test_composition_bond_order_delegates_to_chem_bond(standard: object) -> None:
 	"""Composition bond.order should delegate to _chem_bond.order."""
 	a1 = _DummyAtom("a1")
 	a2 = _DummyAtom("a2")
@@ -509,14 +509,14 @@ def test_composition_bond_order_delegates_to_chem_bond(standard):
 
 
 #============================================
-def test_composition_bond_type_delegates_to_chem_bond(standard):
+def test_composition_bond_type_delegates_to_chem_bond(standard: object) -> None:
 	"""Composition bond.type should delegate to _chem_bond.type."""
 	b = _make_bond(standard, bond_type="w")
 	assert b._chem_bond.type == "w"
 
 
 #============================================
-def test_composition_bond_aromatic_delegates_to_chem_bond(standard):
+def test_composition_bond_aromatic_delegates_to_chem_bond(standard: object) -> None:
 	"""Composition bond.aromatic should delegate to _chem_bond.aromatic."""
 	a1 = _DummyAtom("a1")
 	a2 = _DummyAtom("a2")
@@ -525,7 +525,7 @@ def test_composition_bond_aromatic_delegates_to_chem_bond(standard):
 
 
 #============================================
-def test_composition_bond_vertices_shadowed(standard):
+def test_composition_bond_vertices_shadowed(standard: object) -> None:
 	"""Composition bond should shadow _vertices with _bond_vertices."""
 	a1 = _DummyAtom("a1")
 	a2 = _DummyAtom("a2")
@@ -536,7 +536,7 @@ def test_composition_bond_vertices_shadowed(standard):
 
 
 #============================================
-def test_composition_bond_stereochemistry_delegates(standard):
+def test_composition_bond_stereochemistry_delegates(standard: object) -> None:
 	"""Composition bond.stereochemistry delegates to _chem_bond."""
 	b = _make_bond(standard)
 	b.stereochemistry = "trans"

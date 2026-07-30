@@ -19,7 +19,7 @@ _STUB_PATTERNS = [
 
 
 #============================================
-def _handler_source_contains_stub(handler) -> str:
+def _handler_source_contains_stub(handler: object) -> str:
 	"""Check if a handler's source code contains stub indicators.
 
 	Inspects the handler's source code and bytecode constants for
@@ -66,7 +66,7 @@ def _handler_source_contains_stub(handler) -> str:
 
 
 #============================================
-def test_no_stub_handlers(main_window):
+def test_no_stub_handlers(main_window: object) -> None:
 	"""Every registered action handler must be a real implementation.
 
 	Fails if any handler source or bytecode contains 'not yet implemented',
@@ -89,7 +89,7 @@ def test_no_stub_handlers(main_window):
 
 
 #============================================
-def test_all_handlers_are_callable(main_window):
+def test_all_handlers_are_callable(main_window: object) -> None:
 	"""Every registered action must have a callable handler or None."""
 	registry = main_window._registry
 	actions = registry.all_actions()
@@ -102,7 +102,7 @@ def test_all_handlers_are_callable(main_window):
 
 
 #============================================
-def test_minimum_action_count(main_window):
+def test_minimum_action_count(main_window: object) -> None:
 	"""Registry should have at least 48 actions (all stubs replaced)."""
 	registry = main_window._registry
 	actions = registry.all_actions()
@@ -113,7 +113,7 @@ def test_minimum_action_count(main_window):
 
 
 #============================================
-def test_action_categories_present(main_window):
+def test_action_categories_present(main_window: object) -> None:
 	"""All expected menu categories should have actions registered."""
 	registry = main_window._registry
 	actions = registry.all_actions()

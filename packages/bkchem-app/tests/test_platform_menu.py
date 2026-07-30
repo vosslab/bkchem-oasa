@@ -9,8 +9,10 @@ import pytest
 
 #============================================
 @pytest.fixture(scope="module")
-def tk_root():
+def tk_root(request: pytest.FixtureRequest) -> object:
 	"""Create a shared Tk root for all tests in this module."""
+	if not request.config.getoption("--run-legacy-tk-e2e"):
+		pytest.skip("native Tk tests require --run-legacy-tk-e2e")
 	root = tkinter.Tk()
 	root.withdraw()
 	yield root
@@ -18,7 +20,7 @@ def tk_root():
 
 
 #============================================
-def test_adapter_creates_menubar(tk_root):
+def test_adapter_creates_menubar(tk_root: object) -> None:
 	"""PlatformMenuAdapter should create a tkinter.Menu and configure the parent."""
 	from bkchem.platform_menu import PlatformMenuAdapter
 	adapter = PlatformMenuAdapter(tk_root)
@@ -26,7 +28,7 @@ def test_adapter_creates_menubar(tk_root):
 
 
 #============================================
-def test_add_menu(tk_root):
+def test_add_menu(tk_root: object) -> None:
 	"""add_menu should register a named submenu."""
 	from bkchem.platform_menu import PlatformMenuAdapter
 	adapter = PlatformMenuAdapter(tk_root)
@@ -36,7 +38,7 @@ def test_add_menu(tk_root):
 
 
 #============================================
-def test_add_command(tk_root):
+def test_add_command(tk_root: object) -> None:
 	"""add_command should add a command entry to the named menu."""
 	from bkchem.platform_menu import PlatformMenuAdapter
 	adapter = PlatformMenuAdapter(tk_root)
@@ -47,7 +49,7 @@ def test_add_command(tk_root):
 
 
 #============================================
-def test_add_separator(tk_root):
+def test_add_separator(tk_root: object) -> None:
 	"""add_separator should add a separator to the named menu."""
 	from bkchem.platform_menu import PlatformMenuAdapter
 	adapter = PlatformMenuAdapter(tk_root)
@@ -56,7 +58,7 @@ def test_add_separator(tk_root):
 
 
 #============================================
-def test_add_cascade(tk_root):
+def test_add_cascade(tk_root: object) -> None:
 	"""add_cascade should create a submenu under the named parent menu."""
 	from bkchem.platform_menu import PlatformMenuAdapter
 	adapter = PlatformMenuAdapter(tk_root)
@@ -67,7 +69,7 @@ def test_add_cascade(tk_root):
 
 
 #============================================
-def test_add_command_to_cascade(tk_root):
+def test_add_command_to_cascade(tk_root: object) -> None:
 	"""add_command_to_cascade should add a command to a cascade submenu."""
 	from bkchem.platform_menu import PlatformMenuAdapter
 	adapter = PlatformMenuAdapter(tk_root)
@@ -78,7 +80,7 @@ def test_add_command_to_cascade(tk_root):
 
 
 #============================================
-def test_component_with_menu_suffix(tk_root):
+def test_component_with_menu_suffix(tk_root: object) -> None:
 	"""component() should strip '-menu' suffix for Pmw compatibility."""
 	from bkchem.platform_menu import PlatformMenuAdapter
 	adapter = PlatformMenuAdapter(tk_root)
@@ -89,7 +91,7 @@ def test_component_with_menu_suffix(tk_root):
 
 
 #============================================
-def test_set_item_state(tk_root):
+def test_set_item_state(tk_root: object) -> None:
 	"""set_item_state should call entryconfigure on the correct menu."""
 	from bkchem.platform_menu import PlatformMenuAdapter
 	adapter = PlatformMenuAdapter(tk_root)
@@ -102,7 +104,7 @@ def test_set_item_state(tk_root):
 
 
 #============================================
-def test_format_accelerator_ctrl():
+def test_format_accelerator_ctrl() -> None:
 	"""format_accelerator should convert (C-n) to platform-native format."""
 	from bkchem.platform_menu import format_accelerator
 	if sys.platform == 'darwin':
@@ -115,21 +117,21 @@ def test_format_accelerator_ctrl():
 
 
 #============================================
-def test_format_accelerator_none():
+def test_format_accelerator_none() -> None:
 	"""format_accelerator should return None for None input."""
 	from bkchem.platform_menu import format_accelerator
 	assert format_accelerator(None) is None
 
 
 #============================================
-def test_format_accelerator_passthrough():
+def test_format_accelerator_passthrough() -> None:
 	"""format_accelerator should pass through non-parenthesized strings."""
 	from bkchem.platform_menu import format_accelerator
 	assert format_accelerator('Ctrl+N') == 'Ctrl+N'
 
 
 #============================================
-def test_format_accelerator_display_unicode():
+def test_format_accelerator_display_unicode() -> None:
 	"""format_accelerator_display should produce Unicode symbols on macOS."""
 	from bkchem.platform_menu import format_accelerator_display
 	result = format_accelerator_display('(C-S-z)')

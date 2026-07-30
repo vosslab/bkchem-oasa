@@ -34,35 +34,35 @@ class Vertex(object):
   """
   attrs_to_copy: tuple[str, ...] = ("value",)
 
-  def __init__(self):
+  def __init__(self) -> None:
     self.properties_ = {} # used to store intermediate properties such as distances etc.
     self.value = None  # used to store any object associated with the vertex
     self._neighbors = {} # set of all neighbors
     self._clean_cache()
 
 
-  def __str__(self):
+  def __str__(self) -> object:
     return ("vertex, value=%s, degree=%d, " % (str(self.value), self.degree)) + str(self.properties_)
 
 
-  def _clean_cache(self):
+  def _clean_cache(self) -> object:
     self._cache = {}
 
 
-  def copy(self):
+  def copy(self) -> object:
     other = self.__class__()
     for attr in self.attrs_to_copy:
       setattr(other, attr, copy.copy(getattr(self, attr)))
     return other
 
 
-  def add_neighbor(self, v, e):
+  def add_neighbor(self, v: object, e: object) -> object:
     """adds a neighbor connected via e"""
     self._clean_cache()
     self._neighbors[e] = v
 
 
-  def remove_neighbor(self, v):
+  def remove_neighbor(self, v: object) -> object:
     self._clean_cache()
     to_del = None
     for k, vv in list(self._neighbors.items()):
@@ -75,7 +75,7 @@ class Vertex(object):
       raise Exception("Cannot remove non-existing neighbor")
 
 
-  def remove_edge_and_neighbor(self, e):
+  def remove_edge_and_neighbor(self, e: object) -> object:
     self._clean_cache()
     if e in list(self._neighbors.keys()):
       del self._neighbors[e]
@@ -84,7 +84,7 @@ class Vertex(object):
 
 
   @property
-  def neighbors(self):
+  def neighbors(self) -> object:
     """Neighboring vertices.
 
     """
@@ -92,11 +92,11 @@ class Vertex(object):
                   if not e.disconnected]
 
 
-  def get_neighbor_connected_via( self, e):
+  def get_neighbor_connected_via( self, e: object) -> object:
     return self._neighbors[e]
 
 
-  def get_edge_leading_to(self, a):
+  def get_edge_leading_to(self, a: object) -> object:
     for b, at in list(self._neighbors.items()):
       if a == at:
         return b
@@ -104,14 +104,14 @@ class Vertex(object):
 
 
   @property
-  def degree(self):
+  def degree(self) -> object:
     """Degree of the vertex.
 
     """
     return len(self.neighbors)
 
 
-  def get_neighbors_with_distance( self, d):
+  def get_neighbors_with_distance( self, d: object) -> object:
     ret = []
     for v in self.neighbors:
       if 'd' in v.properties_ and v.properties_['d'] == d:
@@ -119,17 +119,16 @@ class Vertex(object):
     return ret
 
 
-  def get_neighbor_edge_pairs(self):
+  def get_neighbor_edge_pairs(self) -> object:
     for e, v in list(self._neighbors.items()):
       if not e.disconnected:
         yield e,v
 
 
   @property
-  def neighbor_edges(self):
+  def neighbor_edges(self) -> object:
     """Neighboring edges.
 
     """
     return [e for e in list(self._neighbors.keys())
                 if not e.disconnected]
-

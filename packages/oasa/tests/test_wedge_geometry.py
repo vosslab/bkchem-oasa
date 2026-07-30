@@ -10,7 +10,7 @@ from oasa import wedge_geometry
 
 
 #============================================
-def test_horizontal_wedge_corners():
+def test_horizontal_wedge_corners() -> None:
 	tip = (0.0, 0.0)
 	base = (10.0, 0.0)
 	geom = wedge_geometry.rounded_wedge_geometry(tip, base, 4.0, 0.0)
@@ -30,7 +30,7 @@ def test_horizontal_wedge_corners():
 
 
 #============================================
-def test_vertical_wedge_corners():
+def test_vertical_wedge_corners() -> None:
 	tip = (0.0, 0.0)
 	base = (0.0, 10.0)
 	geom = wedge_geometry.rounded_wedge_geometry(tip, base, 4.0, 0.0)
@@ -50,7 +50,7 @@ def test_vertical_wedge_corners():
 
 
 #============================================
-def test_wedge_area_invariance():
+def test_wedge_area_invariance() -> None:
 	length = 10.0
 	narrow_width = 0.0
 	wide_width = 4.0
@@ -63,7 +63,7 @@ def test_wedge_area_invariance():
 
 
 #============================================
-def test_wedge_path_commands():
+def test_wedge_path_commands() -> None:
 	geom = wedge_geometry.rounded_wedge_geometry((0.0, 0.0), (10.0, 0.0), 4.0, 0.0)
 	commands = geom["path_commands"]
 	assert commands[0][0] == "M"
@@ -74,14 +74,14 @@ def test_wedge_path_commands():
 
 
 #============================================
-def test_wedge_path_without_rounding():
+def test_wedge_path_without_rounding() -> None:
 	geom = wedge_geometry.rounded_wedge_geometry((0.0, 0.0), (10.0, 0.0), 4.0, 0.0, corner_radius=0.0)
 	commands = geom["path_commands"]
 	assert sum(1 for cmd, _payload in commands if cmd == "ARC") == 0
 
 
 #============================================
-def test_wedge_input_validation():
+def test_wedge_input_validation() -> None:
 	with pytest.raises(ValueError):
 		wedge_geometry.rounded_wedge_geometry((0.0, 0.0), (0.0, 0.0), 4.0, 0.0)
 	with pytest.raises(ValueError):

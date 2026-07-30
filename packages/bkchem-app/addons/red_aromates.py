@@ -1,4 +1,4 @@
-def main( app):
+def main(app: object) -> None:
 	# at first we cancel all selections
 	app.paper.unselect_all()
 

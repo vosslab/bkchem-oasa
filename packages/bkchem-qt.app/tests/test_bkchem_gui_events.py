@@ -19,7 +19,7 @@ def _flush_events() -> None:
 
 
 #============================================
-def _count_atoms(scene) -> int:
+def _count_atoms(scene: object) -> int:
 	"""Return AtomItem count in the scene."""
 	return sum(
 		1 for item in scene.items()
@@ -28,7 +28,7 @@ def _count_atoms(scene) -> int:
 
 
 #============================================
-def _count_bonds(scene) -> int:
+def _count_bonds(scene: object) -> int:
 	"""Return BondItem count in the scene."""
 	return sum(
 		1 for item in scene.items()
@@ -37,7 +37,7 @@ def _count_bonds(scene) -> int:
 
 
 #============================================
-def _find_atom_item(scene, atom_model):
+def _find_atom_item(scene: object, atom_model: object) -> object | None:
 	"""Find AtomItem for a specific AtomModel."""
 	for item in scene.items():
 		if isinstance(item, bkchem_qt.canvas.items.atom_item.AtomItem):
@@ -47,7 +47,7 @@ def _find_atom_item(scene, atom_model):
 
 
 #============================================
-def test_qt_gui_event_simulation(main_window):
+def test_qt_gui_event_simulation(main_window: object) -> None:
 	"""Simulate draw/edit/delete/undo/redo/mode-switch flow in Qt."""
 	scene = main_window.scene
 
@@ -59,7 +59,9 @@ def test_qt_gui_event_simulation(main_window):
 	start_atoms = _count_atoms(scene)
 	start_bonds = _count_bonds(scene)
 
-	draw_mode.mouse_press(PySide6.QtCore.QPointF(200.0, 200.0), None)
+	first_position = PySide6.QtCore.QPointF(200.0, 200.0)
+	draw_mode.mouse_press(first_position, None)
+	draw_mode.mouse_release(first_position, None)
 	_flush_events()
 
 	after_first_atoms = _count_atoms(scene)
@@ -74,10 +76,9 @@ def test_qt_gui_event_simulation(main_window):
 
 	# extend chain by clicking an existing atom
 	source_atom = main_window.document.molecules[0].atoms[0]
-	draw_mode.mouse_press(
-		PySide6.QtCore.QPointF(source_atom.x, source_atom.y),
-		None,
-	)
+	source_position = PySide6.QtCore.QPointF(source_atom.x, source_atom.y)
+	draw_mode.mouse_press(source_position, None)
+	draw_mode.mouse_release(source_position, None)
 	_flush_events()
 
 	after_extend_atoms = _count_atoms(scene)

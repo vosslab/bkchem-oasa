@@ -18,7 +18,7 @@ _CHOLESTEROL_SMILES = (
 
 
 #============================================
-def _ensure_gettext_fallbacks():
+def _ensure_gettext_fallbacks() -> object:
 	"""Ensure gettext helpers exist for module-level strings."""
 	if "_" not in builtins.__dict__:
 		builtins.__dict__["_"] = lambda m: m
@@ -27,7 +27,7 @@ def _ensure_gettext_fallbacks():
 
 
 #============================================
-def _verify_tkinter():
+def _verify_tkinter() -> object:
 	"""Verify Tk is available for GUI-backed tests."""
 	try:
 		import tkinter
@@ -42,7 +42,7 @@ def _verify_tkinter():
 
 
 #============================================
-def _ensure_preferences():
+def _ensure_preferences() -> object:
 	"""Initialize preference manager for tests."""
 	from bkchem import os_support
 	from bkchem import pref_manager
@@ -56,7 +56,7 @@ def _ensure_preferences():
 
 
 #============================================
-def _flush_events(app, delay=0.05):
+def _flush_events(app: object, delay: object=0.05) -> object:
 	"""Process Tk events with a brief delay for GUI updates."""
 	app.update_idletasks()
 	app.update()
@@ -66,7 +66,7 @@ def _flush_events(app, delay=0.05):
 
 
 #============================================
-def _import_cholesterol_from_smiles(app):
+def _import_cholesterol_from_smiles(app: object) -> object:
 	"""Import cholesterol from SMILES and return the first imported molecule."""
 	imported = app.read_smiles(_CHOLESTEROL_SMILES)
 	if not imported:
@@ -77,7 +77,7 @@ def _import_cholesterol_from_smiles(app):
 
 
 #============================================
-def _snapshot_state(paper, label):
+def _snapshot_state(paper: object, label: object) -> object:
 	"""Capture scale, content bbox center, and viewport center into a dict."""
 	bbox = paper._content_bbox()
 	if bbox:
@@ -101,7 +101,7 @@ def _snapshot_state(paper, label):
 
 
 #============================================
-def _representative_bond_line_width(paper):
+def _representative_bond_line_width(paper: object) -> object:
 	"""Return one rendered bond line width from the canvas, or None."""
 	for obj in paper.stack:
 		if getattr(obj, "object_type", None) != "molecule":
@@ -131,7 +131,7 @@ def _representative_bond_line_width(paper):
 
 
 #============================================
-def _print_diagnostic_table(snapshots):
+def _print_diagnostic_table(snapshots: object) -> object:
 	"""Print formatted table of all snapshots for debugging."""
 	print()
 	print("=" * 80)
@@ -159,7 +159,7 @@ def _print_diagnostic_table(snapshots):
 
 
 #============================================
-def _run_zoom_diagnostic():
+def _run_zoom_diagnostic() -> object:
 	_ensure_gettext_fallbacks()
 	_verify_tkinter()
 	_ensure_preferences()
@@ -402,7 +402,7 @@ def _run_zoom_diagnostic():
 
 
 #============================================
-def _run_zoom_model_coords_stable():
+def _run_zoom_model_coords_stable() -> object:
 	"""Verify that model coordinates (atom.x, atom.y) are unchanged by zoom."""
 	_ensure_gettext_fallbacks()
 	_verify_tkinter()
@@ -486,7 +486,7 @@ def _run_zoom_model_coords_stable():
 
 
 #============================================
-def _run_zoom_roundtrip_symmetry():
+def _run_zoom_roundtrip_symmetry() -> object:
 	"""Zoom from 1000% down to ~250% and back; viewport center must match."""
 	_ensure_gettext_fallbacks()
 	_verify_tkinter()
@@ -598,7 +598,7 @@ def _run_zoom_roundtrip_symmetry():
 
 
 #============================================
-def main():
+def main() -> None:
 	"""Entry point for running the zoom diagnostic directly."""
 	import sys as _sys
 	which = _sys.argv[1] if len(_sys.argv) > 1 else "diagnostic"
@@ -611,7 +611,7 @@ def main():
 
 
 #============================================
-def _run_subprocess_test(arg):
+def _run_subprocess_test(arg: object) -> object:
 	"""Run a test variant in a subprocess; skip on Tk/signal failures."""
 	cmd = [sys.executable, os.path.abspath(__file__), arg]
 	result = subprocess.run(cmd, capture_output=True, text=True, check=False)
@@ -638,18 +638,18 @@ def _run_subprocess_test(arg):
 
 
 #============================================
-def test_bkchem_gui_zoom():
+def test_bkchem_gui_zoom() -> None:
 	_run_subprocess_test("diagnostic")
 
 
 #============================================
-def test_zoom_model_coords_stable():
+def test_zoom_model_coords_stable() -> None:
 	"""Model coordinates (atom.x, atom.y) must not change during zoom."""
 	_run_subprocess_test("model_coords")
 
 
 #============================================
-def test_zoom_roundtrip_symmetry():
+def test_zoom_roundtrip_symmetry() -> None:
 	"""Zoom out from 1000% to ~250% then back; viewport center must match."""
 	_run_subprocess_test("roundtrip")
 

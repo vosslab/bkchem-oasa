@@ -1,0 +1,292 @@
+# modes.yaml - toolbar mode/submode configuration
+# YAML keys define mode classes. Python provides behavioral methods where needed.
+# key = primary identifier; name and icon default to key if omitted.
+# label = short text shown below mode button icon; defaults to name if omitted.
+# All display strings passed through _() for i18n/gettext at load time.
+
+toolbar_order:
+  - file_actions
+  - ---
+  - edit
+  - draw
+  - ---
+  - template
+  - biotemplate
+  - usertemplate
+  - ---
+  - atom
+  - mark
+  - ---
+  - arrow
+  - plus
+  - text
+  - bracket
+  - ---
+  - rotate
+  - bondalign
+  - ---
+  - vector
+  - ---
+  - repair
+  - misc
+
+modes:
+  file_actions:
+    name: file
+    parent: basic_mode
+    icon: file_actions
+    submodes:
+      - group_label: File Operations
+        options:
+          - {key: new, name: New, size: large, tooltip: Create a new document}
+          - {key: open, name: Open, size: large, tooltip: Open a file}
+          - {key: save, name: Save, size: large, tooltip: Save the current file}
+          - {key: save_as, name: Save As, size: large, tooltip: Save to a new file}
+        default: 0
+
+  edit:
+    name: edit
+    parent: basic_mode
+    icon: edit
+    show_edit_pool: true
+    submodes: []
+
+  draw:
+    name: draw
+    parent: edit_mode
+    icon: draw
+    submodes:
+      - group_label: Angle Step
+        options:
+          - {key: '30', tooltip: 30 degree snap}
+          - {key: '18', tooltip: 18 degree snap}
+          - {key: '6', tooltip: 6 degree snap}
+          - {key: '1', tooltip: 1 degree snap}
+        default: 0
+      - group_label: Bond Order
+        options:
+          - {key: single, size: large}
+          - {key: double, size: large}
+          - {key: triple, size: large}
+        default: 0
+      - group_label: Bond Type
+        options:
+          - {key: normal, size: large}
+          - {key: wedge, size: large}
+          - {key: hashed, size: large}
+          - {key: adder}
+          - {key: bbold, name: bold}
+          - {key: dash}
+          - {key: dotted}
+          - {key: wavy}
+        default: 0
+      - group_label: Length
+        options:
+          - {key: fixed, name: fixed length, tooltip: snap to fixed bond length}
+          - {key: freestyle, tooltip: drag to any length}
+        default: 0
+      - group_label: Double Bond Style
+        options:
+          - {key: nosimpledouble, name: normal double bonds for wedge/hashed}
+          - {key: simpledouble, name: simple double bonds for wedge/hashed}
+        default: 1
+
+  template:
+    name: template
+    parent: edit_mode
+    icon: template
+    dynamic: true
+    template_source: system
+    submodes:
+      - group_label: Template
+        layout: row
+
+  biotemplate:
+    name: biomolecule templates
+    label: bio
+    parent: edit_mode
+    icon: biotemplate
+    dynamic: true
+    template_source: biomolecule
+    use_categories: true
+    submodes:
+      - group_label: Category
+        layout: row
+      - group_label: Templates
+        layout: grid
+        columns: 4
+
+  usertemplate:
+    name: user templates
+    label: user
+    parent: edit_mode
+    icon: usertemplate
+    dynamic: true
+    template_source: user
+    submodes:
+      - group_label: Template
+        layout: row
+
+  atom:
+    name: atom
+    parent: edit_mode
+    icon: atom
+    show_edit_pool: true
+    submodes: []
+
+  mark:
+    name: mark
+    parent: edit_mode
+    icon: mark
+    submodes:
+      - group_label: Mark Type
+        options:
+          - {key: radical, size: large}
+          - {key: biradical, size: large}
+          - {key: electronpair, name: electron pair, size: large}
+          - {key: dottedelectronpair, name: dotted electron pair}
+          - {key: plusincircle, name: plus, size: large}
+          - {key: minusincircle, name: minus, size: large}
+          - {key: pzorbital, name: pz orbital, size: large}
+        default: 0
+      - group_label: Action
+        options:
+          - {key: add, tooltip: add mark to atom}
+          - {key: remove, tooltip: remove mark from atom}
+        default: 0
+
+  arrow:
+    name: arrow
+    parent: edit_mode
+    icon: arrow
+    submodes:
+      - group_label: Angle Step
+        options:
+          - {key: '30', tooltip: 30 degree snap}
+          - {key: '18', tooltip: 18 degree snap}
+          - {key: '6', tooltip: 6 degree snap}
+          - {key: '1', tooltip: 1 degree snap}
+        default: 0
+      - group_label: Length
+        options:
+          - {key: fixed, name: fixed length}
+          - {key: freestyle}
+        default: 0
+      - group_label: Shape
+        options:
+          - {key: anormal, name: normal, size: large}
+          - {key: spline, size: large}
+        default: 0
+      - group_label: Arrow Type
+        options:
+          - {key: normal, size: large}
+          - {key: electron, name: electron transfer, size: large}
+          - {key: retro, name: retrosynthetic, size: large}
+          - {key: equilibrium, size: large}
+          - {key: equilibrium2, name: equilibrium simple, size: large}
+        default: 0
+
+  plus:
+    name: plus
+    parent: edit_mode
+    icon: rplus
+    submodes: []
+
+  text:
+    name: text
+    parent: edit_mode
+    icon: text
+    show_edit_pool: true
+    submodes: []
+
+  bracket:
+    name: brackets
+    parent: edit_mode
+    icon: bracket
+    submodes:
+      - group_label: Bracket Style
+        options:
+          - {key: rectangularbracket, name: Rectangular, size: large}
+        default: 0
+
+  rotate:
+    name: rotate
+    parent: edit_mode
+    icon: rotate
+    submodes:
+      - group_label: Dimension
+        options:
+          - {key: '2D', icon: '2d', size: large}
+        default: 0
+
+  bondalign:
+    name: transformation mode
+    label: transform
+    parent: edit_mode
+    icon: bondalign
+    submodes:
+      - group_label: Transform
+        options:
+          - {key: tohoriz, name: horizontal align, size: large, tooltip: align bond horizontally}
+          - {key: tovert, name: vertical align, size: large, tooltip: align bond vertically}
+        default: 0
+
+  vector:
+    name: vector graphics
+    label: vector
+    parent: edit_mode
+    icon: vector
+    submodes:
+      - group_label: Shape
+        options:
+          - {key: rectangle, size: large}
+          - {key: oval, size: large}
+          - {key: polyline, size: large}
+        default: 0
+
+  repair:
+    name: repair geometry
+    label: repair
+    parent: edit_mode
+    icon: repair
+    submodes:
+      - group_label: Operation
+        options:
+          - {key: normalize-lengths, name: Normalize Lengths, size: large}
+          - {key: normalize-angles, name: Normalize Angles, size: large}
+          - {key: normalize-rings, name: Normalize Rings, size: large}
+          - {key: straighten, name: Straighten Bonds, size: large}
+          - {key: snap-hex, name: Snap to Hex Grid, size: large}
+          - {key: clean, name: Clean Geometry, size: large}
+        default: 0
+
+  misc:
+    name: miscellaneous
+    label: misc
+    parent: edit_mode
+    icon: misc
+    submodes:
+      - group_label: Tool
+        options:
+          - {key: numbering, name: Numbering, size: large}
+          - {key: wavy, name: Wavy line, size: large}
+        default: 0
+
+# edit pool action buttons shown in the ribbon for all edit_mode-derived modes
+# command: key into editPool.COMMAND_MAP; defaults to key if omitted
+# icon/name/tooltip cascade from key when omitted
+edit_pool_buttons:
+  - group_label: Text Input
+    options:
+      - {key: interpret, tooltip: Interpret text (where applicable)}
+      - {key: asis, name: As is, tooltip: Leave text as is - do not interpret}
+      - {key: subnum, name: Sub numbers, tooltip: Convert numbers to subscript}
+  - group_label: Font Style
+    options:
+      - {key: italic, command: tag_i}
+      - {key: bold, command: tag_b}
+      - {key: subscript, command: tag_sub}
+      - {key: superscript, command: tag_sup}
+  - group_label: Special
+    options:
+      - {key: specialchar, name: Special Character, tooltip: Insert a special character}

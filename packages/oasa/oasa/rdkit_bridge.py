@@ -35,7 +35,7 @@ _RDKIT_TO_OASA_BOND = {v: k for k, v in _OASA_TO_RDKIT_BOND.items()}
 
 
 #============================================
-def oasa_to_rdkit_mol(omol) -> tuple:
+def oasa_to_rdkit_mol(omol: object) -> tuple:
 	"""Convert an OASA molecule to an RDKit RWMol.
 
 	Args:
@@ -55,11 +55,18 @@ def oasa_to_rdkit_mol(omol) -> tuple:
 		ridx = rmol.AddAtom(ratom)
 		oatom_to_ridx[oatom] = ridx
 
-	# add bonds
+	# Canonicalize unordered graph edges by their stable RDKit atom indices.
+	indexed_bonds = []
 	for obond in omol.bonds:
 		oa1, oa2 = obond.vertices
 		ridx1 = oatom_to_ridx[oa1]
 		ridx2 = oatom_to_ridx[oa2]
+		if ridx2 < ridx1:
+			ridx1, ridx2 = ridx2, ridx1
+		indexed_bonds.append((ridx1, ridx2, obond))
+
+	# Add bonds in canonical pair order so RDKit depiction is repeatable.
+	for ridx1, ridx2, obond in sorted(indexed_bonds, key=lambda item: item[:2]):
 		bond_type = _OASA_TO_RDKIT_BOND.get(obond.order, rdkit.Chem.BondType.SINGLE)
 		rmol.AddBond(ridx1, ridx2, bond_type)
 
@@ -67,7 +74,7 @@ def oasa_to_rdkit_mol(omol) -> tuple:
 
 
 #============================================
-def rdkit_to_oasa_mol(rmol) -> tuple:
+def rdkit_to_oasa_mol(rmol: object) -> tuple:
 	"""Convert an RDKit mol to an OASA molecule.
 
 	Args:
@@ -107,7 +114,7 @@ def rdkit_to_oasa_mol(rmol) -> tuple:
 
 
 #============================================
-def calculate_coords_rdkit(omol, bond_length: float = 1.0):
+def calculate_coords_rdkit(omol: object, bond_length: float = 1.0) -> object:
 	"""Generate 2D coordinates for an OASA molecule using RDKit.
 
 	Converts the OASA molecule to RDKit, computes 2D coordinates via

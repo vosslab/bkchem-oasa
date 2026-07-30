@@ -7,6 +7,7 @@ construct the actual native Qt menus.
 
 # Standard Library
 import builtins
+import pathlib
 
 # PIP3 modules
 import yaml
@@ -16,11 +17,66 @@ _ = builtins.__dict__.get('_', lambda m: m)
 
 
 #============================================
+class MenuActionPreflightError(RuntimeError):
+	"""Report required YAML actions missing from a populated registry."""
+
+
+#============================================
+def required_menu_action_ids(yaml_path: str) -> tuple[str, ...]:
+	"""Return sorted required action IDs declared by a menu YAML document.
+
+	Args:
+		yaml_path: Path to the menu YAML document.
+
+	Returns:
+		Sorted unique action IDs whose YAML items are not explicitly optional.
+	"""
+	structure = yaml.safe_load(pathlib.Path(yaml_path).read_text(encoding="utf-8"))
+	required_ids = set()
+
+	def visit(value: object) -> None:
+		if isinstance(value, dict):
+			action_id = value.get("action")
+			if isinstance(action_id, str) and not value.get("optional", False):
+				required_ids.add(action_id)
+			for nested_value in value.values():
+				visit(nested_value)
+		elif isinstance(value, list):
+			for nested_value in value:
+				visit(nested_value)
+
+	visit(structure)
+	return tuple(sorted(required_ids))
+
+
+#============================================
+def preflight_required_menu_actions(registry: object, yaml_path: str) -> None:
+	"""Require every non-optional YAML action before native menus are built.
+
+	Args:
+		registry: Populated action registry.
+		yaml_path: Path to the menu YAML document.
+
+	Raises:
+		MenuActionPreflightError: If one or more required actions are absent.
+	"""
+	missing_ids = tuple(
+		action_id for action_id in required_menu_action_ids(yaml_path)
+		if action_id not in registry
+	)
+	if missing_ids:
+		raise MenuActionPreflightError(
+			"Required menu actions are unregistered: %s"
+			% ", ".join(missing_ids)
+		)
+
+
+#============================================
 class MenuBuilder:
 	"""Builds menus from YAML structure and action registry."""
 
 	#============================================
-	def __init__(self, yaml_path: str, registry: object, adapter: object):
+	def __init__(self, yaml_path: str, registry: object, adapter: object) -> None:
 		"""Initialize the menu builder.
 
 		Args:
@@ -30,8 +86,8 @@ class MenuBuilder:
 		"""
 		self._registry = registry
 		self._adapter = adapter
-		with open(yaml_path) as f:
-			self._structure = yaml.safe_load(f)
+		with open(yaml_path, encoding="utf-8") as file_handle:
+			self._structure = yaml.safe_load(file_handle)
 		self._menu_actions = {}
 		self._cascade_names = set()
 
@@ -49,7 +105,9 @@ class MenuBuilder:
 				self._build_item(item, menu_name, cascades)
 
 	#============================================
-	def _build_item(self, item, menu_name, cascades):
+	def _build_item(
+			self, item: dict, menu_name: str, cascades: dict,
+			) -> None:
 		"""Dispatch a single menu item to the appropriate builder.
 
 		Args:
@@ -65,7 +123,7 @@ class MenuBuilder:
 			self._build_cascade_item(item, menu_name, cascades)
 
 	#============================================
-	def _build_action_item(self, item, menu_name):
+	def _build_action_item(self, item: dict, menu_name: str) -> None:
 		"""Build a single action item and add it to the menu.
 
 		Args:
@@ -74,7 +132,14 @@ class MenuBuilder:
 		"""
 		action_id = item['action']
 		if action_id not in self._registry:
-			return
+			if item.get('optional', False):
+				return
+			message = (
+				f"Menu '{menu_name}' requires unregistered action "
+				f"'{action_id}'. Mark the YAML item optional only when its "
+				"absence is intentional."
+			)
+			raise KeyError(message)
 		action = self._registry.get(action_id)
 		self._adapter.add_command(
 			menu_name, action.label, action.accelerator,
@@ -84,7 +149,9 @@ class MenuBuilder:
 		self._menu_actions[menu_name].append(action)
 
 	#============================================
-	def _build_cascade_item(self, item, menu_name, cascades):
+	def _build_cascade_item(
+			self, item: dict, menu_name: str, cascades: dict,
+			) -> None:
 		"""Build a cascade (submenu) item and add it to the menu.
 
 		Args:
@@ -100,7 +167,7 @@ class MenuBuilder:
 		self._cascade_names.add(cascade_label)
 
 	#============================================
-	def update_menu_states(self, app):
+	def update_menu_states(self, app: object) -> None:
 		"""Update enabled/disabled state of all actions.
 
 		Args:
@@ -118,7 +185,7 @@ class MenuBuilder:
 				self._adapter.set_item_state_by_key(action.id, enabled)
 
 	#============================================
-	def get_plugin_slots(self):
+	def get_plugin_slots(self) -> dict:
 		"""Return a dict mapping slot names to cascade labels.
 
 		Returns:
@@ -134,7 +201,9 @@ class MenuBuilder:
 		return slots
 
 	#============================================
-	def add_to_plugin_slot(self, slot_name, label, help_text, command):
+	def add_to_plugin_slot(
+			self, slot_name: str, label: str, help_text: str, command: object,
+			) -> None:
 		"""Add a command to a named plugin slot cascade.
 
 		Args:

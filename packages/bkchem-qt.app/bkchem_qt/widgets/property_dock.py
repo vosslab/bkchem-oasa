@@ -5,20 +5,11 @@ import PySide6.QtCore
 import PySide6.QtWidgets
 
 # local repo modules
+import bkchem_qt.bond_presentation
 import bkchem_qt.canvas.items.atom_item
 import bkchem_qt.canvas.items.bond_item
-
-
-# bond type codes and their human-readable labels
-_BOND_TYPE_CODES = ["n", "w", "h", "b", "d", "q"]
-_BOND_TYPE_LABELS = [
-	"n (normal)",
-	"w (wedge)",
-	"h (hatch)",
-	"b (bold)",
-	"d (dash)",
-	"q (wavy)",
-]
+import bkchem_qt.models.document
+import bkchem_qt.undo.commands
 
 
 #============================================
@@ -36,7 +27,10 @@ class PropertyDock(PySide6.QtWidgets.QDockWidget):
 	"""
 
 	#============================================
-	def __init__(self, document, parent: PySide6.QtWidgets.QWidget = None):
+	def __init__(
+			self, document: bkchem_qt.models.document.Document,
+			parent: PySide6.QtWidgets.QWidget | None = None,
+			) -> None:
 		"""Initialize the property dock with atom, bond, and info panels.
 
 		Args:
@@ -45,6 +39,8 @@ class PropertyDock(PySide6.QtWidgets.QDockWidget):
 		"""
 		super().__init__("Properties", parent)
 		self._document = document
+		self._atom_properties_capture = None
+		self._bond_properties_capture = None
 		# prevent the dock from being closed by the user
 		self.setFeatures(
 			PySide6.QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetMovable
@@ -63,6 +59,30 @@ class PropertyDock(PySide6.QtWidgets.QDockWidget):
 		# set a reasonable fixed width so the dock does not consume too much space
 		self.setMinimumWidth(200)
 		self.setMaximumWidth(300)
+
+	#============================================
+	def set_document(
+			self, document: bkchem_qt.models.document.Document | None,
+			bond_properties_capture: object | None = None,
+			atom_properties_capture: object | None = None,
+			) -> None:
+		"""Rebind the dock to a replacement Document or detach it.
+
+		Args:
+			document: The Document whose selection and undo stack to use,
+				or None while its owning scene is being disposed.
+			bond_properties_capture: Optional exact-session bond intent capture callback.
+			atom_properties_capture: Optional exact-session atom intent capture callback.
+		"""
+		self._document = document
+		self._bond_properties_capture = bond_properties_capture
+		self._atom_properties_capture = atom_properties_capture
+		self._current_item = None
+		if document is None:
+			self._info_label.setText("No document")
+			self._stack.setCurrentIndex(0)
+			return
+		self.update_from_selection()
 
 	# ------------------------------------------------------------------
 	# Panel construction
@@ -135,8 +155,7 @@ class PropertyDock(PySide6.QtWidgets.QDockWidget):
 		layout.addRow("Order:", self._bond_order_combo)
 		# type combo box
 		self._bond_type_combo = PySide6.QtWidgets.QComboBox()
-		for i, label in enumerate(_BOND_TYPE_LABELS):
-			self._bond_type_combo.addItem(label, _BOND_TYPE_CODES[i])
+		self._set_bond_type_choices()
 		self._bond_type_combo.setToolTip("Bond type")
 		self._bond_type_combo.currentIndexChanged.connect(
 			self._on_bond_type_changed
@@ -158,6 +177,11 @@ class PropertyDock(PySide6.QtWidgets.QDockWidget):
 		properties are loaded into the editing widgets. Otherwise,
 		the info panel is displayed with a document summary.
 		"""
+		if self._document is None:
+			self._current_item = None
+			self._info_label.setText("No document")
+			self._stack.setCurrentIndex(0)
+			return
 		scene = self._document._scene
 		if scene is None:
 			self._show_info_panel()
@@ -204,7 +228,9 @@ class PropertyDock(PySide6.QtWidgets.QDockWidget):
 		self._stack.setCurrentIndex(0)
 
 	#============================================
-	def _show_atom_panel(self, atom_item) -> None:
+	def _show_atom_panel(
+			self, atom_item: bkchem_qt.canvas.items.atom_item.AtomItem,
+			) -> None:
 		"""Switch to the atom panel and populate fields from the AtomItem.
 
 		Args:
@@ -221,7 +247,9 @@ class PropertyDock(PySide6.QtWidgets.QDockWidget):
 		self._stack.setCurrentIndex(1)
 
 	#============================================
-	def _show_bond_panel(self, bond_item) -> None:
+	def _show_bond_panel(
+			self, bond_item: bkchem_qt.canvas.items.bond_item.BondItem,
+			) -> None:
 		"""Switch to the bond panel and populate fields from the BondItem.
 
 		Args:
@@ -231,6 +259,7 @@ class PropertyDock(PySide6.QtWidgets.QDockWidget):
 		model = bond_item.bond_model
 		# set guard flag to suppress change callbacks during population
 		self._updating = True
+		self._set_bond_type_choices(model.type)
 		# find the combo index matching the current bond order
 		order_index = self._bond_order_combo.findData(model.order)
 		if order_index >= 0:
@@ -242,13 +271,24 @@ class PropertyDock(PySide6.QtWidgets.QDockWidget):
 		self._updating = False
 		self._stack.setCurrentIndex(2)
 
+	#============================================
+	def _set_bond_type_choices(self, current_type: str | None = None) -> None:
+		"""Populate generic styles and preserve an existing Haworth display.
+
+		Args:
+			current_type: Existing projected canonical style, if any.
+		"""
+		self._bond_type_combo.clear()
+		for type_char, label in bkchem_qt.bond_presentation.choices_for_display(current_type):
+			self._bond_type_combo.addItem(label, type_char)
+
 	# ------------------------------------------------------------------
 	# Widget change callbacks
 	# ------------------------------------------------------------------
 
 	#============================================
 	def _on_atom_symbol_changed(self) -> None:
-		"""Apply the edited symbol to the selected atom model."""
+		"""Submit the edited symbol through the bound atom patch route."""
 		if self._updating:
 			return
 		if not isinstance(
@@ -259,11 +299,15 @@ class PropertyDock(PySide6.QtWidgets.QDockWidget):
 		new_symbol = self._atom_symbol_edit.text().strip()
 		if not new_symbol:
 			return
-		self._current_item.atom_model.symbol = new_symbol
+		if self._submit_atom_patch((("element", new_symbol),)):
+			return
+		self._push_property_change(
+			self._current_item.atom_model, "symbol", new_symbol, "Change Atom Symbol",
+		)
 
 	#============================================
 	def _on_atom_charge_changed(self, value: int) -> None:
-		"""Apply the edited charge to the selected atom model.
+		"""Submit the edited charge through the bound atom patch route.
 
 		Args:
 			value: New charge value from the spin box.
@@ -275,11 +319,15 @@ class PropertyDock(PySide6.QtWidgets.QDockWidget):
 			bkchem_qt.canvas.items.atom_item.AtomItem,
 		):
 			return
-		self._current_item.atom_model.charge = value
+		if self._submit_atom_patch((("charge", value),)):
+			return
+		self._push_property_change(
+			self._current_item.atom_model, "charge", value, "Change Atom Charge",
+		)
 
 	#============================================
 	def _on_atom_show_changed(self, state: int) -> None:
-		"""Apply the show/hide toggle to the selected atom model.
+		"""Submit the show/hide toggle through the bound atom patch route.
 
 		Args:
 			state: Qt check state integer.
@@ -292,7 +340,50 @@ class PropertyDock(PySide6.QtWidgets.QDockWidget):
 		):
 			return
 		checked = state == PySide6.QtCore.Qt.CheckState.Checked.value
-		self._current_item.atom_model.show = checked
+		if self._submit_atom_patch((("show", checked),)):
+			return
+		self._push_property_change(
+			self._current_item.atom_model, "show", checked, "Change Atom Label",
+		)
+
+	#============================================
+	def _submit_atom_patch(self, changes: tuple[tuple[str, object], ...]) -> bool:
+		"""Submit dock atom intent through the currently bound session callback.
+
+		A synchronized dock always consumes the interaction: the target is either
+		a durable direct atom submitted to OASA or an inert stale projection.  The
+		Qt undo fallback remains solely for an isolated document with no callback.
+		"""
+		if not callable(self._atom_properties_capture):
+			return False
+		if not isinstance(self._current_item, bkchem_qt.canvas.items.atom_item.AtomItem):
+			return True
+		if self._document is None:
+			return True
+		model = self._current_item.atom_model
+		atom_id = getattr(model, "backend_durable_id", None)
+		molecule = next(
+			(molecule for molecule in self._document.molecules if model in molecule.atoms),
+			None,
+		)
+		molecule_id = getattr(molecule, "mol_id", None)
+		if (
+			not isinstance(molecule_id, str) or not molecule_id
+			or not isinstance(atom_id, str) or not atom_id
+		):
+			return True
+		captured = self._atom_properties_capture(molecule_id, atom_id)
+		if (
+			captured is None or type(captured) is not tuple or len(captured) != 2
+			or type(captured[0]) is not int or not callable(captured[1])
+		):
+			self.update_from_selection()
+			return True
+		expected_revision, submit = captured
+		outcome = submit(expected_revision, molecule_id, atom_id, changes)
+		if getattr(outcome, "status", None) != "accepted":
+			self.update_from_selection()
+		return True
 
 	#============================================
 	def _on_bond_order_changed(self, index: int) -> None:
@@ -310,7 +401,11 @@ class PropertyDock(PySide6.QtWidgets.QDockWidget):
 			return
 		order = self._bond_order_combo.itemData(index)
 		if order is not None:
-			self._current_item.bond_model.order = order
+			if self._submit_bond_patch((("order", order),)):
+				return
+			self._push_property_change(
+				self._current_item.bond_model, "order", order, "Change Bond Order",
+			)
 
 	#============================================
 	def _on_bond_type_changed(self, index: int) -> None:
@@ -328,4 +423,59 @@ class PropertyDock(PySide6.QtWidgets.QDockWidget):
 			return
 		bond_type = self._bond_type_combo.itemData(index)
 		if bond_type is not None:
-			self._current_item.bond_model.type = bond_type
+			if self._submit_bond_patch((("type", bond_type),)):
+				return
+			self._push_property_change(
+				self._current_item.bond_model, "type", bond_type, "Change Bond Type",
+			)
+
+	#============================================
+	def _submit_bond_patch(self, changes: tuple[tuple[str, object], ...]) -> bool:
+		"""Submit dock bond intent through the currently bound session callback."""
+		if not callable(self._bond_properties_capture):
+			return False
+		if not isinstance(self._current_item, bkchem_qt.canvas.items.bond_item.BondItem):
+			return True
+		model = self._current_item.bond_model
+		bond_id = getattr(model, "backend_durable_id", None)
+		molecule = next(
+			(molecule for molecule in self._document.molecules if model in molecule.bonds),
+			None,
+		)
+		molecule_id = getattr(molecule, "mol_id", None)
+		if (
+			not isinstance(molecule_id, str) or not molecule_id
+			or not isinstance(bond_id, str) or not bond_id
+		):
+			return True
+		captured = self._bond_properties_capture(molecule_id, bond_id)
+		if (
+			captured is None or type(captured) is not tuple or len(captured) != 2
+			or type(captured[0]) is not int or not callable(captured[1])
+		):
+			self.update_from_selection()
+			return True
+		expected_revision, submit = captured
+		outcome = submit(expected_revision, molecule_id, bond_id, changes)
+		if getattr(outcome, "status", None) != "accepted":
+			self.update_from_selection()
+		return True
+
+	#============================================
+	def _push_property_change(self, model: object, property_name: str, new_value: object,
+						text: str) -> None:
+		"""Push one meaningful model mutation onto the document undo stack.
+
+		Args:
+			model: AtomModel or BondModel receiving the change.
+			property_name: Name of the editable model property.
+			new_value: Requested property value from the dock widget.
+			text: User-facing undo command description.
+		"""
+		old_value = getattr(model, property_name)
+		if new_value == old_value:
+			return
+		command = bkchem_qt.undo.commands.ChangePropertyCommand(
+			model, property_name, old_value, new_value, text,
+		)
+		self._document.undo_stack.push(command)

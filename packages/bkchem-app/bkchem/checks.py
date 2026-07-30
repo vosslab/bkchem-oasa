@@ -30,7 +30,7 @@ _ = builtins.__dict__.get('_', lambda m: m)
 
 
 
-def check_linear_fragments(paper):
+def check_linear_fragments(paper: object) -> None:
 	"""Check the state of linear fragments present on the paper.
 
 	Also reset their appearance."""

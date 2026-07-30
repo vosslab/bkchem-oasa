@@ -49,7 +49,7 @@ class svg_out(object):
   atom_colors = atom_colors.atom_colors_full
 
 
-  def __init__( self, color_atoms=None, color_bonds=None, atom_colors=None):
+  def __init__( self, color_atoms: object=None, color_bonds: object=None, atom_colors: object=None) -> None:
     if color_atoms is not None:
       self.color_atoms = color_atoms
     if color_bonds is not None:
@@ -57,7 +57,7 @@ class svg_out(object):
     if atom_colors is not None:
       self.atom_colors = atom_colors
 
-  def mol_to_svg( self, mol, before=None, after=None):
+  def mol_to_svg( self, mol: object, before: object=None, after: object=None) -> object:
     """before and after should be methods or functions that will take one
     argument - svg_out instance and do whatever it wants with it - usually
     adding something to the resulting DOM tree"""
@@ -138,17 +138,17 @@ class svg_out(object):
     return self.document
 
 
-  def paper_to_canvas_coord( self, x):
+  def paper_to_canvas_coord( self, x: object) -> object:
     return x
 
 
-  def prepare_dumb_transformer( self):
+  def prepare_dumb_transformer( self) -> object:
     tr = transform.Transform()
     tr.set_scaling( self.paper_to_canvas_coord( 1))
     return tr
 
 
-  def _create_parent( self, item, top):
+  def _create_parent( self, item: object, top: object) -> object:
     if self.group_items:
       parent = dom_extensions.elementUnder( top, "g")
       if 'svg_id' in item.properties_:
@@ -158,7 +158,7 @@ class svg_out(object):
     return parent
 
 
-  def _draw_edge( self, e):
+  def _draw_edge( self, e: object) -> object:
     coords = self._bond_coords_for_edge( e)
     if not coords:
       return
@@ -168,7 +168,7 @@ class svg_out(object):
     render_ops.ops_to_svg( parent, ops)
 
 
-  def _bond_coords_for_edge( self, edge):
+  def _bond_coords_for_edge( self, edge: object) -> object:
     coords = self._bond_coords.get( edge)
     if coords:
       return coords
@@ -180,15 +180,15 @@ class svg_out(object):
     return coords
 
 
-  def _point_for_atom( self, atom):
+  def _point_for_atom( self, atom: object) -> object:
     return self.transformer.transform_xy( atom.x, atom.y)
 
 
-  def _vertex_is_shown( self, v):
+  def _vertex_is_shown( self, v: object) -> object:
     return v.symbol != "C" or v.charge != 0 or v.multiplicity != 1
 
 
-  def _draw_vertex( self, v):
+  def _draw_vertex( self, v: object) -> object:
     parent = self._create_parent( v, self.top)
 
     ops = build_vertex_ops(
@@ -204,7 +204,7 @@ class svg_out(object):
       render_ops.ops_to_svg( parent, ops)
 
 
-  def _draw_text( self, parent, xy, text, font_name="Arial", font_size=16, color="#000"):
+  def _draw_text( self, parent: object, xy: object, text: object, font_name: object="Arial", font_size: object=16, color: object="#000") -> object:
     x, y = xy
     dom_extensions.textOnlyElementUnder( parent, "text", text,
                                          (( "x", str( x)),
@@ -215,7 +215,7 @@ class svg_out(object):
                                           ( 'stroke', 'none')))
 
 
-  def _draw_rectangle( self, parent, coords, fill_color="#fff", stroke_color="#fff"):
+  def _draw_rectangle( self, parent: object, coords: object, fill_color: object="#fff", stroke_color: object="#fff") -> object:
     x, y, x2, y2 = coords
     dom_extensions.elementUnder( parent, 'rect',
                                  (( 'x', str( x)),
@@ -225,7 +225,7 @@ class svg_out(object):
                                   ( 'fill', fill_color),
                                   ( 'stroke', stroke_color)))
 
-  def _draw_circle( self, parent, xy, radius=5, fill_color="#fff", stroke_color="#fff", id="", opacity=0):
+  def _draw_circle( self, parent: object, xy: object, radius: object=5, fill_color: object="#fff", stroke_color: object="#fff", id: object="", opacity: object=0) -> object:
     x, y = xy
     el = dom_extensions.elementUnder( parent, 'ellipse',
                                       (( 'cx', str( x)),
@@ -242,7 +242,7 @@ class svg_out(object):
       el.setAttribute( "id", id)
 
 
-def mol_to_svg( mol, filename):
+def mol_to_svg( mol: object, filename: object) -> object:
   c = svg_out()
   tree = c.mol_to_svg( mol)
   svg_text = pretty_print_svg( tree.toxml('utf-8'))
@@ -250,7 +250,7 @@ def mol_to_svg( mol, filename):
     f.write(svg_text)
 
 
-def pretty_print_svg( svg_text):
+def pretty_print_svg( svg_text: object) -> object:
   if isinstance( svg_text, bytes):
     svg_text = svg_text.decode("utf-8")
   parsed = safe_minidom.parseString( svg_text)

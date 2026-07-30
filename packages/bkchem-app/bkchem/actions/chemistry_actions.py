@@ -1,6 +1,7 @@
 """Chemistry menu action registrations for BKChem."""
 
 # local repo modules
+from bkchem.actions.action_registry import ActionRegistry
 from bkchem.actions.action_registry import MenuAction
 
 # these imports are needed for handler lambdas;
@@ -14,7 +15,7 @@ except ImportError:
 
 
 #============================================
-def register_chemistry_actions(registry, app) -> None:
+def register_chemistry_actions(registry: ActionRegistry, app: object) -> None:
 	"""Register all Chemistry menu actions.
 
 	Args:

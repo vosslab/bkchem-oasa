@@ -40,7 +40,7 @@ class ZoomControls(PySide6.QtWidgets.QWidget):
 	zoom_slider_changed = PySide6.QtCore.Signal(int)
 
 	#============================================
-	def __init__(self, parent: PySide6.QtWidgets.QWidget = None):
+	def __init__(self, parent: PySide6.QtWidgets.QWidget | None = None) -> None:
 		"""Create the zoom controls layout with buttons, label, and slider.
 
 		Args:

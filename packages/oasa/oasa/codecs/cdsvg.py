@@ -6,7 +6,6 @@
 
 # Standard Library
 import io
-import xml.dom.minidom as dom
 
 # local repo modules
 from oasa import cdml
@@ -30,7 +29,7 @@ _CDML_WRITER_KWARGS = frozenset(
 
 
 #============================================
-def _first_element(node):
+def _first_element(node: object) -> object | None:
 	for child in node.childNodes:
 		if child.nodeType == child.ELEMENT_NODE:
 			return child
@@ -38,7 +37,7 @@ def _first_element(node):
 
 
 #============================================
-def _assert_safe_svg_export(svg_text):
+def _assert_safe_svg_export(svg_text: str) -> None:
 	lower_text = svg_text.lower()
 	for snippet in _FORBIDDEN_EXPORT_SNIPPETS:
 		if snippet in lower_text:
@@ -72,7 +71,7 @@ def _assert_safe_svg_export(svg_text):
 
 
 #============================================
-def _extract_cdml_element(svg_text):
+def _extract_cdml_element(svg_text: object) -> object | None:
 	doc = safe_xml.parse_dom_from_string(svg_text)
 	nodes = doc.getElementsByTagNameNS(_CDML_NAMESPACE, "cdml")
 	if nodes:
@@ -85,7 +84,7 @@ def _extract_cdml_element(svg_text):
 
 
 #============================================
-def _extract_cdml_writer_kwargs(kwargs):
+def _extract_cdml_writer_kwargs(kwargs: object) -> dict:
 	cdml_kwargs = {}
 	for key in _CDML_WRITER_KWARGS:
 		if key in kwargs:
@@ -94,7 +93,7 @@ def _extract_cdml_writer_kwargs(kwargs):
 
 
 #============================================
-def _build_cdsvg_text(mol, **kwargs):
+def _build_cdsvg_text(mol: object, **kwargs) -> str:
 	svg_buffer = io.StringIO()
 	render_out.render_to_svg(mol, svg_buffer, **kwargs)
 	svg_doc = safe_xml.parse_dom_from_string(svg_buffer.getvalue())
@@ -116,19 +115,17 @@ def _build_cdsvg_text(mol, **kwargs):
 
 
 #============================================
-def text_to_mol(text, **kwargs):
-	"""Parse CD-SVG by extracting only the embedded CDML payload."""
+def text_to_mol(text: object, **kwargs) -> object:
+	"""Extract embedded CDML chemistry through OASA's molecule-import policy."""
 	del kwargs
 	cdml_element = _extract_cdml_element(text)
 	if cdml_element is None:
 		raise ValueError("CD-SVG import failed: no embedded CDML block found.")
-	doc = dom.Document()
-	doc.appendChild(doc.importNode(cdml_element, True))
-	return cdml.text_to_mol(doc.toxml("utf-8"))
+	return cdml.text_to_mol(cdml_element.toxml("utf-8"))
 
 
 #============================================
-def file_to_mol(file_obj, **kwargs):
+def file_to_mol(file_obj: object, **kwargs) -> object:
 	text = file_obj.read()
 	if isinstance(text, bytes):
 		text = text.decode("utf-8")
@@ -136,12 +133,12 @@ def file_to_mol(file_obj, **kwargs):
 
 
 #============================================
-def mol_to_text(mol, **kwargs):
+def mol_to_text(mol: object, **kwargs) -> str:
 	return _build_cdsvg_text(mol, **kwargs)
 
 
 #============================================
-def mol_to_file(mol, file_obj, **kwargs):
+def mol_to_file(mol: object, file_obj: object, **kwargs) -> None:
 	text = _build_cdsvg_text(mol, **kwargs)
 	if isinstance(file_obj, io.TextIOBase):
 		file_obj.write(text)

@@ -37,7 +37,7 @@ _ = builtins.__dict__.get( '_', lambda m: m)
 ## -------------------- MARK MODE --------------------
 class mark_mode( edit_mode):
 
-	def __init__( self):
+	def __init__( self) -> None:
 		edit_mode.__init__( self)
 		# submodes, name loaded from YAML
 
@@ -49,7 +49,7 @@ class mark_mode( edit_mode):
 		self.rectangle_selection = False
 
 
-	def mouse_click( self, event):
+	def mouse_click( self, event: object) -> None:
 		mark_name = self.get_submode( 0)
 		recode = {'dottedelectronpair':'dotted_electronpair',
 					'plusincircle'      :'plus',
@@ -94,7 +94,7 @@ class mark_mode( edit_mode):
 		Store.app.paper.add_bindings()
 
 
-	def mouse_down3( self, event, modifiers = []):
+	def mouse_down3( self, event: object, modifiers: object = []) -> None:
 		if self.focused and isinstance( self.focused, marks.mark):
 			dialog = context_menu( [self.focused])
 			dialog.post( event.x_root, event.y_root)
@@ -102,7 +102,7 @@ class mark_mode( edit_mode):
 				Store.app.paper.start_new_undo_record()
 
 
-	def mouse_drag( self, event):
+	def mouse_drag( self, event: object) -> None:
 		# this is here because the pz_orbital is rotated instead of moved when dragging,
 		# therefore we need to use the move_to to position the mark
 		# "pivot point" under the cursor when drags begins
@@ -111,7 +111,7 @@ class mark_mode( edit_mode):
 		edit_mode.mouse_drag( self, event)
 
 
-	def _move_mark_for_selected( self, dx, dy):
+	def _move_mark_for_selected( self, dx: object, dy: object) -> None:
 		to_move = [a for a in Store.app.paper.selected if bkchem.chem_compat.is_chemistry_vertex( a)]
 
 		for a in to_move:
@@ -123,13 +123,13 @@ class mark_mode( edit_mode):
 		Store.app.paper.start_new_undo_record( name="arrow-key-move")
 
 
-	def startup( self):
+	def startup( self) -> None:
 		self._register_all_marks( Store.app.paper)
 		Store.app.paper.remove_bindings()
 		Store.app.paper.add_bindings( active_names=("mark","atom"))
 
 
-	def cleanup( self, paper=None):
+	def cleanup( self, paper: object = None) -> None:
 		edit_mode.cleanup( self, paper=paper)
 		pap = paper or Store.app.paper
 		self._unregister_all_marks( pap)
@@ -137,15 +137,15 @@ class mark_mode( edit_mode):
 		pap.add_bindings()
 
 
-	def _register_all_marks( self, paper):
+	def _register_all_marks( self, paper: object) -> None:
 		[i.register() for i in self._all_marks( paper)]
 
 
-	def _unregister_all_marks( self, paper):
+	def _unregister_all_marks( self, paper: object) -> None:
 		[i.unregister() for i in self._all_marks( paper)]
 
 
-	def _all_marks( self, paper):
+	def _all_marks( self, paper: object) -> object:
 		for m in paper.molecules:
 			for a in m.atoms:
 				if hasattr( a, 'marks'):
@@ -153,6 +153,6 @@ class mark_mode( edit_mode):
 						yield mark
 
 
-	def on_paper_switch( self, old, new):
+	def on_paper_switch( self, old: object, new: object) -> None:
 		self.cleanup( old)
 		self.startup()

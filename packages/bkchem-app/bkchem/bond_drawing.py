@@ -11,7 +11,7 @@ from bkchem import bkchem_utils
 class BondDrawingMixin:
   """Shared drawing helpers extracted from bond.py."""
 
-  def _where_to_draw_from_and_to(self):
+  def _where_to_draw_from_and_to(self) -> object:
     x1, y1 = self.atom1.get_xy_on_paper()
     x2, y2 = self.atom2.get_xy_on_paper()
     bbox1 = list(bkchem_utils.normalize_coords(self.atom1.bbox(substract_font_descent=True)))
@@ -38,19 +38,19 @@ class BondDrawingMixin:
       return None
     return (x1, y1, x2, y2)
 
-  def _create_line_with_transform(self, coords, **kw):
+  def _create_line_with_transform(self, coords: object, **kw: object) -> object:
     """Pass through to paper.create_line with optional 3D transform."""
     if self._transform:
       coords = self._transform.transform_xy_flat_list(coords)
     return self.paper.create_line(coords, **kw)
 
-  def _create_oval_with_transform(self, coords, **kw):
+  def _create_oval_with_transform(self, coords: object, **kw: object) -> object:
     """Pass through to paper.create_oval with optional 3D transform."""
     if self._transform:
       coords = self._transform.transform_xy_flat_list(coords)
     return self.paper.create_oval(coords, **kw)
 
-  def _create_polygon_with_transform(self, coords, **kw):
+  def _create_polygon_with_transform(self, coords: object, **kw: object) -> object:
     """Pass through to paper.create_polygon with optional 3D transform."""
     if self._transform:
       coords = self._transform.transform_xy_flat_list(coords)

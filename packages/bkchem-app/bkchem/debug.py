@@ -25,7 +25,7 @@ from bkchem import bkchem_config
 
 
 
-def log( *args, **kw):
+def log(*args: object, **kw: object) -> None:
   """it takes an optional keyword arguments 'output' (output file-like)
   and 'levels' (stack levels to report)"""
   if 'output' in kw:

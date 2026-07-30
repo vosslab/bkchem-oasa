@@ -112,7 +112,7 @@ def parse_args() -> argparse.Namespace:
 	return args
 
 #============================================
-def main():
+def main() -> None:
 	args = parse_args()
 	smiles = sequence_to_smiles(args.sequence)
 	print(smiles)

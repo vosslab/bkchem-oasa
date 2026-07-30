@@ -3,10 +3,11 @@
 # local repo modules
 import oasa
 import oasa.cdml
+import oasa.cdml_document
 
 
 #============================================
-def _make_cdml_text(bond_type):
+def _make_cdml_text(bond_type: object) -> str:
 	return (
 		"<?xml version='1.0' encoding='utf-8'?>\n"
 		"<cdml version=\"26.02\" xmlns=\"http://www.freesoftware.fsf.org/bkchem/cdml\">\n"
@@ -24,10 +25,10 @@ def _make_cdml_text(bond_type):
 		"    </standard>\n"
 		"  <molecule id=\"molecule1\" name=\"phase1\">\n"
 		"    <atom id=\"atom_1\" name=\"C\">\n"
-		"      <point x=\"1.000cm\" y=\"1.000cm\" />\n"
+		"      <point x=\"2.000cm\" y=\"1.000cm\" />\n"
 		"      </atom>\n"
 		"    <atom id=\"atom_2\" name=\"C\">\n"
-		"      <point x=\"2.000cm\" y=\"1.000cm\" />\n"
+		"      <point x=\"1.000cm\" y=\"1.000cm\" />\n"
 		"      </atom>\n"
 		"    <bond double_ratio=\"0.75\" end=\"atom_2\" line_width=\"1.0\" "
 		"start=\"atom_1\" type=\"%s\" />\n"
@@ -37,7 +38,7 @@ def _make_cdml_text(bond_type):
 
 
 #============================================
-def test_cdml_legacy_bond_type_normalization():
+def test_cdml_legacy_bond_type_normalization() -> None:
 	text = _make_cdml_text("l1")
 	mol = oasa.cdml.text_to_mol(text)
 	assert mol is not None
@@ -48,20 +49,32 @@ def test_cdml_legacy_bond_type_normalization():
 
 
 #============================================
-def test_cdml_canonicalizes_wedge_vertices():
+def test_cdml_preserves_authored_wedge_vertices() -> None:
+	"""CDML keeps an authored wedge's ordered narrow-to-wide endpoints."""
 	text = _make_cdml_text("w1")
+	oasa.cdml_document.CDMLDocument.parse(text)
 	mol = oasa.cdml.text_to_mol(text)
 	assert mol is not None
 	bond = next(iter(mol.edges))
 	v1, v2 = bond.vertices
-	assert v2.x >= v1.x
+	expected = (
+		oasa.cdml.cm_to_float_coord("2.000cm"),
+		oasa.cdml.cm_to_float_coord("1.000cm"),
+	)
+	assert (v1.x, v2.x) == expected
 
 
 #============================================
-def test_cdml_canonicalizes_hashed_vertices():
+def test_cdml_preserves_authored_hashed_vertices() -> None:
+	"""CDML keeps an authored hashed wedge's ordered narrow-to-wide endpoints."""
 	text = _make_cdml_text("h1")
+	oasa.cdml_document.CDMLDocument.parse(text)
 	mol = oasa.cdml.text_to_mol(text)
 	assert mol is not None
 	bond = next(iter(mol.edges))
 	v1, v2 = bond.vertices
-	assert v2.x >= v1.x
+	expected = (
+		oasa.cdml.cm_to_float_coord("2.000cm"),
+		oasa.cdml.cm_to_float_coord("1.000cm"),
+	)
+	assert (v1.x, v2.x) == expected

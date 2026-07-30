@@ -22,8 +22,8 @@ class ThemeChooserDialog(PySide6.QtWidgets.QDialog):
 	#============================================
 	def __init__(
 		self, current_theme: str,
-		parent: PySide6.QtWidgets.QWidget = None,
-	):
+		parent: PySide6.QtWidgets.QWidget | None = None,
+	) -> None:
 		"""Initialize the theme chooser dialog.
 
 		Args:
@@ -72,7 +72,7 @@ class ThemeChooserDialog(PySide6.QtWidgets.QDialog):
 		layout.addWidget(button_box)
 
 	#============================================
-	def selected_theme(self) -> str:
+	def selected_theme(self) -> str | None:
 		"""Return the name of the selected theme.
 
 		Returns:
@@ -86,9 +86,9 @@ class ThemeChooserDialog(PySide6.QtWidgets.QDialog):
 	#============================================
 	@staticmethod
 	def choose_theme(
-		parent: PySide6.QtWidgets.QWidget,
+		parent: PySide6.QtWidgets.QWidget | None,
 		current_theme: str,
-	) -> str:
+	) -> str | None:
 		"""Show the theme chooser and return the selected theme name.
 
 		Args:

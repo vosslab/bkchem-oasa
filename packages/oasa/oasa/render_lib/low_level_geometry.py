@@ -29,7 +29,7 @@ from oasa.render_lib.data_types import _coerce_attach_target
 
 
 #============================================
-def _closest_point_on_segment(point, p1, p2):
+def _closest_point_on_segment(point: object, p1: object, p2: object) -> object:
 	"""Return closest clamped point on one line segment."""
 	px, py = point
 	x1, y1 = p1
@@ -45,7 +45,7 @@ def _closest_point_on_segment(point, p1, p2):
 
 
 #============================================
-def _line_intersection(p1, p2, p3, p4):
+def _line_intersection(p1: object, p2: object, p3: object, p4: object) -> object:
 	"""Return intersection point of two infinite lines, or None when parallel."""
 	x1, y1 = p1
 	x2, y2 = p2
@@ -62,7 +62,7 @@ def _line_intersection(p1, p2, p3, p4):
 
 
 #============================================
-def _point_to_segment_distance_sq(point, seg_start, seg_end):
+def _point_to_segment_distance_sq(point: object, seg_start: object, seg_end: object) -> object:
 	"""Return squared distance from one point to one line segment."""
 	px, py = point
 	x1, y1 = seg_start
@@ -80,7 +80,7 @@ def _point_to_segment_distance_sq(point, seg_start, seg_end):
 
 
 #============================================
-def _orientation(p1, p2, p3):
+def _orientation(p1: object, p2: object, p3: object) -> object:
 	"""Return orientation sign for ordered triplet of points."""
 	value = ((p2[1] - p1[1]) * (p3[0] - p2[0])) - ((p2[0] - p1[0]) * (p3[1] - p2[1]))
 	if abs(value) <= 1e-12:
@@ -89,7 +89,7 @@ def _orientation(p1, p2, p3):
 
 
 #============================================
-def _on_segment(p1, p2, q):
+def _on_segment(p1: object, p2: object, q: object) -> object:
 	"""Return True when q lies on segment p1-p2."""
 	return (
 		min(p1[0], p2[0]) - 1e-12 <= q[0] <= max(p1[0], p2[0]) + 1e-12
@@ -98,7 +98,7 @@ def _on_segment(p1, p2, q):
 
 
 #============================================
-def _segments_intersect(p1, p2, q1, q2):
+def _segments_intersect(p1: object, p2: object, q1: object, q2: object) -> object:
 	"""Return True when two finite line segments intersect."""
 	o1 = _orientation(p1, p2, q1)
 	o2 = _orientation(p1, p2, q2)
@@ -118,7 +118,7 @@ def _segments_intersect(p1, p2, q1, q2):
 
 
 #============================================
-def _distance_sq_segment_to_segment(p1, p2, q1, q2):
+def _distance_sq_segment_to_segment(p1: object, p2: object, q1: object, q2: object) -> object:
 	"""Return squared minimum distance between two finite line segments."""
 	if _segments_intersect(p1, p2, q1, q2):
 		return 0.0
@@ -131,7 +131,7 @@ def _distance_sq_segment_to_segment(p1, p2, q1, q2):
 
 
 #============================================
-def _segment_distance_to_box_sq(seg_start, seg_end, box):
+def _segment_distance_to_box_sq(seg_start: object, seg_end: object, box: object) -> object:
 	"""Return squared minimum distance from one segment to one axis-aligned box."""
 	x1, y1, x2, y2 = misc.normalize_coords(box)
 	edges = (
@@ -155,7 +155,7 @@ def _segment_distance_to_box_sq(seg_start, seg_end, box):
 
 
 #============================================
-def _capsule_intersects_target(seg_start, seg_end, half_width, target, epsilon):
+def _capsule_intersects_target(seg_start: object, seg_end: object, half_width: object, target: object, epsilon: object) -> object:
 	"""Return True when one stroked segment (capsule) penetrates target interior."""
 	resolved = _coerce_attach_target(target)
 	if resolved.kind == "box":
@@ -183,14 +183,14 @@ def _capsule_intersects_target(seg_start, seg_end, half_width, target, epsilon):
 
 
 #============================================
-def _point_in_attach_target(point, target, epsilon=0.0):
+def _point_in_attach_target(point: object, target: object, epsilon: object = 0.0) -> object:
 	"""Return True when point is in strict interior of one target primitive."""
 	resolved = _coerce_attach_target(target)
 	return resolved.contains(point, epsilon=epsilon)
 
 
 #============================================
-def _point_in_attach_target_closed(point, target, epsilon=0.0):
+def _point_in_attach_target_closed(point: object, target: object, epsilon: object = 0.0) -> object:
 	"""Return True when point is inside one target primitive (closed boundary)."""
 	resolved = _coerce_attach_target(target)
 	if resolved.kind == "box":
@@ -211,7 +211,7 @@ def _point_in_attach_target_closed(point, target, epsilon=0.0):
 
 
 #============================================
-def _line_circle_intersection(start, end, center, radius):
+def _line_circle_intersection(start: object, end: object, center: object, radius: object) -> object:
 	"""Return boundary intersection from segment start->end with one circle."""
 	sx, sy = start
 	ex, ey = end
@@ -240,7 +240,7 @@ def _line_circle_intersection(start, end, center, radius):
 
 
 #============================================
-def _ray_circle_boundary_intersection(start, center, radius, direction):
+def _ray_circle_boundary_intersection(start: object, center: object, radius: object, direction: object) -> object:
 	"""Return first forward ray intersection with one circle boundary."""
 	far_scale = max(4096.0, float(radius) * 256.0)
 	far_point = (
@@ -251,7 +251,7 @@ def _ray_circle_boundary_intersection(start, center, radius, direction):
 
 
 #============================================
-def _circle_boundary_toward_target(start, center, radius, target=None):
+def _circle_boundary_toward_target(start: object, center: object, radius: object, target: object = None) -> object:
 	"""Return one circle boundary point from start toward target/center."""
 	start_x, start_y = start
 	center_x, center_y = center
@@ -271,7 +271,7 @@ def _circle_boundary_toward_target(start, center, radius, target=None):
 
 
 #============================================
-def _vertical_circle_boundary(start, center, radius, hint=None):
+def _vertical_circle_boundary(start: object, center: object, radius: object, hint: object = None) -> object:
 	"""Return circle boundary point on the vertical line through start.x."""
 	start_x, start_y = start
 	center_x, center_y = center
@@ -293,7 +293,7 @@ def _vertical_circle_boundary(start, center, radius, hint=None):
 
 
 #============================================
-def _clip_line_to_box(bond_start, bond_end, bbox):
+def _clip_line_to_box(bond_start: object, bond_end: object, bbox: object) -> object:
 	"""Clip bond_end to bbox edge when bond_end lies inside bbox."""
 	x1, y1, x2, y2 = misc.normalize_coords(bbox)
 	end_x, end_y = bond_end
@@ -310,21 +310,21 @@ def _clip_line_to_box(bond_start, bond_end, bbox):
 
 
 #============================================
-def _box_center(bbox):
+def _box_center(bbox: object) -> object:
 	"""Return center point of an axis-aligned bbox."""
 	x1, y1, x2, y2 = misc.normalize_coords(bbox)
 	return ((x1 + x2) / 2.0, (y1 + y2) / 2.0)
 
 
 #============================================
-def _expanded_box(bbox, margin):
+def _expanded_box(bbox: object, margin: object) -> object:
 	"""Return one bbox expanded by margin in all directions."""
 	x1, y1, x2, y2 = misc.normalize_coords(bbox)
 	return (x1 - margin, y1 - margin, x2 + margin, y2 + margin)
 
 
 #============================================
-def _resolve_direction_mode(direction_policy, dx, dy):
+def _resolve_direction_mode(direction_policy: object, dx: object, dy: object) -> object:
 	"""Return directional mode: side or vertical."""
 	if direction_policy == "vertical_preferred":
 		return "vertical"
@@ -334,7 +334,7 @@ def _resolve_direction_mode(direction_policy, dx, dy):
 
 
 #============================================
-def _lattice_step_for_direction_policy(direction_policy):
+def _lattice_step_for_direction_policy(direction_policy: object) -> object:
 	"""Return lattice snap step in degrees for one direction policy, if any."""
 	if direction_policy == "auto":
 		return 30.0
@@ -342,7 +342,7 @@ def _lattice_step_for_direction_policy(direction_policy):
 
 
 #============================================
-def _snapped_direction_unit(dx, dy, step_degrees):
+def _snapped_direction_unit(dx: object, dy: object, step_degrees: object) -> object:
 	"""Return unit direction snapped to nearest lattice angle step."""
 	if abs(dx) <= 1e-12 and abs(dy) <= 1e-12:
 		return None
@@ -353,7 +353,7 @@ def _snapped_direction_unit(dx, dy, step_degrees):
 
 
 #============================================
-def _ray_box_boundary_intersection(start, direction, box):
+def _ray_box_boundary_intersection(start: object, direction: object, box: object) -> object:
 	"""Return first forward ray intersection with one axis-aligned box boundary."""
 	x1, y1, x2, y2 = misc.normalize_coords(box)
 	start_x, start_y = start
@@ -384,10 +384,10 @@ def _ray_box_boundary_intersection(start, direction, box):
 
 #============================================
 def directional_attach_edge_intersection(
-		bond_start,
-		attach_bbox,
-		attach_target,
-		direction_policy="auto"):
+		bond_start: object,
+		attach_bbox: object,
+		attach_target: object,
+		direction_policy: object = "auto") -> object:
 	"""Return directional token-edge endpoint from bond_start toward attach_target.
 
 	Horizontal-dominant approaches terminate on left/right token edges, while

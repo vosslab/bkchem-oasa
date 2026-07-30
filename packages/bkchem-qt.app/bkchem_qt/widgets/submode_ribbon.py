@@ -6,9 +6,6 @@ submode groups (row buttons, grid buttons, or a mix).  This mirrors the
 Tk submode rendering in main_lib/main_modes.py.
 """
 
-# Standard Library
-import pathlib
-
 # PIP3 modules
 import yaml
 import PySide6.QtCore
@@ -16,13 +13,11 @@ import PySide6.QtWidgets
 
 # local repo modules
 import bkchem_qt.widgets.icon_loader
+import bkchem_qt.resource_paths
 
 
-# path to modes.yaml for grid column lookup
-_MODES_YAML_PATH = (
-	pathlib.Path(__file__).resolve().parent.parent.parent
-	/ "bkchem_data" / "modes.yaml"
-)
+# Package-owned modes.yaml supplies grid layout metadata.
+_MODES_YAML_PATH = bkchem_qt.resource_paths.get_resource_path("modes.yaml")
 _GRID_RESIZE_REBUILD_THRESHOLD = 24
 _GRID_FALLBACK_MIN_WIDTH = 120
 _GRID_BUTTON_PADDING = 26
@@ -44,7 +39,7 @@ class SubModeRibbon(PySide6.QtWidgets.QWidget):
 	submode_selected = PySide6.QtCore.Signal(str)
 
 	#============================================
-	def __init__(self, parent=None):
+	def __init__(self, parent: PySide6.QtWidgets.QWidget | None = None) -> None:
 		"""Initialize the submode ribbon with an empty layout.
 
 		Args:
@@ -90,7 +85,7 @@ class SubModeRibbon(PySide6.QtWidgets.QWidget):
 		self._rebuild_from_mode(mode)
 
 	#============================================
-	def _rebuild_from_mode(self, mode) -> None:
+	def _rebuild_from_mode(self, mode: object) -> None:
 		"""Build submode buttons from a mode's submode attributes.
 
 		Args:
@@ -156,7 +151,7 @@ class SubModeRibbon(PySide6.QtWidgets.QWidget):
 		self._last_grid_reflow_width = self.width()
 
 	#============================================
-	def _build_row_group(self, mode, group_index: int) -> PySide6.QtWidgets.QWidget:
+	def _build_row_group(self, mode: object, group_index: int) -> PySide6.QtWidgets.QWidget:
 		"""Build a horizontal row of submode buttons for a group.
 
 		Args:
@@ -224,7 +219,7 @@ class SubModeRibbon(PySide6.QtWidgets.QWidget):
 		return container
 
 	#============================================
-	def _build_grid_group(self, mode, group_index: int) -> PySide6.QtWidgets.QWidget:
+	def _build_grid_group(self, mode: object, group_index: int) -> PySide6.QtWidgets.QWidget:
 		"""Build a grid of submode buttons for a group.
 
 		Used for template grids with short labels arranged in columns.
@@ -360,7 +355,7 @@ class SubModeRibbon(PySide6.QtWidgets.QWidget):
 		self._extra_widgets.clear()
 
 	#============================================
-	def _get_grid_columns(self, mode, group_index: int) -> int:
+	def _get_grid_columns(self, mode: object, group_index: int) -> int:
 		"""Look up the grid column count from YAML config.
 
 		Args:
@@ -396,7 +391,7 @@ class SubModeRibbon(PySide6.QtWidgets.QWidget):
 	#============================================
 	def _get_adaptive_grid_columns(
 		self,
-		mode,
+		mode: object,
 		group_index: int,
 		keys: list,
 		base_columns: int,
@@ -409,7 +404,7 @@ class SubModeRibbon(PySide6.QtWidgets.QWidget):
 		return max(base, min(fit_columns, len(keys)))
 
 	#============================================
-	def _resolve_fit_columns(self, mode, group_index: int, keys: list) -> int:
+	def _resolve_fit_columns(self, mode: object, group_index: int, keys: list) -> int:
 		"""Estimate the number of columns that fit in available width."""
 		button_width = self._estimate_grid_button_width(mode, group_index, keys)
 		if button_width <= 0:
@@ -418,7 +413,7 @@ class SubModeRibbon(PySide6.QtWidgets.QWidget):
 		return max(1, int((available + 1) // (button_width + 1)))
 
 	#============================================
-	def _estimate_grid_button_width(self, mode, group_index: int, keys: list) -> int:
+	def _estimate_grid_button_width(self, mode: object, group_index: int, keys: list) -> int:
 		"""Estimate width of the widest button in the grid group."""
 		names = mode.submodes_names[group_index]
 		font_metrics = self.fontMetrics()
@@ -432,7 +427,7 @@ class SubModeRibbon(PySide6.QtWidgets.QWidget):
 		return max(48, max_text_width + _GRID_BUTTON_PADDING)
 
 	#============================================
-	def _resolve_grid_available_width(self, mode, group_index: int) -> int:
+	def _resolve_grid_available_width(self, mode: object, group_index: int) -> int:
 		"""Estimate width available to the target grid group."""
 		available = self.width() - 12
 		if available <= 0:
@@ -454,7 +449,7 @@ class SubModeRibbon(PySide6.QtWidgets.QWidget):
 		return max(_GRID_FALLBACK_MIN_WIDTH, available)
 
 	#============================================
-	def resizeEvent(self, event) -> None:
+	def resizeEvent(self, event: object) -> None:
 		"""Rebuild grid groups when ribbon width changes significantly."""
 		super().resizeEvent(event)
 		if self._current_mode is None:

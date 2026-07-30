@@ -10,7 +10,7 @@ from bkchem.singleton_store import Store, Screen
 class BondCDMLMixin:
   """CDML read/write helpers extracted from bond.py."""
 
-  def read_package(self, package):
+  def read_package(self, package: object) -> None:
     """Read a dom element package and set internal state according to it."""
     b = ["no", "yes"]
     type = package.getAttribute("type")
@@ -62,14 +62,14 @@ class BondCDMLMixin:
     )
     oasa.bond_semantics.canonicalize_bond_vertices(self)
 
-  def post_read_analysis(self):
+  def post_read_analysis(self) -> None:
     """Run post-load analysis for double bond positioning."""
     if self.order == 2:
       sign, center = self._compute_sign_and_center()
       if self.bond_width and self.bond_width * sign < 0:
         self.auto_bond_sign = -1
 
-  def get_package(self, doc):
+  def get_package(self, doc: object) -> object:
     """Return a DOM element describing the object in CDML."""
     b = ["no", "yes"]
     bnd = doc.createElement("bond")

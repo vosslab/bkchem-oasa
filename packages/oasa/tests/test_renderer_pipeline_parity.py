@@ -14,6 +14,7 @@ import oasa
 import oasa.atom_lib
 import oasa.bond_lib
 import oasa.molecule_lib
+import oasa.smiles_lib
 from oasa.haworth import layout as haworth_layout
 from oasa.render_lib.molecule_ops import molecule_to_ops
 from oasa import render_ops
@@ -21,7 +22,7 @@ from oasa import render_out
 
 
 #============================================
-def _mol_from_smiles(smiles_text):
+def _mol_from_smiles(smiles_text: object) -> None:
 	mol = oasa.smiles_lib.text_to_mol(smiles_text)
 	assert mol is not None, f"Could not parse SMILES: {smiles_text}"
 	oasa.coords_generator.calculate_coords(mol, bond_length=1.0, force=1)
@@ -29,14 +30,14 @@ def _mol_from_smiles(smiles_text):
 
 
 #============================================
-def _single_bond(v1, v2, bond_type="n"):
+def _single_bond(v1: object, v2: object, bond_type: object="n") -> None:
 	bond = oasa.bond_lib.Bond(order=1, type=bond_type)
 	bond.vertices = (v1, v2)
 	return bond
 
 
 #============================================
-def _build_ring(size, oxygen_index=None):
+def _build_ring(size: object, oxygen_index: object=None) -> None:
 	mol = oasa.molecule_lib.Molecule()
 	atoms = []
 	for idx in range(size):
@@ -56,17 +57,17 @@ def _build_ring(size, oxygen_index=None):
 
 
 #============================================
-def _build_labeled_molecule():
+def _build_labeled_molecule() -> None:
 	return _mol_from_smiles("CC(O)N")
 
 
 #============================================
-def _build_aromatic_molecule():
+def _build_aromatic_molecule() -> None:
 	return _mol_from_smiles("C1=CC=CC=C1")
 
 
 #============================================
-def _build_charged_molecule():
+def _build_charged_molecule() -> None:
 	mol = oasa.molecule_lib.Molecule()
 	a1 = oasa.atom_lib.Atom(symbol="N")
 	a1.x = 0.0
@@ -82,7 +83,7 @@ def _build_charged_molecule():
 
 
 #============================================
-def _build_stereo_style_molecule():
+def _build_stereo_style_molecule() -> None:
 	mol = oasa.molecule_lib.Molecule()
 	a1 = oasa.atom_lib.Atom(symbol="C")
 	a1.x = 0.0
@@ -105,14 +106,14 @@ def _build_stereo_style_molecule():
 
 
 #============================================
-def _build_haworth_molecule(mode):
+def _build_haworth_molecule(mode: object) -> None:
 	mol = _build_ring(6 if mode == "pyranose" else 5, oxygen_index=0)
 	haworth_layout.build_haworth(mol, mode=mode)
 	return mol
 
 
 #============================================
-def _count_by_kind(payload):
+def _count_by_kind(payload: object) -> None:
 	counts = {
 		"line": 0,
 		"text": 0,
@@ -127,7 +128,7 @@ def _count_by_kind(payload):
 
 
 #============================================
-def _payload_points(payload):
+def _payload_points(payload: object) -> None:
 	points = []
 	for entry in payload:
 		kind = entry.get("kind")
@@ -158,7 +159,7 @@ def _payload_points(payload):
 
 
 #============================================
-def _global_bbox(payload):
+def _global_bbox(payload: object) -> None:
 	points = _payload_points(payload)
 	if not points:
 		return None
@@ -168,7 +169,7 @@ def _global_bbox(payload):
 
 
 #============================================
-def _connector_endpoint_set(payload):
+def _connector_endpoint_set(payload: object) -> None:
 	label_ids = {
 		entry["id"]
 		for entry in payload
@@ -190,7 +191,7 @@ def _connector_endpoint_set(payload):
 
 
 #============================================
-def _text_tuple_set(payload):
+def _text_tuple_set(payload: object) -> None:
 	text_tuples = set()
 	for entry in payload:
 		if entry.get("kind") != "text":
@@ -209,7 +210,7 @@ def _text_tuple_set(payload):
 
 
 #============================================
-def _assert_payload_invariants_equal(svg_payload, cairo_payload):
+def _assert_payload_invariants_equal(svg_payload: object, cairo_payload: object) -> None:
 	assert _count_by_kind(svg_payload) == _count_by_kind(cairo_payload)
 	svg_bbox = _global_bbox(svg_payload)
 	cairo_bbox = _global_bbox(cairo_payload)
@@ -224,21 +225,21 @@ def _assert_payload_invariants_equal(svg_payload, cairo_payload):
 
 
 #============================================
-def _canonical_payload(payload):
+def _canonical_payload(payload: object) -> None:
 	return sorted(json.dumps(entry, sort_keys=True) for entry in payload)
 
 
 #============================================
-def _capture_render_out_payloads(monkeypatch, mol, **render_kwargs):
+def _capture_render_out_payloads(monkeypatch: object, mol: object, **render_kwargs: object) -> None:
 	captured = {}
 
-	def _capture_svg(_parent, ops):
+	def _capture_svg(_parent: object, ops: object) -> None:
 		captured["svg"] = render_ops.ops_to_json_dict(ops, round_digits=3)
 
-	def _capture_cairo(ops, _output_target, _fmt, _width, _height, _options):
+	def _capture_cairo(ops: object, _output_target: object, _fmt: object, _width: object, _height: object, _options: object) -> None:
 		captured["cairo"] = render_ops.ops_to_json_dict(ops, round_digits=3)
 
-	monkeypatch.setattr(render_out.render_ops, "ops_to_svg", _capture_svg)
+	monkeypatch.setattr(render_out.render_ops, "ops_to_lxml_svg", _capture_svg)
 	monkeypatch.setattr(render_out, "_render_cairo", _capture_cairo)
 	render_out.render_to_svg(mol, io.StringIO(), **render_kwargs)
 	render_out.render_to_png(mol, io.BytesIO(), scaling=1.0, **render_kwargs)
@@ -248,7 +249,7 @@ def _capture_render_out_payloads(monkeypatch, mol, **render_kwargs):
 
 
 #============================================
-def test_molecule_to_ops_fixture_smiles_non_empty():
+def test_molecule_to_ops_fixture_smiles_non_empty() -> None:
 	fixtures = (
 		"C1=CC=CC=C1",  # benzene
 		"CC(O)C(=O)O",  # lactic acid
@@ -264,7 +265,7 @@ def test_molecule_to_ops_fixture_smiles_non_empty():
 
 
 #============================================
-def test_molecule_to_ops_includes_charge_and_stereo_geometry():
+def test_molecule_to_ops_includes_charge_and_stereo_geometry() -> None:
 	mol = oasa.molecule_lib.Molecule()
 	a1 = oasa.atom_lib.Atom(symbol="N")
 	a1.x = 0.0
@@ -307,7 +308,7 @@ def test_molecule_to_ops_includes_charge_and_stereo_geometry():
 		"haworth_furanose",
 	),
 )
-def test_svg_and_cairo_paths_receive_same_ops_payload(builder, render_kwargs, monkeypatch):
+def test_svg_and_cairo_paths_receive_same_ops_payload(builder: object, render_kwargs: object, monkeypatch: object) -> None:
 	if builder is _build_haworth_molecule:
 		mol = builder(render_kwargs["mode"])
 		svg_payload, cairo_payload = _capture_render_out_payloads(
@@ -327,7 +328,7 @@ def test_svg_and_cairo_paths_receive_same_ops_payload(builder, render_kwargs, mo
 
 
 #============================================
-def test_render_out_executes_svg_and_cairo_paths_when_pycairo_available(monkeypatch):
+def test_render_out_executes_svg_and_cairo_paths_when_pycairo_available(monkeypatch: object) -> None:
 	try:
 		import cairo
 		_ = cairo
@@ -336,18 +337,18 @@ def test_render_out_executes_svg_and_cairo_paths_when_pycairo_available(monkeypa
 
 	mol = _build_haworth_molecule("pyranose")
 	captured = {}
-	original_svg = render_out.render_ops.ops_to_svg
+	original_svg = render_out.render_ops.ops_to_lxml_svg
 	original_cairo = render_out.render_ops.ops_to_cairo
 
-	def _capture_and_draw_svg(parent, ops):
+	def _capture_and_draw_svg(parent: object, ops: object) -> object:
 		captured["svg"] = render_ops.ops_to_json_dict(ops, round_digits=3)
 		return original_svg(parent, ops)
 
-	def _capture_and_draw_cairo(context, ops):
+	def _capture_and_draw_cairo(context: object, ops: object) -> object:
 		captured["cairo"] = render_ops.ops_to_json_dict(ops, round_digits=3)
 		return original_cairo(context, ops)
 
-	monkeypatch.setattr(render_out.render_ops, "ops_to_svg", _capture_and_draw_svg)
+	monkeypatch.setattr(render_out.render_ops, "ops_to_lxml_svg", _capture_and_draw_svg)
 	monkeypatch.setattr(render_out.render_ops, "ops_to_cairo", _capture_and_draw_cairo)
 	render_out.render_to_svg(mol, io.StringIO(), show_carbon_symbol=True)
 	render_out.render_to_png(mol, io.BytesIO(), scaling=1.0, show_carbon_symbol=True)

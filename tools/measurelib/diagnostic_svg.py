@@ -16,7 +16,7 @@ from measurelib.glyph_model import primitive_center
 
 
 #============================================
-def viewbox_bounds(svg_root) -> tuple[float, float, float, float] | None:
+def viewbox_bounds(svg_root: object) -> tuple[float, float, float, float] | None:
 	"""Return viewBox bounds as (min_x, min_y, max_x, max_y) when available."""
 	values = svg_number_tokens(str(svg_root.get("viewBox") or ""))
 	if len(values) != 4:
@@ -28,7 +28,8 @@ def viewbox_bounds(svg_root) -> tuple[float, float, float, float] | None:
 
 
 #============================================
-def diagnostic_bounds(svg_root, lines: list[dict], labels: list[dict]) -> tuple[float, float, float, float]:
+def diagnostic_bounds(
+		svg_root: object, lines: list[dict], labels: list[dict]) -> tuple[float, float, float, float]:
 	"""Return drawing bounds for diagnostic overlays."""
 	viewbox = viewbox_bounds(svg_root)
 	if viewbox is not None:
@@ -175,7 +176,7 @@ def select_alignment_primitive(label: dict, metric: dict) -> dict | None:
 
 #============================================
 def _draw_bond_perpendicular_markers(
-		overlay_group,
+		overlay_group: object,
 		tag_line: str,
 		lines: list[dict],
 		checked_bond_line_indexes: list[int],

@@ -14,7 +14,7 @@ from bkchem_qt.actions.action_registry import MenuAction
 
 
 #============================================
-def _show_standard_dialog(app) -> None:
+def _show_standard_dialog(app: object) -> None:
 	"""Show a dialog for setting default drawing style values.
 
 	Presents a form with bond length, line width, font size, and
@@ -96,7 +96,7 @@ def _show_standard_dialog(app) -> None:
 
 
 #============================================
-def _show_language_dialog(app) -> None:
+def _show_language_dialog(app: object) -> None:
 	"""Show a dialog for selecting the application language.
 
 	Stores the chosen language in Preferences under
@@ -130,7 +130,7 @@ def _show_language_dialog(app) -> None:
 
 
 #============================================
-def _show_logging_dialog(app) -> None:
+def _show_logging_dialog(app: object) -> None:
 	"""Show a dialog for selecting the logging verbosity level.
 
 	Stores the chosen level in Preferences under
@@ -172,7 +172,7 @@ def _show_logging_dialog(app) -> None:
 
 
 #============================================
-def _show_inchi_path_dialog(app) -> None:
+def _show_inchi_path_dialog(app: object) -> None:
 	"""Show a file dialog to locate the InChI executable.
 
 	Validates that the selected file exists and is executable,
@@ -215,7 +215,7 @@ def _show_inchi_path_dialog(app) -> None:
 
 
 #============================================
-def register_options_actions(registry, app) -> None:
+def register_options_actions(registry: object, app: object) -> None:
 	"""Register all Options menu actions.
 
 	Args:

@@ -2,7 +2,7 @@
 
 
 #============================================
-def test_template_mode_has_submodes(main_window):
+def test_template_mode_has_submodes(main_window: object) -> None:
 	"""Switch to template mode and verify submodes is non-empty."""
 	mode_manager = main_window._mode_manager
 	mode_manager.set_mode("template")
@@ -17,7 +17,7 @@ def test_template_mode_has_submodes(main_window):
 
 
 #============================================
-def test_template_submode_sets_template(main_window):
+def test_template_submode_sets_template(main_window: object) -> None:
 	"""Switch to template mode and verify on_submode_switch changes template."""
 	mode_manager = main_window._mode_manager
 	mode_manager.set_mode("template")
@@ -41,7 +41,7 @@ def test_template_submode_sets_template(main_window):
 
 
 #============================================
-def test_draw_mode_has_submodes(main_window):
+def test_draw_mode_has_submodes(main_window: object) -> None:
 	"""Switch to draw mode and verify submodes are present from YAML."""
 	mode_manager = main_window._mode_manager
 	mode_manager.set_mode("draw")
@@ -54,7 +54,7 @@ def test_draw_mode_has_submodes(main_window):
 
 
 #============================================
-def test_biotemplate_mode_has_categories(main_window):
+def test_biotemplate_mode_has_categories(main_window: object) -> None:
 	"""Switch to biotemplate mode and verify category group is present."""
 	mode_manager = main_window._mode_manager
 	mode_manager.set_mode("biotemplate")
@@ -75,7 +75,7 @@ def test_biotemplate_mode_has_categories(main_window):
 
 
 #============================================
-def test_mode_toolbar_single_checked_action(main_window):
+def test_mode_toolbar_single_checked_action(main_window: object) -> None:
 	"""Mode toolbar should keep exactly one checkable mode active."""
 	mode_manager = main_window._mode_manager
 	mode_sequence = ["edit", "draw", "template", "atom", "mark"]
@@ -91,7 +91,9 @@ def test_mode_toolbar_single_checked_action(main_window):
 
 
 #============================================
-def test_template_grid_adapts_columns_with_window_width(main_window, qapp):
+def test_template_grid_adapts_columns_with_window_width(
+	main_window: object, qapp: object,
+) -> None:
 	"""Template grid should use more columns when the window is widened."""
 	main_window.show()
 	main_window.resize(640, 800)

@@ -5,15 +5,14 @@ selection (png/ for light, png-dark/ for dark). Caches loaded QIcon instances
 and supports cache clearing on theme switch.
 """
 
-# Standard Library
-import pathlib
-
 # PIP3 modules
 import PySide6.QtGui
 
-# resolve the pixmaps directory relative to the bkchem_qt package
-_PACKAGE_DIR = pathlib.Path(__file__).resolve().parent.parent
-_DATA_DIR = _PACKAGE_DIR.parent / "bkchem_data" / "pixmaps"
+# local repo modules
+import bkchem_qt.resource_paths
+
+# Resolve pixmaps from the installed Qt package, not a checkout-only symlink.
+_DATA_DIR = bkchem_qt.resource_paths.get_resource_path("pixmaps")
 
 # icon cache: (name, theme) -> QIcon
 _icon_cache = {}
@@ -32,7 +31,7 @@ def validate_icon_paths() -> None:
 	"""
 	if not _DATA_DIR.is_dir():
 		msg = f"Icon pixmaps directory not found: {_DATA_DIR}"
-		msg += "\nCheck that the bkchem_data symlink is correct."
+		msg += "\nReinstall the bkchem-qt package."
 		raise FileNotFoundError(msg)
 	png_dir = _DATA_DIR / "png"
 	if not png_dir.is_dir():

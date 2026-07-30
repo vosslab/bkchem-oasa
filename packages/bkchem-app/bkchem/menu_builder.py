@@ -20,7 +20,7 @@ class MenuBuilder:
 	"""Builds menus from YAML structure and action registry."""
 
 	#============================================
-	def __init__(self, yaml_path: str, registry: object, adapter: object):
+	def __init__(self, yaml_path: str, registry: object, adapter: object) -> None:
 		"""Initialize the menu builder.
 
 		Args:

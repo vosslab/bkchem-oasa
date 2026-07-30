@@ -61,7 +61,7 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
   meta__undo_children_to_record = ('vertices', 'edges', 'fragments')
 
 
-  def __init__( self, paper=None, package = None):
+  def __init__( self, paper: object=None, package: object=None) -> None:
     # composition layer: oasa.molecule for graph algorithms
     self._chem_mol = oasa.molecule_lib.Molecule()
     # local collections that proxy to _chem_mol (same objects)
@@ -89,11 +89,11 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
       self.read_package( package)
 
 
-  def __iter__( self):
+  def __iter__( self) -> object:
     return self.children_generator()
 
 
-  def children_generator( self):
+  def children_generator( self) -> object:
     for a in self.atoms:
       yield a
     for a in self.bonds:
@@ -104,28 +104,28 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
 
   # atoms / bonds: property aliases mirroring oasa.molecule
   @property
-  def atoms(self):
+  def atoms(self) -> object:
     """List of atoms (proxy for vertices)."""
     return self.vertices
 
   @atoms.setter
-  def atoms(self, val):
+  def atoms(self, val: object) -> None:
     self.vertices = val
     self._chem_mol.vertices = val
 
   @property
-  def bonds(self):
+  def bonds(self) -> object:
     """Set of bonds (proxy for edges)."""
     return self.edges
 
   @bonds.setter
-  def bonds(self, val):
+  def bonds(self, val: object) -> None:
     self.edges = val
     self._chem_mol.edges = val
 
   # shape_defining_points
   @property
-  def shape_defining_points(self):
+  def shape_defining_points(self) -> object:
     """List of atoms.
 
     """
@@ -134,7 +134,7 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
 
   # children
   @property
-  def children(self):
+  def children(self) -> object:
     """List of atoms and bonds.
 
     """
@@ -146,26 +146,26 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
 
   ## DELEGATED GRAPH METHODS (via _chem_mol composition layer)
 
-  def _flush_cache(self):
+  def _flush_cache(self) -> None:
     self._cache = {}
 
-  def disconnect( self, v1, v2):
+  def disconnect( self, v1: object, v2: object) -> object:
     """Disconnect vertices v1 and v2, returns the edge."""
     return self._chem_mol.disconnect( v1, v2)
 
-  def disconnect_edge( self, e):
+  def disconnect_edge( self, e: object) -> None:
     """Disconnect an edge from the graph."""
     self._chem_mol.disconnect_edge( e)
 
-  def delete_vertex( self, v):
+  def delete_vertex( self, v: object) -> None:
     """Remove vertex from the vertices list."""
     self._chem_mol.delete_vertex( v)
 
-  def remove_vertex( self, v):
+  def remove_vertex( self, v: object) -> None:
     """Disconnect all edges to v and remove it."""
     self._chem_mol.remove_vertex( v)
 
-  def insert_a_graph( self, gr):
+  def insert_a_graph( self, gr: object) -> None:
     """Insert all vertices and edges from another graph."""
     # handle both bkchem molecule (with _chem_mol) and oasa graphs
     if hasattr( gr, '_chem_mol'):
@@ -173,153 +173,161 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
     else:
       self._chem_mol.insert_a_graph( gr)
 
-  def get_edge_between( self, v1, v2):
+  def get_edge_between( self, v1: object, v2: object) -> object:
     """Return the edge between v1 and v2, or None."""
     return self._chem_mol.get_edge_between( v1, v2)
 
-  def get_connected_components( self):
+  def get_connected_components( self) -> object:
     """Yield connected components as sets of vertices."""
     return self._chem_mol.get_connected_components()
 
-  def get_induced_subgraph_from_vertices( self, vs):
+  def get_induced_subgraph_from_vertices( self, vs: object) -> object:
     """Create a new graph induced by a subset of vertices."""
     return self._chem_mol.get_induced_subgraph_from_vertices( vs)
 
-  def get_induced_copy_subgraph_from_vertices_and_edges( self, vertices, edges, add_back_links=False):
+  def get_induced_copy_subgraph_from_vertices_and_edges( self, vertices: object, edges: object, add_back_links: object=False) -> object:
     """Create a new graph with copies of supplied vertices and edges."""
     return self._chem_mol.get_induced_copy_subgraph_from_vertices_and_edges( vertices, edges, add_back_links=add_back_links)
 
-  def get_new_induced_subgraph( self, vertices, edges):
+  def get_new_induced_subgraph( self, vertices: object, edges: object) -> object:
     """Return a newly created induced subgraph (copies of vertices/edges)."""
     return self._chem_mol.get_new_induced_subgraph( vertices, edges)
 
-  def vertex_subgraph_to_edge_subgraph( self, vs):
+  def vertex_subgraph_to_edge_subgraph( self, vs: object) -> object:
     """Convert a vertex subgraph to the corresponding edge subgraph."""
     return self._chem_mol.vertex_subgraph_to_edge_subgraph( vs)
 
-  def edge_subgraph_to_vertex_subgraph( self, es):
+  def edge_subgraph_to_vertex_subgraph( self, es: object) -> object:
     """Convert an edge subgraph to the corresponding vertex subgraph."""
     return self._chem_mol.edge_subgraph_to_vertex_subgraph( es)
 
-  def is_connected( self):
+  def is_connected( self) -> object:
     """Return True if the graph is connected."""
     return self._chem_mol.is_connected()
 
-  def is_edge_a_bridge( self, e):
+  def remove_unimportant_hydrogens( self) -> object:
+    """Remove implicit-group hydrogens through the chemistry graph layer."""
+    return self._chem_mol.remove_unimportant_hydrogens()
+
+  def add_missing_hydrogens( self) -> object:
+    """Materialize hydrogens while preserving this molecule's BKChem graph."""
+    return self._chem_mol.add_missing_hydrogens()
+
+  def is_edge_a_bridge( self, e: object) -> object:
     """Return True if the edge is a bridge."""
     return self._chem_mol.is_edge_a_bridge( e)
 
-  def get_smallest_independent_cycles( self):
+  def get_smallest_independent_cycles( self) -> object:
     """Return smallest independent cycles as lists of vertex sets."""
     return self._chem_mol.get_smallest_independent_cycles()
 
-  def get_smallest_independent_cycles_e( self):
+  def get_smallest_independent_cycles_e( self) -> object:
     """Return smallest independent cycles as sets of edges."""
     return self._chem_mol.get_smallest_independent_cycles_e()
 
-  def get_smallest_independent_cycles_dangerous_and_cached( self):
+  def get_smallest_independent_cycles_dangerous_and_cached( self) -> object:
     """Cached version of get_smallest_independent_cycles."""
     return self._chem_mol.get_smallest_independent_cycles_dangerous_and_cached()
 
-  def get_all_cycles( self):
+  def get_all_cycles( self) -> object:
     """Return all cycles found in the graph."""
     return self._chem_mol.get_all_cycles()
 
-  def get_all_cycles_e( self):
+  def get_all_cycles_e( self) -> object:
     """Return all cycles as sets of edges."""
     return self._chem_mol.get_all_cycles_e()
 
-  def mark_vertices_with_distance_from( self, v):
+  def mark_vertices_with_distance_from( self, v: object) -> object:
     """Mark vertices with distance from v, return max distance."""
     return self._chem_mol.mark_vertices_with_distance_from( v)
 
-  def clean_distance_from_vertices( self):
+  def clean_distance_from_vertices( self) -> None:
     """Remove distance markings from vertices."""
     self._chem_mol.clean_distance_from_vertices()
 
-  def temporarily_disconnect_edge( self, e):
+  def temporarily_disconnect_edge( self, e: object) -> object:
     """Temporarily disconnect an edge (move to disconnected_edges)."""
     return self._chem_mol.temporarily_disconnect_edge( e)
 
-  def reconnect_temporarily_disconnected_edge( self, e):
+  def reconnect_temporarily_disconnected_edge( self, e: object) -> None:
     """Reconnect a single temporarily disconnected edge."""
     self._chem_mol.reconnect_temporarily_disconnected_edge( e)
 
-  def reconnect_temporarily_disconnected_edges( self):
+  def reconnect_temporarily_disconnected_edges( self) -> None:
     """Reconnect all temporarily disconnected edges."""
     self._chem_mol.reconnect_temporarily_disconnected_edges()
 
-  def temporarily_strip_bridge_edges( self):
+  def temporarily_strip_bridge_edges( self) -> None:
     """Strip all edges that are bridges."""
     self._chem_mol.temporarily_strip_bridge_edges()
 
-  def copy( self):
+  def copy( self) -> object:
     """Shallow copy: same vertex/edge objects, different graph."""
     return self._chem_mol.copy()
 
-  def deep_copy( self):
+  def deep_copy( self) -> object:
     """Deep copy: isomorphic graph with all new objects."""
     return self._chem_mol.deep_copy()
 
-  def contains_cycle( self):
+  def contains_cycle( self) -> object:
     """Return True if the graph contains a cycle."""
     return self._chem_mol.contains_cycle()
 
-  def defines_connected_subgraph_e( self, edges):
+  def defines_connected_subgraph_e( self, edges: object) -> object:
     """Return True if the edges define a connected subgraph."""
     return self._chem_mol.defines_connected_subgraph_e( edges)
 
-  def defines_connected_subgraph_v( self, vertices):
+  def defines_connected_subgraph_v( self, vertices: object) -> object:
     """Return True if the vertices define a connected subgraph."""
     return self._chem_mol.defines_connected_subgraph_v( vertices)
 
-  def find_path_between( self, start, end, dont_go_through=None):
+  def find_path_between( self, start: object, end: object, dont_go_through: object=None) -> object:
     """Find a path between two vertices."""
     return self._chem_mol.find_path_between( start, end, dont_go_through=dont_go_through)
 
-  def sort_vertices_in_path( self, path, start_from=None):
+  def sort_vertices_in_path( self, path: object, start_from: object=None) -> object:
     """Sort vertices in a path order."""
     return self._chem_mol.sort_vertices_in_path( path, start_from=start_from)
 
-  def path_exists( self, a1, a2):
+  def path_exists( self, a1: object, a2: object) -> object:
     """Return True if a path exists between a1 and a2."""
     return self._chem_mol.path_exists( a1, a2)
 
-  def get_disconnected_subgraphs( self):
+  def get_disconnected_subgraphs( self) -> object:
     """Return list of disconnected subgraphs."""
     return self._chem_mol.get_disconnected_subgraphs()
 
-  def get_maximum_matching( self):
+  def get_maximum_matching( self) -> object:
     """Return maximum matching (mate dict, nrex)."""
     return self._chem_mol.get_maximum_matching()
 
-  def is_tree( self):
+  def is_tree( self) -> object:
     """Return True if the graph is a tree."""
     return self._chem_mol.is_tree()
 
-  def remove_zero_order_bonds( self):
+  def remove_zero_order_bonds( self) -> None:
     """Remove zero-order bonds created by SMILES parsing."""
     self._chem_mol.remove_zero_order_bonds()
 
-  def localize_aromatic_bonds( self):
+  def localize_aromatic_bonds( self) -> None:
     """Localize aromatic bonds in the molecule."""
     self._chem_mol.localize_aromatic_bonds()
 
-  def mark_aromatic_bonds( self):
+  def mark_aromatic_bonds( self) -> None:
     """Mark aromatic bonds in the molecule."""
     self._chem_mol.mark_aromatic_bonds()
 
-  def add_stereochemistry( self, stereo):
+  def add_stereochemistry( self, stereo: object) -> None:
     """Add stereochemistry info to the molecule."""
     self.stereochemistry.append( stereo)
 
-  def remove_stereochemistry( self, stereo):
+  def remove_stereochemistry( self, stereo: object) -> None:
     """Remove stereochemistry info from the molecule."""
     if stereo not in self.stereochemistry:
       raise ValueError("cannot remove non-existent stereochemistry information")
     self.stereochemistry.remove( stereo)
 
-  def get_stereochemistry_by_center( self, center):
+  def get_stereochemistry_by_center( self, center: object) -> object:
     """Return stereochemistry by center, or None."""
     for st in self.stereochemistry:
       if st.center == center:
@@ -328,23 +336,23 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
 
   ## GRAPH FACTORY OVERRIDES
 
-  def create_graph( self):
+  def create_graph( self) -> object:
     return BkMolecule( paper=self.paper)
 
 
-  def create_vertex( self, vertex_class=None):
+  def create_vertex( self, vertex_class: object=None) -> object:
     if not vertex_class:
       vertex_class = BkAtom
     std = self.paper and self.paper.standard or Store.app.paper.standard
     return vertex_class( standard=std)
 
 
-  def create_edge( self):
+  def create_edge( self) -> object:
     std = self.paper and self.paper.standard or Store.app.paper.standard
     return BkBond( standard=std)
 
 
-  def add_vertex( self, v=None):
+  def add_vertex( self, v: object=None) -> object:
     # delegate to _chem_mol which manages the shared vertices list
     x = self._chem_mol.add_vertex( v=v)
     if x is not None:
@@ -352,7 +360,7 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
     return x
 
 
-  def add_edge( self, v1, v2, e=None):
+  def add_edge( self, v1: object, v2: object, e: object=None) -> object:
     # delegate to _chem_mol which manages shared edges set and neighbor links
     x = self._chem_mol.add_edge( v1, v2, e=e)
     if x is not None:
@@ -361,14 +369,14 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
 
 
   ## LOOK
-  def eat_molecule( self, mol):
+  def eat_molecule( self, mol: object) -> None:
     "transfers everything from mol to self, now only calls feed_data"
     self.insert_a_graph( mol)
     for v in mol.children:
       v.molecule = self
 
 
-  def add_atom_to( self, a1, bond_to_use=None, pos=None):
+  def add_atom_to( self, a1: object, bond_to_use: object=None, pos: object=None) -> object:
     """adds new atom bound to atom id with bond, the position of new atom can be specified in pos or is
     decided calling find_place(), if x, y is specified and matches already existing BkAtom it will be
     used instead of creating new one """
@@ -395,7 +403,7 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
     return a2, b
 
 
-  def find_place( self, a, distance, added_order=1):
+  def find_place( self, a: object, distance: object, added_order: object=1) -> object:
     """tries to find accurate place for next atom around atom 'id',
     returns x,y and list of ids of 'items' found there for overlap, those atoms are not bound to id"""
     ids_bonds = a.neighbors
@@ -432,14 +440,14 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
     return x, y
 
 
-  def get_angle( self, a1, a2):
+  def get_angle( self, a1: object, a2: object) -> object:
     "what is the angle between horizontal line through i1 and i1-i2 line"
     a = a2.x - a1.x
     b = a2.y - a1.y
     return atan2( b, a)
 
 
-  def delete_items( self, items, redraw=1, delete_single_atom=1):
+  def delete_items( self, items: object, redraw: object=1, delete_single_atom: object=1) -> object:
     """deletes items and also makes cleaning of orphan bonds and atoms"""
     if not items:
       return items, []     # quick way to avoid costly evaluation
@@ -482,13 +490,13 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
     return deleted, offspring
 
 
-  def delete_bond( self, item):
+  def delete_bond( self, item: object) -> object:
     item.delete()
     self.disconnect_edge( item)
     return item
 
 
-  def delete_atom( self, item):
+  def delete_atom( self, item: object) -> object:
     "remove links to atom from molecule records"
     self.vertices.remove( item)
     item.delete()
@@ -501,7 +509,7 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
     return item
 
 
-  def create_new_atom( self, x, y, name=None, vertex_class=None):
+  def create_new_atom( self, x: object, y: object, name: object=None, vertex_class: object=None) -> object:
     a = self.create_vertex()
     a.coords = (x, y)
     self.insert_atom( a)
@@ -511,13 +519,13 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
     return a
 
 
-  def insert_atom( self, at):
+  def insert_atom( self, at: object) -> None:
     "inserts atom to molecule without any connections"
     self.atoms.append( at)
     at.molecule = self
 
 
-  def check_integrity( self):
+  def check_integrity( self) -> object:
     """after deleting atoms or bonds it is important to see if it's needed to divide molecule to fragments
     and return them in form of list of new molecules"""
     if not self.atoms:
@@ -529,11 +537,11 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
     return [self.get_induced_subgraph_from_vertices( vs) for vs in new_maps]
 
 
-  def is_empty( self):
+  def is_empty( self) -> object:
     return not len( self.atoms)
 
 
-  def read_package( self, package):
+  def read_package( self, package: object) -> None:
     """reads the dom element package and sets internal state according to it"""
     # the standard
     std = self.paper and self.paper.standard or None
@@ -582,14 +590,14 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
     [a.raise_valency_to_senseful_value() for a in self.vertices if isinstance( a, BkAtom)]
 
 
-  def get_package( self, doc, items=None):
-    def _bond_width_to_text(value, name=None, bond_obj=None):
+  def get_package( self, doc: object, items: object=None) -> object:
+    def _bond_width_to_text(value: object, name: object=None, bond_obj: object=None) -> object:
       if bond_obj and name in ("bond_width", "wedge_width"):
         if bond_obj.paper:
           return str(value * bond_obj.paper.screen_to_real_ratio())
       return str(value)
 
-    def _subset_molecule( items):
+    def _subset_molecule( items: object) -> object:
       atoms = []
       bonds = []
       for item in items:
@@ -602,7 +610,7 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
           if vertex not in atoms:
             atoms.append( vertex)
       class _Subset:
-        def __init__( self, name, mol_id, vertices, edges):
+        def __init__( self, name: object, mol_id: object, vertices: object, edges: object) -> None:
           self.name = name
           self.id = mol_id
           self.vertices = vertices
@@ -676,26 +684,26 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
     return mol
 
 
-  def draw( self, automatic="none"):
+  def draw( self, automatic: object="none") -> None:
     [a.draw() for a in self.atoms]
     [a.draw( automatic=automatic) for a in copy.copy( self.bonds)]
     self.lift()
 
 
   ##LOOK
-  def bond_between( self, a1, a2):
+  def bond_between( self, a1: object, a2: object) -> object:
     "returns id of bond between atoms a1 and a2"
     return self.get_edge_between( a1, a2)
 
 
-  def gen_bonds_between( self, a1, a2):
+  def gen_bonds_between( self, a1: object, a2: object) -> object:
     "yields all bonds between atoms a1 and a2"
     for e in a1.neighbor_edges:
       if e in a2.neighbor_edges:
         yield e
 
 
-  def handle_overlap( self):
+  def handle_overlap( self) -> object:
     "deletes one of overlaping atoms and updates the bonds"
     to_delete = []
     bonds_to_check = set() # this can speedup the following for b in bonds_to_check by factor of 10 for big mols
@@ -737,7 +745,7 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
     return deleted
 
 
-  def move( self, dx, dy, use_paper_coords=False):
+  def move( self, dx: object, dy: object, use_paper_coords: object=False) -> None:
     """moves the whole molecule"""
     for o in self.atoms:
       o.move( dx, dy, use_paper_coords=use_paper_coords)
@@ -745,7 +753,7 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
       o.move( dx, dy, use_paper_coords=use_paper_coords)
 
 
-  def bbox( self):
+  def bbox( self) -> object:
     """returns the bounding box of the object as a list of [x1,y1,x2,y2]"""
     items = []
     for a in self.atoms:
@@ -758,12 +766,12 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
       return self.paper.list_bbox( items)
 
 
-  def delete( self):
+  def delete( self) -> None:
     """deletes the molecule from canvas by calling delete for its children"""
     [o.delete() for o in list(self.bonds)+self.atoms]
 
 
-  def redraw( self, reposition_double=0):
+  def redraw( self, reposition_double: object=0) -> None:
     # Redraw atoms first so their canvas items (and vertex_items) are
     # at correct positions.  Bonds call atom.bbox() for endpoint
     # clipping; stale bboxes cause wild mis-draws after zoom.
@@ -779,7 +787,7 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
       a.lift()
 
 
-  def get_formula_dict( self):
+  def get_formula_dict( self) -> object:
     """returns a formula dict as defined in the periodic_table.py::formula_dict"""
     comp = PT.formula_dict()
     for a in self.atoms:
@@ -787,7 +795,7 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
     return comp
 
 
-  def expand_groups( self, atoms=[]):
+  def expand_groups( self, atoms: object=[]) -> None:
     """expands all group atoms; optional atoms selects atoms to expand - all used if not present"""
     if not atoms:
       map = copy.copy( self.atoms) # need to do that because the self.atoms gets changed during the cycle
@@ -805,7 +813,7 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
     self.redraw()
 
 
-  def move_bonds_between_atoms( self, a1, a2):
+  def move_bonds_between_atoms( self, a1: object, a2: object) -> None:
     """transfers all bonds from one atom to the other; both atoms must be in self"""
     for (e,v) in a1.get_neighbor_edge_pairs():
       a2.add_neighbor( v,e)
@@ -813,7 +821,7 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
       e.change_atoms( a1, a2)
 
 
-  def replace_vertices( self, old, new):
+  def replace_vertices( self, old: object, new: object) -> None:
     """replaces the vertex old with the vertex new"""
     self.add_vertex( new)
     self.move_bonds_between_atoms( old, new)
@@ -825,13 +833,13 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
         f.vertices.add( new)
 
 
-  def lift( self):
+  def lift( self) -> None:
     [o.lift_selector() for o in self.atoms]
     [o.lift() for o in self.bonds]
     [o.lift() for o in self.atoms]
 
 
-  def find_least_crowded_place_around_atom( self, a, range=10):
+  def find_least_crowded_place_around_atom( self, a: object, range: object=10) -> object:
     atms = a.neighbors
     x, y = a.get_xy()
     if not atms:
@@ -849,7 +857,7 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
     return x +range*cos( angle), y +range*sin( angle)
 
 
-  def flush_graph_to_file(self, name="/home/beda/oasa/oasa/mol.graph"):
+  def flush_graph_to_file(self, name: object="/home/beda/oasa/oasa/mol.graph") -> None:
     with open(name, 'w') as f:
       for a in self.atoms:
         f.write('%s ' % a.symbol)
@@ -860,7 +868,7 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
                                 self.atoms.index(b.atom2)))
 
 
-  def transform( self, tr):
+  def transform( self, tr: object) -> None:
     """applies given transformation to its children"""
     for a in self.atoms:
       a.transform( tr)
@@ -868,7 +876,7 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
       b.transform( tr)
 
 
-  def get_geometry( self):
+  def get_geometry( self) -> object:
     """returns a tuple of ((minx, miny, max, maxy), mean_bond_length)"""
     maxx, maxy, minx, miny = 4 * [None]
     for a2 in self.atoms:
@@ -891,7 +899,7 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
     return ((maxx,maxy,minx,miny),bl)
 
 
-  def create_vertex_according_to_text( self, old, text, interpret=1):
+  def create_vertex_according_to_text( self, old: object, text: object, interpret: object=1) -> object:
     if not interpret:
       v = self.create_vertex( vertex_class=BkTextatom)
       v.set_name( text)
@@ -909,7 +917,7 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
 
 
   # fragment support
-  def create_fragment( self, name, edges, vertices, type="explicit", strict=False):
+  def create_fragment( self, name: object, edges: object, vertices: object, type: object="explicit", strict: object=False) -> object:
     if (strict and self.defines_connected_subgraph_e( edges)) or not strict:
       nf = BkFragment( Store.id_manager.generate_id( "frag"), name=name, type=type)
       nf.edges = set( edges)
@@ -920,7 +928,7 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
       return None
 
 
-  def check_fragments( self):
+  def check_fragments( self) -> object:
     """checks if all the fragments of this molecule are consistent and
     removes and returns the ones that are not"""
     todel = set()
@@ -930,7 +938,7 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
     return todel
 
 
-  def get_fragment_by_id( self, id):
+  def get_fragment_by_id( self, id: object) -> object:
     fs = [f for f in self.fragments if f.id == id]
     if fs:
       return fs[0]
@@ -938,14 +946,14 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
       return None
 
 
-  def delete_fragment( self, f):
+  def delete_fragment( self, f: object) -> object:
     if f in self.fragments:
       self.fragments.remove( f)
       return True
     return False
 
 
-  def get_fragments_with_vertex( self, v):
+  def get_fragments_with_vertex( self, v: object) -> object:
     fs = set()
     for f in self.fragments:
       if v in f.vertices:
@@ -953,7 +961,7 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
     return fs
 
 
-  def get_fragments_with_edge( self, e):
+  def get_fragments_with_edge( self, e: object) -> object:
     fs = set()
     for f in self.fragments:
       if e in f.edges:
@@ -961,7 +969,7 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
     return fs
 
 
-  def check_linear_form_fragment( self, f):
+  def check_linear_form_fragment( self, f: object) -> object:
     """checks the consistency of a linear_form - returns either True (consistent) or
     False (inconsistent).
     Consistent fragments are automatically redrawn"""
@@ -988,7 +996,7 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
 
 
   # template support
-  def mark_template_bond( self, b):
+  def mark_template_bond( self, b: object) -> None:
     if b in self.edges:
       atms = b.atom1.neighbors + b.atom2.neighbors
       atms = bkchem_utils.difference( atms, [b.atom1, b.atom2])
@@ -1004,9 +1012,8 @@ class BkMolecule( container, top_level, id_enabled, with_paper):
       raise ValueError("Submitted bond does not belong to this molecule.")
 
 
-  def mark_template_atom( self, v):
+  def mark_template_atom( self, v: object) -> None:
     if v in self.vertices:
       self.t_atom = v
     else:
       raise ValueError("Submitted atom does not belong to this molecule.")
-

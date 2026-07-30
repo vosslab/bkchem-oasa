@@ -30,7 +30,7 @@ class id_manager(object):
 	"""
 
 	#============================================
-	def __init__(self):
+	def __init__(self) -> None:
 		"""Initialize empty ID and object maps."""
 		# forward index: ID string -> object
 		self.id_map = {}

@@ -19,7 +19,7 @@ from oasa.render_lib.molecule_ops import build_vertex_ops
 
 
 #============================================
-def _make_vertex(symbol="O", label=None, anchor=None, x=0.0, y=0.0):
+def _make_vertex(symbol: object = "O", label: object = None, anchor: object = None, x: object = 0.0, y: object = 0.0) -> object:
 	vertex = oasa.atom_lib.Atom(symbol=symbol)
 	vertex.x = float(x)
 	vertex.y = float(y)
@@ -31,14 +31,14 @@ def _make_vertex(symbol="O", label=None, anchor=None, x=0.0, y=0.0):
 
 
 #============================================
-def _point_in_bbox(point, bbox):
+def _point_in_bbox(point: object, bbox: object) -> object:
 	x, y = point
 	x1, y1, x2, y2 = bbox
 	return x1 <= x <= x2 and y1 <= y <= y2
 
 
 #============================================
-def _bbox_contains(inner, outer):
+def _bbox_contains(inner: object, outer: object) -> object:
 	return (
 		outer[0] <= inner[0] <= inner[2] <= outer[2]
 		and outer[1] <= inner[1] <= inner[3] <= outer[3]
@@ -46,7 +46,7 @@ def _bbox_contains(inner, outer):
 
 
 #============================================
-def _is_on_box_edge(point, box, tol=1e-6):
+def _is_on_box_edge(point: object, box: object, tol: object = 1e-6) -> object:
 	x, y = point
 	x1, y1, x2, y2 = box
 	on_x = abs(x - x1) <= tol or abs(x - x2) <= tol
@@ -57,7 +57,7 @@ def _is_on_box_edge(point, box, tol=1e-6):
 
 
 #============================================
-def _clip_to_box(bond_start, bond_end, box):
+def _clip_to_box(bond_start: object, bond_end: object, box: object) -> object:
 	end_x, end_y = bond_end
 	x1, y1, x2, y2 = box
 	if not (x1 <= end_x <= x2 and y1 <= end_y <= y2):
@@ -71,7 +71,7 @@ def _clip_to_box(bond_start, bond_end, box):
 
 
 #============================================
-def _first_polygon_op(ops):
+def _first_polygon_op(ops: object) -> object:
 	for op in ops:
 		if isinstance(op, render_ops.PolygonOp):
 			return op
@@ -79,14 +79,14 @@ def _first_polygon_op(ops):
 
 
 #============================================
-def _tokens_from_text(text):
+def _tokens_from_text(text: object) -> object:
 	visible = _visible_label_text(text)
 	spans = _tokenized_atom_spans(text)
 	return [visible[start:end] for start, end in spans]
 
 
 #============================================
-def test_label_bbox_single_char_middle():
+def test_label_bbox_single_char_middle() -> None:
 	bbox = label_target(10.0, 20.0, "O", "middle", 16.0).box
 	x1, y1, x2, y2 = bbox
 	assert x1 < x2
@@ -99,7 +99,7 @@ def test_label_bbox_single_char_middle():
 
 
 #============================================
-def test_label_bbox_multi_char_start():
+def test_label_bbox_multi_char_start() -> None:
 	bbox = label_target(10.0, 8.0, "OH", "start", 12.0).box
 	x1, y1, x2, y2 = bbox
 	assert x1 < x2
@@ -112,7 +112,7 @@ def test_label_bbox_multi_char_start():
 
 
 #============================================
-def test_label_bbox_anchor_matrix():
+def test_label_bbox_anchor_matrix() -> None:
 	for anchor in ("start", "middle", "end"):
 		for text in ("O", "OH", "CH2OH", "NH3+", "Cl"):
 			x1, y1, x2, y2 = label_target(5.0, 7.0, text, anchor, 16.0).box
@@ -123,7 +123,7 @@ def test_label_bbox_anchor_matrix():
 
 
 #============================================
-def test_label_bbox_origin_inside_bbox_for_anchor_matrix():
+def test_label_bbox_origin_inside_bbox_for_anchor_matrix() -> None:
 	for anchor in ("start", "middle", "end"):
 		vertex = _make_vertex(symbol="C", label="CH2OH", anchor=anchor, x=30.0, y=40.0)
 		ops = build_vertex_ops(vertex, font_size=16.0)
@@ -135,7 +135,7 @@ def test_label_bbox_origin_inside_bbox_for_anchor_matrix():
 
 
 #============================================
-def test_label_bbox_visible_length_strips_tags():
+def test_label_bbox_visible_length_strips_tags() -> None:
 	plain = label_target(0.0, 0.0, "CH2OH", "start", 16.0).box
 	with_markup = label_target(0.0, 0.0, "CH<sub>2</sub>OH", "start", 16.0).box
 	assert plain[0] == pytest.approx(with_markup[0])
@@ -145,7 +145,7 @@ def test_label_bbox_visible_length_strips_tags():
 
 
 #============================================
-def test_label_bbox_matches_vertex_ops_mask():
+def test_label_bbox_matches_vertex_ops_mask() -> None:
 	vertex = _make_vertex(symbol="C", label="OH", anchor="start", x=12.0, y=15.0)
 	# background_color must be set to generate the mask PolygonOp
 	ops = build_vertex_ops(vertex, font_size=16.0, background_color="#fff")
@@ -164,7 +164,7 @@ def test_label_bbox_matches_vertex_ops_mask():
 
 
 #============================================
-def test_label_attach_bbox_single_atom_same_as_label_bbox():
+def test_label_attach_bbox_single_atom_same_as_label_bbox() -> None:
 	for symbol in ("O", "N", "Cl"):
 		full_bbox = label_target(0.0, 0.0, symbol, "middle", 16.0).box
 		first_bbox = label_attach_target(
@@ -178,7 +178,7 @@ def test_label_attach_bbox_single_atom_same_as_label_bbox():
 
 
 #============================================
-def test_label_attach_bbox_multi_atom_first():
+def test_label_attach_bbox_multi_atom_first() -> None:
 	full_bbox = label_target(0.0, 0.0, "CH2OH", "start", 12.0).box
 	first_bbox = label_attach_target(
 		0.0, 0.0, "CH2OH", "start", 12.0, attach_atom="first"
@@ -188,7 +188,7 @@ def test_label_attach_bbox_multi_atom_first():
 
 
 #============================================
-def test_label_attach_bbox_multi_atom_last():
+def test_label_attach_bbox_multi_atom_last() -> None:
 	full_bbox = label_target(0.0, 0.0, "CH2OH", "start", 12.0).box
 	last_bbox = label_attach_target(
 		0.0, 0.0, "CH2OH", "start", 12.0, attach_atom="last"
@@ -198,7 +198,7 @@ def test_label_attach_bbox_multi_atom_last():
 
 
 #============================================
-def test_label_attach_bbox_within_label_bbox():
+def test_label_attach_bbox_within_label_bbox() -> None:
 	cases = (
 		("O", "middle"),
 		("CH2OH", "start"),
@@ -217,7 +217,7 @@ def test_label_attach_bbox_within_label_bbox():
 
 
 #============================================
-def test_label_attach_bbox_invalid_attach_atom_raises():
+def test_label_attach_bbox_invalid_attach_atom_raises() -> None:
 	with pytest.raises(ValueError, match=r"Invalid attach_atom value: 'frist'"):
 		label_attach_target(
 			0.0, 0.0, "CH2OH", "start", 16.0, attach_atom="frist"
@@ -235,12 +235,12 @@ def test_label_attach_bbox_invalid_attach_atom_raises():
 		("CH(OH)CH2OH", ["CH", "OH", "CH2", "OH"]),
 	),
 )
-def test_tokenized_atom_spans_fixture_matrix(text, expected_tokens):
+def test_tokenized_atom_spans_fixture_matrix(text: object, expected_tokens: object) -> None:
 	assert _tokens_from_text(text) == expected_tokens
 
 
 #============================================
-def test_attach_bbox_first_last_ch2oh():
+def test_attach_bbox_first_last_ch2oh() -> None:
 	for anchor in ("start", "middle", "end"):
 		first_bbox = label_attach_target(
 			0.0, 0.0, "CH2OH", anchor, 16.0, attach_atom="first"
@@ -253,7 +253,7 @@ def test_attach_bbox_first_last_ch2oh():
 
 
 #============================================
-def test_directional_attach_edge_intersection_prefers_side_edge_for_side_approach():
+def test_directional_attach_edge_intersection_prefers_side_edge_for_side_approach() -> None:
 	attach_bbox = (0.0, 0.0, 10.0, 10.0)
 	attach_target = (6.0, 9.0)
 	bond_start = (-20.0, 8.0)
@@ -268,7 +268,7 @@ def test_directional_attach_edge_intersection_prefers_side_edge_for_side_approac
 
 
 #============================================
-def test_directional_attach_edge_intersection_prefers_vertical_edge_for_vertical_approach():
+def test_directional_attach_edge_intersection_prefers_vertical_edge_for_vertical_approach() -> None:
 	attach_bbox = (0.0, 0.0, 10.0, 10.0)
 	attach_target = (6.0, 9.0)
 	bond_start = (5.5, -20.0)
@@ -282,37 +282,37 @@ def test_directional_attach_edge_intersection_prefers_vertical_edge_for_vertical
 
 
 #============================================
-def test_clip_bond_inside_bbox():
+def test_clip_bond_inside_bbox() -> None:
 	clipped = _clip_to_box((-5.0, 5.0), (5.0, 5.0), (0.0, 0.0, 10.0, 10.0))
 	assert clipped == pytest.approx((0.0, 5.0))
 
 
 #============================================
-def test_clip_bond_outside_bbox():
+def test_clip_bond_outside_bbox() -> None:
 	clipped = _clip_to_box((-5.0, 5.0), (-1.0, 5.0), (0.0, 0.0, 10.0, 10.0))
 	assert clipped == pytest.approx((-1.0, 5.0))
 
 
 #============================================
-def test_clip_bond_vertical():
+def test_clip_bond_vertical() -> None:
 	clipped = _clip_to_box((5.0, -5.0), (5.0, 5.0), (0.0, 0.0, 10.0, 10.0))
 	assert clipped == pytest.approx((5.0, 0.0))
 
 
 #============================================
-def test_clip_bond_horizontal():
+def test_clip_bond_horizontal() -> None:
 	clipped = _clip_to_box((15.0, 5.0), (5.0, 5.0), (0.0, 0.0, 10.0, 10.0))
 	assert clipped == pytest.approx((10.0, 5.0))
 
 
 #============================================
-def test_clip_bond_diagonal():
+def test_clip_bond_diagonal() -> None:
 	clipped = _clip_to_box((-5.0, -5.0), (5.0, 5.0), (0.0, 0.0, 10.0, 10.0))
 	assert clipped == pytest.approx((0.0, 0.0))
 
 
 #============================================
-def test_clips_to_attach_bbox_not_full_bbox():
+def test_clips_to_attach_bbox_not_full_bbox() -> None:
 	full_bbox = label_target(0.0, 0.0, "CH2OH", "start", 10.0).box
 	attach_bbox = label_attach_target(
 		0.0, 0.0, "CH2OH", "start", 10.0, attach_atom="first"

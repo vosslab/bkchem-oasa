@@ -24,12 +24,12 @@ Phase A bug fixes for 3 issues found during Phase 0 review.
 
 ## Changed files
 
-- [packages/oasa/oasa/graph/digraph_lib.py](packages/oasa/oasa/graph/digraph_lib.py):
+- [digraph_lib.py](../../oasa/graph/digraph_lib.py):
   Added `create_edge()` returning `Diedge()`. Removed 3 debug print lines from
   `get_diameter()`.
-- [packages/oasa/tests/graph_test_fixtures.py](packages/oasa/tests/graph_test_fixtures.py):
+- [graph_test_fixtures.py](../graph_test_fixtures.py):
   Changed `has_bridges` from `True` to `False` in `make_bridged_bicyclic()`.
-- [docs/CHANGELOG.md](docs/CHANGELOG.md): Documented all three fixes.
+- [docs/CHANGELOG.md](../../../../docs/CHANGELOG.md): Documented all three fixes.
 
 ## Validation performed
 

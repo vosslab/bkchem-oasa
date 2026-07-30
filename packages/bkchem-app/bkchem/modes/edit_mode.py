@@ -49,7 +49,7 @@ class edit_mode(basic_mode):
 
 	Also good as parent for more specialized modes.
 	"""
-	def __init__( self):
+	def __init__( self) -> None:
 		basic_mode.__init__( self)
 		# name loaded from YAML
 		self._dragging = 0
@@ -81,7 +81,7 @@ class edit_mode(basic_mode):
 
 		self._move_sofar = 0
 
-	def mouse_down( self, event, modifiers=None):
+	def mouse_down( self, event: object, modifiers: object = None) -> None:
 		mods = modifiers or []
 		self._shift = 'shift' in mods
 		self._ctrl = 'ctrl' in mods
@@ -100,7 +100,7 @@ class edit_mode(basic_mode):
 		self._block_leave_event = 1
 
 
-	def mouse_down3( self, event, modifiers=None):
+	def mouse_down3( self, event: object, modifiers: object = None) -> None:
 		if self.focused:
 			if self.focused not in Store.app.paper.selected:
 				Store.app.paper.unselect_all()
@@ -109,7 +109,7 @@ class edit_mode(basic_mode):
 			dialog.post( event.x_root, event.y_root)
 
 
-	def mouse_down2( self, event, modifiers=None):
+	def mouse_down2( self, event: object, modifiers: object = None) -> None:
 		mods = modifiers or []
 		if self.focused and not isinstance( self.focused, marks.mark):
 			if self.focused not in Store.app.paper.selected:
@@ -122,7 +122,7 @@ class edit_mode(basic_mode):
 			Store.app.paper.add_bindings()
 
 
-	def mouse_up( self, event):
+	def mouse_up( self, event: object) -> None:
 		self._block_leave_event = 0
 		self._move_sofar = 0
 		# this strange thing makes the moving of selected arrows and polygons possible - the problem is
@@ -166,7 +166,7 @@ class edit_mode(basic_mode):
 			Store.app.paper.add_bindings()
 
 
-	def mouse_click( self, event):
+	def mouse_click( self, event: object) -> None:
 		if not self._shift:
 			Store.app.paper.unselect_all()
 
@@ -198,13 +198,13 @@ class edit_mode(basic_mode):
 		Store.app.paper.add_bindings()
 
 
-	def double_click( self, event):
+	def double_click( self, event: object) -> None:
 		if self.focused:
 			if bkchem.chem_compat.is_chemistry_vertex(self.focused) or isinstance(self.focused, BkBond):
 				Store.app.paper.select( tuple( self.focused.molecule)) # molecule is iterator
 
 
-	def mouse_drag( self, event):
+	def mouse_drag( self, event: object) -> None:
 		if self._ctrl:
 			dx = 0
 		else:
@@ -315,7 +315,7 @@ class edit_mode(basic_mode):
 				Store.log( '%i, %i' % ( dx, dy))
 
 
-	def enter_object( self, object, event):
+	def enter_object( self, object: object, event: object) -> None:
 		if not self._dragging:
 			if self.focused:
 				self.focused.unfocus()
@@ -326,7 +326,7 @@ class edit_mode(basic_mode):
 				self.focused.focus()
 
 
-	def leave_object( self, event):
+	def leave_object( self, event: object) -> None:
 		if self._block_leave_event:
 			return
 		if not self._dragging:
@@ -335,14 +335,14 @@ class edit_mode(basic_mode):
 				self.focused = None
 
 
-	def reposition_bonds_around_atom( self, a):
+	def reposition_bonds_around_atom( self, a: object) -> None:
 		bs = a.neighbor_edges
 		[b.redraw( recalc_side = 1) for b in bs] # if b.order == 2]
 		if isinstance( a, BkTextatom) or isinstance( a, BkAtom):
 			a.reposition_marks()
 
 
-	def reposition_bonds_around_bond( self, b):
+	def reposition_bonds_around_bond( self, b: object) -> None:
 		bs = bkchem_utils.filter_unique( b.atom1.neighbor_edges + b.atom2.neighbor_edges)
 		[b.redraw( recalc_side = 1) for b in bs if b.order == 2]
 		# all atoms to update
@@ -350,13 +350,13 @@ class edit_mode(basic_mode):
 		[a.reposition_marks() for a in atms if isinstance( a, BkAtom)]
 
 
-	def _end_of_empty_drag( self, x1, y1, x2, y2):
+	def _end_of_empty_drag( self, x1: object, y1: object, x2: object, y2: object) -> None:
 		Store.app.paper.select( [o for o in map( Store.app.paper.id_to_object,\
 													Store.app.paper.find_enclosed( x1, y1, x2, y2)) if o])
 
 
 	## METHODS FOR KEY EVENTS RESPONSES
-	def _delete_selected( self):
+	def _delete_selected( self) -> None:
 		if self.focused and self.focused.object_type == 'selection_rect' and self.focused.object in Store.app.paper.selected:
 			self.focused.unfocus()
 			self.focused = None
@@ -367,7 +367,7 @@ class edit_mode(basic_mode):
 		Store.app.paper.add_bindings()
 
 
-	def _paste_clipboard( self):
+	def _paste_clipboard( self) -> None:
 		Store.app.paper.unselect_all()
 		xy = (Store.app.paper.canvasx( Store.app.paper.winfo_pointerx() -Store.app.paper.winfo_rootx()),
 				Store.app.paper.canvasy( Store.app.paper.winfo_pointery() -Store.app.paper.winfo_rooty()))
@@ -375,7 +375,7 @@ class edit_mode(basic_mode):
 			Store.app.paper.paste_clipboard( xy)
 
 
-	def _set_name_to_selected( self, char=''):
+	def _set_name_to_selected( self, char: str = '') -> None:
 		if Store.app.paper.selected:
 			if not [i for i in Store.app.paper.selected if isinstance( i, parents.text_like)]:
 				return # well, we do not want to set text to bonds and pluses anyway
@@ -402,11 +402,11 @@ class edit_mode(basic_mode):
 			self.set_given_name_to_selected( name, interpret=Store.app.editPool.interpret)
 
 
-	def _set_old_name_to_selected( self):
+	def _set_old_name_to_selected( self) -> None:
 		self.set_given_name_to_selected( Store.app.editPool.text)
 
 
-	def set_given_name_to_selected( self, name, interpret=1):
+	def set_given_name_to_selected( self, name: object, interpret: object = 1) -> None:
 		vtype = Store.app.paper.set_name_to_selected( name, interpret=interpret)
 		# inform the user what was set
 		interactors.log_atom_type( vtype)
@@ -416,7 +416,7 @@ class edit_mode(basic_mode):
 		Store.app.paper.add_bindings()
 
 
-	def _move_selected( self, dx, dy):
+	def _move_selected( self, dx: object, dy: object) -> None:
 		Store.app.paper.select( Store.app.paper.atoms_to_update())
 		_bonds_to_update = Store.app.paper.bonds_to_update()
 		_arrows_to_update = Store.app.paper.arrows_to_update()
@@ -430,14 +430,14 @@ class edit_mode(basic_mode):
 		Store.app.paper.start_new_undo_record( name="arrow-key-move")
 
 
-	def _expand_groups( self):
+	def _expand_groups( self) -> None:
 		if self.focused:
 			self.focused.unfocus()
 			self.focused = None
 		Store.app.paper.expand_groups()
 
 
-	def add_chain( self, n):
+	def add_chain( self, n: object) -> None:
 		if not self.focused:
 			return
 		a = self.focused

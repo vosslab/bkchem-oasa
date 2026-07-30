@@ -25,7 +25,7 @@ class ModeManager(PySide6.QtCore.QObject):
 	mode_changed = PySide6.QtCore.Signal(str)
 
 	#============================================
-	def __init__(self, view, parent=None):
+	def __init__(self, view: object, parent: object = None) -> None:
 		"""Initialize the mode manager with built-in modes.
 
 		Registers edit and draw modes and sets edit as the default.
@@ -38,6 +38,7 @@ class ModeManager(PySide6.QtCore.QObject):
 		self._view = view
 		self._modes = {}
 		self._current_mode = None
+		self._disposed = False
 		# register built-in modes
 		self.register_mode(
 			"edit",
@@ -55,7 +56,7 @@ class ModeManager(PySide6.QtCore.QObject):
 	# ------------------------------------------------------------------
 
 	#============================================
-	def register_mode(self, name: str, mode) -> None:
+	def register_mode(self, name: str, mode: object) -> None:
 		"""Register a mode under a given name.
 
 		Args:
@@ -89,7 +90,7 @@ class ModeManager(PySide6.QtCore.QObject):
 
 	#============================================
 	@property
-	def current_mode(self):
+	def current_mode(self) -> object:
 		"""Return the currently active BaseMode instance.
 
 		Returns:
@@ -106,12 +107,43 @@ class ModeManager(PySide6.QtCore.QObject):
 		"""
 		return list(self._modes.keys())
 
+	#============================================
+	def dispose(self) -> None:
+		"""Deactivate and queue every Python-backed mode independently.
+
+		Deleting a Python ``QObject`` parent can recursively destroy its Python
+		children while Shiboken is deallocating the parent's attribute graph.
+		Detach the registered modes first and retain their wrappers in
+		``_modes`` until the manager's later deferred deletion.
+		"""
+		if self._disposed:
+			return
+		self._disposed = True
+		if self._current_mode is not None:
+			self._current_mode.deactivate()
+		self._current_mode = None
+		for mode in self._modes.values():
+			mode.setParent(None)
+			mode.deleteLater()
+
+	#============================================
+	def release_python_references(self) -> None:
+		"""Break mode-to-view references after an external owner retains roots."""
+		for mode in self._modes.values():
+			mode._view = None
+			environment = getattr(mode, "_env", None)
+			if environment is not None:
+				environment._view = None
+		self._modes.clear()
+		self._current_mode = None
+		self._view = None
+
 	# ------------------------------------------------------------------
 	# Event dispatch
 	# ------------------------------------------------------------------
 
 	#============================================
-	def mouse_press(self, scene_pos: PySide6.QtCore.QPointF, event) -> None:
+	def mouse_press(self, scene_pos: PySide6.QtCore.QPointF, event: object) -> None:
 		"""Dispatch a mouse press event to the active mode.
 
 		Args:
@@ -122,7 +154,7 @@ class ModeManager(PySide6.QtCore.QObject):
 			self._current_mode.mouse_press(scene_pos, event)
 
 	#============================================
-	def mouse_release(self, scene_pos: PySide6.QtCore.QPointF, event) -> None:
+	def mouse_release(self, scene_pos: PySide6.QtCore.QPointF, event: object) -> None:
 		"""Dispatch a mouse release event to the active mode.
 
 		Args:
@@ -133,7 +165,7 @@ class ModeManager(PySide6.QtCore.QObject):
 			self._current_mode.mouse_release(scene_pos, event)
 
 	#============================================
-	def mouse_move(self, scene_pos: PySide6.QtCore.QPointF, event) -> None:
+	def mouse_move(self, scene_pos: PySide6.QtCore.QPointF, event: object) -> None:
 		"""Dispatch a mouse move event to the active mode.
 
 		Args:
@@ -144,7 +176,7 @@ class ModeManager(PySide6.QtCore.QObject):
 			self._current_mode.mouse_move(scene_pos, event)
 
 	#============================================
-	def mouse_press3(self, scene_pos: PySide6.QtCore.QPointF, event) -> None:
+	def mouse_press3(self, scene_pos: PySide6.QtCore.QPointF, event: object) -> None:
 		"""Dispatch a right-click (button-3) press event to the active mode.
 
 		Args:
@@ -155,7 +187,7 @@ class ModeManager(PySide6.QtCore.QObject):
 			self._current_mode.mouse_press3(scene_pos, event)
 
 	#============================================
-	def mouse_double_click(self, scene_pos: PySide6.QtCore.QPointF, event) -> None:
+	def mouse_double_click(self, scene_pos: PySide6.QtCore.QPointF, event: object) -> None:
 		"""Dispatch a mouse double-click event to the active mode.
 
 		Args:
@@ -166,7 +198,7 @@ class ModeManager(PySide6.QtCore.QObject):
 			self._current_mode.mouse_double_click(scene_pos, event)
 
 	#============================================
-	def key_press(self, event) -> None:
+	def key_press(self, event: object) -> None:
 		"""Dispatch a key press event to the active mode.
 
 		Args:
@@ -176,7 +208,7 @@ class ModeManager(PySide6.QtCore.QObject):
 			self._current_mode.key_press(event)
 
 	#============================================
-	def key_release(self, event) -> None:
+	def key_release(self, event: object) -> None:
 		"""Dispatch a key release event to the active mode.
 
 		Args:

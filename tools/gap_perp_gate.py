@@ -124,7 +124,7 @@ def get_repo_root() -> pathlib.Path:
 
 
 #============================================
-def _round_or_none(value, decimals: int = 2):
+def _round_or_none(value: object, decimals: int = 2) -> object:
 	"""Round a float or return None."""
 	if value is None:
 		return None

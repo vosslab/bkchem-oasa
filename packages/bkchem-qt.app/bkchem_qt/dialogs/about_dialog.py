@@ -4,7 +4,9 @@
 import PySide6.QtCore
 import PySide6.QtWidgets
 
-VERSION = "26.02a1"
+# local repo modules
+import bkchem_qt.versioning
+
 
 
 #============================================
@@ -19,7 +21,7 @@ class AboutDialog(PySide6.QtWidgets.QDialog):
 	"""
 
 	#============================================
-	def __init__(self, parent=None):
+	def __init__(self, parent: object | None = None) -> None:
 		"""Initialize the about dialog.
 
 		Args:
@@ -47,7 +49,7 @@ class AboutDialog(PySide6.QtWidgets.QDialog):
 
 		# version
 		version_label = PySide6.QtWidgets.QLabel(
-			self.tr("Version %1").arg(VERSION)
+			self.tr("Version %1").arg(bkchem_qt.versioning.application_version())
 		)
 		version_label.setAlignment(PySide6.QtCore.Qt.AlignmentFlag.AlignCenter)
 		layout.addWidget(version_label)
@@ -100,7 +102,7 @@ class AboutDialog(PySide6.QtWidgets.QDialog):
 
 	#============================================
 	@staticmethod
-	def show_about(parent=None) -> None:
+	def show_about(parent: object | None = None) -> None:
 		"""Show the about dialog.
 
 		Args:

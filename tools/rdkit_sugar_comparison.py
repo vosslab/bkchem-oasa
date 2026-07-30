@@ -50,7 +50,8 @@ def get_repo_root() -> pathlib.Path:
 
 
 #============================================
-def load_oasa_modules(repo_root: pathlib.Path):
+def load_oasa_modules(
+		repo_root: pathlib.Path) -> tuple[object, object, object, object]:
 	"""Load OASA modules needed for rendering."""
 	try:
 		import oasa.dom_extensions as dom_extensions
@@ -121,7 +122,7 @@ def _svg_tag_name(tag: str) -> str:
 
 
 #============================================
-def _bbox_from_generated_svg(root) -> list:
+def _bbox_from_generated_svg(root: object) -> list:
 	"""Approximate bbox for generated Haworth SVG primitives."""
 	bbox = None
 	for element in root.iter():
@@ -200,9 +201,9 @@ def _normalize_generated_svg(
 
 #============================================
 def render_haworth_svg(
-		dom_extensions,
-		haworth_renderer,
-		render_ops,
+		dom_extensions: object,
+		haworth_renderer: object,
+		render_ops: object,
 		code: str,
 		ring_type: str,
 		anomeric: str,
@@ -502,10 +503,10 @@ def build_html(
 #============================================
 def render_all_comparisons(
 		sugar_data: dict,
-		dom_ext,
-		haworth_renderer,
-		render_ops_mod,
-		sugar_code_smiles_mod,
+		dom_ext: object,
+		haworth_renderer: object,
+		render_ops_mod: object,
+		sugar_code_smiles_mod: object,
 		svg_dir: pathlib.Path,
 		output_dir: pathlib.Path) -> dict:
 	"""Render Haworth + RDKit SVGs for all sugar codes.

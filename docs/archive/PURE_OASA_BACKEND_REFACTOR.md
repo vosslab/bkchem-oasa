@@ -184,7 +184,7 @@ If CDML v2 is introduced:
 - The migration path is: open v1 file -> save -> file is now v2. No batch
   converter needed.
 - Document the v2 schema changes in
-  [docs/CDML_ARCHITECTURE_PLAN.md](docs/CDML_ARCHITECTURE_PLAN.md).
+  [CDML_ARCHITECTURE_PLAN.md](CDML_ARCHITECTURE_PLAN.md).
 
 The Phase B depiction audit produces the evidence for this decision. Do not
 pre-commit to v2; let the audit determine whether the changes are additive or
@@ -230,7 +230,7 @@ Today BKChem violates this architecture in several ways:
 What already works toward the target:
 
 - The codec registry
-  ([packages/oasa/oasa/codec_registry.py](packages/oasa/oasa/codec_registry.py))
+  ([codec_registry.py](../../packages/oasa/oasa/codec_registry.py))
   centralizes format I/O for SMILES, InChI, molfile, CDML, CML, CML2, and
   CDXML.
 - CML/CML2/CDXML plugins are thin bridge wrappers that can be deleted.
@@ -238,7 +238,7 @@ What already works toward the target:
   intermediate render-ops layer (`render_ops.py`) with `LineOp`, `PolygonOp`,
   `CircleOp`, `PathOp`, and `TextOp`.
 - The
-  [docs/RENDER_BACKEND_UNIFICATION.md](docs/RENDER_BACKEND_UNIFICATION.md)
+  [RENDER_BACKEND_UNIFICATION.md](RENDER_BACKEND_UNIFICATION.md)
   plan defines the ops spec, geometry producers, and thin painters.
 
 ---
@@ -727,7 +727,7 @@ not the file extension. No menu disambiguation is needed.
 validated. GTML retention level is decided and documented.
 
 Phase B deliverables and decisions are documented in
-[docs/archive/PHASE_B_AUDIT.md](docs/archive/PHASE_B_AUDIT.md).
+[PHASE_B_AUDIT.md](PHASE_B_AUDIT.md).
 
 #### B1: Option inventory and classification
 
@@ -772,7 +772,7 @@ arrows, plus signs). CDML is the modern equivalent.
 - Inventory any features GTML supports that CDML does not.
 - If CDML covers everything: GTML is import-only for legacy file recovery.
 - If CDML is missing features: file items in
-  [docs/TODO_CODE.md](docs/TODO_CODE.md) for CDML/OASA extensions.
+  [TODO_CODE.md](../TODO_CODE.md) for CDML/OASA extensions.
 
 #### Phase B done checks
 
@@ -801,7 +801,7 @@ arrows, plus signs). CDML is the modern equivalent.
 No Tk canvas item walking. No `tk2cairo.py`.
 
 This phase depends on the render-ops unification described in
-[docs/RENDER_BACKEND_UNIFICATION.md](docs/RENDER_BACKEND_UNIFICATION.md).
+[RENDER_BACKEND_UNIFICATION.md](RENDER_BACKEND_UNIFICATION.md).
 
 #### Current rendering pipeline (to be replaced)
 
@@ -950,57 +950,57 @@ smoke tests.
 
 ## Related documents
 
-- [docs/CODEC_REGISTRY_PLAN.md](docs/CODEC_REGISTRY_PLAN.md): Codec registry
+- [CODEC_REGISTRY_PLAN.md](CODEC_REGISTRY_PLAN.md): Codec registry
   phases 0-5 (all complete). This refactor is the next evolution.
-- [docs/RENDER_BACKEND_UNIFICATION.md](docs/RENDER_BACKEND_UNIFICATION.md):
+- [RENDER_BACKEND_UNIFICATION.md](RENDER_BACKEND_UNIFICATION.md):
   Render-ops spec, geometry producers, thin painters. Phase C depends on
   and extends that work.
-- [docs/CDML_ARCHITECTURE_PLAN.md](docs/CDML_ARCHITECTURE_PLAN.md): BKChem
+- [CDML_ARCHITECTURE_PLAN.md](CDML_ARCHITECTURE_PLAN.md): BKChem
   owns CDML-as-document, OASA owns CDML-as-chemistry. Phase B evaluates
   whether GTML can retire in favor of CDML.
-- [docs/MODULAR_MENU_ARCHITECTURE.md](docs/MODULAR_MENU_ARCHITECTURE.md):
+- [MODULAR_MENU_ARCHITECTURE.md](MODULAR_MENU_ARCHITECTURE.md):
   Proposes moving format handlers to OASA and chemistry tools to modular
   built-ins. Phase A implements the format handler portion.
-- [docs/CUSTOM_PLUGINS.md](docs/CUSTOM_PLUGINS.md): Current plugin contract
+- `CUSTOM_PLUGINS.md`: Current plugin contract
   documentation. Will be superseded by the YAML manifest spec.
-- [docs/TODO_CODE.md](docs/TODO_CODE.md): Contains related backlog items
+- [TODO_CODE.md](../TODO_CODE.md): Contains related backlog items
   (legacy PostScript removal, RDKit/Open Babel evaluation).
 
 ## Key files
 
 ### OASA (backend)
 
-- [packages/oasa/oasa/codec_registry.py](packages/oasa/oasa/codec_registry.py):
+- [codec_registry.py](../../packages/oasa/oasa/codec_registry.py):
   Codec registry with `Codec` class, `register_codec()`, `get_codec()`.
-- [packages/oasa/oasa/render_ops.py](packages/oasa/oasa/render_ops.py):
+- [render_ops.py](../../packages/oasa/oasa/render_ops.py):
   Render op dataclasses (`LineOp`, `PolygonOp`, `CircleOp`, `PathOp`,
   `TextOp`) and JSON serialization.
-- [packages/oasa/oasa/render_geometry.py](packages/oasa/oasa/render_geometry.py):
+- `render_geometry.py`:
   Bond geometry producer, `BondRenderContext`.
-- [packages/oasa/oasa/svg_out.py](packages/oasa/oasa/svg_out.py): SVG renderer.
-- [packages/oasa/oasa/cairo_out.py](packages/oasa/oasa/cairo_out.py): Cairo
+- [svg_out.py](../../packages/oasa/oasa/svg_out.py): SVG renderer.
+- [cairo_out.py](../../packages/oasa/oasa/cairo_out.py): Cairo
   renderer (PNG, PDF, SVG, PostScript via Cairo).
-- [packages/oasa/oasa/render_out.py](packages/oasa/oasa/render_out.py):
+- [render_out.py](../../packages/oasa/oasa/render_out.py):
   Multi-format entry point.
-- [packages/oasa/oasa/codecs/](packages/oasa/oasa/codecs/): CML, CML2, CDXML
+- `codecs`: CML, CML2, CDXML
   codec modules.
 
 ### BKChem (GUI shell)
 
-- [packages/bkchem-app/bkchem/oasa_bridge.py](packages/bkchem-app/bkchem/oasa_bridge.py):
+- `oasa_bridge.py`:
   Bridge layer with generic `_read_codec_file_to_bkchem_mols()` and
   `_write_codec_file_from_bkchem_paper()`.
-- [packages/bkchem-app/bkchem/plugins/__init__.py](packages/bkchem-app/bkchem/plugins/__init__.py):
+- `__init__.py`:
   Current plugin loader (to be replaced).
-- [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py):
+- [main.py](../../packages/bkchem-app/bkchem/main.py):
   `init_plugins_menu()`, `plugin_import()`, `plugin_export()` (to be
   replaced).
 
 ### Tests
 
-- [tests/test_codec_registry.py](tests/test_codec_registry.py): OASA codec
+- [test_codec_registry.py](../../packages/oasa/tests/test_codec_registry.py): OASA codec
   registry unit tests.
-- [tests/test_codec_registry_bkchem_bridge.py](tests/test_codec_registry_bkchem_bridge.py):
+- [test_codec_registry_bkchem_bridge.py](../../packages/bkchem-app/tests/test_codec_registry_bkchem_bridge.py):
   Bridge function tests.
-- [tests/test_codec_registry_bkchem_plugins.py](tests/test_codec_registry_bkchem_plugins.py):
+- `test_codec_registry_bkchem_plugins.py`:
   Plugin routing tests (rewritten in Phase A).

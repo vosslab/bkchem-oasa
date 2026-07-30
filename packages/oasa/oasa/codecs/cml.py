@@ -21,14 +21,14 @@ _STEREO_TO_TYPE = {"W": "w", "H": "h"}
 
 
 #============================================
-def _safe_text(value):
+def _safe_text(value: object) -> str:
 	if value is None:
 		return ""
 	return str(value).strip()
 
 
 #============================================
-def _safe_float(value, default=0.0):
+def _safe_float(value: object, default: object=0.0) -> float:
 	text = _safe_text(value)
 	if not text:
 		return float(default)
@@ -39,7 +39,7 @@ def _safe_float(value, default=0.0):
 
 
 #============================================
-def _safe_int(value, default=0):
+def _safe_int(value: object, default: object=0) -> int:
 	text = _safe_text(value)
 	if not text:
 		return int(default)
@@ -50,7 +50,7 @@ def _safe_int(value, default=0):
 
 
 #============================================
-def _normalize_symbol(symbol_text):
+def _normalize_symbol(symbol_text: object) -> str:
 	text = _safe_text(symbol_text)
 	if not text:
 		return "C"
@@ -61,7 +61,7 @@ def _normalize_symbol(symbol_text):
 
 
 #============================================
-def _read_cml1_atom(atom_node):
+def _read_cml1_atom(atom_node: object) -> object:
 	atom_id = _safe_text(atom_node.getAttribute("id"))
 	symbol = ""
 	x_value = 0.0
@@ -88,7 +88,7 @@ def _read_cml1_atom(atom_node):
 
 
 #============================================
-def _read_cml2_atom(atom_node):
+def _read_cml2_atom(atom_node: object) -> object:
 	atom_id = _safe_text(atom_node.getAttribute("id"))
 	symbol = _safe_text(atom_node.getAttribute("elementType"))
 	x_value = _safe_float(atom_node.getAttribute("x2"))
@@ -103,14 +103,14 @@ def _read_cml2_atom(atom_node):
 
 
 #============================================
-def _read_atom(atom_node):
+def _read_atom(atom_node: object) -> object:
 	if atom_node.hasAttribute("elementType") or atom_node.hasAttribute("x2"):
 		return _read_cml2_atom(atom_node)
 	return _read_cml1_atom(atom_node)
 
 
 #============================================
-def _read_cml1_bond(bond_node):
+def _read_cml1_bond(bond_node: object) -> tuple:
 	atom_refs = []
 	order = 1
 	stereo = "n"
@@ -136,7 +136,7 @@ def _read_cml1_bond(bond_node):
 
 
 #============================================
-def _read_cml2_bond(bond_node):
+def _read_cml2_bond(bond_node: object) -> tuple:
 	refs_text = _safe_text(bond_node.getAttribute("atomRefs2"))
 	refs = [part for part in refs_text.split() if part]
 	if len(refs) < 2:
@@ -160,14 +160,14 @@ def _read_cml2_bond(bond_node):
 
 
 #============================================
-def _read_bond(bond_node):
+def _read_bond(bond_node: object) -> tuple:
 	if bond_node.hasAttribute("atomRefs2"):
 		return _read_cml2_bond(bond_node)
 	return _read_cml1_bond(bond_node)
 
 
 #============================================
-def _collect_direct_children(parent_node, tag_name):
+def _collect_direct_children(parent_node: object, tag_name: object) -> list:
 	return [
 		node for node in parent_node.childNodes
 		if node.nodeType == node.ELEMENT_NODE and node.nodeName == tag_name
@@ -175,7 +175,7 @@ def _collect_direct_children(parent_node, tag_name):
 
 
 #============================================
-def _parse_molecule(molecule_node):
+def _parse_molecule(molecule_node: object) -> object:
 	out = molecule()
 	atom_id_map = {}
 	atom_nodes = []
@@ -218,7 +218,7 @@ def _parse_molecule(molecule_node):
 
 
 #============================================
-def _merge_molecules(molecules):
+def _merge_molecules(molecules: object) -> object | None:
 	if not molecules:
 		return None
 	if len(molecules) == 1:
@@ -238,7 +238,7 @@ def _merge_molecules(molecules):
 
 
 #============================================
-def _collect_molecules_from_text(text):
+def _collect_molecules_from_text(text: object) -> list:
 	document = safe_xml.parse_dom_from_string(text)
 	molecule_nodes = document.getElementsByTagName("molecule")
 	result = []
@@ -250,13 +250,13 @@ def _collect_molecules_from_text(text):
 
 
 #============================================
-def text_to_mol(text, version=_VERSION_1):
+def text_to_mol(text: object, version: object=_VERSION_1) -> object | None:
 	_ = version
 	molecules = _collect_molecules_from_text(text)
 	return _merge_molecules(molecules)
 
 
 #============================================
-def file_to_mol(file_obj, version=_VERSION_1):
+def file_to_mol(file_obj: object, version: object=_VERSION_1) -> object | None:
 	text = file_obj.read()
 	return text_to_mol(text, version=version)

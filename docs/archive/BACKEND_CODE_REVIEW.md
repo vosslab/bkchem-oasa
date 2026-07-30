@@ -3,10 +3,10 @@
 ## Scope
 
 Recent backend-facing changes reviewed here:
-- [packages/oasa/oasa/selftest_sheet.py](packages/oasa/oasa/selftest_sheet.py)
-- [packages/oasa/oasa/render_ops.py](packages/oasa/oasa/render_ops.py)
-- [packages/oasa/oasa/render_out.py](packages/oasa/oasa/render_out.py)
-- [packages/oasa/oasa/svg_out.py](packages/oasa/oasa/svg_out.py)
+- [selftest_sheet.py](../../tools/selftest_sheet.py)
+- [render_ops.py](../../packages/oasa/oasa/render_ops.py)
+- [render_out.py](../../packages/oasa/oasa/render_out.py)
+- [svg_out.py](../../packages/oasa/oasa/svg_out.py)
 
 ## Overall quality
 
@@ -26,7 +26,7 @@ approximate and are not covered by targeted tests.
   layout, background geometry, and atom coloring instead of using a shared
   molecule-to-ops pipeline. This is a direct maintenance risk and can silently
   desynchronize the selftest from the actual renderer outputs. See
-  [packages/oasa/oasa/selftest_sheet.py](packages/oasa/oasa/selftest_sheet.py)
+  [selftest_sheet.py](../../tools/selftest_sheet.py)
   lines 688-776.
 
 ### Medium
@@ -35,12 +35,12 @@ approximate and are not covered by targeted tests.
   bbox math uses `len(text) * font_size * 0.6` for TextOp width, which can
   under- or over-estimate widths and cause layout drift across backends or
   fonts. This affects vignette layout determinism whenever text ops are part of
-  the bbox. See [packages/oasa/oasa/selftest_sheet.py](packages/oasa/oasa/selftest_sheet.py)
+  the bbox. See [selftest_sheet.py](../../tools/selftest_sheet.py)
   lines 115-135.
 - Cairo text anchoring ignores font bearings. `ops_to_cairo()` uses
   `text_extents().width` for anchor adjustment but does not account for
   `x_bearing`, which can misalign text for fonts with negative bearings. See
-  [packages/oasa/oasa/render_ops.py](packages/oasa/oasa/render_ops.py)
+  [render_ops.py](../../packages/oasa/oasa/render_ops.py)
   lines 515-528.
 
 ### Low
@@ -48,7 +48,7 @@ approximate and are not covered by targeted tests.
 - Text ops are not covered by snapshot or painter-specific tests. The existing
   ops snapshot test does not include TextOp instances, so new regressions in
   `ops_to_svg()` or `ops_to_cairo()` for text would not be detected. See
-  [packages/oasa/oasa/render_ops.py](packages/oasa/oasa/render_ops.py)
+  [render_ops.py](../../packages/oasa/oasa/render_ops.py)
   lines 395-407 and 515-528.
 
 ## Recommended next steps

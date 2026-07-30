@@ -12,7 +12,7 @@ import PySide6.QtGui
 
 
 #============================================
-def test_theme_toggle_changes_palette(qapp, theme_manager):
+def test_theme_toggle_changes_palette(qapp: object, theme_manager: object) -> None:
 	"""Verify apply_theme switches palette Window color to match YAML values."""
 	# apply dark theme and check palette
 	theme_manager.apply_theme('dark')
@@ -29,7 +29,7 @@ def test_theme_toggle_changes_palette(qapp, theme_manager):
 
 
 #============================================
-def test_theme_toggle_roundtrip(qapp, theme_manager):
+def test_theme_toggle_roundtrip(qapp: object, theme_manager: object) -> None:
 	"""Verify dark -> light -> dark roundtrip preserves palette colors."""
 	theme_manager.apply_theme('dark')
 	theme_manager.apply_theme('light')

@@ -149,7 +149,7 @@ def parse_generated_key(path: pathlib.Path) -> tuple[str, str, str] | None:
 
 
 #============================================
-def _load_oasa_modules(repo_root: pathlib.Path):
+def _load_oasa_modules(repo_root: pathlib.Path) -> object:
 	"""Load OASA modules needed for rendering generated previews."""
 	try:
 		import oasa.dom_extensions as dom_extensions
@@ -218,7 +218,7 @@ def _render_generated_preview_svg(
 
 
 #============================================
-def _validate_ops_strict(repo_root: pathlib.Path, render_ops_module, ops: list, context: str) -> None:
+def _validate_ops_strict(repo_root: pathlib.Path, render_ops_module: object, ops: list, context: str) -> None:
 	"""Fail on strict overlap checks for one rendered ops list."""
 	try:
 		import oasa.haworth_renderer as haworth_renderer
@@ -619,7 +619,7 @@ def _update_bbox(
 
 
 #============================================
-def _bbox_from_generated_svg(root) -> list[float] | None:
+def _bbox_from_generated_svg(root: object) -> list[float] | None:
 	"""Approximate bbox for generated Haworth SVG primitives."""
 	bbox = None
 	for element in root.iter():

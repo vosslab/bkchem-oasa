@@ -6,7 +6,7 @@
 
 
 #============================================
-def merge_molecules(molecules):
+def merge_molecules(molecules: object) -> object:
 	"""Merge molecules into one disconnected graph."""
 	if not molecules:
 		return None

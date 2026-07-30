@@ -112,7 +112,7 @@ def _select_key_letter(alpha_chars: list, position: str) -> str | None:
 #============================================
 def analyze_svg_file(
 		svg_path: pathlib.Path,
-		render_geometry=None,
+		render_geometry: object | None = None,
 		exclude_haworth_base_ring: bool = True,
 		bond_glyph_gap_tolerance: float = BOND_GLYPH_GAP_TOLERANCE,
 		write_diagnostic_svg: bool = False,

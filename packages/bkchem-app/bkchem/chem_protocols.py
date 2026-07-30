@@ -6,13 +6,10 @@ the public API of oasa.graph.vertex, oasa.graph.edge, oasa.graph.graph,
 oasa.chem_vertex, oasa.atom, oasa.bond, and oasa.molecule.
 """
 
-# Standard Library
-import typing
-
+from __future__ import annotations
 
 #============================================
-@typing.runtime_checkable
-class ChemVertexProtocol(typing.Protocol):
+class ChemVertexProtocol:
 	"""Protocol for chemistry vertex objects.
 
 	Covers the interface from oasa.graph.vertex, oasa.chem_vertex,
@@ -22,14 +19,14 @@ class ChemVertexProtocol(typing.Protocol):
 
 	# --- graph.vertex attributes ---
 	properties_: dict
-	value: typing.Any
+	value: object
 	_neighbors: dict
 
 	# --- chem_vertex attributes ---
 	charge: int
-	x: typing.Optional[float]
-	y: typing.Optional[float]
-	z: typing.Optional[float]
+	x: float | None
+	y: float | None
+	z: float | None
 	multiplicity: int
 	valency: int
 	free_sites: int
@@ -37,7 +34,7 @@ class ChemVertexProtocol(typing.Protocol):
 	# --- atom attributes ---
 	symbol: str
 	symbol_number: int
-	isotope: typing.Optional[int]
+	isotope: int | None
 	explicit_hydrogens: int
 
 	# --- graph.vertex computed properties ---
@@ -77,11 +74,11 @@ class ChemVertexProtocol(typing.Protocol):
 
 	def get_edge_leading_to(
 		self, a: "ChemVertexProtocol"
-	) -> typing.Optional["ChemEdgeProtocol"]:
+	) -> "ChemEdgeProtocol" | None:
 		"""Return the edge connecting self to vertex a, or None."""
 		...
 
-	def get_neighbor_edge_pairs(self) -> typing.Iterator:
+	def get_neighbor_edge_pairs(self) -> object:
 		"""Yield (edge, vertex) pairs for active neighbors."""
 		...
 
@@ -165,8 +162,7 @@ class ChemVertexProtocol(typing.Protocol):
 
 
 #============================================
-@typing.runtime_checkable
-class ChemEdgeProtocol(typing.Protocol):
+class ChemEdgeProtocol:
 	"""Protocol for chemistry edge (bond) objects.
 
 	Covers the interface from oasa.graph.edge and oasa.bond.
@@ -180,13 +176,13 @@ class ChemEdgeProtocol(typing.Protocol):
 	disconnected: bool
 
 	# --- bond attributes ---
-	_order: typing.Optional[int]
-	aromatic: typing.Optional[int]
+	_order: int | None
+	aromatic: int | None
 	type: str
-	stereochemistry: typing.Any
-	line_color: typing.Optional[str]
-	wavy_style: typing.Optional[str]
-	center: typing.Optional[bool]
+	stereochemistry: object
+	line_color: str | None
+	wavy_style: str | None
+	center: bool | None
 
 	# --- graph.edge properties ---
 
@@ -246,8 +242,7 @@ class ChemEdgeProtocol(typing.Protocol):
 
 
 #============================================
-@typing.runtime_checkable
-class ChemGraphProtocol(typing.Protocol):
+class ChemGraphProtocol:
 	"""Protocol for chemistry graph (molecule) objects.
 
 	Covers the interface from oasa.graph.graph and oasa.molecule.
@@ -267,7 +262,7 @@ class ChemGraphProtocol(typing.Protocol):
 
 	# --- factory methods ---
 
-	def create_vertex(self, vertex_class: typing.Optional[type] = None) -> ChemVertexProtocol:
+	def create_vertex(self, vertex_class: type | None = None) -> ChemVertexProtocol:
 		"""Create and return a new vertex (atom)."""
 		...
 
@@ -281,7 +276,7 @@ class ChemGraphProtocol(typing.Protocol):
 
 	# --- graph mutation ---
 
-	def add_vertex(self, v: typing.Optional[ChemVertexProtocol] = None) -> typing.Optional[ChemVertexProtocol]:
+	def add_vertex(self, v: ChemVertexProtocol | None = None) -> ChemVertexProtocol | None:
 		"""Add a vertex to the graph. Return the vertex or None if duplicate."""
 		...
 
@@ -289,8 +284,8 @@ class ChemGraphProtocol(typing.Protocol):
 		self,
 		v1: ChemVertexProtocol,
 		v2: ChemVertexProtocol,
-		e: typing.Optional[ChemEdgeProtocol] = None,
-	) -> typing.Optional[ChemEdgeProtocol]:
+		e: ChemEdgeProtocol | None = None,
+	) -> ChemEdgeProtocol | None:
 		"""Add an edge between v1 and v2. Return the edge or None on failure."""
 		...
 
@@ -304,7 +299,7 @@ class ChemGraphProtocol(typing.Protocol):
 
 	def disconnect(
 		self, v1: ChemVertexProtocol, v2: ChemVertexProtocol
-	) -> typing.Optional[ChemEdgeProtocol]:
+	) -> ChemEdgeProtocol | None:
 		"""Remove the edge between v1 and v2. Return the edge or None."""
 		...
 
@@ -320,7 +315,7 @@ class ChemGraphProtocol(typing.Protocol):
 
 	def get_edge_between(
 		self, v1: ChemVertexProtocol, v2: ChemVertexProtocol
-	) -> typing.Optional[ChemEdgeProtocol]:
+	) -> ChemEdgeProtocol | None:
 		"""Return the edge between v1 and v2, or None."""
 		...
 
@@ -332,7 +327,7 @@ class ChemGraphProtocol(typing.Protocol):
 		"""Return 1 if edge is a bridge, else 0."""
 		...
 
-	def get_connected_components(self) -> typing.Iterator:
+	def get_connected_components(self) -> object:
 		"""Yield sets of vertices for each connected component."""
 		...
 
@@ -384,11 +379,11 @@ class ChemGraphProtocol(typing.Protocol):
 
 	# --- molecule-specific ---
 
-	def add_stereochemistry(self, stereo: typing.Any) -> None:
+	def add_stereochemistry(self, stereo: object) -> None:
 		"""Add a stereochemistry descriptor."""
 		...
 
-	def remove_stereochemistry(self, stereo: typing.Any) -> None:
+	def remove_stereochemistry(self, stereo: object) -> None:
 		"""Remove a stereochemistry descriptor."""
 		...
 
@@ -414,7 +409,7 @@ class ChemGraphProtocol(typing.Protocol):
 		self,
 		start: ChemVertexProtocol,
 		end: ChemVertexProtocol,
-		dont_go_through: typing.Optional[list] = None,
-	) -> typing.Optional[list]:
+		dont_go_through: list | None = None,
+	) -> list | None:
 		"""Find a path between start and end vertices."""
 		...

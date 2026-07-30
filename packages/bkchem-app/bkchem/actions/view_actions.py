@@ -5,7 +5,7 @@ from bkchem.actions.action_registry import MenuAction
 
 
 #============================================
-def register_view_actions(registry, app) -> None:
+def register_view_actions(registry: object, app: object) -> None:
 	"""Register all View menu actions.
 
 	Args:

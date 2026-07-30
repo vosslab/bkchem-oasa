@@ -23,7 +23,7 @@ class BkBalloon:
 	# delay in milliseconds before showing the tooltip
 	_DELAY_MS: int = 500
 
-	def __init__(self, parent: tkinter.Tk, statuscommand=None):
+	def __init__(self, parent: tkinter.Tk, statuscommand: object=None) -> None:
 		"""Initialize the balloon tooltip manager.
 
 		Args:

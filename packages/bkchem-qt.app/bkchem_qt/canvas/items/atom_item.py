@@ -20,6 +20,12 @@ _SELECTION_PEN_WIDTH = 1.5
 _HOVER_PEN_WIDTH = 1.0
 # z-value for atom items (above bonds)
 ATOM_Z_VALUE = 10
+# Number labels are a model projection, so they are children of their atom and
+# naturally follow atom movement without becoming independent document items.
+_NUMBER_FONT_FAMILY = "Arial"
+_NUMBER_FONT_SIZE = 9
+_NUMBER_OFFSET_X = 8.0
+_NUMBER_OFFSET_Y = -12.0
 
 
 #============================================
@@ -37,7 +43,7 @@ class AtomItem(PySide6.QtWidgets.QGraphicsItem):
 	"""
 
 	#============================================
-	def __init__(self, atom_model: AtomModel, parent: PySide6.QtWidgets.QGraphicsItem = None):
+	def __init__(self, atom_model: AtomModel, parent: PySide6.QtWidgets.QGraphicsItem = None) -> None:
 		"""Initialize the atom item from an AtomModel.
 
 		Args:
@@ -52,6 +58,9 @@ class AtomItem(PySide6.QtWidgets.QGraphicsItem):
 		self._bounding_rect = PySide6.QtCore.QRectF()
 		# hover state tracked locally
 		self._hovered = False
+		# Keep a direct reference rather than discovering child graphics items by
+		# a data tag. The model is the single source of truth for numbering.
+		self._number_label: PySide6.QtWidgets.QGraphicsSimpleTextItem | None = None
 		# configure item flags
 		self.setFlag(PySide6.QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, True)
 		self.setAcceptHoverEvents(True)
@@ -61,6 +70,7 @@ class AtomItem(PySide6.QtWidgets.QGraphicsItem):
 		self.setPos(atom_model.x, atom_model.y)
 		# connect model change signal
 		atom_model.property_changed.connect(self._on_property_changed)
+		self._model_signal_connected = True
 		# build initial render ops
 		self.update_from_model()
 
@@ -91,13 +101,6 @@ class AtomItem(PySide6.QtWidgets.QGraphicsItem):
 			option: Style options (unused beyond selection state).
 			widget: Target widget (unused).
 		"""
-		# paint paper-colored mask behind the label to hide any bond lines
-		# that extend under the glyph; kept as phase-1 safety net while bond
-		# endpoint clipping is validated against Qt font metrics
-		if self._ops:
-			painter.setPen(PySide6.QtCore.Qt.PenStyle.NoPen)
-			painter.setBrush(render_ops_painter._default_area_color)
-			painter.drawRect(self._bounding_rect)
 		# draw selection highlight behind atom ops
 		if self.isSelected():
 			pen = PySide6.QtGui.QPen(PySide6.QtGui.QColor(render_ops_painter.get_canvas_color("selection")))
@@ -180,20 +183,13 @@ class AtomItem(PySide6.QtWidgets.QGraphicsItem):
 		saved_y = chem_atom.y
 		chem_atom.x = 0.0
 		chem_atom.y = 0.0
-		self._ops = oasa.render_lib.molecule_ops.build_vertex_ops(
-			chem_atom,
-			transform_xy=None,
-			show_hydrogens_on_hetero=self._atom_model.show_hydrogens,
-			color_atoms=True,
-			atom_colors=None,
-			font_name="Arial",
-			font_size=self._atom_model.font_size,
-		)
+		self._ops = _build_atom_ops(chem_atom, self._atom_model)
 		# restore chem_atom coords
 		chem_atom.x = saved_x
 		chem_atom.y = saved_y
 		# recompute bounding rect from ops
 		self._bounding_rect = _bounding_rect_from_ops(self._ops)
+		self._sync_number_label()
 		self.update()
 
 	#============================================
@@ -206,8 +202,52 @@ class AtomItem(PySide6.QtWidgets.QGraphicsItem):
 		"""
 		if name in ("x", "y"):
 			self.setPos(self._atom_model.x, self._atom_model.y)
+		if name in ("number", "show_number"):
+			self._sync_number_label()
 		# regenerate ops for any visual change
 		self.update_from_model()
+
+	#============================================
+	def _sync_number_label(self) -> None:
+		"""Create, update, or hide the attached number label from model state."""
+		number = self._atom_model.number
+		visible = number is not None and self._atom_model.show_number
+		if not visible:
+			self._hide_number_label()
+			return
+		if self._number_label is None:
+			label = PySide6.QtWidgets.QGraphicsSimpleTextItem(parent=self)
+			font = PySide6.QtGui.QFont(_NUMBER_FONT_FAMILY, _NUMBER_FONT_SIZE)
+			label.setFont(font)
+			label.setBrush(PySide6.QtGui.QBrush(PySide6.QtGui.QColor(0, 0, 200)))
+			label.setPos(_NUMBER_OFFSET_X, _NUMBER_OFFSET_Y)
+			self._number_label = label
+		self._number_label.setVisible(True)
+		self._number_label.setText(str(number))
+
+	#============================================
+	def _hide_number_label(self) -> None:
+		"""Keep an optional label attached until its parent crosses retirement."""
+		if self._number_label is None:
+			return
+		self._number_label.setVisible(False)
+
+	#============================================
+	def dispose(self) -> None:
+		"""Disconnect Python callbacks before the owning scene deletes the item."""
+		# The label remains an attached graphics child until the coordinator has
+		# snapshotted and terminally deleted the full tree.  Releasing this Python
+		# attribute here cannot make native ownership fall through to GC.
+		self._number_label = None
+		if not self._model_signal_connected:
+			return
+		try:
+			self._atom_model.property_changed.disconnect(
+				self._on_property_changed
+			)
+		except (RuntimeError, TypeError):
+			pass
+		self._model_signal_connected = False
 
 	# ------------------------------------------------------------------
 	# Public properties
@@ -218,6 +258,12 @@ class AtomItem(PySide6.QtWidgets.QGraphicsItem):
 	def atom_model(self) -> AtomModel:
 		"""The AtomModel this item visualizes."""
 		return self._atom_model
+
+	#============================================
+	@property
+	def number_label(self) -> PySide6.QtWidgets.QGraphicsSimpleTextItem | None:
+		"""Return the model-projected number label, if it is currently visible."""
+		return self._number_label
 
 
 #============================================
@@ -292,7 +338,7 @@ def _bounding_rect_from_ops(ops: list) -> PySide6.QtCore.QRectF:
 
 
 #============================================
-def _measure_text_op_width(op) -> float:
+def _measure_text_op_width(op: oasa.render_ops.TextOp) -> float:
 	"""Measure the total horizontal advance of a TextOp using Qt font metrics.
 
 	Parses sub/sup tags the same way render_ops_painter._paint_text does,
@@ -316,3 +362,32 @@ def _measure_text_op_width(op) -> float:
 		metrics = PySide6.QtGui.QFontMetricsF(font)
 		total += metrics.horizontalAdvance(chunk)
 	return total
+
+
+#============================================
+def _build_atom_ops(chem_atom: object, atom_model: AtomModel) -> list:
+	"""Build label ops while honoring explicit CDML display overrides."""
+	properties = chem_atom.properties_
+	explicit_show = properties.get("show")
+	if explicit_show == "no":
+		return []
+	added_label = False
+	if explicit_show == "yes" and chem_atom.symbol == "C" and not properties.get("label"):
+		properties["label"] = chem_atom.symbol
+		added_label = True
+	atom_colors = {chem_atom.symbol: atom_model.line_color}
+	ops = oasa.render_lib.molecule_ops.build_vertex_ops(
+		chem_atom,
+		transform_xy=None,
+		show_hydrogens_on_hetero=atom_model.show_hydrogens,
+		color_atoms=True,
+		atom_colors=atom_colors,
+		font_name=atom_model.font_family,
+		font_size=atom_model.font_size,
+		# OASA owns the exact label-bounding polygon.  It masks only the
+		# rendered glyph area, unlike the padded QGraphicsItem bounds.
+		background_color=render_ops_painter._DEFAULT_AREA_COLOR_TOKEN,
+	)
+	if added_label:
+		del properties["label"]
+	return ops

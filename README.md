@@ -1,11 +1,16 @@
 # BKChem and OASA
 
-BKChem is a GUI for drawing chemical structures. OASA (Open Architecture for
-Sketching Atoms and Molecules) is the chemistry library that powers structure
-conversion and analysis. This repository is the primary home for both projects.
+An open-source chemical drawing application and cheminformatics library for creating,
+converting, and analyzing molecular structures with a modern desktop editor and shared
+chemistry backend.
+
+BKChem is the drawing application. OASA (Open Architecture for Sketching Atoms and
+Molecules) is the library that powers structure conversion and analysis. This repository
+is the primary home for both projects.
 
 ## Packages
 - `packages/bkchem-app/` BKChem Tk GUI for drawing chemical structures.
+- `packages/bkchem-qt.app/` BKChem PySide6 GUI, the current frontend modernization track.
 - `packages/oasa/` OASA (Open Architecture for Sketching Atoms and Molecules)
   library and CLI converters used by BKChem.
 
@@ -20,6 +25,9 @@ conversion and analysis. This repository is the primary home for both projects.
 ## BKChem
 BKChem is the user-facing drawing application. It uses OASA as the backend for
 structure parsing, conversion, and analysis.
+
+The PySide6 frontend is the current modernization track. The established Tkinter
+frontend remains the compatibility oracle while the Qt editor reaches feature parity.
 
 Use BKChem when you need:
 - A GUI for drawing and editing structures by hand.
@@ -45,6 +53,24 @@ OASA
 - Python library for chemical structure graphs and conversions.
 - Used by BKChem but available as a standalone library.
 
+## Qt quick start
+
+From the repository root, use Python 3.10 or newer to install the backend and current
+desktop frontend, then launch the editor:
+
+```bash
+pip install ./packages/oasa ./packages/bkchem-qt.app
+bkchem-qt
+```
+
+The Qt frontend opens and saves native CDML documents. See
+[docs/QT_CONTRACT.md](docs/QT_CONTRACT.md) for its document and file-handling contract.
+
+## Current Qt limits
+
+- CDML is the only native save target; imported formats are pathless and require Save As.
+- Some fragment, group, and linear-form actions remain unsupported during the migration.
+
 ## Screenshots
 
 ![BKChem drawing example](docs/assets/bkchem_drawing.png)
@@ -54,10 +80,9 @@ OASA
 ## Docs
 - [docs/AUTHORS.md](docs/AUTHORS.md) primary maintainers and contributors.
 - [docs/BATCH_MODE.md](docs/BATCH_MODE.md) batch scripting workflow.
-- [docs/BKCHEM_FORMAT_SPEC.md](docs/BKCHEM_FORMAT_SPEC.md) CDML format specification.
+- [docs/archive/BKCHEM_FORMAT_SPEC.md](docs/archive/BKCHEM_FORMAT_SPEC.md) CDML format specification.
 - [docs/CHANGELOG.md](docs/CHANGELOG.md) chronological change log.
 - [docs/CODE_ARCHITECTURE.md](docs/CODE_ARCHITECTURE.md) system overview and data flow.
-- [docs/CUSTOM_PLUGINS.md](docs/CUSTOM_PLUGINS.md) plugin and addon guidance.
 - [docs/CUSTOM_TEMPLATES.md](docs/CUSTOM_TEMPLATES.md) template workflow.
 - [docs/EXTERNAL_IMPORT.md](docs/EXTERNAL_IMPORT.md) scripting from Python.
 - [docs/FILE_STRUCTURE.md](docs/FILE_STRUCTURE.md) directory map and assets.
@@ -65,7 +90,7 @@ OASA
 - [docs/MARKDOWN_STYLE.md](docs/MARKDOWN_STYLE.md) Markdown conventions.
 - [docs/MIGRATION.md](docs/MIGRATION.md) BKChem + OASA merge summary.
 - [docs/PYTHON_STYLE.md](docs/PYTHON_STYLE.md) Python coding conventions.
-- [docs/RELEASE_DISTRIBUTION.md](docs/RELEASE_DISTRIBUTION.md) release plans.
+- [docs/active_plans/RELEASE_DISTRIBUTION.md](docs/active_plans/RELEASE_DISTRIBUTION.md) release plans.
 - [docs/RELEASE_HISTORY.md](docs/RELEASE_HISTORY.md) historical release notes.
 - [docs/REPO_STYLE.md](docs/REPO_STYLE.md) repo structure and naming.
 - [docs/SUPPORTED_FORMATS.md](docs/SUPPORTED_FORMATS.md) supported file formats.

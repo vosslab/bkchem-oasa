@@ -7,14 +7,17 @@
 # Standard Library
 import io
 import os
-import xml.dom.minidom as dom
+
+# Third Party
+from lxml import etree
 
 # local repo modules
-from oasa import dom_extensions
 from oasa import molecule_utils
 from oasa import render_ops
 from oasa.render_lib.molecule_ops import molecule_to_ops
-from oasa import svg_out
+
+
+_SVG_NAMESPACE = "http://www.w3.org/2000/svg"
 
 
 _RENDER_STYLE_KEYS = (
@@ -34,7 +37,7 @@ _RENDER_STYLE_KEYS = (
 
 
 #============================================
-def _resolve_format(output_target, format_override):
+def _resolve_format(output_target: object, format_override: object) -> object:
 	if format_override:
 		return format_override.lower()
 	if hasattr(output_target, "write"):
@@ -48,7 +51,7 @@ def _resolve_format(output_target, format_override):
 
 
 #============================================
-def _molecule_bounds(mol):
+def _molecule_bounds(mol: object) -> object:
 	if not mol.vertices:
 		return (0.0, 0.0, 1.0, 1.0)
 	xs = [vertex.x for vertex in mol.vertices]
@@ -65,7 +68,7 @@ def _molecule_bounds(mol):
 
 
 #============================================
-def _extract_style(options, scaling):
+def _extract_style(options: object, scaling: object) -> object:
 	style = {}
 	for key in _RENDER_STYLE_KEYS:
 		if key in options:
@@ -77,10 +80,10 @@ def _extract_style(options, scaling):
 
 
 #============================================
-def _render_ops_for_mol(mol, *, margin, scaling, options):
+def _render_ops_for_mol(mol: object, *, margin: object, scaling: object, options: object) -> object:
 	x1, y1, _x2, _y2 = _molecule_bounds(mol)
 
-	def _transform_xy(x, y):
+	def _transform_xy(x: object, y: object) -> object:
 		return ((x - x1 + margin) * scaling, (y - y1 + margin) * scaling)
 
 	style = _extract_style(options, scaling)
@@ -91,25 +94,24 @@ def _render_ops_for_mol(mol, *, margin, scaling, options):
 
 
 #============================================
-def _ops_to_svg_document(ops, width, height):
-	document = dom.Document()
-	root = dom_extensions.elementUnder(
-		document,
-		"svg",
-		attributes=(
-			("xmlns", "http://www.w3.org/2000/svg"),
-			("version", "1.0"),
-			("width", str(width)),
-			("height", str(height)),
-		),
+def _ops_to_svg_document(ops: object, width: object, height: object) -> object:
+	"""Build a fresh controlled SVG tree without parsing XML text."""
+	root = etree.Element(
+		f"{{{_SVG_NAMESPACE}}}svg",
+		nsmap={None: _SVG_NAMESPACE},
+		attrib={
+			"version": "1.0",
+			"width": str(width),
+			"height": str(height),
+		},
 	)
-	group = dom_extensions.elementUnder(root, "g")
-	render_ops.ops_to_svg(group, ops)
-	return document
+	group = etree.SubElement(root, f"{{{_SVG_NAMESPACE}}}g")
+	render_ops.ops_to_lxml_svg(group, ops)
+	return root
 
 
 #============================================
-def _set_cairo_background(context, width, height, background_color):
+def _set_cairo_background(context: object, width: object, height: object, background_color: object) -> object:
 	rgba = background_color
 	if rgba is None:
 		rgba = (1.0, 1.0, 1.0, 1.0)
@@ -123,7 +125,7 @@ def _set_cairo_background(context, width, height, background_color):
 
 
 #============================================
-def _render_cairo(ops, output_target, fmt, width, height, options):
+def _render_cairo(ops: object, output_target: object, fmt: object, width: object, height: object, options: object) -> object:
 	try:
 		import cairo
 	except ImportError as exc:
@@ -153,7 +155,7 @@ def _render_cairo(ops, output_target, fmt, width, height, options):
 
 
 #============================================
-def render_to_svg(mol, output_target, **options):
+def render_to_svg(mol: object, output_target: object, **options: object) -> object:
 	margin = float(options.get("margin", 15))
 	scaling = float(options.get("scaling", 1.0))
 	ops, width, height = _render_ops_for_mol(
@@ -163,7 +165,13 @@ def render_to_svg(mol, output_target, **options):
 		options=options,
 	)
 	document = _ops_to_svg_document(ops, width, height)
-	text = svg_out.pretty_print_svg(document.toxml("utf-8"))
+	svg_bytes = etree.tostring(
+		document,
+		encoding="utf-8",
+		xml_declaration=True,
+		pretty_print=True,
+	)
+	text = svg_bytes.decode("utf-8")
 	if hasattr(output_target, "write"):
 		if isinstance(output_target, io.TextIOBase):
 			output_target.write(text)
@@ -176,7 +184,7 @@ def render_to_svg(mol, output_target, **options):
 
 
 #============================================
-def render_to_png(mol, output_target, **options):
+def render_to_png(mol: object, output_target: object, **options: object) -> object:
 	margin = float(options.get("margin", 15))
 	scaling = float(options.get("scaling", 2.0))
 	ops, width, height = _render_ops_for_mol(
@@ -190,7 +198,7 @@ def render_to_png(mol, output_target, **options):
 
 
 #============================================
-def render_to_pdf(mol, output_target, **options):
+def render_to_pdf(mol: object, output_target: object, **options: object) -> object:
 	margin = float(options.get("margin", 15))
 	scaling = float(options.get("scaling", 1.0))
 	ops, width, height = _render_ops_for_mol(
@@ -204,7 +212,7 @@ def render_to_pdf(mol, output_target, **options):
 
 
 #============================================
-def render_to_ps(mol, output_target, **options):
+def render_to_ps(mol: object, output_target: object, **options: object) -> object:
 	margin = float(options.get("margin", 15))
 	scaling = float(options.get("scaling", 1.0))
 	ops, width, height = _render_ops_for_mol(
@@ -218,7 +226,7 @@ def render_to_ps(mol, output_target, **options):
 
 
 #============================================
-def mol_to_output(mol, output_target, fmt=None, **options):
+def mol_to_output(mol: object, output_target: object, fmt: object = None, **options: object) -> object:
 	"""Render one molecule to SVG/PDF/PNG/PS."""
 	legacy_format = options.pop("format", None)
 	output_format = _resolve_format(output_target, fmt or legacy_format)
@@ -234,7 +242,7 @@ def mol_to_output(mol, output_target, fmt=None, **options):
 
 
 #============================================
-def mols_to_output(mols, output_target, fmt=None, **options):
+def mols_to_output(mols: object, output_target: object, fmt: object = None, **options: object) -> object:
 	"""Render multiple molecules by merging disconnected parts."""
 	legacy_format = options.pop("format", None)
 	mol = molecule_utils.merge_molecules(list(mols))

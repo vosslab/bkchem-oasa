@@ -52,7 +52,7 @@ class mark( simple_parent):
                                   #          'righttop' to use right top corner of atom
 
 
-  def __init__( self, atom, x, y, size=4, auto=1):
+  def __init__( self, atom: object, x: object, y: object, size: object = 4, auto: object = 1) -> None:
     """size is a diameter of the mark"""
     self.x = x
     self.y = y
@@ -65,7 +65,7 @@ class mark( simple_parent):
 
 
   @property
-  def paper(self):
+  def paper(self) -> object:
     """The paper the mark is drawn onto.
 
     """
@@ -77,11 +77,11 @@ class mark( simple_parent):
     return self.size * self.paper._scale
 
 
-  def draw( self):
+  def draw( self) -> None:
     pass
 
 
-  def delete( self):
+  def delete( self) -> None:
     if self.paper.is_registered_object( self):
       self.unregister()
     [self.paper.delete( o) for o in self.items]
@@ -90,7 +90,7 @@ class mark( simple_parent):
     self.vertex_item = None
 
 
-  def move( self, dx, dy, use_paper_coords=False):
+  def move( self, dx: object, dy: object, use_paper_coords: bool = False) -> None:
     if use_paper_coords:
       self.x += self.paper.canvas_to_real(dx)
       self.y += self.paper.canvas_to_real(dy)
@@ -102,7 +102,7 @@ class mark( simple_parent):
     [self.paper.move( o, dx, dy) for o in self.items]
 
 
-  def move_to( self, x, y, use_paper_coords=False):
+  def move_to( self, x: object, y: object, use_paper_coords: bool = False) -> None:
     if use_paper_coords:
       dx = x - self.paper.real_to_canvas(self.x)#Store.app.paper?
       dy = y - self.paper.real_to_canvas(self.y)
@@ -111,7 +111,7 @@ class mark( simple_parent):
       dy = y - self.y
     self.move( dx, dy, use_paper_coords=use_paper_coords)
 
-  def get_xy_on_paper( self):
+  def get_xy_on_paper( self) -> object:
     """Returns the coordinates of the vertex on the paper reference system.
         These change based on zooming."""
     # An item on the Canvas is used to keep track of current position (self.vertex_item)
@@ -122,11 +122,11 @@ class mark( simple_parent):
       self.vertex_item = self.paper.create_line( xy[0], xy[1], xy[0], xy[1], tags=("no_export"))
       return xy
 
-  def lift( self):
+  def lift( self) -> None:
     [self.paper.lift( i) for i in self.items]
 
 
-  def redraw( self):
+  def redraw( self) -> None:
     registered = self.paper.is_registered_object( self)
     self.delete()
     self.draw()
@@ -134,38 +134,38 @@ class mark( simple_parent):
       self.register()
 
 
-  def get_svg_element( self, doc):
+  def get_svg_element( self, doc: object) -> object:
     pass
 
 
-  def transform( self, tr):
+  def transform( self, tr: object) -> None:
     # do only move, the direction-using marks would need to override it and make real transform
     x, y = tr.transform_xy( self.x, self.y)
     self.move_to( x, y)
 
 
-  def focus( self):
+  def focus( self) -> None:
     self.set_color( "red")
 
 
-  def unfocus( self):
+  def unfocus( self) -> None:
     self.set_color( self.line_color)
 
 
-  def set_color( self, color):
+  def set_color( self, color: object) -> None:
     [self.paper.itemconfig( i, outline=color, fill=color) for i in self.items if self.paper.type( i) in ("oval",)]
     [self.paper.itemconfig( i, fill=color) for i in self.items if self.paper.type( i) in ("line","text")]
 
 
-  def register( self):
+  def register( self) -> None:
     [self.paper.register_id( i, self) for i in self.items]
 
 
-  def unregister( self):
+  def unregister( self) -> None:
     [self.paper.unregister_id( i) for i in self.items]
 
 
-  def get_package( self, doc):
+  def get_package( self, doc: object) -> object:
     a = doc.createElement('mark')
     x ,y = list(map( Screen.px_to_text_with_unit, (self.x, self.y)))
     dom_extensions.setAttributes( a, (('type', self.__class__.__name__),
@@ -184,7 +184,7 @@ class mark( simple_parent):
 
 
   @classmethod
-  def read_package( self, package, atom):
+  def read_package( self, package: object, atom: object) -> object:
     typ = package.getAttribute( 'type')
     cls = globals().get( typ, None)
     if cls:
@@ -216,7 +216,7 @@ class mark( simple_parent):
 
 
   @property
-  def line_color(self):
+  def line_color(self) -> object:
     """Line color.
 
     If not set, it is taken from atom, otherwise as set.
@@ -228,14 +228,14 @@ class mark( simple_parent):
 
 
   @line_color.setter
-  def line_color(self, color):
+  def line_color(self, color: object) -> None:
     self._line_color = color
 
 
 
 class radical( mark):
 
-  def draw( self):
+  def draw( self) -> None:
     """outline color is used for both outline and fill for radical"""
     if self.items:
       warnings.warn( "draw called on already drawn mark!", UserWarning, 2)
@@ -248,7 +248,7 @@ class radical( mark):
                                           tags='mark')]
 
 
-  def get_svg_element( self, doc):
+  def get_svg_element( self, doc: object) -> object:
     e = doc.createElement( 'ellipse')
     dom_extensions.setAttributes( e,
                                  (( 'cx', str( self.x)),
@@ -264,7 +264,7 @@ class radical( mark):
 
 class biradical( mark):
 
-  def move( self, dx, dy, use_paper_coords=False):
+  def move( self, dx: object, dy: object, use_paper_coords: bool = False) -> None:
     """marks that have a direction and not only position should be redrawn on move"""
     if use_paper_coords:
       self.x += self.paper.canvas_to_real(dx)
@@ -275,7 +275,7 @@ class biradical( mark):
     self.redraw()
 
 
-  def draw( self):
+  def draw( self) -> None:
     if self.items:
       warnings.warn( "draw called on already drawn mark!", UserWarning, 2)
       self.delete()
@@ -295,7 +295,7 @@ class biradical( mark):
                                                tags='mark'))
 
 
-  def get_svg_element( self, doc):
+  def get_svg_element( self, doc: object) -> object:
     e = doc.createElement( 'g')
     for i in self.items:
       x1, y1, x2, y2 = self.paper.coords( i)
@@ -312,7 +312,7 @@ class biradical( mark):
     return e
 
 
-  def transform( self, tr):
+  def transform( self, tr: object) -> None:
     self.x, self.y = tr.transform_xy( self.x, self.y)
     for i in self.items:
       coords = self.paper.coords( i)
@@ -339,12 +339,12 @@ class electronpair( mark):
   meta__save_attrs = {"line_width": float}
   meta__undo_simple = mark.meta__undo_simple + ("line_width",)
 
-  def __init__( self, atom, x, y, size=10, auto=1):
+  def __init__( self, atom: object, x: object, y: object, size: object = 10, auto: object = 1) -> None:
     mark.__init__( self, atom, x, y, size=size, auto=auto)
     self.line_width = 1
 
 
-  def move( self, dx, dy, use_paper_coords=False):
+  def move( self, dx: object, dy: object, use_paper_coords: bool = False) -> None:
     """marks that have a direction and not only position should be redrawn on move"""
     if use_paper_coords:
       self.x += self.paper.canvas_to_real(dx)
@@ -355,7 +355,7 @@ class electronpair( mark):
     self.redraw()
 
 
-  def draw( self):
+  def draw( self) -> None:
     if self.items:
       warnings.warn( "draw called on already drawn mark!", UserWarning, 2)
       self.delete()
@@ -371,7 +371,7 @@ class electronpair( mark):
                                           width=self.line_width, tags='mark')]
 
 
-  def get_svg_element( self, doc):
+  def get_svg_element( self, doc: object) -> object:
     e = doc.createElement( 'line')
     x1, y1, x2, y2 = self.paper.coords( self.items[0])
     dom_extensions.setAttributes( e,
@@ -385,7 +385,7 @@ class electronpair( mark):
     return e
 
 
-  def transform( self, tr):
+  def transform( self, tr: object) -> None:
     self.x, self.y = tr.transform_xy( self.x, self.y)
     for i in self.items:
       coords = self.paper.coords( i)
@@ -405,13 +405,13 @@ class plus( mark):
   _cpk_color = '#0000FF'
 
 
-  def __init__( self, atom, x, y, size=10, auto=1):
+  def __init__( self, atom: object, x: object, y: object, size: object = 10, auto: object = 1) -> None:
     mark.__init__( self, atom, x, y, size=size, auto=auto)
     self.draw_circle = True
 
 
   @property
-  def line_color(self):
+  def line_color(self) -> object:
     """Line color with CPK blue default for positive charge."""
     if not hasattr(self, "_line_color") or not self._line_color:
       return self._cpk_color
@@ -419,11 +419,11 @@ class plus( mark):
 
 
   @line_color.setter
-  def line_color(self, color):
+  def line_color(self, color: object) -> None:
     self._line_color = color
 
 
-  def draw( self):
+  def draw( self) -> None:
     if self.items:
       warnings.warn( "draw called on already drawn mark!", UserWarning, 2)
       self.delete()
@@ -441,7 +441,7 @@ class plus( mark):
                                                  outline=self.line_color, tags='mark'))
 
 
-  def get_svg_element( self, doc):
+  def get_svg_element( self, doc: object) -> object:
     e = doc.createElement( 'g')
     x, y = self.get_xy_on_paper()
     s = round( self.size / 2)
@@ -467,7 +467,7 @@ class plus( mark):
     return e
 
 
-  def set_color( self, color):
+  def set_color( self, color: object) -> None:
     [self.paper.itemconfig( i, outline=color) for i in self.items if self.paper.type( i) in ("oval",)]
     [self.paper.itemconfig( i, fill=color) for i in self.items if self.paper.type( i) in ("line",)]
 
@@ -484,13 +484,13 @@ class minus( mark):
   _cpk_color = '#FF0000'
 
 
-  def __init__( self, atom, x, y, size=10, auto=1):
+  def __init__( self, atom: object, x: object, y: object, size: object = 10, auto: object = 1) -> None:
     mark.__init__( self, atom, x, y, size=size, auto=auto)
     self.draw_circle = True
 
 
   @property
-  def line_color(self):
+  def line_color(self) -> object:
     """Line color with CPK red default for negative charge."""
     if not hasattr(self, "_line_color") or not self._line_color:
       return self._cpk_color
@@ -498,11 +498,11 @@ class minus( mark):
 
 
   @line_color.setter
-  def line_color(self, color):
+  def line_color(self, color: object) -> None:
     self._line_color = color
 
 
-  def draw( self):
+  def draw( self) -> None:
     if self.items:
       warnings.warn( "draw called on already drawn mark!", UserWarning, 2)
       self.delete()
@@ -517,7 +517,7 @@ class minus( mark):
                                                  outline=self.line_color, tags='mark'))
 
 
-  def get_svg_element( self, doc):
+  def get_svg_element( self, doc: object) -> object:
     e = doc.createElement( 'g')
     x, y = self.x, self.y
     s = round( self.size / 2)
@@ -543,7 +543,7 @@ class minus( mark):
     return e
 
 
-  def set_color( self, color):
+  def set_color( self, color: object) -> None:
     [self.paper.itemconfig( i, outline=color) for i in self.items if self.paper.type( i) in ("oval",)]
     [self.paper.itemconfig( i, fill=color) for i in self.items if self.paper.type( i) in ("line",)]
 
@@ -555,13 +555,13 @@ class text_mark( mark):
   meta__save_attrs = {"text": str}
 
 
-  def __init__( self, atom, x, y, text="", size=8, auto=1):
+  def __init__( self, atom: object, x: object, y: object, text: object = "", size: object = 8, auto: object = 1) -> None:
     mark.__init__( self, atom, x, y, size=size, auto=auto)
     self.text = text
 
 
   @property
-  def text(self, text):
+  def text(self, text: object) -> None:
     """Text of the mark.
 
     """
@@ -569,11 +569,11 @@ class text_mark( mark):
 
 
   @text.setter
-  def text(self):
+  def text(self) -> object:
     return self._text
 
 
-  def draw( self):
+  def draw( self) -> None:
     # scale font size by zoom factor (same pattern as atom on_screen_font)
     scaled_font_size = int(round(self.size * self.paper._scale))
     x, y = self.get_xy_on_paper()
@@ -585,7 +585,7 @@ class text_mark( mark):
                                           tags="mark")]
 
 
-  def get_svg_element( self, doc):
+  def get_svg_element( self, doc: object) -> object:
     e = doc.createElement( 'g')
     x, y = self.x, self.y
     font = tkinter.font.Font( family=self.atom.font_family, size=self.size)
@@ -601,7 +601,7 @@ class text_mark( mark):
     return e
 
 
-  def _after_read_package( self):
+  def _after_read_package( self) -> None:
     self.size = int( self.size)
 
 
@@ -613,12 +613,12 @@ class referencing_text_mark( text_mark, mark):
   meta__save_attrs = {"refname": str}
   refname = ""
 
-  def __init__( self, atom, x, y, size=8, auto=1):
+  def __init__( self, atom: object, x: object, y: object, size: object = 8, auto: object = 1) -> None:
     mark.__init__( self, atom, x, y, size=size, auto=auto)
 
 
   @property
-  def text(self):
+  def text(self) -> object:
     """Text of the mark.
 
     """
@@ -626,7 +626,7 @@ class referencing_text_mark( text_mark, mark):
       return getattr( self.atom, self.refname)
 
 
-  def draw( self):
+  def draw( self) -> None:
     text_mark.draw( self)
 
 
@@ -655,11 +655,11 @@ class pz_orbital( mark):
   meta__mark_positioning = 'atom'
 
 
-  def __init__( self, atom, x, y, size=40, auto=1):
+  def __init__( self, atom: object, x: object, y: object, size: object = 40, auto: object = 1) -> None:
     mark.__init__( self, atom, x, y, size=size, auto=auto)
 
 
-  def move( self, dx, dy, use_paper_coords=False):
+  def move( self, dx: object, dy: object, use_paper_coords: bool = False) -> None:
     if use_paper_coords:
       self.x += self.paper.canvas_to_real(dx)
       self.y += self.paper.canvas_to_real(dx)
@@ -669,7 +669,7 @@ class pz_orbital( mark):
     self.redraw()
 
 
-  def draw( self):
+  def draw( self) -> None:
     if self.items:
       warnings.warn( "draw called on already drawn mark!", UserWarning, 2)
       self.delete()
@@ -683,7 +683,7 @@ class pz_orbital( mark):
                                              smooth=1)]
 
 
-  def _get_my_curve( self, num_points=20):
+  def _get_my_curve( self, num_points: int = 20) -> list:
     points = points_of_curve_eight_y( self.atom.x, self.atom.y, 0.35*self.size, 0.5*self.size, 1, num_points=num_points)
     angle = math.atan2( self.atom.x - self.x, self.atom.y - self.y)
     tr = transform.transform()
@@ -694,7 +694,7 @@ class pz_orbital( mark):
     return points
 
 
-  def get_svg_element( self, doc):
+  def get_svg_element( self, doc: object) -> object:
     e = doc.createElement( 'g')
 
     ps = ''
@@ -720,7 +720,7 @@ class pz_orbital( mark):
 
 # -------------------- HELPER FUNCTIONS --------------------
 
-def points_of_curve_eight_y( x0, y0, dx, dy, part, num_points=20):
+def points_of_curve_eight_y( x0: object, y0: object, dx: object, dy: object, part: object, num_points: int = 20) -> list:
   """part is 1 for complete curve"""
   ps = []
 

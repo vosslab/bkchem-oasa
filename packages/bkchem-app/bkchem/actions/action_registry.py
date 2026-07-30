@@ -49,7 +49,7 @@ class MenuAction:
 class ActionRegistry:
 	"""Registry of all menu actions, keyed by action ID."""
 
-	def __init__(self):
+	def __init__(self) -> None:
 		"""Initialize an empty action registry."""
 		self._actions: dict = {}
 
@@ -99,7 +99,7 @@ class ActionRegistry:
 		"""
 		return dict(self._actions)
 
-	def is_enabled(self, action_id: str, context) -> bool:
+	def is_enabled(self, action_id: str, context: object) -> bool:
 		"""Determine whether an action is currently enabled.
 
 		Args:
@@ -122,7 +122,7 @@ class ActionRegistry:
 
 
 #============================================
-def register_all_actions(app) -> ActionRegistry:
+def register_all_actions(app: object) -> ActionRegistry:
 	"""Register all menu actions from per-menu modules.
 
 	Imports each per-menu registration module and calls its registrar

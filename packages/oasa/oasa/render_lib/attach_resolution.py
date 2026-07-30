@@ -47,10 +47,10 @@ from oasa.render_lib.low_level_geometry import directional_attach_edge_intersect
 
 #============================================
 def resolve_attach_endpoint(
-		bond_start,
-		target,
-		interior_hint=None,
-		constraints=None):
+		bond_start: object,
+		target: object,
+		interior_hint: object = None,
+		constraints: object = None) -> object:
 	"""Resolve one bond endpoint against one attachment target."""
 	resolved_target = _coerce_attach_target(target)
 	if constraints is None:
@@ -137,7 +137,7 @@ def resolve_attach_endpoint(
 
 
 #============================================
-def _vertical_box_intersection(bond_start, attach_bbox, interior_hint):
+def _vertical_box_intersection(bond_start: object, attach_bbox: object, interior_hint: object) -> object:
 	"""Return vertical-lock box boundary intersection, or None if unavailable."""
 	x1, y1, x2, y2 = misc.normalize_coords(attach_bbox)
 	start_x, start_y = bond_start
@@ -159,7 +159,7 @@ def _vertical_box_intersection(bond_start, attach_bbox, interior_hint):
 
 
 #============================================
-def _target_to_box_list(target):
+def _target_to_box_list(target: object) -> object:
 	"""Return list of box primitives for one target, or None if non-box exists."""
 	resolved = _coerce_attach_target(target)
 	if resolved.kind == "box":
@@ -176,7 +176,7 @@ def _target_to_box_list(target):
 
 
 #============================================
-def _subtract_box_by_box(source_box, cut_box):
+def _subtract_box_by_box(source_box: object, cut_box: object) -> object:
 	"""Subtract cut_box from source_box and return remaining box pieces."""
 	sx1, sy1, sx2, sy2 = misc.normalize_coords(source_box)
 	cx1, cy1, cx2, cy2 = misc.normalize_coords(cut_box)
@@ -200,7 +200,7 @@ def _subtract_box_by_box(source_box, cut_box):
 
 
 #============================================
-def _forbidden_minus_allowed_boxes(forbidden_box, allowed_boxes):
+def _forbidden_minus_allowed_boxes(forbidden_box: object, allowed_boxes: object) -> object:
 	"""Return pieces of forbidden_box that are outside allowed_boxes union."""
 	pieces = [misc.normalize_coords(forbidden_box)]
 	for allowed_box in allowed_boxes:
@@ -215,12 +215,12 @@ def _forbidden_minus_allowed_boxes(forbidden_box, allowed_boxes):
 
 #============================================
 def _validate_attachment_paint_box_regions(
-		line_start,
-		line_end,
-		half_width,
-		forbidden_boxes,
-		allowed_boxes,
-		epsilon):
+		line_start: object,
+		line_end: object,
+		half_width: object,
+		forbidden_boxes: object,
+		allowed_boxes: object,
+		epsilon: object) -> object:
 	"""Validate connector paint using exact forbidden-minus-allowed box pieces."""
 	for forbidden_box in forbidden_boxes:
 		for piece in _forbidden_minus_allowed_boxes(forbidden_box, allowed_boxes):
@@ -236,12 +236,12 @@ def _validate_attachment_paint_box_regions(
 
 #============================================
 def validate_attachment_paint(
-		line_start,
-		line_end,
-		line_width,
-		forbidden_regions,
-		allowed_regions=None,
-		epsilon=0.5):
+		line_start: object,
+		line_end: object,
+		line_width: object,
+		forbidden_regions: object,
+		allowed_regions: object = None,
+		epsilon: object = 0.5) -> object:
 	"""Return True when connector paint does not penetrate forbidden interiors."""
 	if allowed_regions is None:
 		allowed_regions = []
@@ -329,18 +329,18 @@ def validate_attachment_paint(
 
 #============================================
 def retreat_endpoint_until_legal(
-		line_start,
-		line_end,
-		line_width,
-		forbidden_regions,
-		allowed_regions=None,
-		epsilon=0.5,
-		max_iterations=28):
+		line_start: object,
+		line_end: object,
+		line_width: object,
+		forbidden_regions: object,
+		allowed_regions: object = None,
+		epsilon: object = 0.5,
+		max_iterations: object = 28) -> object:
 	"""Retreat line_end toward line_start until attachment paint becomes legal."""
 	if allowed_regions is None:
 		allowed_regions = []
 
-	def _endpoint_in_allowed(point):
+	def _endpoint_in_allowed(point: object) -> object:
 		if not allowed_regions:
 			return True
 		return any(
@@ -385,7 +385,7 @@ def retreat_endpoint_until_legal(
 
 
 #============================================
-def _min_distance_point_to_target_boundary(point, target):
+def _min_distance_point_to_target_boundary(point: object, target: object) -> object:
 	"""Return minimum distance from point to the boundary of one attach target."""
 	resolved = _coerce_attach_target(target)
 	if resolved.kind == "box":
@@ -410,7 +410,7 @@ def _min_distance_point_to_target_boundary(point, target):
 
 
 #============================================
-def _retreat_to_target_gap(line_start, legal_endpoint, target_gap, forbidden_regions):
+def _retreat_to_target_gap(line_start: object, legal_endpoint: object, target_gap: object, forbidden_regions: object) -> object:
 	"""Retreat legal_endpoint further toward line_start to achieve target_gap.
 
 	Iterates up to 4 times to handle diagonal approach angles where
@@ -451,7 +451,7 @@ def _retreat_to_target_gap(line_start, legal_endpoint, target_gap, forbidden_reg
 
 
 #============================================
-def _perpendicular_distance_to_line(point, line_start, line_end):
+def _perpendicular_distance_to_line(point: object, line_start: object, line_end: object) -> object:
 	"""Return perpendicular distance from point to the infinite line through start/end."""
 	px, py = point
 	sx, sy = line_start
@@ -465,7 +465,7 @@ def _perpendicular_distance_to_line(point, line_start, line_end):
 
 
 #============================================
-def _correct_endpoint_for_alignment(bond_start, endpoint, alignment_center, target, tolerance):
+def _correct_endpoint_for_alignment(bond_start: object, endpoint: object, alignment_center: object, target: object, tolerance: object) -> object:
 	"""Adjust endpoint so bond line passes through alignment_center."""
 	perp_dist = _perpendicular_distance_to_line(alignment_center, bond_start, endpoint)
 	if perp_dist <= tolerance:

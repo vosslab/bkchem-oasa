@@ -25,6 +25,10 @@ from packaging.utils import canonicalize_name
 from packaging.specifiers import SpecifierSet
 from packaging.version import InvalidVersion, Version
 
+# local repo modules
+import version_registry
+import bump_version
+
 DEFAULT_TESTPYPI_INDEX = "https://test.pypi.org/simple/"
 DEFAULT_PYPI_INDEX = "https://pypi.org/simple/"
 TESTPYPI_PROJECT_BASE = "https://test.pypi.org/project/"
@@ -319,12 +323,15 @@ def resolve_import_name(arg_value: str, package_name: str) -> str:
 
 
 def read_version_file(project_dir: str) -> str:
-	"""Read the VERSION file at repo root."""
-	version_path = os.path.join(project_dir, "VERSION")
-	if not os.path.isfile(version_path):
-		fail(f"VERSION file not found at repo root: {version_path}")
-	with open(version_path, "r") as handle:
-		return handle.read().strip()
+	"""Read the canonical VERSION registry above a package project directory."""
+	version_path = version_registry.resolve_version_path(project_dir)
+	try:
+		version = version_registry.read_version_file(version_path)
+	except FileNotFoundError:
+		fail(f"VERSION file not found at repository root: {version_path}")
+	except (OSError, ValueError) as error:
+		fail(f"Unable to read VERSION file: {error}")
+	return version
 
 
 def verify_version_sync(pyproject_version: str, file_version: str) -> None:
@@ -729,31 +736,14 @@ def require_up_to_date_with_origin_main(project_dir: str) -> None:
 	)
 
 
-def update_version_files(project_dir: str, version: str) -> None:
-	"""Update VERSION and pyproject.toml with the new version."""
-	version_path = os.path.join(project_dir, "VERSION")
-	current_version = ""
-	if os.path.isfile(version_path):
-		with open(version_path, "r") as handle:
-			current_version = handle.read().strip()
-	if current_version != version:
-		with open(version_path, "w") as handle:
-			handle.write(f"{version}\n")
-
-	pyproject_path = resolve_pyproject_path(project_dir)
-	with open(pyproject_path, "r") as handle:
-		contents = handle.read()
-	updated, count = re.subn(
-		r'(?m)^version\s*=\s*"[^"]+"',
-		f'version = "{version}"',
-		contents,
-		count=1,
-	)
-	if count == 0:
-		fail("Unable to update version in pyproject.toml.")
-	if updated != contents:
-		with open(pyproject_path, "w") as handle:
-			handle.write(updated)
+def update_version_files(project_dir: str, version: str) -> list[str]:
+	"""Update canonical release metadata through the shared monorepo updater."""
+	try:
+		results = bump_version.update_release_metadata(project_dir, version, apply=True)
+	except (OSError, ValueError) as error:
+		fail(f"Unable to update release metadata: {error}")
+	changed_paths = [result["path"] for result in results if result["changed"]]
+	return changed_paths
 
 
 def has_tracked_changes(project_dir: str) -> bool:
@@ -768,11 +758,15 @@ def has_tracked_changes(project_dir: str) -> bool:
 	return bool(result.stdout.strip())
 
 
-def commit_version_bump(project_dir: str, version: str) -> bool:
+def commit_version_bump(project_dir: str, version: str, changed_paths: list[str]) -> bool:
 	"""Commit the version bump if there are tracked changes."""
-	run_command(["git", "add", "VERSION", "pyproject.toml"], project_dir, False)
-	if not has_tracked_changes(project_dir):
+	if not changed_paths:
 		print_warning("Version files already match; skipping commit.")
+		return False
+	pathspecs = [os.path.relpath(path, project_dir) for path in changed_paths]
+	run_command(["git", "add"] + pathspecs, project_dir, False)
+	if not has_tracked_changes(project_dir):
+		print_warning("No tracked version changes available; skipping commit.")
 		return False
 	run_command(["git", "commit", "-m", f"Bump version to {version}"], project_dir, False)
 	return True
@@ -1241,8 +1235,8 @@ def main() -> None:
 		require_git_clean(project_dir)
 		require_main_branch(project_dir)
 		require_up_to_date_with_origin_main(project_dir)
-		update_version_files(project_dir, new_version)
-		did_commit = commit_version_bump(project_dir, new_version)
+		changed_paths = update_version_files(project_dir, new_version)
+		did_commit = commit_version_bump(project_dir, new_version, changed_paths)
 		tag_and_push_version(project_dir, new_version, did_commit)
 		print_info(f"Version updated and pushed: {new_version}")
 		return

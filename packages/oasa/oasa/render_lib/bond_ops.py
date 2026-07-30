@@ -27,6 +27,7 @@ from oasa import geometry
 from oasa import oasa_utils as misc
 from oasa import render_ops
 from oasa import wedge_geometry
+from oasa import cdml_bond_io
 from oasa.render_lib.data_types import AttachConstraints
 from oasa.render_lib.data_types import _coerce_attach_target
 from oasa.render_lib.bond_length_policy import _bond_style_for_edge
@@ -39,7 +40,7 @@ from oasa.render_lib.attach_resolution import retreat_endpoint_until_legal
 
 
 #============================================
-def haworth_front_edge_geometry(start, end, width, overlap=None, front_pad=None):
+def haworth_front_edge_geometry(start: object, end: object, width: object, overlap: object = None, front_pad: object = None) -> object:
 	x1, y1 = start
 	x2, y2 = end
 	d = math.hypot(x2 - x1, y2 - y1)
@@ -65,7 +66,7 @@ def haworth_front_edge_geometry(start, end, width, overlap=None, front_pad=None)
 
 
 #============================================
-def haworth_front_edge_ops(start, end, width, color):
+def haworth_front_edge_ops(start: object, end: object, width: object, color: object) -> object:
 	geom = haworth_front_edge_geometry(start, end, width)
 	if not geom:
 		return []
@@ -74,21 +75,21 @@ def haworth_front_edge_ops(start, end, width, color):
 
 
 #============================================
-def _point_for_atom(context, atom):
+def _point_for_atom(context: object, atom: object) -> object:
 	if context.point_for_atom:
 		return context.point_for_atom(atom)
 	return (atom.x, atom.y)
 
 
 #============================================
-def _edge_wavy_style(edge):
+def _edge_wavy_style(edge: object) -> object:
 	return (getattr(edge, "wavy_style", None)
 			or edge.properties_.get("wavy_style")
 			or "sine")
 
 
 #============================================
-def _edge_line_color(edge):
+def _edge_line_color(edge: object) -> object:
 	color = getattr(edge, "line_color", None)
 	if not color:
 		color = edge.properties_.get("line_color") or edge.properties_.get("color")
@@ -96,14 +97,16 @@ def _edge_line_color(edge):
 
 
 #============================================
-def _edge_line_width(edge, context):
+def _edge_line_width(edge: object, context: object, base_width: float | None = None) -> object:
+	if base_width is None:
+		base_width = context.line_width
 	if edge.type == 'b':
-		return context.line_width * context.bold_line_width_multiplier
-	return context.line_width
+		return base_width * context.bold_line_width_multiplier
+	return base_width
 
 
 #============================================
-def _resolve_edge_colors(edge, context, has_shown_vertex):
+def _resolve_edge_colors(edge: object, context: object, has_shown_vertex: object) -> object:
 	edge_color = _edge_line_color(edge)
 	if edge_color:
 		return edge_color, edge_color, False
@@ -118,7 +121,7 @@ def _resolve_edge_colors(edge, context, has_shown_vertex):
 
 
 #============================================
-def _line_ops(start, end, width, color1, color2, gradient, cap):
+def _line_ops(start: object, end: object, width: object, color1: object, color2: object, gradient: object, cap: object) -> object:
 	if gradient and color1 and color2 and color1 != color2:
 		mid = ((start[0] + end[0]) / 2.0, (start[1] + end[1]) / 2.0)
 		return [
@@ -129,13 +132,13 @@ def _line_ops(start, end, width, color1, color2, gradient, cap):
 
 
 #============================================
-def _rounded_wedge_ops(start, end, line_width, wedge_width, color):
+def _rounded_wedge_ops(start: object, end: object, line_width: object, wedge_width: object, color: object) -> object:
 	geom = wedge_geometry.rounded_wedge_geometry(start, end, wedge_width, line_width)
 	return [render_ops.PathOp(commands=geom["path_commands"], fill=color or "#000")]
 
 
 #============================================
-def _hashed_ops(start, end, line_width, wedge_width, color1, color2, gradient):
+def _hashed_ops(start: object, end: object, line_width: object, wedge_width: object, color1: object, color2: object, gradient: object) -> object:
 	x1, y1 = start
 	x2, y2 = end
 	d = geometry.point_distance(x1, y1, x2, y2)
@@ -174,7 +177,7 @@ def _hashed_ops(start, end, line_width, wedge_width, color1, color2, gradient):
 
 
 #============================================
-def _wave_points(start, end, line_width, wedge_width, style):
+def _wave_points(start: object, end: object, line_width: object, wedge_width: object, style: object) -> object:
 	x1, y1 = start
 	x2, y2 = end
 	d = geometry.point_distance(x1, y1, x2, y2)
@@ -222,7 +225,7 @@ def _wave_points(start, end, line_width, wedge_width, style):
 
 
 #============================================
-def _wavy_ops(start, end, line_width, wedge_width, style, color):
+def _wavy_ops(start: object, end: object, line_width: object, wedge_width: object, style: object, color: object) -> object:
 	points = _wave_points(start, end, line_width, wedge_width, style)
 	if len(points) < 2:
 		return []
@@ -234,7 +237,224 @@ def _wavy_ops(start, end, line_width, wedge_width, style, color):
 
 
 #============================================
-def _double_bond_side(context, v1, v2, start, end, has_shown_vertex):
+def _dashed_ops(
+		start: tuple[float, float], end: tuple[float, float],
+		line_width: float, color: object,
+		) -> list[render_ops.LineOp]:
+	"""Build ordinary chemistry dashes that fit one complete baseline."""
+	x1, y1 = start
+	x2, y2 = end
+	length = geometry.point_distance(x1, y1, x2, y2)
+	if length == 0.0:
+		return []
+	ux = (x2 - x1) / length
+	uy = (y2 - y1) / length
+	dash_size = max(2.5 * line_width, 1.0)
+	gap_size = dash_size
+	dash_count = max(1, int(round((length + gap_size) / (dash_size + gap_size))))
+	unscaled_length = (dash_count * dash_size) + ((dash_count - 1) * gap_size)
+	scale = length / unscaled_length
+	dash_size *= scale
+	gap_size *= scale
+	ops = []
+	position = 0.0
+	for _index in range(dash_count):
+		dash_end = min(length, position + dash_size)
+		p1 = (x1 + ux * position, y1 + uy * position)
+		p2 = (x1 + ux * dash_end, y1 + uy * dash_end)
+		ops.append(render_ops.LineOp(
+			p1, p2, width=line_width, cap="butt", color=color or "#000",
+		))
+		position = dash_end + gap_size
+	return ops
+
+
+#============================================
+def _dotted_ops(
+		start: tuple[float, float], end: tuple[float, float],
+		line_width: float, color: object,
+		) -> list[render_ops.CircleOp]:
+	"""Build evenly spaced filled dots centered along one baseline."""
+	x1, y1 = start
+	x2, y2 = end
+	length = geometry.point_distance(x1, y1, x2, y2)
+	if length == 0.0:
+		return []
+	ux = (x2 - x1) / length
+	uy = (y2 - y1) / length
+	radius = max(line_width / 2.0, 0.5)
+	pitch = max(3.0 * line_width, 2.0)
+	dot_count = max(1, int(round(length / pitch)))
+	step = length / dot_count
+	ops = []
+	for index in range(dot_count):
+		position = (index + 0.5) * step
+		center = (x1 + ux * position, y1 + uy * position)
+		ops.append(render_ops.CircleOp(
+			center=center, radius=radius, fill=color or "#000",
+		))
+	return ops
+
+
+#============================================
+def _adder_ops(
+		start: tuple[float, float], end: tuple[float, float],
+		line_width: float, wedge_width: float, equithick: bool, color: object,
+		) -> list[render_ops.PathOp]:
+	"""Build one adder zigzag with tapered or constant transverse amplitude."""
+	x1, y1 = start
+	x2, y2 = end
+	length = geometry.point_distance(x1, y1, x2, y2)
+	if length == 0.0:
+		return []
+	ux = (x2 - x1) / length
+	uy = (y2 - y1) / length
+	px = -uy
+	py = ux
+	step_size = max((1.8 if equithick else 1.0) * line_width + 1.0, 2.0)
+	segment_count = max(2, int(round(length / step_size)))
+	half_width = max(wedge_width / 2.0, line_width / 2.0)
+	commands = [("M", start)]
+	for index in range(1, segment_count):
+		fraction = index / segment_count
+		amplitude = half_width if equithick else half_width * fraction
+		sign = -1.0 if index % 2 else 1.0
+		position = length * fraction
+		point = (
+			x1 + ux * position + px * amplitude * sign,
+			y1 + uy * position + py * amplitude * sign,
+		)
+		commands.append(("L", point))
+	commands.append(("L", end))
+	op = render_ops.PathOp(
+		commands=tuple(commands), fill="none", stroke=color or "#000",
+		stroke_width=line_width, cap="round", join="round",
+	)
+	return [op]
+
+
+#============================================
+def _styled_axis_ops(
+		bond_type: str, start: tuple[float, float], end: tuple[float, float],
+		line_width: float, wedge_width: float, equithick: bool, color: object,
+		) -> list:
+	"""Build the native primitive family for one styled lane."""
+	if bond_type == "a":
+		return _adder_ops(
+			start, end, line_width, wedge_width, equithick, color,
+		)
+	if bond_type == "d":
+		return _dashed_ops(start, end, line_width, color)
+	if bond_type == "o":
+		return _dotted_ops(start, end, line_width, color)
+	raise ValueError(f"Unsupported styled bond type: {bond_type!r}")
+
+
+#============================================
+def _ratio_segment(
+		start: tuple[float, float], end: tuple[float, float], ratio: float,
+		) -> tuple[tuple[float, float], tuple[float, float]]:
+	"""Scale a segment symmetrically around its baseline midpoint."""
+	middle_x = (start[0] + end[0]) / 2.0
+	middle_y = (start[1] + end[1]) / 2.0
+	half_dx = (end[0] - start[0]) * ratio / 2.0
+	half_dy = (end[1] - start[1]) * ratio / 2.0
+	scaled = (
+		(middle_x - half_dx, middle_y - half_dy),
+		(middle_x + half_dx, middle_y + half_dy),
+	)
+	return scaled
+
+
+#============================================
+def _parallel_segment(
+		start: tuple[float, float], end: tuple[float, float], offset: float,
+		) -> tuple[tuple[float, float], tuple[float, float]]:
+	"""Return one full-length parallel segment at a signed offset."""
+	x1, y1, x2, y2 = geometry.find_parallel(
+		start[0], start[1], end[0], end[1], offset,
+	)
+	return (x1, y1), (x2, y2)
+
+
+#============================================
+def _styled_lane_ops(
+		edge: object, lane: tuple[tuple[float, float], tuple[float, float]],
+		line_width: float, wedge_width: float, equithick: bool,
+		color1: object, color2: object, gradient: bool, styled: bool,
+		) -> list:
+	"""Build either the selected style or one plain line for a lane."""
+	start, end = lane
+	if styled:
+		return _styled_axis_ops(
+			edge.type, start, end, line_width, wedge_width, equithick, color1,
+		)
+	return _line_ops(
+		start, end, line_width, color1, color2, gradient, cap="butt",
+	)
+
+
+#============================================
+def _styled_multiple_bond_ops(
+		edge: object, start: tuple[float, float], end: tuple[float, float],
+		context: object, depiction: object, line_width: float,
+		bond_width: float, wedge_width: float, color1: object,
+		color2: object, gradient: bool, has_shown_vertex: bool,
+		) -> list:
+	"""Apply the shared a/d/o primary-axis and added-lane matrix."""
+	primary = (start, end)
+	if edge.order == 1:
+		return _styled_lane_ops(
+			edge, primary, line_width, wedge_width, depiction.equithick,
+			color1, color2, gradient, styled=True,
+		)
+	if edge.order == 2 and depiction.center is True:
+		ops = []
+		for sign in (1.0, -1.0):
+			lane = _parallel_segment(start, end, sign * abs(bond_width) * 0.5)
+			ops.extend(_styled_lane_ops(
+				edge, lane, line_width, wedge_width, depiction.equithick,
+				color1, color2, gradient, styled=True,
+			))
+		return ops
+	if edge.order == 2:
+		ops = _styled_lane_ops(
+			edge, primary, line_width, wedge_width, depiction.equithick,
+			color1, color2, gradient, styled=True,
+		)
+		v1, v2 = edge.vertices
+		side = _double_bond_side(
+			context, v1, v2, start, end, has_shown_vertex,
+		)
+		if not side:
+			side = 1
+		side *= misc.signum(depiction.auto_sign)
+		lane = _parallel_segment(
+			start, end, misc.signum(side) * abs(bond_width),
+		)
+		lane = _ratio_segment(lane[0], lane[1], depiction.double_ratio)
+		ops.extend(_styled_lane_ops(
+			edge, lane, line_width, wedge_width, depiction.equithick,
+			color1, color2, gradient, styled=not depiction.simple_double,
+		))
+		return ops
+	if edge.order == 3:
+		ops = _styled_lane_ops(
+			edge, primary, line_width, wedge_width, depiction.equithick,
+			color1, color2, gradient, styled=True,
+		)
+		for sign in (1.0, -1.0):
+			lane = _parallel_segment(start, end, sign * abs(bond_width) * 0.7)
+			ops.extend(_styled_lane_ops(
+				edge, lane, line_width, wedge_width, depiction.equithick,
+				color1, color2, gradient, styled=not depiction.simple_double,
+			))
+		return ops
+	return []
+
+
+#============================================
+def _double_bond_side(context: object, v1: object, v2: object, start: object, end: object, has_shown_vertex: object) -> object:
 	side = 0
 	in_ring = False
 	molecule = context.molecule
@@ -272,7 +492,7 @@ def _double_bond_side(context, v1, v2, start, end, has_shown_vertex):
 
 
 #============================================
-def _context_attach_target_for_vertex(context, vertex):
+def _context_attach_target_for_vertex(context: object, vertex: object) -> object:
 	"""Resolve attachment target for one vertex."""
 	if context.attach_targets and vertex in context.attach_targets:
 		return _coerce_attach_target(context.attach_targets[vertex])
@@ -282,7 +502,7 @@ def _context_attach_target_for_vertex(context, vertex):
 
 
 #============================================
-def _clip_to_target(bond_start, target):
+def _clip_to_target(bond_start: object, target: object) -> object:
 	"""Clip one endpoint to one target using default Phase B policy.
 
 	Deprecated: superseded by _resolve_endpoint_with_constraints() which
@@ -299,7 +519,7 @@ def _clip_to_target(bond_start, target):
 
 
 #============================================
-def _resolve_endpoint_with_constraints(bond_start, target, constraints=None, line_width=0.0):
+def _resolve_endpoint_with_constraints(bond_start: object, target: object, constraints: object = None, line_width: object = 0.0) -> object:
 	"""Resolve one bond endpoint using the full 4-step constraint pipeline."""
 	if target is None:
 		return bond_start
@@ -339,7 +559,7 @@ def _resolve_endpoint_with_constraints(bond_start, target, constraints=None, lin
 
 
 #============================================
-def _edge_length_override(edge) -> float | None:
+def _edge_length_override(edge: object) -> float | None:
 	"""Resolve optional explicit edge length override from attrs/properties."""
 	override = getattr(edge, "bond_length_override", None)
 	if override is not None:
@@ -352,7 +572,7 @@ def _edge_length_override(edge) -> float | None:
 
 
 #============================================
-def _edge_length_exception_tag(edge) -> str | None:
+def _edge_length_exception_tag(edge: object) -> str | None:
 	"""Resolve optional edge length exception tag from attrs/properties."""
 	tag = getattr(edge, "bond_length_exception_tag", None)
 	if tag:
@@ -365,7 +585,7 @@ def _edge_length_exception_tag(edge) -> str | None:
 
 
 #============================================
-def _apply_bond_length_policy(edge, start, end):
+def _apply_bond_length_policy(edge: object, start: object, end: object) -> object:
 	"""Apply style-length policy to one edge segment."""
 	base_length = geometry.point_distance(start[0], start[1], end[0], end[1])
 	if base_length <= 0.0:
@@ -387,7 +607,7 @@ def _apply_bond_length_policy(edge, start, end):
 
 
 #============================================
-def _avoid_cross_label_overlaps(start, end, half_width, own_vertices, label_targets, epsilon=0.5):
+def _avoid_cross_label_overlaps(start: object, end: object, half_width: object, own_vertices: object, label_targets: object, epsilon: object = 0.5) -> object:
 	"""Retreat bond endpoints away from non-own-vertex label targets.
 
 	For each label target that is NOT owned by one of the bond's own vertices,
@@ -432,22 +652,32 @@ def _avoid_cross_label_overlaps(start, end, half_width, own_vertices, label_targ
 
 
 #============================================
-def build_bond_ops(edge, start, end, context):
+def build_bond_ops(edge: object, start: object, end: object, context: object) -> object:
 	if start is None or end is None:
 		return []
+	depiction = cdml_bond_io.resolve_bond_depiction(edge)
+	base_line_width = depiction.line_width
+	if base_line_width is None:
+		base_line_width = context.line_width
+	edge_line_width = _edge_line_width(edge, context, base_width=base_line_width)
+	bond_width = depiction.bond_width
+	if bond_width is None:
+		bond_width = context.bond_width
+	wedge_width = depiction.wedge_width
+	if wedge_width is None:
+		wedge_width = context.wedge_width
 	v1, v2 = edge.vertices
 	target_v1 = _context_attach_target_for_vertex(context, v1)
 	target_v2 = _context_attach_target_for_vertex(context, v2)
 	if target_v1 is not None:
 		start = _resolve_endpoint_with_constraints(
 			end, target_v1, constraints=context.attach_constraints,
-			line_width=context.line_width)
+			line_width=edge_line_width)
 	if target_v2 is not None:
 		end = _resolve_endpoint_with_constraints(
 			start, target_v2, constraints=context.attach_constraints,
-			line_width=context.line_width)
+			line_width=edge_line_width)
 	start, end = _apply_bond_length_policy(edge, start, end)
-	edge_line_width = _edge_line_width(edge, context)
 	if context.label_targets:
 		start, end = _avoid_cross_label_overlaps(
 			start, end,
@@ -455,11 +685,22 @@ def build_bond_ops(edge, start, end, context):
 			own_vertices={v1, v2},
 			label_targets=context.label_targets,
 		)
+	if edge.type in ("a", "d", "o"):
+		length = geometry.point_distance(start[0], start[1], end[0], end[1])
+		if length == 0.0:
+			return []
 	has_shown_vertex = False
 	if context.shown_vertices:
 		has_shown_vertex = v1 in context.shown_vertices or v2 in context.shown_vertices
 	color1, color2, gradient = _resolve_edge_colors(edge, context, has_shown_vertex)
 	ops = []
+
+	if edge.type in ("a", "d", "o"):
+		return _styled_multiple_bond_ops(
+			edge, start, end, context, depiction, edge_line_width,
+			bond_width, wedge_width, color1, color2, gradient,
+			has_shown_vertex,
+		)
 
 	if edge.order == 1:
 		if edge.type == 'w':
@@ -472,17 +713,17 @@ def build_bond_ops(edge, start, end, context):
 					dy = (end[1] - start[1]) / d
 					end = (end[0] + dx * overlap, end[1] + dy * overlap)
 			ops.extend(_rounded_wedge_ops(start, end, context.line_width,
-					context.wedge_width, color1))
+					wedge_width, color1))
 			return ops
 		if edge.type == 'h':
-			ops.extend(_hashed_ops(start, end, context.line_width, context.wedge_width,
+			ops.extend(_hashed_ops(start, end, edge_line_width, wedge_width,
 					color1, color2, gradient))
 			return ops
 		if edge.type == 'q':
-			ops.extend(haworth_front_edge_ops(start, end, context.wedge_width, color1))
+			ops.extend(haworth_front_edge_ops(start, end, wedge_width, color1))
 			return ops
 		if edge.type == 's':
-			ops.extend(_wavy_ops(start, end, edge_line_width, context.wedge_width, _edge_wavy_style(edge), color1))
+			ops.extend(_wavy_ops(start, end, edge_line_width, wedge_width, _edge_wavy_style(edge), color1))
 			return ops
 		ops.extend(_line_ops(start, end, edge_line_width, color1, color2, gradient, cap="round"))
 		return ops
@@ -496,7 +737,7 @@ def build_bond_ops(edge, start, end, context):
 		if side:
 			ops.extend(_line_ops(start, end, edge_line_width, color1, color2, gradient, cap="round"))
 			x1, y1, x2, y2 = geometry.find_parallel(
-				start[0], start[1], end[0], end[1], context.bond_width * misc.signum(side)
+				start[0], start[1], end[0], end[1], bond_width * misc.signum(side)
 			)
 			length = geometry.point_distance(x1, y1, x2, y2)
 			if length and context.bond_second_line_shortening:
@@ -516,7 +757,7 @@ def build_bond_ops(edge, start, end, context):
 			return ops
 		for i in (1, -1):
 			x1, y1, x2, y2 = geometry.find_parallel(
-				start[0], start[1], end[0], end[1], i * context.bond_width * 0.5
+				start[0], start[1], end[0], end[1], i * bond_width * 0.5
 			)
 			if context.label_targets:
 				(x1, y1), (x2, y2) = _avoid_cross_label_overlaps(
@@ -531,7 +772,7 @@ def build_bond_ops(edge, start, end, context):
 		ops.extend(_line_ops(start, end, edge_line_width, color1, color2, gradient, cap="round"))
 		for i in (1, -1):
 			x1, y1, x2, y2 = geometry.find_parallel(
-				start[0], start[1], end[0], end[1], i * context.bond_width * 0.7
+				start[0], start[1], end[0], end[1], i * bond_width * 0.7
 			)
 			if context.label_targets:
 				(x1, y1), (x2, y2) = _avoid_cross_label_overlaps(

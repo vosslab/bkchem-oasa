@@ -159,6 +159,24 @@ class BondRenderContext:
 
 #============================================
 @dataclasses.dataclass(frozen=True)
+class BondDepiction:
+	"""Effective per-edge depiction values plus their lexical CDML presence."""
+	line_width: float | None
+	bond_width: float | None
+	wedge_width: float | None
+	double_ratio: float
+	center: bool | None
+	auto_sign: int
+	equithick: bool
+	simple_double: bool
+	color: str | None
+	wavy_style: str | None
+	haworth_position: str | None
+	explicit_fields: frozenset[str]
+
+
+#============================================
+@dataclasses.dataclass(frozen=True)
 class AttachConstraints:
 	"""Shared attachment constraints for endpoint resolution and paint legality."""
 	line_width: float = 0.0
@@ -230,7 +248,7 @@ class AttachTarget:
 	p2: tuple[float, float] | None = None
 	targets: tuple | None = None
 
-	def centroid(self):
+	def centroid(self) -> object:
 		"""Return centroid-like interior hint for this target primitive."""
 		if self.kind == "box":
 			if self.box is None:
@@ -253,7 +271,7 @@ class AttachTarget:
 			return first_child.centroid()
 		raise ValueError(f"Unsupported attach target kind: {self.kind!r}")
 
-	def contains(self, point, epsilon=0.0):
+	def contains(self, point: object, epsilon: object = 0.0) -> object:
 		"""Return True when point is in strict interior for this target."""
 		if self.kind == "box":
 			if self.box is None:
@@ -272,7 +290,7 @@ class AttachTarget:
 			return any(_coerce_attach_target(child).contains(point, epsilon=epsilon) for child in (self.targets or ()))
 		raise ValueError(f"Unsupported attach target kind: {self.kind!r}")
 
-	def boundary_intersection(self, bond_start, interior_hint=None, constraints=None):
+	def boundary_intersection(self, bond_start: object, interior_hint: object = None, constraints: object = None) -> object:
 		"""Resolve one boundary endpoint from bond_start toward this target."""
 		# late import to avoid circular dependency with attach_resolution
 		from oasa.render_lib.attach_resolution import resolve_attach_endpoint
@@ -330,7 +348,7 @@ def make_composite_target(targets: list[AttachTarget] | tuple[AttachTarget, ...]
 
 
 #============================================
-def _coerce_attach_target(target):
+def _coerce_attach_target(target: object) -> object:
 	"""Normalize attach target inputs into AttachTarget objects."""
 	if isinstance(target, AttachTarget):
 		return target
@@ -338,7 +356,7 @@ def _coerce_attach_target(target):
 
 
 #============================================
-def _normalize_attach_site(attach_site):
+def _normalize_attach_site(attach_site: object) -> object:
 	"""Normalize attach-site selector to one supported semantic value."""
 	if attach_site is None:
 		return "core_center"

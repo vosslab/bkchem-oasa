@@ -1,4 +1,4 @@
-"""CDML file loading and saving for BKChem-Qt."""
+"""Legacy molecule-only CDML import helpers for BKChem-Qt."""
 
 # local repo modules
 import oasa.cdml_writer
@@ -7,11 +7,16 @@ from oasa import safe_xml
 from oasa.cdml_writer import POINTS_PER_CM
 
 import bkchem_qt.bridge.oasa_bridge
+import bkchem_qt.io.cdml_document_io
 import bkchem_qt.models.molecule_model
 
 
+load_cdml_document_file = bkchem_qt.io.cdml_document_io.load_cdml_document_file
+load_cdml_document_string = bkchem_qt.io.cdml_document_io.load_cdml_document_string
+
+
 #============================================
-def load_cdml_file(file_path: str, bond_length_pt: float = None) -> list:
+def load_cdml_file(file_path: str, bond_length_pt: float | None = None) -> list:
 	"""Load a CDML file and return a list of MoleculeModel objects.
 
 	Parses the CDML XML document, extracts each ``<molecule>`` element,
@@ -36,7 +41,7 @@ def load_cdml_file(file_path: str, bond_length_pt: float = None) -> list:
 
 
 #============================================
-def load_cdml_string(cdml_text: str, bond_length_pt: float = None) -> list:
+def load_cdml_string(cdml_text: str, bond_length_pt: float | None = None) -> list:
 	"""Load CDML from a string and return a list of MoleculeModel objects.
 
 	Useful for clipboard paste and unit testing. Delegates parsing to
@@ -50,6 +55,11 @@ def load_cdml_string(cdml_text: str, bond_length_pt: float = None) -> list:
 		List of MoleculeModel instances parsed from the text.
 	"""
 	doc = safe_xml.parse_dom_from_string(cdml_text)
+	target_bond_length = (
+		bkchem_qt.bridge.oasa_bridge.DEFAULT_BOND_LENGTH_PT
+		if bond_length_pt is None
+		else bond_length_pt
+	)
 	# search for all <molecule> elements anywhere in the document
 	molecule_elements = dom_ext.simpleXPathSearch(doc, "//molecule")
 	results = []
@@ -64,50 +74,10 @@ def load_cdml_string(cdml_text: str, bond_length_pt: float = None) -> list:
 			parts = oasa_mol.get_disconnected_subgraphs()
 		for part in parts:
 			mol_model = bkchem_qt.bridge.oasa_bridge.oasa_mol_to_qt_mol(
-				part, bond_length_pt=bond_length_pt,
+				part, bond_length_pt=target_bond_length,
 			)
 			results.append(mol_model)
 	return results
-
-
-#============================================
-def save_cdml_file(file_path: str, document) -> None:
-	"""Save a Document to a CDML file.
-
-	Converts each MoleculeModel to an OASA molecule, serializes to a
-	CDML XML document, and writes to disk. Coordinates are converted
-	from scene-space points to cm using ``_px_to_cm_text()``.
-
-	Args:
-		file_path: Destination file path.
-		document: Document model containing molecules.
-	"""
-	import xml.dom.minidom as dom
-
-	doc = dom.Document()
-	cdml_el = doc.createElement("cdml")
-	cdml_el.setAttribute("version", str(oasa.cdml_writer.DEFAULT_CDML_VERSION))
-	cdml_el.setAttribute("xmlns", str(oasa.cdml_writer.CDML_NAMESPACE))
-	# add metadata element
-	metadata_el = dom_ext.elementUnder(cdml_el, "metadata")
-	dom_ext.elementUnder(
-		metadata_el, "doc",
-		attributes=(("href", oasa.cdml_writer.CDML_DOC_URL),),
-	)
-	# serialize each molecule
-	for mol_model in document.molecules:
-		oasa_mol = bkchem_qt.bridge.oasa_bridge.qt_mol_to_oasa_mol(mol_model)
-		mol_el = oasa.cdml_writer.write_cdml_molecule_element(
-			oasa_mol,
-			doc=doc,
-			coord_to_text=_px_to_cm_text,
-		)
-		cdml_el.appendChild(mol_el)
-	doc.appendChild(cdml_el)
-	# write the XML to disk
-	xml_text = doc.toxml(encoding="utf-8").decode("utf-8")
-	with open(file_path, "w", encoding="utf-8") as f:
-		f.write(xml_text)
 
 
 #============================================

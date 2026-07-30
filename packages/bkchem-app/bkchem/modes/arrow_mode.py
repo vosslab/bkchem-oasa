@@ -28,7 +28,7 @@ from bkchem.modes.edit_mode import edit_mode
 ## -------------------- ARROW MODE --------------------
 class arrow_mode( edit_mode):
 
-	def __init__( self):
+	def __init__( self) -> None:
 		edit_mode.__init__( self)
 		# submodes, name loaded from YAML (arrow types previously from arrow.available_types)
 		self._start_point = None
@@ -37,7 +37,7 @@ class arrow_mode( edit_mode):
 		self.__nothing_special = 0 # to easy determine whether new undo record should be started
 
 
-	def mouse_down( self, event, modifiers = []):
+	def mouse_down( self, event: object, modifiers: object = []) -> None:
 		edit_mode.mouse_down( self, event, modifiers = modifiers)
 		Store.app.paper.unselect_all()
 		if not self.focused:
@@ -61,7 +61,7 @@ class arrow_mode( edit_mode):
 		Store.app.paper.add_bindings()
 
 
-	def mouse_drag( self, event):
+	def mouse_drag( self, event: object) -> None:
 		if self._start_point:
 			if not self._dragging:
 				self._dragging = 1
@@ -88,7 +88,7 @@ class arrow_mode( edit_mode):
 			self._arrow_to_update.redraw()
 
 
-	def mouse_up( self, event):
+	def mouse_up( self, event: object) -> None:
 		if not self._dragging:
 			# update the spline-notspline in case it differs from the set submode
 			spline = (self.get_submode( 2) == 'spline')
@@ -125,11 +125,11 @@ class arrow_mode( edit_mode):
 		Store.app.paper.add_bindings()
 
 
-	def mouse_click( self, event):
+	def mouse_click( self, event: object) -> None:
 		pass
 
 
-	def enter_object( self, object, event):
+	def enter_object( self, object: object, event: object) -> None:
 		if self.focused:
 			self.focused.unfocus()
 		self.focused = object
@@ -139,7 +139,7 @@ class arrow_mode( edit_mode):
 			self.focused.focus()
 
 
-	def leave_object( self, event):
+	def leave_object( self, event: object) -> None:
 		if self.focused:
 			self.focused.unfocus()
 			self.focused = None

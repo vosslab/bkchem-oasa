@@ -17,7 +17,7 @@ import oasa.hex_grid
 
 
 #============================================
-def _get_ring_atoms(mol) -> set:
+def _get_ring_atoms(mol: object) -> set:
 	"""Return all atoms that belong to at least one ring.
 
 	Args:
@@ -34,7 +34,7 @@ def _get_ring_atoms(mol) -> set:
 
 
 #============================================
-def _collect_subtree(root, excluded_parent, already_visited: set) -> list:
+def _collect_subtree(root: object, excluded_parent: object, already_visited: set) -> list:
 	"""Collect all atoms in the subtree rooted at root, not crossing excluded_parent.
 
 	This includes root itself plus all atoms reachable from root
@@ -66,7 +66,7 @@ def _collect_subtree(root, excluded_parent, already_visited: set) -> list:
 
 
 #============================================
-def _collect_non_ring_subtree(root, excluded, ring_atoms: set) -> list:
+def _collect_non_ring_subtree(root: object, excluded: object, ring_atoms: set) -> list:
 	"""Collect all atoms in a subtree that are not ring atoms.
 
 	Args:
@@ -92,24 +92,119 @@ def _collect_non_ring_subtree(root, excluded, ring_atoms: set) -> list:
 
 
 #============================================
-def _snap_angle_to_60(angle: float) -> float:
-	"""Round an angle (radians) to the nearest multiple of 60 degrees.
+def _collect_angle_subtree(
+		root: object, excluded_parent: object, already_visited: set, ring_atoms: set,
+		) -> list:
+	"""Collect movable angle-repair descendants without crossing a ring anchor.
 
 	Args:
-		angle: Angle in radians.
+		root: Starting non-ring atom for the movable subtree.
+		excluded_parent: Parent atom on the already-processed edge.
+		already_visited: Atoms reached by the angle-repair BFS.
+		ring_atoms: Fixed coordinate anchors in the molecule.
 
 	Returns:
-		Nearest multiple of pi/3 (60 degrees) in radians.
+		List of non-ring, not-yet-visited atoms translated with ``root``.
 	"""
-	step = math.pi / 3.0
-	# normalize to [0, 2*pi)
-	angle = angle % (2 * math.pi)
-	snapped = round(angle / step) * step
-	return snapped % (2 * math.pi)
+	subtree = [root]
+	visited = {root, excluded_parent}
+	queue = collections.deque([root])
+	while queue:
+		current = queue.popleft()
+		for neighbor in current.neighbors:
+			if neighbor in visited or neighbor in already_visited or neighbor in ring_atoms:
+				continue
+			visited.add(neighbor)
+			subtree.append(neighbor)
+			queue.append(neighbor)
+	return subtree
 
 
 #============================================
-def _order_ring_atoms(ring_set: set, mol) -> list:
+def _get_non_ring_components(
+		mol: object, ring_atoms: set[object],
+		) -> list[tuple[list[object], set[object]]]:
+	"""Return source-ordered non-ring components and their fixed ring anchors.
+
+	Args:
+		mol: An OASA-compatible molecule object.
+		ring_atoms: Atoms whose coordinates are fixed by ring membership.
+
+	Returns:
+		Source-ordered component atoms paired with their adjacent ring atoms.
+	"""
+	components = []
+	visited = set()
+	for start in mol.atoms:
+		if start in ring_atoms or start in visited:
+			continue
+		component_atoms = {start}
+		anchors = set()
+		visited.add(start)
+		queue = collections.deque([start])
+		while queue:
+			atom = queue.popleft()
+			for neighbor in atom.neighbors:
+				if neighbor in ring_atoms:
+					anchors.add(neighbor)
+					continue
+				if neighbor not in visited:
+					visited.add(neighbor)
+					component_atoms.add(neighbor)
+					queue.append(neighbor)
+		components.append((
+			[atom for atom in mol.atoms if atom in component_atoms], anchors,
+		))
+	return components
+
+
+#============================================
+def validate_bond_angle_normalization_topology(mol: object) -> None:
+	"""Reject movable components constrained by multiple fixed ring anchors.
+
+	Angle normalization keeps every atom participating in an independent cycle
+	fixed.  A connected component of the remaining graph may be translated from
+	zero or one such anchor.  Two anchors constrain its coordinates from both
+	sides, so the bounded rigid-subtree operation has no unambiguous legal move.
+
+	Args:
+		mol: An OASA-compatible molecule object.
+
+	Raises:
+		ValueError: A non-ring component is adjacent to multiple ring atoms.
+	"""
+	ring_atoms = _get_ring_atoms(mol)
+	for _component, anchors in _get_non_ring_components(mol, ring_atoms):
+		if len(anchors) > 1:
+			raise ValueError(
+				"bond-angle normalization does not support a non-ring component "
+				"attached to multiple ring anchors",
+			)
+
+
+#============================================
+def _snap_angle_to_60_slot(angle: float) -> int:
+	"""Return nearest canonical 60-degree slot, with half slots rounding forward.
+
+	An exact half slot advances toward the increasing-angle slot: 30 degrees
+	selects 60 degrees, 90 degrees selects 120 degrees, and 330 degrees wraps
+	to zero degrees.  The integer calculation keeps that authored rule stable
+	across the circular zero/360-degree boundary.
+	"""
+	step = math.pi / 3.0
+	scaled_slot = (angle % (2 * math.pi)) / step
+	lower_slot = math.floor(scaled_slot)
+	return int(lower_slot + (scaled_slot - lower_slot >= 0.5)) % 6
+
+
+#============================================
+def _slot_angle(slot: int) -> float:
+	"""Return the radians for one canonical 60-degree slot index."""
+	return (slot % 6) * math.pi / 3.0
+
+
+#============================================
+def _order_ring_atoms(ring_set: set, mol: object) -> list:
 	"""Order ring atoms by walking bond connectivity.
 
 	Given a set of atoms in a ring, return them in connected order
@@ -143,7 +238,7 @@ def _order_ring_atoms(ring_set: set, mol) -> list:
 
 
 #============================================
-def _normalize_lengths_bfs(mol, bond_length: float) -> None:
+def _normalize_lengths_bfs(mol: object, bond_length: float) -> None:
 	"""BFS-based bond length normalization for a single molecule.
 
 	Picks the highest-degree atom as root and walks outward.  For
@@ -199,81 +294,89 @@ def _normalize_lengths_bfs(mol, bond_length: float) -> None:
 
 
 #============================================
-def _normalize_angles_bfs(mol, bond_length: float) -> None:
-	"""BFS-based angle normalization for a single molecule.
+def _normalize_angles_bfs(mol: object, bond_length: float) -> None:
+	"""Normalize each non-ring component from its deterministic fixed root.
 
-	From the root atom outward, distribute outgoing bonds to the
-	nearest 60-degree slots.
+	A ring-anchored component starts at its ring-adjacent atom, retaining its
+	fixed incoming bond direction.  An unanchored component starts at its
+	highest-degree source-order atom.  Both then distribute outgoing bonds to
+	the nearest 60-degree slots.
 
 	Args:
 		mol: An OASA-compatible molecule object.
-		bond_length: Standard bond length (used for repositioning).
+		bond_length: Fallback distance for a degenerate outgoing vector.
 	"""
 	atoms = mol.atoms
 	if len(atoms) < 2:
 		return
 	ring_atoms = _get_ring_atoms(mol)
-	# pick the root: highest degree atom
-	root = max(atoms, key=lambda a: a.degree)
-	visited = {root}
-	queue = collections.deque([root])
-	while queue:
-		parent = queue.popleft()
-		# collect unvisited neighbors that are NOT ring-bonded to parent
-		children = []
-		for neighbor in parent.neighbors:
-			if neighbor in visited:
-				continue
-			# skip ring bonds (both atoms in a ring)
-			if parent in ring_atoms and neighbor in ring_atoms:
-				visited.add(neighbor)
-				queue.append(neighbor)
-				continue
-			children.append(neighbor)
-		if not children:
-			continue
-		# compute current angles from parent to each child
-		child_angles = []
-		for child in children:
-			dx = child.x - parent.x
-			dy = child.y - parent.y
-			angle = math.atan2(dy, dx)
-			child_angles.append((angle, child))
-		# sort by current angle
-		child_angles.sort(key=lambda pair: pair[0] % (2 * math.pi))
-		# snap each angle to nearest 60-degree slot, avoiding collisions
-		used_slots = set()
-		for angle, child in child_angles:
-			snapped = _snap_angle_to_60(angle)
-			# resolve collision: try adjacent slots
-			attempts = 0
-			step = math.pi / 3.0
-			while snapped in used_slots and attempts < 6:
-				snapped = (snapped + step) % (2 * math.pi)
-				attempts += 1
-			used_slots.add(snapped)
-			# compute distance from parent to child
-			dx = child.x - parent.x
-			dy = child.y - parent.y
-			dist = math.sqrt(dx * dx + dy * dy)
-			if dist < 1e-6:
-				dist = bond_length
-			# reposition child at the snapped angle
-			new_x = parent.x + dist * math.cos(snapped)
-			new_y = parent.y + dist * math.sin(snapped)
-			shift_x = new_x - child.x
-			shift_y = new_y - child.y
-			# move the entire subtree
-			subtree = _collect_subtree(child, parent, visited)
-			for atom in subtree:
-				atom.x += shift_x
-				atom.y += shift_y
-			visited.add(child)
-			queue.append(child)
+	for component, anchors in _get_non_ring_components(mol, ring_atoms):
+		component_set = set(component)
+		anchor = next(iter(anchors), None)
+		if anchor is None:
+			root = max(component, key=lambda atom: atom.degree)
+			incoming_parent = None
+		else:
+			root = next(neighbor for neighbor in anchor.neighbors if neighbor in component_set)
+			incoming_parent = anchor
+		visited = {root}
+		queue = collections.deque([(root, incoming_parent)])
+		while queue:
+			parent, incoming_parent = queue.popleft()
+			children = [
+				neighbor for neighbor in parent.neighbors
+				if neighbor in component_set and neighbor not in visited
+			]
+			# Child order is the graph/CDML source order exposed by ``neighbors``.
+			# It gives an authored, deterministic owner to a contested slot.
+			# Fixed ring-anchor and incoming-edge directions reserve their nearest
+			# slots before movable non-ring children are assigned.
+			used_slots = set()
+			if incoming_parent is not None:
+				incoming_angle = math.atan2(
+					incoming_parent.y - parent.y, incoming_parent.x - parent.x,
+				)
+				used_slots.add(_snap_angle_to_60_slot(incoming_angle))
+			for neighbor in parent.neighbors:
+				if neighbor not in ring_atoms:
+					continue
+				ring_angle = math.atan2(neighbor.y - parent.y, neighbor.x - parent.x)
+				used_slots.add(_snap_angle_to_60_slot(ring_angle))
+			for child in children:
+				dx = child.x - parent.x
+				dy = child.y - parent.y
+				slot = _snap_angle_to_60_slot(math.atan2(dy, dx))
+				for _attempt in range(6):
+					if slot not in used_slots:
+						break
+					slot = (slot + 1) % 6
+				else:
+					raise ValueError("bond-angle normalization has no free 60-degree slot")
+				used_slots.add(slot)
+				snapped = _slot_angle(slot)
+				# compute distance from parent to child
+				dx = child.x - parent.x
+				dy = child.y - parent.y
+				dist = math.sqrt(dx * dx + dy * dy)
+				if dist < 1e-6:
+					dist = bond_length
+				# reposition child at the snapped angle
+				new_x = parent.x + dist * math.cos(snapped)
+				new_y = parent.y + dist * math.sin(snapped)
+				shift_x = new_x - child.x
+				shift_y = new_y - child.y
+				# Move only the non-ring portion of the unvisited subtree.  A ring
+				# coordinate is an anchor even when the root is outside that ring.
+				subtree = _collect_angle_subtree(child, parent, visited, ring_atoms)
+				for atom in subtree:
+					atom.x += shift_x
+					atom.y += shift_y
+				visited.add(child)
+				queue.append((child, parent))
 
 
 #============================================
-def _normalize_rings_for_mol(mol, bond_length: float) -> None:
+def _normalize_rings_for_mol(mol: object, bond_length: float) -> None:
 	"""Normalize all rings in a single molecule to regular polygons.
 
 	Args:
@@ -325,7 +428,7 @@ def _normalize_rings_for_mol(mol, bond_length: float) -> None:
 
 
 #============================================
-def _straighten_bonds_for_mol(mol) -> None:
+def _straighten_bonds_for_mol(mol: object) -> None:
 	"""Straighten terminal bonds in a single molecule.
 
 	For each degree-1 atom, snap the bond to its neighbor to the
@@ -355,13 +458,12 @@ def _straighten_bonds_for_mol(mol) -> None:
 
 
 #============================================
-def normalize_bond_lengths(mol, bond_length: float) -> None:
-	"""Set all bonds to the standard bond length using BFS.
+def normalize_bond_lengths(mol: object, bond_length: float) -> None:
+	"""Normalize eligible non-ring bonds while preserving ring geometry.
 
 	Walks the molecular graph from the highest-degree atom outward,
-	adjusting each neighbor distance while preserving direction.
-	Ring closure edges are left as-is (rings should be normalized
-	separately).
+	adjusting eligible neighbor distances while preserving direction. Ring
+	geometry and ring closure edges remain unchanged.
 
 	Args:
 		mol: An OASA-compatible molecule object.
@@ -371,23 +473,27 @@ def normalize_bond_lengths(mol, bond_length: float) -> None:
 
 
 #============================================
-def normalize_bond_angles(mol, bond_length: float) -> None:
+def normalize_bond_angles(mol: object, bond_length: float) -> None:
 	"""Round non-ring bond angles to nearest 60-degree multiple.
 
-	For each non-ring atom with degree >= 2, outgoing bond angles
-	are rounded to the nearest 60-degree slot.  Collisions are
-	resolved by shifting to the next available slot.  Ring bonds
-	are left alone (handled by normalize_rings).
+	Ring atoms remain fixed anchors.  Each supported non-ring component has at
+	most one ring anchor; multiply anchored components raise ``ValueError``.
+	Outgoing bonds use source order, reserve fixed and incoming directions, and
+	advance to the next free 60-degree slot when their nearest slot is occupied.
 
 	Args:
 		mol: An OASA-compatible molecule object.
-		bond_length: Standard bond length (used for repositioning).
+		bond_length: Fallback distance for a degenerate outgoing vector.
+
+	Raises:
+		ValueError: The topology has no unambiguous supported angle repair.
 	"""
+	validate_bond_angle_normalization_topology(mol)
 	_normalize_angles_bfs(mol, bond_length)
 
 
 #============================================
-def normalize_rings(mol, bond_length: float) -> None:
+def normalize_rings(mol: object, bond_length: float) -> None:
 	"""Reshape each ring to a regular polygon centered on its centroid.
 
 	Detects rings via get_smallest_independent_cycles(), then places
@@ -403,7 +509,7 @@ def normalize_rings(mol, bond_length: float) -> None:
 
 
 #============================================
-def straighten_bonds(mol) -> None:
+def straighten_bonds(mol: object) -> None:
 	"""Snap terminal and chain bond angles to nearest 30-degree direction.
 
 	For degree-1 atoms (terminals), the bond angle is adjusted to
@@ -416,7 +522,7 @@ def straighten_bonds(mol) -> None:
 
 
 #============================================
-def snap_to_hex_grid(mol, bond_length: float) -> None:
+def snap_to_hex_grid(mol: object, bond_length: float) -> None:
 	"""Move every atom to the nearest hex grid point.
 
 	Uses oasa.hex_grid.find_best_grid_origin to choose the optimal

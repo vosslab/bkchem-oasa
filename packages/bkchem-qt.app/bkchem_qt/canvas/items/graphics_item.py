@@ -22,7 +22,7 @@ class RectItem(PySide6.QtWidgets.QGraphicsRectItem):
 
 	#============================================
 	def __init__(self, rect: PySide6.QtCore.QRectF,
-					parent: PySide6.QtWidgets.QGraphicsItem = None):
+			parent: PySide6.QtWidgets.QGraphicsItem = None) -> None:
 		"""Initialize the rectangle item.
 
 		Args:
@@ -33,13 +33,16 @@ class RectItem(PySide6.QtWidgets.QGraphicsRectItem):
 		self.setFlag(
 			PySide6.QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, True,
 		)
-		self.setFlag(
-			PySide6.QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable, True,
-		)
 		self.setAcceptHoverEvents(True)
+		self._disposed = False
 		# default appearance
 		self.setPen(PySide6.QtGui.QPen(render_ops_painter._default_color, 1.0))
 		self.setBrush(PySide6.QtCore.Qt.BrushStyle.NoBrush)
+
+	#============================================
+	def dispose(self) -> None:
+		"""Release projection-owned callbacks before scene teardown."""
+		self._disposed = True
 
 
 #============================================
@@ -55,7 +58,7 @@ class OvalItem(PySide6.QtWidgets.QGraphicsEllipseItem):
 
 	#============================================
 	def __init__(self, rect: PySide6.QtCore.QRectF,
-					parent: PySide6.QtWidgets.QGraphicsItem = None):
+			parent: PySide6.QtWidgets.QGraphicsItem = None) -> None:
 		"""Initialize the oval item.
 
 		Args:
@@ -66,13 +69,16 @@ class OvalItem(PySide6.QtWidgets.QGraphicsEllipseItem):
 		self.setFlag(
 			PySide6.QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, True,
 		)
-		self.setFlag(
-			PySide6.QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable, True,
-		)
 		self.setAcceptHoverEvents(True)
+		self._disposed = False
 		# default appearance
 		self.setPen(PySide6.QtGui.QPen(render_ops_painter._default_color, 1.0))
 		self.setBrush(PySide6.QtCore.Qt.BrushStyle.NoBrush)
+
+	#============================================
+	def dispose(self) -> None:
+		"""Release projection-owned callbacks before scene teardown."""
+		self._disposed = True
 
 
 #============================================
@@ -88,7 +94,7 @@ class PolygonItem(PySide6.QtWidgets.QGraphicsPolygonItem):
 
 	#============================================
 	def __init__(self, points: list,
-					parent: PySide6.QtWidgets.QGraphicsItem = None):
+			parent: PySide6.QtWidgets.QGraphicsItem = None) -> None:
 		"""Initialize the polygon item from a list of points.
 
 		Args:
@@ -107,10 +113,13 @@ class PolygonItem(PySide6.QtWidgets.QGraphicsPolygonItem):
 		self.setFlag(
 			PySide6.QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, True,
 		)
-		self.setFlag(
-			PySide6.QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable, True,
-		)
 		self.setAcceptHoverEvents(True)
+		self._disposed = False
 		# default appearance
 		self.setPen(PySide6.QtGui.QPen(render_ops_painter._default_color, 1.0))
 		self.setBrush(PySide6.QtCore.Qt.BrushStyle.NoBrush)
+
+	#============================================
+	def dispose(self) -> None:
+		"""Release projection-owned callbacks before scene teardown."""
+		self._disposed = True

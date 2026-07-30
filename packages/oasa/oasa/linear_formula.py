@@ -32,15 +32,33 @@ from oasa.oasa_exceptions import oasa_invalid_atom_symbol
 
 class linear_formula( object):
 
-  def __init__( self, text="", start_valency=0, end_valency=0, mol=None):
+  def __init__( self: object, text: object="", start_valency: object=0, end_valency: object=0,
+                mol: object=None, molecule_factory: object=None,
+                root_molecule: object=None) -> object:
     """valency specifies the already occupied valency of the submited formula,
     it is usually used when parsing groups"""
     self.molecule = None
+    self.molecule_factory = molecule_factory
+    if root_molecule is not None:
+      if mol is not None:
+        raise ValueError("use either mol or root_molecule, not both")
+      if self.molecule_factory is None:
+        # Nested !SMILES fragments must remain in the caller's graph family.
+        self.molecule_factory = root_molecule.create_graph
+      mol = root_molecule
     if text:
       self.parse_text( text, start_valency=start_valency, end_valency=end_valency, mol=mol)
 
 
-  def parse_text( self, text, start_valency=0, end_valency=0, mol=None):
+  def parse_text( self: object, text: object, start_valency: object=0, end_valency: object=0,
+                  mol: object=None, root_molecule: object=None) -> object:
+    if root_molecule is not None:
+      if mol is not None:
+        raise ValueError("use either mol or root_molecule, not both")
+      if self.molecule_factory is None:
+        # Direct parse_text callers receive the same nested-fragment guarantee.
+        self.molecule_factory = root_molecule.create_graph
+      mol = root_molecule
     text = self.expand_abbrevs( text)
     mol = self.parse_form( text, start_valency=start_valency, mol=mol, reverse=False)
     if mol:
@@ -82,12 +100,15 @@ class linear_formula( object):
       return mol
 
 
-  def parse_form( self, text, start_valency=0, mol=None, reverse=False):
+  def parse_form( self: object, text: object, start_valency: object=0, mol: object=None, reverse: object=False) -> object:
     form = text
 
     # the code itself
     if not mol:
-      mol = Config.create_molecule()
+      if self.molecule_factory is not None:
+        mol = self.molecule_factory()
+      else:
+        mol = Config.create_molecule()
 
     # create the dummy atom
     if start_valency:
@@ -132,7 +153,9 @@ class linear_formula( object):
           for j in range( count):
             if chunk[0] == "!":
               # the form should be a smiles
-              m = smiles.text_to_mol( chunk[1:], calc_coords=0)
+              sm = smiles.Smiles( molecule_factory=self.molecule_factory)
+              sm.read_smiles( chunk[1:])
+              m = sm.structure
               m.add_missing_hydrogens()
               hs = [v for v in m.vertices[0].neighbors if v.symbol == 'H']
               m.disconnect( hs[0], m.vertices[0])
@@ -163,7 +186,7 @@ class linear_formula( object):
 
 
 
-  def chunk_to_atoms( self, chunk, mol):
+  def chunk_to_atoms( self: object, chunk: object, mol: object) -> object:
     m = re.match( "([A-Z][a-z]?)([0-9])?([+-])?", chunk)
     if m:
       name = m.group( 1)
@@ -181,7 +204,7 @@ class linear_formula( object):
       return ret
 
 
-  def get_last_free_atom( self, mol):
+  def get_last_free_atom( self: object, mol: object) -> object:
     # check if there is something with a free valency
     if not mol.vertices:
       return None
@@ -199,7 +222,7 @@ class linear_formula( object):
     return atoms[-1]
 
 
-  def expand_abbrevs( self, text):
+  def expand_abbrevs( self: object, text: object) -> object:
     # at first sort the text according to length, so that the longest are expanded first
     # (MMTr and not Tr)
     keys = sorted([(len( k), k) for k in list(name_to_smiles.keys())], reverse=True)
@@ -209,14 +232,14 @@ class linear_formula( object):
     return text
 
 
-def reverse_chunks( chunks):
+def reverse_chunks( chunks: object) -> object:
   chunks.reverse()
   for i in range( 0, len( chunks), 2):
     chunks[i], chunks[i+1] = chunks[i+1],chunks[i]
   return chunks
 
 
-def gen_formula_fragments( formula, reverse=False):
+def gen_formula_fragments( formula: object, reverse: object=False) -> object:
   chunks = list( gen_formula_fragments_helper( formula))
   if reverse:
     chunks.reverse()
@@ -241,7 +264,7 @@ def gen_formula_fragments( formula, reverse=False):
     i += 1
 
 
-def gen_formula_fragments_helper( formula):
+def gen_formula_fragments_helper( formula: object) -> object:
   opened_brackets = 0
   to_ret = []
   for ch in formula:
@@ -270,7 +293,7 @@ def gen_formula_fragments_helper( formula):
 
 
 
-def split_number_and_text( txt):
+def split_number_and_text( txt: object) -> object:
   last = None
   for i in range( len( txt)):
     try:
@@ -281,7 +304,7 @@ def split_number_and_text( txt):
 
 
 
-def reverse_formula( text):
+def reverse_formula( text: object) -> object:
   all_chunks = []
   form = text
   if "(" not in form:

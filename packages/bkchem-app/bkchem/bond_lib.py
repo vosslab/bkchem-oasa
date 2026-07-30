@@ -82,8 +82,9 @@ class BkBond(
 
 
 
-  def __init__( self, standard=None, atoms=(), package=None, molecule=None, type='n', order=1,
-                simple_double=1):
+  def __init__(self, standard: object = None, atoms: object = (), package: object = None,
+               molecule: object = None, type: object = 'n', order: object = 1,
+               simple_double: object = 1) -> None:
     # initiation
     self.molecule = molecule
     # composition layer: dedicated oasa.bond for chemistry data
@@ -138,32 +139,32 @@ class BkBond(
 
   # Override of drawable.dirty
   @property
-  def dirty(self):
+  def dirty(self) -> object:
     return self.__dirty # or self.atom1.dirty or self.atom2.dirty
 
 
   @dirty.setter
-  def dirty(self, dirty):
+  def dirty(self, dirty: object) -> None:
     self.__dirty = dirty
 
 
   @property
-  def molecule(self):
+  def molecule(self) -> object:
     return self.__molecule
 
 
   @molecule.setter
-  def molecule(self, mol):
+  def molecule(self, mol: object) -> None:
     self.__molecule = mol
 
 
   @property
-  def type(self):
+  def type(self) -> object:
     return self.__type
 
 
   @type.setter
-  def type(self, mol):
+  def type(self, mol: object) -> None:
     self.__type = mol
     # sync shadow composition bond type
     if hasattr(self, '_chem_bond'):
@@ -172,7 +173,7 @@ class BkBond(
 
 
   @property
-  def order(self):
+  def order(self) -> object:
     """Read order from composition bond."""
     if hasattr(self, '_chem_bond'):
       return self._chem_bond.order
@@ -180,7 +181,7 @@ class BkBond(
 
 
   @order.setter
-  def order(self, mol):
+  def order(self, mol: object) -> None:
     """Write order to composition bond."""
     if hasattr(self, '_chem_bond'):
       self._chem_bond.order = mol
@@ -188,7 +189,7 @@ class BkBond(
 
 
   @property
-  def _order(self):
+  def _order(self) -> object:
     """Proxy to composition bond internal _order for compatibility."""
     if hasattr(self, '_chem_bond'):
       return self._chem_bond._order
@@ -196,7 +197,7 @@ class BkBond(
 
 
   @property
-  def aromatic(self):
+  def aromatic(self) -> object:
     """Read aromatic flag from composition bond."""
     if hasattr(self, '_chem_bond'):
       return self._chem_bond.aromatic
@@ -204,14 +205,14 @@ class BkBond(
 
 
   @aromatic.setter
-  def aromatic(self, val):
+  def aromatic(self, val: object) -> None:
     """Write aromatic flag to composition bond."""
     if hasattr(self, '_chem_bond'):
       self._chem_bond.aromatic = val
 
 
   @property
-  def stereochemistry(self):
+  def stereochemistry(self) -> object:
     """Read stereochemistry from composition bond."""
     if hasattr(self, '_chem_bond'):
       return self._chem_bond.stereochemistry
@@ -219,14 +220,14 @@ class BkBond(
 
 
   @stereochemistry.setter
-  def stereochemistry(self, val):
+  def stereochemistry(self, val: object) -> None:
     """Write stereochemistry to composition bond."""
     if hasattr(self, '_chem_bond'):
       self._chem_bond.stereochemistry = val
 
 
   @property
-  def atom1(self):
+  def atom1(self) -> object:
     try:
       return self._bond_vertices[0]
     except (IndexError, AttributeError):
@@ -234,7 +235,7 @@ class BkBond(
 
 
   @atom1.setter
-  def atom1(self, mol):
+  def atom1(self, mol: object) -> None:
     try:
       self._bond_vertices[0] = mol
     except (IndexError, AttributeError):
@@ -244,7 +245,7 @@ class BkBond(
 
 
   @property
-  def atom2(self):
+  def atom2(self) -> object:
     try:
       return self._bond_vertices[1]
     except (IndexError, AttributeError):
@@ -252,7 +253,7 @@ class BkBond(
 
 
   @atom2.setter
-  def atom2(self, mol):
+  def atom2(self, mol: object) -> None:
     try:
       self._bond_vertices[1] = mol
     except (IndexError, AttributeError):
@@ -262,12 +263,12 @@ class BkBond(
 
 
   @property
-  def atoms(self):
+  def atoms(self) -> list:
     return self._bond_vertices
 
 
   @atoms.setter
-  def atoms(self, mol):
+  def atoms(self, mol: object) -> None:
     # replace and re-link references
     self._bond_vertices = list(mol)
     self._vertices = self._bond_vertices
@@ -275,24 +276,24 @@ class BkBond(
 
 
   @property
-  def vertices(self):
+  def vertices(self) -> list:
     """Return the bond vertex list (replaces inherited oasa.edge.get_vertices)."""
     return self._bond_vertices
 
 
   @vertices.setter
-  def vertices(self, vs):
+  def vertices(self, vs: object) -> None:
     """Set the bond vertex list."""
     self._bond_vertices = list(vs)
     self._vertices = self._bond_vertices
 
 
-  def get_vertices(self):
+  def get_vertices(self) -> list:
     """Return the bond vertex list (compatibility with oasa.edge API)."""
     return self._bond_vertices
 
 
-  def set_vertices(self, vs=None):
+  def set_vertices(self, vs: object = None) -> None:
     """Set the bond vertex list (compatibility with oasa.edge API)."""
     if vs and len(vs) == 2:
       self._bond_vertices = list(vs)
@@ -300,73 +301,73 @@ class BkBond(
 
 
   @property
-  def center(self):
+  def center(self) -> object:
     return self.__center
 
 
   @center.setter
-  def center(self, mol):
+  def center(self, mol: object) -> None:
     self.__center = mol
     self.__dirty = 1
 
 
   @property
-  def bond_width(self):
+  def bond_width(self) -> object:
     return self.__bond_width
 
 
   @bond_width.setter
-  def bond_width(self, mol):
+  def bond_width(self, mol: object) -> None:
     self.__bond_width = mol
     self.__dirty = 1
 
 
   @property
-  def wedge_width(self):
+  def wedge_width(self) -> object:
     return self.__wedge_width
 
 
   @wedge_width.setter
-  def wedge_width(self, mol):
+  def wedge_width(self, mol: object) -> None:
     self.__wedge_width = mol
     self.__dirty = 1
 
 
   @property
-  def simple_double(self):
+  def simple_double(self) -> object:
     return self.__simple_double
 
 
   @simple_double.setter
-  def simple_double(self, mol):
+  def simple_double(self, mol: object) -> None:
     self.__simple_double = mol
     self.__dirty = 1
 
 
   @property
-  def double_length_ratio(self):
+  def double_length_ratio(self) -> object:
     return self.__double_length_ratio
 
 
   @double_length_ratio.setter
-  def double_length_ratio(self, mol):
+  def double_length_ratio(self, mol: object) -> None:
     self.__double_length_ratio = mol
     self.__dirty = 1
 
 
   @property
-  def auto_bond_sign(self):
+  def auto_bond_sign(self) -> object:
     return self.__auto_bond_sign
 
 
   @auto_bond_sign.setter
-  def auto_bond_sign(self, mol):
+  def auto_bond_sign(self, mol: object) -> None:
     self.__auto_bond_sign = mol
     self.__dirty = 1
 
 
   @property
-  def parent(self):
+  def parent(self) -> object:
     """Returns self.molecule.
 
     """
@@ -374,11 +375,11 @@ class BkBond(
 
 
   @parent.setter
-  def parent(self, par):
+  def parent(self, par: object) -> None:
     self.molecule = par
 
 
-  def read_standard_values( self, standard, old_standard=None):
+  def read_standard_values(self, standard: object, old_standard: object = None) -> None:
     meta_enabled.read_standard_values( self, standard, old_standard=old_standard)
     # wedge width
     if not old_standard or (standard.wedge_width != old_standard.wedge_width):
@@ -392,4 +393,3 @@ class BkBond(
         self.bond_width = bkchem_utils.signum( self.bond_width) * Screen.any_to_px( standard.bond_width)
       else:
         self.bond_width = Screen.any_to_px( standard.bond_width)
-

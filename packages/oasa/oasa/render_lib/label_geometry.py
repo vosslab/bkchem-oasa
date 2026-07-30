@@ -48,14 +48,14 @@ except ImportError:
 
 
 #============================================
-def vertex_is_shown(vertex):
+def vertex_is_shown(vertex: object) -> object:
 	if vertex.properties_.get("label"):
 		return True
 	return vertex.symbol != "C" or vertex.charge != 0 or vertex.multiplicity != 1
 
 
 #============================================
-def vertex_label_text(vertex, show_hydrogens_on_hetero):
+def vertex_label_text(vertex: object, show_hydrogens_on_hetero: object) -> object:
 	label = vertex.properties_.get("label")
 	if label:
 		text = label
@@ -80,24 +80,24 @@ def vertex_label_text(vertex, show_hydrogens_on_hetero):
 
 
 #============================================
-def _visible_label_text(text):
+def _visible_label_text(text: object) -> object:
 	return re.sub(r"<[^>]+>", "", text or "")
 
 
 #============================================
-def _visible_label_length(text):
+def _visible_label_length(text: object) -> object:
 	return max(1, len(_visible_label_text(text)))
 
 
 #============================================
-def _is_hydroxyl_render_text(text):
+def _is_hydroxyl_render_text(text: object) -> object:
 	"""Return True when visible text is one hydroxyl token."""
 	visible = _visible_label_text(text)
 	return visible in ("OH", "HO")
 
 
 #============================================
-def _is_chain_like_render_text(text):
+def _is_chain_like_render_text(text: object) -> object:
 	"""Return True for rendered chain-like carbon labels."""
 	visible = _visible_label_text(text)
 	if visible.startswith("CH"):
@@ -107,7 +107,7 @@ def _is_chain_like_render_text(text):
 
 
 #============================================
-def _text_char_advances(text, font_size, font_name):
+def _text_char_advances(text: object, font_size: object, font_name: object) -> object:
 	"""Return per-visible-character x advances for one formatted text value."""
 	visible = _visible_label_text(text)
 	if not visible:
@@ -140,7 +140,7 @@ def _text_char_advances(text, font_size, font_name):
 
 
 #============================================
-def _text_ink_bearing_correction(text, font_size, font_name):
+def _text_ink_bearing_correction(text: object, font_size: object, font_name: object) -> object:
 	"""Return (left_bearing, right_bearing) for the visible label text.
 
 	The left bearing is the gap between the text origin and the first ink pixel.
@@ -189,7 +189,7 @@ def _text_ink_bearing_correction(text, font_size, font_name):
 
 
 #============================================
-def _label_text_origin(x, y, anchor, font_size, text_len):
+def _label_text_origin(x: object, y: object, anchor: object, font_size: object, text_len: object) -> object:
 	del text_len
 	baseline_offset = font_size * 0.375
 	start_offset = font_size * 0.3125
@@ -200,13 +200,13 @@ def _label_text_origin(x, y, anchor, font_size, text_len):
 
 #============================================
 def _core_element_span_box(
-		entry,
-		span_x1,
-		span_x2,
-		font_size,
-		glyph_char_width,
-		attach_site,
-		font_name):
+		entry: object,
+		span_x1: object,
+		span_x2: object,
+		font_size: object,
+		glyph_char_width: object,
+		attach_site: object,
+		font_name: object) -> object:
 	"""Return attach box bounds for one core element glyph span."""
 	attach_site = _normalize_attach_site(attach_site)
 	symbol = str(entry.get("symbol", ""))
@@ -228,7 +228,7 @@ def _core_element_span_box(
 
 
 #============================================
-def _tokenized_atom_spans(text):
+def _tokenized_atom_spans(text: object) -> object:
 	"""Return decorated token spans for visible label text.
 
 	Decorated spans include compact hydrogen/count suffixes (for example `CH2`)
@@ -238,7 +238,7 @@ def _tokenized_atom_spans(text):
 
 
 #============================================
-def _tokenized_atom_entries(text):
+def _tokenized_atom_entries(text: object) -> object:
 	"""Return atom token entries with core/decorated span information.
 
 	Each entry exposes:
@@ -291,7 +291,7 @@ def _tokenized_atom_entries(text):
 
 
 #============================================
-def _label_box_coords(x, y, text, anchor, font_size, font_name=None):
+def _label_box_coords(x: object, y: object, text: object, anchor: object, font_size: object, font_name: object = None) -> object:
 	"""Compute axis-aligned label box coordinates at one label anchor point."""
 	text_len = _visible_label_length(text)
 	char_advances = _text_char_advances(text, font_size, font_name or "sans-serif")
@@ -320,13 +320,13 @@ def _label_box_coords(x, y, text, anchor, font_size, font_name=None):
 
 
 #============================================
-def label_target(x, y, text, anchor, font_size, font_name=None):
+def label_target(x: object, y: object, text: object, anchor: object, font_size: object, font_name: object = None) -> object:
 	"""Compute one label attachment target at (x, y)."""
 	return make_box_target(_label_box_coords(x, y, text, anchor, font_size, font_name=font_name))
 
 
 #============================================
-def label_target_from_text_origin(text_x, text_y, text, anchor, font_size, font_name=None):
+def label_target_from_text_origin(text_x: object, text_y: object, text: object, anchor: object, font_size: object, font_name: object = None) -> object:
 	"""Compute one label attachment target from text-origin coordinates."""
 	start_offset = font_size * 0.3125
 	baseline_offset = font_size * 0.375
@@ -339,15 +339,15 @@ def label_target_from_text_origin(text_x, text_y, text, anchor, font_size, font_
 
 #============================================
 def label_attach_target_from_text_origin(
-		text_x,
-		text_y,
-		text,
-		anchor,
-		font_size,
-		attach_atom="first",
-		attach_element=None,
-		attach_site=None,
-		font_name=None):
+		text_x: object,
+		text_y: object,
+		text: object,
+		anchor: object,
+		font_size: object,
+		attach_atom: object = "first",
+		attach_element: object = None,
+		attach_site: object = None,
+		font_name: object = None) -> object:
 	"""Compute one token-attach target from text-origin coordinates."""
 	start_offset = font_size * 0.3125
 	baseline_offset = font_size * 0.375
@@ -369,15 +369,15 @@ def label_attach_target_from_text_origin(
 
 
 def _label_attach_box_coords(
-		x,
-		y,
-		text,
-		anchor,
-		font_size,
-		attach_atom="first",
-		attach_element=None,
-		attach_site=None,
-		font_name=None):
+		x: object,
+		y: object,
+		text: object,
+		anchor: object,
+		font_size: object,
+		attach_atom: object = "first",
+		attach_element: object = None,
+		attach_site: object = None,
+		font_name: object = None) -> object:
 	"""Compute box coordinates for one selected attachable atom token."""
 	if attach_atom is None:
 		attach_atom = "first"
@@ -464,15 +464,15 @@ def _label_attach_box_coords(
 
 #============================================
 def label_attach_target(
-		x,
-		y,
-		text,
-		anchor,
-		font_size,
-		attach_atom="first",
-		attach_element=None,
-		attach_site=None,
-		font_name=None):
+		x: object,
+		y: object,
+		text: object,
+		anchor: object,
+		font_size: object,
+		attach_atom: object = "first",
+		attach_element: object = None,
+		attach_site: object = None,
+		font_name: object = None) -> object:
 	"""Compute one attach-token target within a label."""
 	return make_box_target(
 		_label_attach_box_coords(
@@ -490,7 +490,7 @@ def label_attach_target(
 
 
 #============================================
-def default_label_attach_policy(text, chain_attach_site="core_center") -> LabelAttachPolicy:
+def default_label_attach_policy(text: object, chain_attach_site: object = "core_center") -> LabelAttachPolicy:
 	"""Return runtime-default attach policy for one rendered label text."""
 	site = _normalize_attach_site(chain_attach_site)
 	visible = _visible_label_text(text)
@@ -519,12 +519,12 @@ def default_label_attach_policy(text, chain_attach_site="core_center") -> LabelA
 
 #============================================
 def _resolve_label_attach_policy(
-		text,
-		attach_atom=None,
-		attach_element=None,
-		attach_site=None,
-		chain_attach_site="core_center",
-		target_kind=None):
+		text: object,
+		attach_atom: object = None,
+		attach_element: object = None,
+		attach_site: object = None,
+		chain_attach_site: object = "core_center",
+		target_kind: object = None) -> object:
 	"""Resolve one explicit-or-default label attach policy."""
 	default_policy = default_label_attach_policy(
 		text=text,
@@ -554,9 +554,9 @@ def _resolve_label_attach_policy(
 
 #============================================
 def _oxygen_circle_target_from_attach_target(
-		attach_target,
-		font_size,
-		line_width):
+		attach_target: object,
+		font_size: object,
+		line_width: object) -> object:
 	"""Return hydroxyl O-centered circle target from one attach box."""
 	x1, y1, x2, y2 = attach_target.box
 	center = ((x1 + x2) * 0.5, (y1 + y2) * 0.5)
@@ -570,7 +570,7 @@ def _oxygen_circle_target_from_attach_target(
 
 
 #============================================
-def _oxygen_allowed_target(full_target, endpoint_target):
+def _oxygen_allowed_target(full_target: object, endpoint_target: object) -> object:
 	"""Return paint-allowed target for hydroxyl oxygen circles."""
 	if full_target.kind != "box" or endpoint_target.kind != "circle":
 		return endpoint_target
@@ -579,8 +579,8 @@ def _oxygen_allowed_target(full_target, endpoint_target):
 
 #============================================
 def _chain_attach_allowed_target(
-		full_target,
-		attach_target):
+		full_target: object,
+		attach_target: object) -> object:
 	"""Return paint-allowed target corridors for chain-like C attachment."""
 	if full_target.kind != "box" or attach_target.kind != "box":
 		return attach_target
@@ -602,18 +602,18 @@ def _chain_attach_allowed_target(
 
 #============================================
 def label_allowed_target_from_text_origin(
-		text_x,
-		text_y,
-		text,
-		anchor,
-		font_size,
-		line_width=0.0,
-		attach_atom=None,
-		attach_element=None,
-		attach_site=None,
-		chain_attach_site="core_center",
-		target_kind=None,
-		font_name=None):
+		text_x: object,
+		text_y: object,
+		text: object,
+		anchor: object,
+		font_size: object,
+		line_width: object = 0.0,
+		attach_atom: object = None,
+		attach_element: object = None,
+		attach_site: object = None,
+		chain_attach_site: object = "core_center",
+		target_kind: object = None,
+		font_name: object = None) -> object:
 	"""Resolve one paint-allowed label target from text-origin inputs."""
 	contract = label_attach_contract_from_text_origin(
 		text_x=text_x,
@@ -634,18 +634,18 @@ def label_allowed_target_from_text_origin(
 
 #============================================
 def label_attach_contract_from_text_origin(
-		text_x,
-		text_y,
-		text,
-		anchor,
-		font_size,
-		line_width=0.0,
-		attach_atom=None,
-		attach_element=None,
-		attach_site=None,
-		chain_attach_site="core_center",
-		target_kind=None,
-		font_name=None):
+		text_x: object,
+		text_y: object,
+		text: object,
+		anchor: object,
+		font_size: object,
+		line_width: object = 0.0,
+		attach_atom: object = None,
+		attach_element: object = None,
+		attach_site: object = None,
+		chain_attach_site: object = "core_center",
+		target_kind: object = None,
+		font_name: object = None) -> object:
 	"""Resolve full runtime attach contract for one label at text origin."""
 	policy = _resolve_label_attach_policy(
 		text=text,
@@ -714,21 +714,21 @@ def label_attach_contract_from_text_origin(
 
 #============================================
 def resolve_label_connector_endpoint_from_text_origin(
-		bond_start,
-		text_x,
-		text_y,
-		text,
-		anchor,
-		font_size,
-		line_width=0.0,
-		constraints=None,
-		epsilon=0.5,
-		attach_atom=None,
-		attach_element=None,
-		attach_site=None,
-		chain_attach_site="core_center",
-		target_kind=None,
-		font_name=None):
+		bond_start: object,
+		text_x: object,
+		text_y: object,
+		text: object,
+		anchor: object,
+		font_size: object,
+		line_width: object = 0.0,
+		constraints: object = None,
+		epsilon: object = 0.5,
+		attach_atom: object = None,
+		attach_element: object = None,
+		attach_site: object = None,
+		chain_attach_site: object = "core_center",
+		target_kind: object = None,
+		font_name: object = None) -> object:
 	"""Resolve one connector endpoint via the shared label attach contract."""
 	contract = label_attach_contract_from_text_origin(
 		text_x=text_x,

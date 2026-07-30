@@ -16,25 +16,25 @@ class TestRxBackendInit:
 	"""Test empty backend initialization."""
 
 	#============================================
-	def test_empty_backend_node_count(self):
+	def test_empty_backend_node_count(self) -> None:
 		"""Empty backend should have 0 nodes."""
 		backend = RxBackend()
 		assert len(backend.rx) == 0
 
 	#============================================
-	def test_empty_backend_edge_count(self):
+	def test_empty_backend_edge_count(self) -> None:
 		"""Empty backend should have 0 edges."""
 		backend = RxBackend()
 		assert len(backend.rx.edge_list()) == 0
 
 	#============================================
-	def test_empty_backend_is_dirty(self):
+	def test_empty_backend_is_dirty(self) -> None:
 		"""Empty backend should be marked dirty."""
 		backend = RxBackend()
 		assert backend._dirty is True
 
 	#============================================
-	def test_empty_backend_maps_empty(self):
+	def test_empty_backend_maps_empty(self) -> None:
 		"""All identity maps should be empty on init."""
 		backend = RxBackend()
 		assert len(backend.v_to_i) == 0
@@ -65,7 +65,7 @@ class TestRxBackendRebuild:
 		return g, verts, edges
 
 	#============================================
-	def test_rebuild_node_count(self):
+	def test_rebuild_node_count(self) -> None:
 		"""After rebuild, rx graph should have same node count as OASA."""
 		g, verts, edges = self._build_chain4()
 		backend = RxBackend()
@@ -73,7 +73,7 @@ class TestRxBackendRebuild:
 		assert len(backend.rx) == 4
 
 	#============================================
-	def test_rebuild_edge_count(self):
+	def test_rebuild_edge_count(self) -> None:
 		"""After rebuild, rx graph should have same edge count as OASA."""
 		g, verts, edges = self._build_chain4()
 		backend = RxBackend()
@@ -81,7 +81,7 @@ class TestRxBackendRebuild:
 		assert len(backend.rx.edge_list()) == 3
 
 	#============================================
-	def test_rebuild_vertex_maps_match(self):
+	def test_rebuild_vertex_maps_match(self) -> None:
 		"""After rebuild, all OASA vertices should be in the maps."""
 		g, verts, edges = self._build_chain4()
 		backend = RxBackend()
@@ -92,7 +92,7 @@ class TestRxBackendRebuild:
 			assert backend.i_to_v[idx] is v
 
 	#============================================
-	def test_rebuild_edge_maps_match(self):
+	def test_rebuild_edge_maps_match(self) -> None:
 		"""After rebuild, all OASA edges should be in the maps."""
 		g, verts, edges = self._build_chain4()
 		backend = RxBackend()
@@ -103,7 +103,7 @@ class TestRxBackendRebuild:
 			assert backend.i_to_e[ei] is e
 
 	#============================================
-	def test_rebuild_clears_dirty(self):
+	def test_rebuild_clears_dirty(self) -> None:
 		"""After rebuild, dirty flag should be False."""
 		g, verts, edges = self._build_chain4()
 		backend = RxBackend()
@@ -117,7 +117,7 @@ class TestRxBackendLazySync:
 	"""Test lazy ensure_synced behavior."""
 
 	#============================================
-	def test_ensure_synced_rebuilds_when_dirty(self):
+	def test_ensure_synced_rebuilds_when_dirty(self) -> None:
 		"""ensure_synced should rebuild when dirty=True."""
 		g = Graph()
 		v = Vertex()
@@ -129,7 +129,7 @@ class TestRxBackendLazySync:
 		assert len(backend.rx) == 1
 
 	#============================================
-	def test_ensure_synced_noop_when_clean(self):
+	def test_ensure_synced_noop_when_clean(self) -> None:
 		"""ensure_synced should not rebuild when dirty=False."""
 		g = Graph()
 		v = Vertex()
@@ -145,7 +145,7 @@ class TestRxBackendLazySync:
 		assert len(backend.rx) == 1
 
 	#============================================
-	def test_mark_dirty_triggers_rebuild(self):
+	def test_mark_dirty_triggers_rebuild(self) -> None:
 		"""mark_dirty followed by ensure_synced should rebuild."""
 		g = Graph()
 		v1 = Vertex()
@@ -169,7 +169,7 @@ class TestRxBackendAlgorithms:
 	"""Test algorithm delegates using molecule fixtures."""
 
 	#============================================
-	def test_connected_components_benzene(self):
+	def test_connected_components_benzene(self) -> None:
 		"""Benzene should have exactly 1 connected component."""
 		fixture = graph_test_fixtures.make_benzene()
 		mol = fixture["oasa_mol"]
@@ -181,7 +181,7 @@ class TestRxBackendAlgorithms:
 		assert len(components[0]) == fixture["expected"]["atom_count"]
 
 	#============================================
-	def test_connected_components_disconnected(self):
+	def test_connected_components_disconnected(self) -> None:
 		"""Disconnected graph should have 2 components."""
 		fixture = graph_test_fixtures.make_disconnected()
 		mol = fixture["oasa_mol"]
@@ -191,7 +191,7 @@ class TestRxBackendAlgorithms:
 		assert len(components) == fixture["expected"]["component_count"]
 
 	#============================================
-	def test_is_connected_benzene(self):
+	def test_is_connected_benzene(self) -> None:
 		"""Benzene should be connected."""
 		fixture = graph_test_fixtures.make_benzene()
 		mol = fixture["oasa_mol"]
@@ -200,7 +200,7 @@ class TestRxBackendAlgorithms:
 		assert backend.is_connected(mol) is True
 
 	#============================================
-	def test_is_connected_disconnected(self):
+	def test_is_connected_disconnected(self) -> None:
 		"""Disconnected graph should not be connected."""
 		fixture = graph_test_fixtures.make_disconnected()
 		mol = fixture["oasa_mol"]
@@ -209,7 +209,7 @@ class TestRxBackendAlgorithms:
 		assert backend.is_connected(mol) is False
 
 	#============================================
-	def test_has_path_hexane_endpoints(self):
+	def test_has_path_hexane_endpoints(self) -> None:
 		"""Path should exist between first and last vertex of hexane."""
 		fixture = graph_test_fixtures.make_hexane()
 		mol = fixture["oasa_mol"]
@@ -220,7 +220,7 @@ class TestRxBackendAlgorithms:
 		assert backend.has_path(mol, v_first, v_last) is True
 
 	#============================================
-	def test_has_path_disconnected_across_components(self):
+	def test_has_path_disconnected_across_components(self) -> None:
 		"""No path should exist between vertices in different components."""
 		fixture = graph_test_fixtures.make_disconnected()
 		mol = fixture["oasa_mol"]
@@ -232,7 +232,7 @@ class TestRxBackendAlgorithms:
 		assert backend.has_path(mol, v1, v3) is False
 
 	#============================================
-	def test_diameter_benzene(self):
+	def test_diameter_benzene(self) -> None:
 		"""Benzene diameter should be 3."""
 		fixture = graph_test_fixtures.make_benzene()
 		mol = fixture["oasa_mol"]
@@ -241,7 +241,7 @@ class TestRxBackendAlgorithms:
 		assert backend.get_diameter(mol) == fixture["expected"]["diameter"]
 
 	#============================================
-	def test_diameter_hexane(self):
+	def test_diameter_hexane(self) -> None:
 		"""Hexane diameter should be 5."""
 		fixture = graph_test_fixtures.make_hexane()
 		mol = fixture["oasa_mol"]
@@ -250,7 +250,7 @@ class TestRxBackendAlgorithms:
 		assert backend.get_diameter(mol) == fixture["expected"]["diameter"]
 
 	#============================================
-	def test_diameter_single_atom(self):
+	def test_diameter_single_atom(self) -> None:
 		"""Single atom diameter should be 0."""
 		fixture = graph_test_fixtures.make_single_atom()
 		mol = fixture["oasa_mol"]
@@ -259,7 +259,7 @@ class TestRxBackendAlgorithms:
 		assert backend.get_diameter(mol) == 0
 
 	#============================================
-	def test_cycle_basis_benzene(self):
+	def test_cycle_basis_benzene(self) -> None:
 		"""Benzene should have exactly 1 independent cycle."""
 		fixture = graph_test_fixtures.make_benzene()
 		mol = fixture["oasa_mol"]
@@ -269,7 +269,7 @@ class TestRxBackendAlgorithms:
 		assert len(cycles) == fixture["expected"]["cycle_count"]
 
 	#============================================
-	def test_cycle_basis_hexane(self):
+	def test_cycle_basis_hexane(self) -> None:
 		"""Hexane (acyclic) should have 0 independent cycles."""
 		fixture = graph_test_fixtures.make_hexane()
 		mol = fixture["oasa_mol"]
@@ -279,7 +279,7 @@ class TestRxBackendAlgorithms:
 		assert len(cycles) == 0
 
 	#============================================
-	def test_cycle_basis_naphthalene(self):
+	def test_cycle_basis_naphthalene(self) -> None:
 		"""Naphthalene should have 2 independent cycles."""
 		fixture = graph_test_fixtures.make_naphthalene()
 		mol = fixture["oasa_mol"]
@@ -289,7 +289,7 @@ class TestRxBackendAlgorithms:
 		assert len(cycles) == fixture["expected"]["cycle_count"]
 
 	#============================================
-	def test_cycle_basis_returns_oasa_vertices(self):
+	def test_cycle_basis_returns_oasa_vertices(self) -> None:
 		"""Cycle basis results should contain OASA Vertex objects."""
 		fixture = graph_test_fixtures.make_benzene()
 		mol = fixture["oasa_mol"]
@@ -301,7 +301,7 @@ class TestRxBackendAlgorithms:
 				assert v in mol.vertices
 
 	#============================================
-	def test_bridges_hexane(self):
+	def test_bridges_hexane(self) -> None:
 		"""All edges in hexane (linear chain) should be bridges."""
 		fixture = graph_test_fixtures.make_hexane()
 		mol = fixture["oasa_mol"]
@@ -311,7 +311,7 @@ class TestRxBackendAlgorithms:
 		assert len(bridge_set) == fixture["expected"]["bond_count"]
 
 	#============================================
-	def test_bridges_benzene(self):
+	def test_bridges_benzene(self) -> None:
 		"""Benzene (single ring) should have no bridges."""
 		fixture = graph_test_fixtures.make_benzene()
 		mol = fixture["oasa_mol"]
@@ -321,7 +321,7 @@ class TestRxBackendAlgorithms:
 		assert len(bridge_set) == 0
 
 	#============================================
-	def test_bridges_returns_oasa_edges(self):
+	def test_bridges_returns_oasa_edges(self) -> None:
 		"""Bridge results should contain OASA Edge objects."""
 		fixture = graph_test_fixtures.make_hexane()
 		mol = fixture["oasa_mol"]
@@ -332,7 +332,7 @@ class TestRxBackendAlgorithms:
 			assert e in mol.edges
 
 	#============================================
-	def test_distance_from_writes_properties(self):
+	def test_distance_from_writes_properties(self) -> None:
 		"""distance_from should write properties_['d'] on reachable vertices."""
 		fixture = graph_test_fixtures.make_hexane()
 		mol = fixture["oasa_mol"]
@@ -349,7 +349,7 @@ class TestRxBackendAlgorithms:
 			assert 'd' in v.properties_
 
 	#============================================
-	def test_distance_from_single_atom(self):
+	def test_distance_from_single_atom(self) -> None:
 		"""distance_from on a single atom should return 0."""
 		fixture = graph_test_fixtures.make_single_atom()
 		mol = fixture["oasa_mol"]
@@ -361,7 +361,7 @@ class TestRxBackendAlgorithms:
 		assert start.properties_['d'] == 0
 
 	#============================================
-	def test_find_path_between_hexane(self):
+	def test_find_path_between_hexane(self) -> None:
 		"""find_path_between should return a valid path in hexane."""
 		fixture = graph_test_fixtures.make_hexane()
 		mol = fixture["oasa_mol"]
@@ -378,7 +378,7 @@ class TestRxBackendAlgorithms:
 		assert len(path) == len(mol.vertices)
 
 	#============================================
-	def test_find_path_between_no_path(self):
+	def test_find_path_between_no_path(self) -> None:
 		"""find_path_between should return None for disconnected vertices."""
 		fixture = graph_test_fixtures.make_disconnected()
 		mol = fixture["oasa_mol"]
@@ -390,7 +390,7 @@ class TestRxBackendAlgorithms:
 		assert path is None
 
 	#============================================
-	def test_find_path_with_dont_go_through(self):
+	def test_find_path_with_dont_go_through(self) -> None:
 		"""find_path_between with dont_go_through should avoid vertices."""
 		fixture = graph_test_fixtures.make_benzene()
 		mol = fixture["oasa_mol"]
@@ -409,7 +409,7 @@ class TestRxBackendAlgorithms:
 			assert v is not blocked[0]
 
 	#============================================
-	def test_dijkstra_shortest_paths(self):
+	def test_dijkstra_shortest_paths(self) -> None:
 		"""dijkstra_shortest_paths should return dict of vertex -> path."""
 		fixture = graph_test_fixtures.make_hexane()
 		mol = fixture["oasa_mol"]
@@ -424,7 +424,7 @@ class TestRxBackendAlgorithms:
 		assert paths[source] == [source]
 
 	#============================================
-	def test_algorithms_return_oasa_objects(self):
+	def test_algorithms_return_oasa_objects(self) -> None:
 		"""All algorithm results should contain only OASA objects."""
 		fixture = graph_test_fixtures.make_naphthalene()
 		mol = fixture["oasa_mol"]
@@ -445,7 +445,7 @@ class TestRxBackendInvalidation:
 	"""Test invalidation and re-sync behavior."""
 
 	#============================================
-	def test_invalidate_clears_state(self):
+	def test_invalidate_clears_state(self) -> None:
 		"""invalidate should clear all maps and set dirty."""
 		g = Graph()
 		v = Vertex()
@@ -460,7 +460,7 @@ class TestRxBackendInvalidation:
 		assert backend._dirty is True
 
 	#============================================
-	def test_invalidate_then_ensure_synced(self):
+	def test_invalidate_then_ensure_synced(self) -> None:
 		"""After invalidation, ensure_synced should rebuild from graph."""
 		g = Graph()
 		v1 = Vertex()
@@ -480,7 +480,7 @@ class TestRxBackendInvalidation:
 		assert backend._dirty is False
 
 	#============================================
-	def test_rebuild_replaces_stale_data(self):
+	def test_rebuild_replaces_stale_data(self) -> None:
 		"""Rebuild should completely replace previous state."""
 		# build first graph
 		g1 = Graph()
@@ -510,7 +510,7 @@ class TestRxBackendIndexConversion:
 	"""Test index conversion helper methods."""
 
 	#============================================
-	def test_vertex_to_index_roundtrip(self):
+	def test_vertex_to_index_roundtrip(self) -> None:
 		"""vertex_to_index and index_to_vertex should roundtrip."""
 		g = Graph()
 		v = Vertex()
@@ -521,7 +521,7 @@ class TestRxBackendIndexConversion:
 		assert backend.index_to_vertex(idx) is v
 
 	#============================================
-	def test_edge_to_index_roundtrip(self):
+	def test_edge_to_index_roundtrip(self) -> None:
 		"""edge_to_index and index_to_edge should roundtrip."""
 		g = Graph()
 		v1 = Vertex()

@@ -50,7 +50,7 @@ class vertex_common(object):
   meta__allowed_marks = ()   # when empty all marks are allowed
 
 
-  def __init__( self):
+  def __init__( self) -> None:
     self.marks = set()
     # numbering
     self._show_number = True
@@ -58,7 +58,7 @@ class vertex_common(object):
 
 
   @property
-  def number(self):
+  def number(self) -> object:
     """Number associated with the atom.
 
     """
@@ -69,7 +69,7 @@ class vertex_common(object):
 
 
   @number.setter
-  def number(self, number):
+  def number(self, number: object) -> None:
     if number is not None:
       if not isinstance(number, int):
         self._number = int(number)
@@ -86,7 +86,7 @@ class vertex_common(object):
 
 
   @property
-  def show_number(self):
+  def show_number(self) -> object:
     """Should the number (if present) be displayed.
 
     """
@@ -94,7 +94,7 @@ class vertex_common(object):
 
 
   @show_number.setter
-  def show_number(self, show_number):
+  def show_number(self, show_number: object) -> None:
     self._show_number = show_number
     if self._show_number and self.number:
       numbers = self.get_marks_by_type( "atom_number")
@@ -106,14 +106,14 @@ class vertex_common(object):
         self.remove_mark( numbers[0])
 
 
-  def _mark_to_name_and_class(self, mark):
+  def _mark_to_name_and_class(self, mark: object) -> tuple:
     if isinstance(mark, type):
       return mark.__name__, mark
     else:
       return mark, marks.__dict__[mark]
 
 
-  def set_mark( self, mark='radical', angle='auto', draw=1, angle_resolution=1):
+  def set_mark( self, mark: object='radical', angle: object='auto', draw: object=1, angle_resolution: object=1) -> object:
     """sets the mark and takes care of charge and multiplicity changes;
     mark may be either the class or mark name"""
     mark_name, _ = self._mark_to_name_and_class( mark)
@@ -127,7 +127,7 @@ class vertex_common(object):
 
 
 
-  def remove_mark( self, mark):
+  def remove_mark( self, mark: object) -> object:
     """mark is either mark instance of type, in case of instance, the instance is removed,
     in case of type a random mark of this type (if present is removed).
     Returns the removed mark or None"""
@@ -151,14 +151,14 @@ class vertex_common(object):
     return m
 
 
-  def _set_mark_helper( self, mark, sign=1):
+  def _set_mark_helper( self, mark: object, sign: object=1) -> None:
     mark_name, _ = self._mark_to_name_and_class( mark)
     if mark_name == "atom_number":
       if not self.get_marks_by_type( "atom_number"):
         self.show_number = False
 
 
-  def create_mark( self, mark='radical', angle='auto', draw=1, angle_resolution=1):
+  def create_mark( self, mark: object='radical', angle: object='auto', draw: object=1, angle_resolution: object=1) -> object:
     """creates the mark, does not care about the chemical meaning of this"""
     # decide where to put the mark
     mark_name, mark_class = self._mark_to_name_and_class( mark)
@@ -185,11 +185,11 @@ class vertex_common(object):
     return m
 
 
-  def get_marks_by_type( self, mark_type):
+  def get_marks_by_type( self, mark_type: object) -> list:
     return [m for m in self.marks if m.__class__.__name__ == mark_type]
 
 
-  def reposition_marks( self):
+  def reposition_marks( self) -> None:
     ms = set( [m for m in self.marks if m.auto])
     self.marks -= ms
     for m in ms:
@@ -198,7 +198,7 @@ class vertex_common(object):
       self.marks.add( m)
 
 
-  def find_place_for_mark( self, mark, resolution=30):
+  def find_place_for_mark( self, mark: object, resolution: object=30) -> tuple:
     """resolution says if the angles should be somehow 'rounded', it is given in degrees;
     see geometry.point_on_circle for a similar thing"""
     mark_name, mark_class = self._mark_to_name_and_class( mark)
@@ -297,7 +297,7 @@ class drawable_chem_vertex(GraphVertexMixin,
   meta__undo_children_to_record = vertex_common.meta__undo_children_to_record
 
 
-  def __init__( self, standard=None, xy=(), molecule=None):
+  def __init__( self, standard: object=None, xy: object=(), molecule: object=None) -> None:
     meta_enabled.__init__( self, standard=standard)
     vertex_common.__init__( self)
     self.molecule = molecule
@@ -330,7 +330,7 @@ class drawable_chem_vertex(GraphVertexMixin,
   # ---- chemistry properties (formerly from oasa.chem_vertex) ----
 
   @property
-  def charge(self):
+  def charge(self) -> object:
     """Atom charge.
 
     """
@@ -338,13 +338,13 @@ class drawable_chem_vertex(GraphVertexMixin,
 
 
   @charge.setter
-  def charge(self, charge):
+  def charge(self, charge: object) -> None:
     self._clean_cache()
     self._charge = charge
 
 
   @property
-  def multiplicity(self):
+  def multiplicity(self) -> object:
     """Atom multiplicity.
 
     """
@@ -352,13 +352,13 @@ class drawable_chem_vertex(GraphVertexMixin,
 
 
   @multiplicity.setter
-  def multiplicity(self, multiplicity):
+  def multiplicity(self, multiplicity: object) -> None:
     self._clean_cache()
     self._multiplicity = multiplicity
 
 
   @property
-  def valency(self):
+  def valency(self) -> object:
     """Atom valency.
 
     """
@@ -366,13 +366,13 @@ class drawable_chem_vertex(GraphVertexMixin,
 
 
   @valency.setter
-  def valency(self, valency):
+  def valency(self, valency: object) -> None:
     self._clean_cache()
     self._valency = valency
 
 
   @property
-  def occupied_valency(self):
+  def occupied_valency(self) -> object:
     """Sum of bond orders from graph neighbors.
 
     """
@@ -387,7 +387,7 @@ class drawable_chem_vertex(GraphVertexMixin,
 
 
   @property
-  def free_valency(self):
+  def free_valency(self) -> object:
     """Valency minus occupied valency, cached.
 
     """
@@ -400,7 +400,7 @@ class drawable_chem_vertex(GraphVertexMixin,
 
 
   @property
-  def free_sites(self):
+  def free_sites(self) -> object:
     """Atom's free sites.
 
     """
@@ -411,12 +411,12 @@ class drawable_chem_vertex(GraphVertexMixin,
 
 
   @free_sites.setter
-  def free_sites(self, free_sites):
+  def free_sites(self, free_sites: object) -> None:
     self._free_sites = free_sites
 
 
   @property
-  def weight(self):
+  def weight(self) -> int:
     """Atom weight. Overridden in atom.py.
 
     """
@@ -424,7 +424,7 @@ class drawable_chem_vertex(GraphVertexMixin,
 
 
   @property
-  def coords(self):
+  def coords(self) -> tuple:
     """Atom coordinates as (x, y, z) tuple.
 
     """
@@ -432,7 +432,7 @@ class drawable_chem_vertex(GraphVertexMixin,
 
 
   @coords.setter
-  def coords(self, coords):
+  def coords(self, coords: object) -> None:
     if len(coords) == 2:
       self.x, self.y = coords
       self.z = 0
@@ -442,22 +442,22 @@ class drawable_chem_vertex(GraphVertexMixin,
       raise ValueError("wrong number of coordinates")
 
 
-  def get_x(self):
+  def get_x(self) -> object:
     """Return x coordinate or 0 if None."""
     return self.x or 0
 
 
-  def get_y(self):
+  def get_y(self) -> object:
     """Return y coordinate or 0 if None."""
     return self.y or 0
 
 
-  def get_z(self):
+  def get_z(self) -> object:
     """Return z coordinate or 0 if None."""
     return self.z or 0
 
 
-  def has_aromatic_bonds(self):
+  def has_aromatic_bonds(self) -> int:
     """Check if any neighbor bond is aromatic."""
     for b in list(self._neighbors.keys()):
       if b.aromatic:
@@ -465,17 +465,17 @@ class drawable_chem_vertex(GraphVertexMixin,
     return 0
 
 
-  def bond_order_changed(self):
+  def bond_order_changed(self) -> None:
     """Called by a bond when its order was changed."""
     self._clean_cache()
 
 
-  def get_hydrogen_count(self):
+  def get_hydrogen_count(self) -> int:
     """Return hydrogen count. Overridden in atom.py."""
     return 0
 
 
-  def matches(self, other):
+  def matches(self, other: object) -> bool:
     """Return True if other is not self."""
     if other is self:
       return False
@@ -485,58 +485,58 @@ class drawable_chem_vertex(GraphVertexMixin,
   # ---- molecule and coordinate properties ----
 
   @property
-  def molecule(self):
+  def molecule(self) -> object:
     return self._molecule
 
 
   @molecule.setter
-  def molecule(self, mol):
+  def molecule(self, mol: object) -> None:
     self._molecule = mol
 
 
   @property
-  def x(self):
+  def x(self) -> object:
     return self._x
 
 
   @x.setter
-  def x( self, x):
+  def x( self, x: object) -> None:
     self._x = Screen.any_to_px( x)
 
 
   @property
-  def y(self):
+  def y(self) -> object:
     return self._y
 
 
   @y.setter
-  def y(self, y):
+  def y(self, y: object) -> None:
     self._y = Screen.any_to_px( y)
 
 
   @property
-  def z(self):
+  def z(self) -> object:
     return self._z or 0
 
 
   @z.setter
-  def z(self, z):
+  def z(self, z: object) -> None:
     self._z = z
 
 
   @property
-  def pos(self):
+  def pos(self) -> object:
     return self._pos
 
 
   @pos.setter
-  def pos(self, pos):
+  def pos(self, pos: object) -> None:
     self._pos = pos
     self.dirty = 1
 
 
   @property
-  def parent(self):
+  def parent(self) -> object:
     """Returns self.molecule.
 
     """
@@ -544,12 +544,12 @@ class drawable_chem_vertex(GraphVertexMixin,
 
 
   @parent.setter
-  def parent(self, par):
+  def parent(self, par: object) -> None:
     self.molecule = par
 
 
   @property
-  def drawn(self):
+  def drawn(self) -> int:
     """Is the atoms drawn?
 
     On the paper or just virtual.
@@ -561,25 +561,25 @@ class drawable_chem_vertex(GraphVertexMixin,
 
   # Override of text_like.font_size
   @property
-  def font_size(self):
+  def font_size(self) -> object:
     return self._font_size
 
 
   @font_size.setter
-  def font_size(self, font_size):
+  def font_size(self, font_size: object) -> None:
     self._font_size = font_size
     self.dirty = 1
 
 
   # Override text_like.xml_ftext
   @property
-  def xml_ftext(self):
+  def xml_ftext(self) -> object:
     """Text used for rendering using the ftext class.
 
     """
     return self.symbol
 
-  def copy_settings( self, other):
+  def copy_settings( self, other: object) -> None:
     """copies settings of self to other, does not check if other is capable of receiving it"""
     meta_enabled.copy_settings( self, other)
     area_colored.copy_settings( self, other)
@@ -590,7 +590,7 @@ class drawable_chem_vertex(GraphVertexMixin,
     #other.pos = self.pos
 
 
-  def decide_pos( self):
+  def decide_pos( self) -> None:
     """decides whether the first or the last letter in the text should be positioned on the
     coords of the vertex"""
     if self.is_part_of_linear_fragment():
@@ -609,7 +609,7 @@ class drawable_chem_vertex(GraphVertexMixin,
       self.pos = 'center-first'
 
 
-  def draw( self, redraw=False):
+  def draw( self, redraw: bool=False) -> None:
     "draws vertex with respect to its properties"
     if self.item:
       warn( "drawing vertex that is probably drawn", UserWarning, 2)
@@ -644,7 +644,7 @@ class drawable_chem_vertex(GraphVertexMixin,
     self._reposition_on_redraw = 0
 
 
-  def redraw( self, suppress_reposition=0):
+  def redraw( self, suppress_reposition: object=0) -> None:
     if self._reposition_on_redraw and not suppress_reposition:
       self.reposition_marks()
       self._reposition_on_redraw = 0
@@ -677,25 +677,25 @@ class drawable_chem_vertex(GraphVertexMixin,
     self.dirty = 0
 
 
-  def focus( self):
+  def focus( self) -> None:
     self.paper.itemconfig( self.selector, fill='grey')
 
 
-  def unfocus( self):
+  def unfocus( self) -> None:
     self.paper.itemconfig( self.selector, fill=self.area_color)
 
 
-  def select( self):
+  def select( self) -> None:
     self.paper.itemconfig( self.selector, outline=Store.app.paper.highlight_color)
     self._selected = 1
 
 
-  def unselect( self):
+  def unselect( self) -> None:
     self.paper.itemconfig( self.selector, outline='')
     self._selected = 0
 
 
-  def move( self, dx, dy, use_paper_coords=False, dont_move_marks=False):
+  def move( self, dx: object, dy: object, use_paper_coords: bool=False, dont_move_marks: bool=False) -> None:
     """Moves object and its representation.
       By default uses real coordinates, can use the canvas coordinates too."""
     # saving old dirty value
@@ -724,7 +724,7 @@ class drawable_chem_vertex(GraphVertexMixin,
     # self.dirty = d
 
 
-  def move_to( self, x, y, use_paper_coords=False, dont_move_marks=False):
+  def move_to( self, x: object, y: object, use_paper_coords: bool=False, dont_move_marks: bool=False) -> None:
     """Same as self.move() but the motion is not relative to the starting point."""
     if use_paper_coords:
       dx = x - Store.app.paper.real_to_canvas(self.x)
@@ -734,10 +734,10 @@ class drawable_chem_vertex(GraphVertexMixin,
       dy = y - self.y
     self.move( dx, dy, use_paper_coords=use_paper_coords, dont_move_marks=dont_move_marks)
 
-  def get_xy( self):
+  def get_xy( self) -> tuple:
     return self.x, self.y
 
-  def get_xyz( self, real=0):
+  def get_xyz( self, real: object=0) -> tuple:
     """returns atoms coordinates, default are screen coordinates, real!=0
     changes it to real coordinates (these two are usually different for imported molecules)"""
     if real:
@@ -747,7 +747,7 @@ class drawable_chem_vertex(GraphVertexMixin,
     else:
       return self.x, self.y, self.z
 
-  def get_xy_on_paper( self):
+  def get_xy_on_paper( self) -> object:
     """Returns the coordinates of the vertex on the paper reference system.
         These change based on zooming."""
     # An item on the Canvas is used to keep track of current position (self.vertex_item)
@@ -759,7 +759,7 @@ class drawable_chem_vertex(GraphVertexMixin,
       return xy
 
 
-  def delete( self):
+  def delete( self) -> object:
     if self.focus_item:
       self.unfocus()
     if self.selector:
@@ -781,7 +781,7 @@ class drawable_chem_vertex(GraphVertexMixin,
     return self
 
 
-  def toggle_center( self, mode = 0):
+  def toggle_center( self, mode: object = 0) -> None:
     """toggles the centering of text between 'center-first' and 'center-last'(mode=0)
     or sets it strictly - mode=-1, mode=1"""
     if not mode:
@@ -796,21 +796,21 @@ class drawable_chem_vertex(GraphVertexMixin,
     self.redraw()
 
 
-  def update_font( self):
+  def update_font( self) -> None:
     self.font = tkinter.font.Font( family=self.font_family, size=self.font_size)
 
 
-  def scale_font( self, ratio):
+  def scale_font( self, ratio: object) -> None:
     """scales font of atom. does not redraw !!"""
     self.font_size = int( round( self.font_size * ratio))
     self.update_font()
 
-  def on_screen_font(self):
+  def on_screen_font(self) -> object:
     """Returns a font adequate for on-screen display, using appropriate scaling."""
     screen_font_size = int( round( self.paper.real_to_canvas(self.font_size) ))
     return tkinter.font.Font( family=self.font_family, size=screen_font_size)
 
-  def lift( self):
+  def lift( self) -> None:
     # marks
     [m.lift() for m in self.marks]
     if self.ftext:
@@ -819,12 +819,12 @@ class drawable_chem_vertex(GraphVertexMixin,
       self.paper.lift( self.item)
 
 
-  def lift_selector( self):
+  def lift_selector( self) -> None:
     if self.selector:
       self.paper.lift( self.selector)
 
 
-  def transform( self, tr):
+  def transform( self, tr: object) -> None:
     x, y, z = tr.transform_xyz( self.x, self.y, self.z)
     self.move_to( x, y, dont_move_marks=1)
     self.z = z
@@ -832,7 +832,7 @@ class drawable_chem_vertex(GraphVertexMixin,
       m.transform( tr)
 
 
-  def bbox( self, substract_font_descent=False):
+  def bbox( self, substract_font_descent: bool=False) -> object:
     """returns the bounding box of the object as a list of [x1,y1,x2,y2]"""
     if self.item:
       box = self.paper.bbox( self.item)
@@ -859,7 +859,7 @@ class drawable_chem_vertex(GraphVertexMixin,
         return (self.x + dx, self.y + descent, self.x - length + dx, self.y - ascent)
 
 
-  def is_part_of_linear_fragment( self):
+  def is_part_of_linear_fragment( self) -> bool:
     """returns boolean, useful to trigger special drawing of linear forms"""
     if not self.molecule:
       return False

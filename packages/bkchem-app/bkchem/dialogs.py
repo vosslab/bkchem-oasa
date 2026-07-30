@@ -49,7 +49,7 @@ class scale_dialog(object):
   """Dialog used to get ratio for scaling in percent.
 
   """
-  def __init__( self, parent):
+  def __init__( self, parent: object) -> None:
     self.dialog = BkDialog( parent,
                               buttons=(_('OK'), _('Cancel')),
                               defaultbutton=_('OK'),
@@ -102,7 +102,7 @@ class scale_dialog(object):
     self.dialog.activate()
 
 
-  def done( self, button):
+  def done( self, button: object) -> None:
     """called on dialog exit"""
     if not button or button == _('Cancel'):
       self.result = None
@@ -116,19 +116,19 @@ class scale_dialog(object):
     self.dialog.deactivate()
 
 
-  def _scalex_changed( self):
+  def _scalex_changed( self) -> None:
     if self.preserve_ratio.get():
       if self.entryy.get() != self.entryx.get():
         self.entryy.setentry( self.entryx.get())
 
 
-  def _scaley_changed( self):
+  def _scaley_changed( self) -> None:
     if self.preserve_ratio.get():
       if self.entryy.get() != self.entryx.get():
         self.entryx.setentry( self.entryy.get())
 
 
-  def _preserve_ratio_changed( self):
+  def _preserve_ratio_changed( self) -> None:
     if self.preserve_ratio.get():
       if self.entryy.get() != self.entryx.get():
         if self.entryx.get() == '100':
@@ -144,7 +144,7 @@ class config_dialog(object):
   """Items configuration.
 
   """
-  def __init__( self, parent, items):
+  def __init__( self, parent: object, items: object) -> None:
     self.items = items
     self.changes_made = 0
     self.parent = parent
@@ -392,7 +392,7 @@ class config_dialog(object):
     self.dialog.activate()
 
 
-  def done( self, button):
+  def done( self, button: object) -> None:
     """called on dialog exit"""
     self.dialog.deactivate()
     if button != _('OK'):
@@ -499,23 +499,23 @@ class config_dialog(object):
     self.cleanup()
 
 
-  def _arrow_end_changed( self):
+  def _arrow_end_changed( self) -> None:
     self.arrow_end_changed = 1
 
 
-  def _arrow_start_changed( self):
+  def _arrow_start_changed( self) -> None:
     self.arrow_start_changed = 1
 
 
-  def _spline_changed( self):
+  def _spline_changed( self) -> None:
     self.spline_changed = 1
 
 
-  def raise_me( self, event):
+  def raise_me( self, event: object) -> None:
     self.dialog.tkraise()
 
 
-  def cleanup( self):
+  def cleanup( self) -> None:
     pass
     #self.parent.unbind_all( "<Button-1>")
 
@@ -525,7 +525,7 @@ class config_dialog(object):
 
 class file_properties_dialog(object):
 
-  def __init__( self, parent, paper):
+  def __init__( self, parent: object, paper: object) -> None:
     self.parent = parent
     self.paper = paper
     self.dialog = BkDialog( parent,
@@ -538,7 +538,7 @@ class file_properties_dialog(object):
     self.dialog.activate()
 
 
-  def draw( self):
+  def draw( self) -> None:
     paper_frame = tkinter.Frame( self.dialog.interior(),
                                  bd=2,
                                  relief="groove")
@@ -618,7 +618,7 @@ class file_properties_dialog(object):
     #replace_minus_button.pack( anchor='w', padx=5, pady=5)
 
 
-  def done( self, button):
+  def done( self, button: object) -> None:
     self.dialog.deactivate()
     if button == _('OK'):
       if self.paper_orientation_chooser.getvalue() == _('Portrait'):
@@ -637,7 +637,7 @@ class file_properties_dialog(object):
       self.paper.changes_made = 1
 
 
-  def crop_paper_changed( self):
+  def crop_paper_changed( self) -> None:
     return
     val = self.crop_paper_in_svg.get()
     if not val:
@@ -651,7 +651,7 @@ class file_properties_dialog(object):
 
 class standard_values_dialog(object):
 
-  def __init__( self, parent, standard):
+  def __init__( self, parent: object, standard: object) -> None:
     self.parent = parent
     self.standard = standard
     self.dialog = BkDialog( parent,
@@ -666,7 +666,7 @@ class standard_values_dialog(object):
     self.dialog.activate()
 
 
-  def draw( self):
+  def draw( self) -> None:
     self.pages = ttk.Notebook( self.body)
     self.pages.pack( anchor='w', pady=0, padx=0, fill='both', expand=1)
     # COMMON
@@ -798,7 +798,7 @@ class standard_values_dialog(object):
 
 
 
-  def done( self, button):
+  def done( self, button: object) -> None:
     if button == _('Save'):
       a = self.parent.paper.save_personal_standard( self.get_the_standard())
       if a:
@@ -819,7 +819,7 @@ class standard_values_dialog(object):
       self.apply_all = 0
 
 
-  def get_the_standard( self):
+  def get_the_standard( self) -> object:
     st = classes.standard()
     st.bond_width = self.bond_width.getvalue()
     st.line_width = self.line_width.getvalue()
@@ -849,7 +849,7 @@ class standard_values_dialog(object):
     return st
 
 
-  def _apply_button_callback( self, tag):
+  def _apply_button_callback( self, tag: object) -> None:
     if self.apply_button.index( tag) != 0:
       self.apply_button2.invoke(0)
       self.apply_button2.configure( Button_state = 'normal')
@@ -863,7 +863,7 @@ class standard_values_dialog(object):
 
 class preferences_dialog(object):
 
-  def __init__( self, parent, preferences):
+  def __init__( self, parent: object, preferences: object) -> None:
     self.parent = parent
     self.preferences = preferences
     self.dialog = BkDialog( parent,
@@ -885,7 +885,7 @@ class preferences_dialog(object):
     self.dialog.activate()
 
 
-  def draw( self):
+  def draw( self) -> None:
     self.pages = ttk.Notebook( self.body)
     self.pages.pack( anchor='w', pady=0, padx=0, fill='both', expand=1)
     # COMMON
@@ -904,7 +904,7 @@ class preferences_dialog(object):
 
 
 
-  def done( self, button):
+  def done( self, button: object) -> None:
     self.dialog.deactivate()
     if button == _('OK'):
       #self.preferences.add_preference( "replace_minus", self.replace_minus.get())
@@ -920,7 +920,7 @@ class preferences_dialog(object):
 
 class fragment_dialog( BkDialog):
 
-  def __init__( self, paper, deletion=True):
+  def __init__( self, paper: object, deletion: bool = True) -> None:
     self.paper = paper
     if deletion:
       butts = (_('OK'), _('Delete'), _('Cancel'))
@@ -941,7 +941,7 @@ class fragment_dialog( BkDialog):
     self.init_list()
 
 
-  def init_list( self):
+  def init_list( self) -> None:
     self.list = BkScrolledListBox( self.interior(),
                                      selectioncommand=self.select,
                                      labelpos = "n",
@@ -952,7 +952,7 @@ class fragment_dialog( BkDialog):
     self.list.pack()
 
 
-  def get_all_fragments( self):
+  def get_all_fragments( self) -> list:
     self._frags = {}
     for m in self.paper.molecules:
       for frag in m.fragments:
@@ -961,7 +961,7 @@ class fragment_dialog( BkDialog):
     return list(self._frags.keys())
 
 
-  def select( self):
+  def select( self) -> None:
     self.clean()
     if self.list.getvalue():
       frag = self._frags[ self.list.getvalue()[0]]
@@ -969,7 +969,7 @@ class fragment_dialog( BkDialog):
       self._highlight( frag)
 
 
-  def _highlight( self, frag, size=3):
+  def _highlight( self, frag: object, size: int = 3) -> None:
     for b in frag.edges:
       x1, y1 = b.atom1.get_xy()
       x2, y2 = b.atom2.get_xy()
@@ -980,12 +980,12 @@ class fragment_dialog( BkDialog):
       self._items.add( self.paper.create_oval( a.x-size, a.y-size, a.x+size, a.y+size, fill="orange", outline="red"))
 
 
-  def clean( self):
+  def clean( self) -> None:
     list(map( self.paper.delete, self._items))
     self._items = set()
 
 
-  def done( self, button):
+  def done( self, button: object) -> None:
     if button == _('Delete'):
       self._delete_selected()
       return
@@ -993,7 +993,7 @@ class fragment_dialog( BkDialog):
     self.deactivate()
 
 
-  def _delete_selected( self):
+  def _delete_selected( self) -> None:
     if self.value:
       mol = list( self.value.edges | self.value.vertices)[0].molecule
       mol.delete_fragment( self.value)
@@ -1005,7 +1005,7 @@ class fragment_dialog( BkDialog):
 
 class logging_dialog( BkDialog):
 
-  def __init__( self, paper, logger):
+  def __init__( self, paper: object, logger: object) -> None:
     self.logger = logger
     BkDialog.__init__( self,
                          Store.app,
@@ -1017,7 +1017,7 @@ class logging_dialog( BkDialog):
     self.init_list()
 
 
-  def init_list( self):
+  def init_list( self) -> None:
     root = self.interior()
     self.choosers = {}
     tkinter.Label( root, text=_("Choose how each type of message is to be shown:"), font=("Helvetica", 12, "bold")).pack( pady=10)
@@ -1037,7 +1037,7 @@ class logging_dialog( BkDialog):
     tkinter.Label( root, text=_("The setting will be immediately applied and saved on application exit.")).pack( pady=10)
 
 
-  def done( self, button):
+  def done( self, button: object) -> None:
     if button == _("OK"):
       self.proceed = True
       for message_type,chooser in list(self.choosers.items()):
@@ -1051,7 +1051,7 @@ class logging_dialog( BkDialog):
 
 class language_dialog( BkDialog):
 
-  def __init__( self, paper):
+  def __init__( self, paper: object) -> None:
     BkDialog.__init__( self,
                          Store.app,
                          buttons=(_('OK'), _('Cancel')),
@@ -1063,7 +1063,7 @@ class language_dialog( BkDialog):
     self.init_list()
 
 
-  def init_list( self):
+  def init_list( self) -> None:
     langs = []
     import gettext
     self.languages = {}
@@ -1094,7 +1094,7 @@ class language_dialog( BkDialog):
     self.list.pack()
 
 
-  def done( self, button):
+  def done( self, button: object) -> None:
     if button == _("OK"):
       self.proceed = True
     self.deactivate()
@@ -1110,7 +1110,7 @@ class progress_dialog( tkinter.Toplevel):
   bar_fontsize = 8
 
 
-  def __init__(self, parent, title=None):
+  def __init__(self, parent: object, title: object = None) -> None:
 
     self.parent = parent
 
@@ -1150,7 +1150,7 @@ class progress_dialog( tkinter.Toplevel):
     #self.wait_window(self)
 
 
-  def update( self, ratio, top_text="", bottom_text=""):
+  def update( self, ratio: float, top_text: str = "", bottom_text: str = "") -> None:
     self.set_ratio( ratio)
     if top_text:
       self.top_text.set( top_text)
@@ -1160,12 +1160,12 @@ class progress_dialog( tkinter.Toplevel):
     self.update_idletasks()
 
 
-  def set_ratio( self, ratio):
+  def set_ratio( self, ratio: float) -> None:
     self.canvas.coords( self.bar, 0, 0, ratio*self.bar_width, self.bar_height)
     self.canvas.itemconfig( self.ratio, text="%d%%" % (100*ratio))
 
 
-  def close( self):
+  def close( self) -> None:
     self.parent.focus_set()
     self.destroy()
 
@@ -1179,7 +1179,7 @@ class theme_dialog(object):
   (e.g. 'light' or 'dark') or ``None`` if cancelled.
   """
 
-  def __init__(self, parent):
+  def __init__(self, parent: object) -> None:
     from bkchem import theme_manager
     self.result = None
     names = theme_manager.get_theme_names()
@@ -1213,7 +1213,7 @@ class theme_dialog(object):
     self._names = names
     self.dialog.activate()
 
-  def _button_pressed(self, btn_name):
+  def _button_pressed(self, btn_name: object) -> None:
     if btn_name == _('OK'):
       self.result = self.radio.getvalue()
     else:
@@ -1226,7 +1226,7 @@ class theme_dialog(object):
 class keyboard_shortcuts_dialog(object):
   """Dialog showing all keyboard shortcuts with platform-native notation."""
 
-  def __init__(self, parent):
+  def __init__(self, parent: object) -> None:
     from bkchem.platform_menu import format_accelerator_display as format_accelerator
     self.dialog = BkDialog(
       parent,
@@ -1255,7 +1255,7 @@ class keyboard_shortcuts_dialog(object):
     self.dialog.activate()
 
   #============================================
-  def _build_content(self, fmt) -> str:
+  def _build_content(self, fmt: object) -> str:
     """Build the shortcut reference text.
 
     Args:
@@ -1299,7 +1299,7 @@ class keyboard_shortcuts_dialog(object):
 
   #============================================
   @staticmethod
-  def _row(fmt, accel: str, label: str) -> str:
+  def _row(fmt: object, accel: str, label: str) -> str:
     """Format one shortcut row.
 
     Args:
@@ -1314,6 +1314,6 @@ class keyboard_shortcuts_dialog(object):
     return f"  {display:<20s}{label}\n"
 
   #============================================
-  def _done(self, button):
+  def _done(self, button: object) -> None:
     """Handle dialog close."""
     self.dialog.deactivate()

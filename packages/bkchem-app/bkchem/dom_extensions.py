@@ -29,7 +29,8 @@ from bkchem import safe_xml
 
 
 
-def safe_indent( element, level=0, step=2, dont_indent=("ftext","text")):
+def safe_indent(element: object, level: object = 0, step: object = 2,
+                dont_indent: object = ("ftext", "text")) -> None:
   """indents DOM tree. Does not add any extra whitespaces to text elements."""
   if not element.childNodes:
     pass
@@ -44,7 +45,7 @@ def safe_indent( element, level=0, step=2, dont_indent=("ftext","text")):
     element.appendChild(  element.ownerDocument.createTextNode("\n"+level*" "))
 
 
-def elementUnder( parent, name, attributes=()):
+def elementUnder(parent: object, name: object, attributes: object = ()) -> object:
   """creates element inside of parent and returns it,
   attributes are as sequence of (name,value) sequences"""
   if parent.DOCUMENT_NODE == parent.nodeType:
@@ -58,7 +59,8 @@ def elementUnder( parent, name, attributes=()):
   return a
 
 
-def textOnlyElementUnder( parent, name, text, attributes=()):
+def textOnlyElementUnder(parent: object, name: object, text: object,
+                         attributes: object = ()) -> object:
   a = elementUnder( parent, name, attributes=attributes)
   if attributes:
     for i in attributes:
@@ -67,7 +69,7 @@ def textOnlyElementUnder( parent, name, text, attributes=()):
   return a
 
 
-def getTextFromElement( element):
+def getTextFromElement(element: object) -> object:
   text = ''
   for child in element.childNodes:
     if child.nodeValue:
@@ -75,11 +77,11 @@ def getTextFromElement( element):
   return text
 
 
-def childNodesWithoutEmptySpaces( node):
+def childNodesWithoutEmptySpaces(node: object) -> object:
   return list(filter( isNotEmptyText, node.childNodes))
 
 
-def isNotEmptyText( element):
+def isNotEmptyText(element: object) -> object:
   empty = re.compile(r'^\s*$')
   if element.nodeValue and empty.match( element.nodeValue): #(element.nodeValue == '\n') or (element.nodeValue == '\t'):
     return 0
@@ -87,7 +89,7 @@ def isNotEmptyText( element):
     return 1
 
 
-def getAllTextFromElement( element):
+def getAllTextFromElement(element: object) -> object:
   """like getTextFromElement but mines text also from child nodes"""
   text = ''
   for child in element.childNodes:
@@ -98,17 +100,17 @@ def getAllTextFromElement( element):
   return text
 
 
-def setAttributes( element, attributes):
+def setAttributes(element: object, attributes: object) -> None:
   for a in attributes:
     element.setAttribute( a[0], a[1])
 
 
-def getAttributes( element, names):
+def getAttributes(element: object, names: object) -> object:
   """returns a list of attribute values from a list of attr names"""
   return [element.getAttribute( n) for n in names]
 
 
-def getParentNameList( element):
+def getParentNameList(element: object) -> object:
   """returns a list of parent names (from father to grandfather...)"""
   par = element.parentNode
   if par is not None:
@@ -117,7 +119,7 @@ def getParentNameList( element):
     return []
 
 
-def getFirstChildNamed( element, name):
+def getFirstChildNamed(element: object, name: object) -> object:
   l = getChildrenNamed( element, name)
   if l:
     return l[0]
@@ -125,11 +127,11 @@ def getFirstChildNamed( element, name):
     return None
 
 
-def getChildrenNamed( element, name):
+def getChildrenNamed(element: object, name: object) -> object:
   return [o for o in element.childNodes if (not o.nodeValue) and (o.localName == name)]
 
 
-def isOnlyTags( text):
+def isOnlyTags(text: object) -> object:
   """this function takes a !string! as an argument and returns true if text is only tags"""
   try:
     # With dom use encoded strings
@@ -147,7 +149,7 @@ def isOnlyTags( text):
   return 1
 
 
-def simpleXPathSearch( element, path):
+def simpleXPathSearch(element: object, path: object) -> object:
   atomic_paths = path.split( "/")
   out = [element]
   for atomic_path in atomic_paths:
@@ -156,7 +158,7 @@ def simpleXPathSearch( element, path):
   return out
 
 
-def _atomicXPathSearch( element, path):
+def _atomicXPathSearch(element: object, path: object) -> object:
   if path == "":
     if element.DOCUMENT_NODE == element.nodeType:
       return [element]

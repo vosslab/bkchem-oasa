@@ -36,8 +36,8 @@ class BkDialog(tkinter.Toplevel):
 		master: Ignored, accepted for Pmw compatibility.
 	"""
 
-	def __init__(self, parent, title='', buttons=('OK',),
-				defaultbutton=None, command=None, master=None):
+	def __init__(self, parent: object, title: object='', buttons: object=('OK',),
+				defaultbutton: object=None, command: object=None, master: object=None) -> None:
 		tkinter.Toplevel.__init__(self, parent)
 		self.title(title)
 		self._parent = parent
@@ -68,7 +68,7 @@ class BkDialog(tkinter.Toplevel):
 		self.protocol('WM_DELETE_WINDOW', self._on_close)
 
 	#============================================
-	def interior(self):
+	def interior(self) -> object:
 		"""Return the content frame for caller widgets.
 
 		Returns:
@@ -77,7 +77,7 @@ class BkDialog(tkinter.Toplevel):
 		return self._interior
 
 	#============================================
-	def _on_button(self, label):
+	def _on_button(self, label: object) -> None:
 		"""Handle a button click.
 
 		Args:
@@ -89,7 +89,7 @@ class BkDialog(tkinter.Toplevel):
 			self.deactivate(label)
 
 	#============================================
-	def _on_close(self):
+	def _on_close(self) -> None:
 		"""Handle window manager close (X button)."""
 		if self._command is not None:
 			self._command(None)
@@ -97,7 +97,7 @@ class BkDialog(tkinter.Toplevel):
 			self.deactivate(None)
 
 	#============================================
-	def activate(self):
+	def activate(self) -> object:
 		"""Run the dialog modally.
 
 		Makes the dialog transient to the parent, grabs input focus,
@@ -113,7 +113,7 @@ class BkDialog(tkinter.Toplevel):
 		return self._result
 
 	#============================================
-	def deactivate(self, result=None):
+	def deactivate(self, result: object=None) -> None:
 		"""Close the dialog and store the result.
 
 		Args:
@@ -140,9 +140,9 @@ class BkPromptDialog(BkDialog):
 		command: Optional callback, same semantics as BkDialog.
 	"""
 
-	def __init__(self, parent, title='', buttons=('OK',),
-				defaultbutton=None, label_text='',
-				entryfield_labelpos='n', command=None):
+	def __init__(self, parent: object, title: str='', buttons: tuple=('OK',),
+				defaultbutton: object=None, label_text: str='',
+				entryfield_labelpos: object='n', command: object=None) -> None:
 		BkDialog.__init__(self, parent, title=title,
 			buttons=buttons, defaultbutton=defaultbutton, command=command)
 		interior = self.interior()
@@ -155,7 +155,7 @@ class BkPromptDialog(BkDialog):
 		self._entry.pack(side='top', fill='x', padx=4, pady=4)
 
 	#============================================
-	def activate(self):
+	def activate(self) -> object:
 		"""Run the dialog modally, focusing the entry field.
 
 		Returns:
@@ -165,7 +165,7 @@ class BkPromptDialog(BkDialog):
 		return BkDialog.activate(self)
 
 	#============================================
-	def get(self):
+	def get(self) -> str:
 		"""Return the current entry text.
 
 		Returns:
@@ -174,7 +174,7 @@ class BkPromptDialog(BkDialog):
 		return self._entry.get()
 
 	#============================================
-	def insertentry(self, index, text):
+	def insertentry(self, index: object, text: object) -> None:
 		"""Set the entry value by clearing and inserting text.
 
 		Args:
@@ -199,8 +199,8 @@ class BkTextDialog(BkDialog):
 		command: Optional callback, same semantics as BkDialog.
 	"""
 
-	def __init__(self, parent, title='', buttons=('OK',),
-				defaultbutton=None, command=None):
+	def __init__(self, parent: object, title: str='', buttons: tuple=('OK',),
+				defaultbutton: object=None, command: object=None) -> None:
 		BkDialog.__init__(self, parent, title=title,
 			buttons=buttons, defaultbutton=defaultbutton, command=command)
 		interior = self.interior()
@@ -218,7 +218,7 @@ class BkTextDialog(BkDialog):
 		self._scrollbar.config(command=self._text.yview)
 
 	#============================================
-	def insert(self, index, text):
+	def insert(self, index: object, text: object) -> None:
 		"""Insert text into the Text widget.
 
 		Args:
@@ -228,7 +228,7 @@ class BkTextDialog(BkDialog):
 		self._text.insert(index, text)
 
 	#============================================
-	def tag_config(self, tag, **opts):
+	def tag_config(self, tag: object, **opts) -> None:
 		"""Configure a text tag.
 
 		Args:
@@ -238,7 +238,7 @@ class BkTextDialog(BkDialog):
 		self._text.tag_config(tag, **opts)
 
 	#============================================
-	def configure(self, text_state=None, **kw):
+	def configure(self, text_state: object=None, **kw) -> None:
 		"""Configure the dialog or the Text widget state.
 
 		Args:
@@ -273,11 +273,11 @@ class BkCounter(ttk.Frame):
 			changes.
 	"""
 
-	def __init__(self, parent, labelpos='w', label_text='',
-				entryfield_value='', datatype='numeric',
-				increment=1, entry_width=10,
-				entryfield_validate=None,
-				entryfield_modifiedcommand=None):
+	def __init__(self, parent: object, labelpos: object='w', label_text: str='',
+				entryfield_value: object='', datatype: object='numeric',
+				increment: object=1, entry_width: object=10,
+				entryfield_validate: object=None,
+				entryfield_modifiedcommand: object=None) -> None:
 		ttk.Frame.__init__(self, parent)
 		self._datatype = datatype
 		self._increment = increment
@@ -348,7 +348,7 @@ class BkCounter(ttk.Frame):
 			self._spinbox.pack(side='left')
 
 	#============================================
-	def _parse_validate_range(self):
+	def _parse_validate_range(self) -> tuple:
 		"""Extract min/max from the validation spec.
 
 		Returns:
@@ -362,7 +362,7 @@ class BkCounter(ttk.Frame):
 		return vmin, vmax
 
 	#============================================
-	def _custom_step(self):
+	def _custom_step(self) -> None:
 		"""Invoke the custom counter function for up/down steps."""
 		# the Spinbox command fires after the value has already been
 		# adjusted by the default spinbox logic, so we re-read the old
@@ -372,13 +372,13 @@ class BkCounter(ttk.Frame):
 		pass
 
 	#============================================
-	def _on_modified(self, *_args):
+	def _on_modified(self, *_args) -> None:
 		"""Fire the modified command callback."""
 		if self._modified_command is not None:
 			self._modified_command()
 
 	#============================================
-	def getvalue(self):
+	def getvalue(self) -> str:
 		"""Return the current spinbox value as a string.
 
 		Returns:
@@ -387,7 +387,7 @@ class BkCounter(ttk.Frame):
 		return self._var.get()
 
 	#============================================
-	def get(self):
+	def get(self) -> str:
 		"""Return the current spinbox value as a string.
 
 		Returns:
@@ -396,7 +396,7 @@ class BkCounter(ttk.Frame):
 		return self._var.get()
 
 	#============================================
-	def setentry(self, value):
+	def setentry(self, value: object) -> None:
 		"""Set the spinbox value.
 
 		Args:
@@ -405,7 +405,7 @@ class BkCounter(ttk.Frame):
 		self._var.set(str(value))
 
 	#============================================
-	def valid(self):
+	def valid(self) -> bool:
 		"""Check whether the current value passes validation.
 
 		Returns:
@@ -448,7 +448,7 @@ class BkCounter(ttk.Frame):
 		return True
 
 	#============================================
-	def __setitem__(self, key, value):
+	def __setitem__(self, key: object, value: object) -> None:
 		"""Support bracket-style configuration for increment.
 
 		Args:
@@ -480,10 +480,10 @@ class BkScrolledListBox(ttk.Frame):
 		hull_relief: Relief style for the frame border (Pmw compat).
 	"""
 
-	def __init__(self, parent, labelpos='n', label_text='',
-				items=(), listbox_selectmode='browse',
-				listbox_width=20, selectioncommand=None,
-				dblclickcommand=None, hull_relief=None):
+	def __init__(self, parent: object, labelpos: object='n', label_text: str='',
+				items: object=(), listbox_selectmode: object='browse',
+				listbox_width: object=20, selectioncommand: object=None,
+				dblclickcommand: object=None, hull_relief: object=None) -> None:
 		ttk.Frame.__init__(self, parent)
 		self._selectioncommand = selectioncommand
 		self._dblclickcommand = dblclickcommand
@@ -522,19 +522,19 @@ class BkScrolledListBox(ttk.Frame):
 			self._listbox.bind('<Double-Button-1>', self._on_dblclick)
 
 	#============================================
-	def _on_select(self, _event=None):
+	def _on_select(self, _event: object=None) -> None:
 		"""Handle listbox selection event."""
 		if self._selectioncommand is not None:
 			self._selectioncommand()
 
 	#============================================
-	def _on_dblclick(self, _event=None):
+	def _on_dblclick(self, _event: object=None) -> None:
 		"""Handle listbox double-click event."""
 		if self._dblclickcommand is not None:
 			self._dblclickcommand()
 
 	#============================================
-	def getvalue(self):
+	def getvalue(self) -> tuple:
 		"""Return the currently selected item strings.
 
 		Returns:
@@ -544,7 +544,7 @@ class BkScrolledListBox(ttk.Frame):
 		return tuple(self._listbox.get(i) for i in selection)
 
 	#============================================
-	def getcurselection(self):
+	def getcurselection(self) -> tuple:
 		"""Return the currently selected item strings.
 
 		Returns:
@@ -553,7 +553,7 @@ class BkScrolledListBox(ttk.Frame):
 		return self.getvalue()
 
 	#============================================
-	def setlist(self, items):
+	def setlist(self, items: object) -> None:
 		"""Replace all items in the listbox.
 
 		Args:
@@ -564,7 +564,7 @@ class BkScrolledListBox(ttk.Frame):
 			self._listbox.insert('end', item)
 
 	#============================================
-	def select_set(self, index):
+	def select_set(self, index: object) -> None:
 		"""Select the item at the given index.
 
 		Args:
@@ -573,7 +573,7 @@ class BkScrolledListBox(ttk.Frame):
 		self._listbox.select_set(index)
 
 	#============================================
-	def see(self, index):
+	def see(self, index: object) -> None:
 		"""Scroll the listbox to make the given index visible.
 
 		Args:
@@ -582,7 +582,7 @@ class BkScrolledListBox(ttk.Frame):
 		self._listbox.see(index)
 
 	#============================================
-	def component(self, name):
+	def component(self, name: str) -> object:
 		"""Return a named sub-widget.
 
 		Args:

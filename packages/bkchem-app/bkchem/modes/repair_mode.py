@@ -30,7 +30,7 @@ from bkchem.modes.edit_mode import edit_mode
 class repair_mode(edit_mode):
 	"""Click a molecule to apply the selected repair operation."""
 
-	def __init__(self):
+	def __init__(self) -> None:
 		edit_mode.__init__(self)
 		# submodes loaded from YAML
 
@@ -44,7 +44,7 @@ class repair_mode(edit_mode):
 		return Screen.any_to_px(Store.app.paper.standard.bond_length)
 
 	#============================================
-	def _get_molecule_from_focused(self):
+	def _get_molecule_from_focused(self) -> object:
 		"""Return the molecule that the focused object belongs to, or None.
 
 		Returns:
@@ -58,7 +58,7 @@ class repair_mode(edit_mode):
 		return None
 
 	#============================================
-	def mouse_click(self, event):
+	def mouse_click(self, event: object) -> None:
 		"""Apply the selected repair operation to the clicked molecule."""
 		mol = self._get_molecule_from_focused()
 		if mol is None:
@@ -90,30 +90,30 @@ class repair_mode(edit_mode):
 		Store.app.paper.start_new_undo_record()
 
 	#============================================
-	def mouse_down(self, event, modifiers=None):
+	def mouse_down(self, event: object, modifiers: object = None) -> None:
 		edit_mode.mouse_down(self, event)
 
 	#============================================
-	def mouse_drag(self, event):
+	def mouse_drag(self, event: object) -> None:
 		# no drag behavior in repair mode; just delegate for focus tracking
 		edit_mode.mouse_drag(self, event)
 
 	#============================================
-	def startup(self):
+	def startup(self) -> None:
 		"""Set up bindings for repair mode (molecule targets only)."""
 		Store.app.paper.remove_bindings()
 		Store.app.paper.add_bindings(active_names=('atom', 'bond'))
 		Store.app.paper.unselect_all()
 
 	#============================================
-	def cleanup(self):
+	def cleanup(self) -> None:
 		"""Restore standard bindings on mode exit."""
 		edit_mode.cleanup(self)
 		Store.app.paper.remove_bindings()
 		Store.app.paper.add_bindings()
 
 	#============================================
-	def leave_object(self, event):
+	def leave_object(self, event: object) -> None:
 		if self.focused:
 			self.focused.unfocus()
 			self.focused = None

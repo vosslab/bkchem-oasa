@@ -13,7 +13,7 @@ import pytest
 
 
 #============================================
-def _ensure_gettext_fallbacks():
+def _ensure_gettext_fallbacks() -> object:
 	"""Ensure gettext helpers exist for module-level strings."""
 	if "_" not in builtins.__dict__:
 		builtins.__dict__["_"] = lambda m: m
@@ -22,7 +22,7 @@ def _ensure_gettext_fallbacks():
 
 
 #============================================
-def _verify_tkinter():
+def _verify_tkinter() -> object:
 	"""Verify Tk is available for GUI-backed tests."""
 	try:
 		import tkinter
@@ -37,7 +37,7 @@ def _verify_tkinter():
 
 
 #============================================
-def _ensure_preferences():
+def _ensure_preferences() -> object:
 	"""Initialize preference manager for tests."""
 	from bkchem import os_support
 	from bkchem import pref_manager
@@ -51,7 +51,7 @@ def _ensure_preferences():
 
 
 #============================================
-def _flush_events(app, delay=0.05):
+def _flush_events(app: object, delay: object=0.05) -> object:
 	"""Process Tk events with a brief delay for GUI updates."""
 	app.update_idletasks()
 	app.update()
@@ -61,7 +61,7 @@ def _flush_events(app, delay=0.05):
 
 
 #============================================
-def _init_app():
+def _init_app() -> object:
 	"""Create and initialize a BKChem app instance for testing."""
 	_ensure_gettext_fallbacks()
 	_verify_tkinter()
@@ -77,7 +77,7 @@ def _init_app():
 
 
 #============================================
-def _run_toggle_test():
+def _run_toggle_test() -> object:
 	"""Exercise show/hide/toggle and snap enable/disable."""
 	app = _init_app()
 	try:
@@ -178,7 +178,7 @@ def _run_toggle_test():
 
 
 #============================================
-def _run_zoom_threshold_test():
+def _run_zoom_threshold_test() -> object:
 	"""Verify dots disappear at low zoom and reappear at high zoom."""
 	app = _init_app()
 	try:
@@ -248,7 +248,7 @@ def _run_zoom_threshold_test():
 
 
 #============================================
-def _run_cutoff_test():
+def _run_cutoff_test() -> object:
 	"""Verify the MAX_GRID_POINTS cutoff in generate_hex_grid_points."""
 	import oasa.hex_grid
 
@@ -297,7 +297,7 @@ def _run_cutoff_test():
 
 
 #============================================
-def main():
+def main() -> None:
 	"""Entry point for running hex grid tests directly."""
 	import sys as _sys
 	which = _sys.argv[1] if len(_sys.argv) > 1 else "toggle"
@@ -312,7 +312,7 @@ def main():
 
 
 #============================================
-def _run_subprocess_test(arg):
+def _run_subprocess_test(arg: object) -> object:
 	"""Run a test variant in a subprocess; skip on Tk/signal failures."""
 	cmd = [sys.executable, os.path.abspath(__file__), arg]
 	result = subprocess.run(cmd, capture_output=True, text=True, check=False)
@@ -339,19 +339,19 @@ def _run_subprocess_test(arg):
 
 
 #============================================
-def test_hex_grid_toggle():
+def test_hex_grid_toggle() -> None:
 	"""Show/hide/toggle hex grid overlay and snap enable/disable."""
 	_run_subprocess_test("toggle")
 
 
 #============================================
-def test_hex_grid_zoom_threshold():
+def test_hex_grid_zoom_threshold() -> None:
 	"""Dots disappear below 50% zoom and reappear above it."""
 	_run_subprocess_test("zoom_threshold")
 
 
 #============================================
-def test_hex_grid_cutoff():
+def test_hex_grid_cutoff() -> None:
 	"""generate_hex_grid_points returns None when point count exceeds cutoff."""
 	_run_subprocess_test("cutoff")
 

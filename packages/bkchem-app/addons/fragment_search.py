@@ -10,12 +10,12 @@ from bkchem.singleton_store import Store
 
 _ = getattr( builtins, "_", None)
 if not _:
-	def _( text):
+	def _(text: str) -> str:
 		return text
 	builtins._ = _
 
 
-def process_directory(app, fragment, directory):
+def process_directory(app: object, fragment: object, directory: str) -> int:
 	files = 0
 	matching = 0
 
@@ -68,7 +68,7 @@ def process_directory(app, fragment, directory):
 	return files
 
 
-def main(app):
+def main(app: object) -> None:
 	t = time.time()
 	selected_mols = [
 		o for o in app.paper.selected_to_unique_top_levels()[0]

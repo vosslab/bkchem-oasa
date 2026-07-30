@@ -36,7 +36,7 @@ _ = builtins.__dict__.get( '_', lambda m: m)
 
 class Splash( tkinter.Toplevel):
 
-  def __init__( self):
+  def __init__( self) -> None:
     tkinter.Toplevel.__init__( self)
 
     self.title(_('BKChem is starting...'))

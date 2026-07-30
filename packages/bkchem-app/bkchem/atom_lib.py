@@ -55,7 +55,7 @@ class BkAtom(drawable_chem_vertex):
                             'multiplicity', 'valency', 'free_sites')
 
 
-  def __init__( self, standard=None, xy=(), package=None, molecule=None):
+  def __init__( self, standard: object=None, xy: object=(), package: object=None, molecule: object=None) -> None:
     drawable_chem_vertex.__init__( self, standard=standard, xy=xy, molecule=molecule)
 
     # composition layer: companion OASA atom for chemistry delegation
@@ -75,7 +75,7 @@ class BkAtom(drawable_chem_vertex):
 
 
   @property
-  def symbol(self):
+  def symbol(self) -> str:
     """Atom symbol.
 
     """
@@ -83,7 +83,7 @@ class BkAtom(drawable_chem_vertex):
 
 
   @symbol.setter
-  def symbol(self, symbol):
+  def symbol(self, symbol: str) -> None:
     # delegate to _chem_atom which validates and sets valency/symbol_number
     self._chem_atom.symbol = symbol
     # sync valency from periodic table
@@ -94,7 +94,7 @@ class BkAtom(drawable_chem_vertex):
 
 
   @property
-  def isotope(self):
+  def isotope(self) -> object:
     """Atom isotope mass number.
 
     """
@@ -102,12 +102,12 @@ class BkAtom(drawable_chem_vertex):
 
 
   @isotope.setter
-  def isotope(self, isotope):
+  def isotope(self, isotope: object) -> None:
     self._chem_atom.isotope = isotope
 
 
   @property
-  def show(self):
+  def show(self) -> object:
     """Should the atom symbol be displayed?
 
     Accepts both 0|1 and yes|no.
@@ -116,7 +116,7 @@ class BkAtom(drawable_chem_vertex):
 
 
   @show.setter
-  def show(self, show):
+  def show(self, show: object) -> None:
     if show in data.booleans:
       self._show = data.booleans.index(show)
     else:
@@ -126,12 +126,12 @@ class BkAtom(drawable_chem_vertex):
 
 
   @property
-  def show_hydrogens(self):
+  def show_hydrogens(self) -> object:
     return self._show_hydrogens
 
 
   @show_hydrogens.setter
-  def show_hydrogens(self, show_hydrogens):
+  def show_hydrogens(self, show_hydrogens: object) -> None:
     if show_hydrogens in data.on_off:
       self._show_hydrogens = data.on_off.index( show_hydrogens)
     else:
@@ -142,12 +142,12 @@ class BkAtom(drawable_chem_vertex):
 
   # Override of oasa.chem_vertex.charge
   @property
-  def charge(self):
+  def charge(self) -> object:
     return drawable_chem_vertex.charge.__get__(self)
 
 
   @charge.setter
-  def charge(self, charge):
+  def charge(self, charge: object) -> None:
     drawable_chem_vertex.charge.__set__(self, charge)
     # sync composition attribute
     if hasattr(self, '_chem_atom'):
@@ -156,7 +156,7 @@ class BkAtom(drawable_chem_vertex):
 
 
   @property
-  def valency(self):
+  def valency(self) -> object:
     """Atom's (maximum) valency.
 
     Used for hydrogen counting.
@@ -169,7 +169,7 @@ class BkAtom(drawable_chem_vertex):
 
 
   @valency.setter
-  def valency(self, val):
+  def valency(self, val: object) -> None:
     drawable_chem_vertex.valency.__set__(self, val)
     # sync composition attribute
     if hasattr(self, '_chem_atom'):
@@ -177,7 +177,7 @@ class BkAtom(drawable_chem_vertex):
 
 
   @property
-  def multiplicity(self):
+  def multiplicity(self) -> object:
     """Atom multiplicity.
 
     """
@@ -185,7 +185,7 @@ class BkAtom(drawable_chem_vertex):
 
 
   @multiplicity.setter
-  def multiplicity(self, multiplicity):
+  def multiplicity(self, multiplicity: object) -> None:
     self._clean_cache()
     self._multiplicity = multiplicity
     # sync composition attribute
@@ -195,7 +195,7 @@ class BkAtom(drawable_chem_vertex):
 
   # Replace oasa.atom.free_sites
   @property
-  def free_sites(self):
+  def free_sites(self) -> object:
     """Free sites of the atom.
 
     """
@@ -203,7 +203,7 @@ class BkAtom(drawable_chem_vertex):
 
 
   @free_sites.setter
-  def free_sites(self, free_sites):
+  def free_sites(self, free_sites: object) -> None:
     self._free_sites = free_sites
     marks = self.get_marks_by_type( "free_sites")
     if self._free_sites:
@@ -217,7 +217,7 @@ class BkAtom(drawable_chem_vertex):
 
 
   @property
-  def free_sites_text(self):
+  def free_sites_text(self) -> str:
     """Atom's free_sites as text.
 
     Used by free-site mark.
@@ -230,7 +230,7 @@ class BkAtom(drawable_chem_vertex):
 
   # Oxidation number as text
   @property
-  def oxidation_number_text(self):
+  def oxidation_number_text(self) -> object:
     """Atom's oxidation number as text.
 
     """
@@ -238,7 +238,7 @@ class BkAtom(drawable_chem_vertex):
 
 
   @property
-  def symbol_number(self):
+  def symbol_number(self) -> object:
     """Atomic number from the periodic table.
 
     """
@@ -246,12 +246,12 @@ class BkAtom(drawable_chem_vertex):
 
 
   @symbol_number.setter
-  def symbol_number(self, value):
+  def symbol_number(self, value: object) -> None:
     self._chem_atom.symbol_number = value
 
 
   @property
-  def explicit_hydrogens(self):
+  def explicit_hydrogens(self) -> object:
     """Number of explicit hydrogens attached.
 
     """
@@ -259,12 +259,12 @@ class BkAtom(drawable_chem_vertex):
 
 
   @explicit_hydrogens.setter
-  def explicit_hydrogens(self, value):
+  def explicit_hydrogens(self, value: object) -> None:
     self._chem_atom.explicit_hydrogens = value
 
 
   @property
-  def occupied_valency(self):
+  def occupied_valency(self) -> object:
     """Atom's occupied valency including aromatic bond and charge handling.
 
     Mirrors oasa.atom.occupied_valency logic.
@@ -307,7 +307,7 @@ class BkAtom(drawable_chem_vertex):
 
 
   @property
-  def electronegativity(self):
+  def electronegativity(self) -> object:
     """Atom's electronegativity from the periodic table.
 
     """
@@ -318,7 +318,7 @@ class BkAtom(drawable_chem_vertex):
 
 
   @property
-  def oxidation_number(self):
+  def oxidation_number(self) -> object:
     """Atom's oxidation number.
 
     """
@@ -331,7 +331,7 @@ class BkAtom(drawable_chem_vertex):
     return en
 
 
-  def matches(self, other):
+  def matches(self, other: object) -> bool:
     """Check if this atom matches another for substructure search.
 
     """
@@ -344,7 +344,7 @@ class BkAtom(drawable_chem_vertex):
     return False
 
 
-  def raise_valency_to_senseful_value(self):
+  def raise_valency_to_senseful_value(self) -> None:
     """Set atom valency to lowest value giving non-negative free_valency.
 
     """
@@ -353,7 +353,7 @@ class BkAtom(drawable_chem_vertex):
         return
 
 
-  def raise_valency(self):
+  def raise_valency(self) -> bool:
     """Try to find a higher valency from the periodic table.
 
     """
@@ -364,7 +364,7 @@ class BkAtom(drawable_chem_vertex):
     return False
 
 
-  def get_hydrogen_count(self):
+  def get_hydrogen_count(self) -> object:
     """Return total hydrogen count (explicit + free valency).
 
     """
@@ -373,7 +373,7 @@ class BkAtom(drawable_chem_vertex):
 
   # Override drawable_chem_vertex.xml_ftext
   @property
-  def xml_ftext(self):
+  def xml_ftext(self) -> bytes:
     """Text used for rendering using the ftext class.
 
     """
@@ -416,7 +416,7 @@ class BkAtom(drawable_chem_vertex):
 
 
   ## -------------------- OVERRIDES OF CHEM_VERTEX METHODS --------------------
-  def decide_pos( self):
+  def decide_pos( self) -> None:
     if self.show_hydrogens or self.free_valency:
       # in case hydrogens are shown, use the chem_vertex.decide_pos algorithm
       drawable_chem_vertex.decide_pos( self)
@@ -428,13 +428,13 @@ class BkAtom(drawable_chem_vertex):
   ## // -------------------- END --------------------
 
 
-  def set_name( self, name, interpret=1, check_valency=1, occupied_valency=None):
+  def set_name( self, name: object, interpret: object=1, check_valency: object=1, occupied_valency: object=None) -> object:
     ret = self._set_name( name, interpret=interpret, check_valency=check_valency, occupied_valency=occupied_valency)
     self.set_valency_from_name()
     return ret
 
 
-  def _set_name( self, name, interpret=1, check_valency=1, occupied_valency=None):
+  def _set_name( self, name: object, interpret: object=1, check_valency: object=1, occupied_valency: object=None) -> bool:
     if sys.version_info[0] > 2:
       if isinstance(name, bytes):
         name = name.decode('utf-8')
@@ -485,7 +485,7 @@ class BkAtom(drawable_chem_vertex):
     return False
 
 
-  def draw( self, redraw=False):
+  def draw( self, redraw: object=False) -> None:
     "draws atom with respect to its properties"
 
     if self.show:
@@ -506,7 +506,7 @@ class BkAtom(drawable_chem_vertex):
       self.paper.register_id( self.item, self)
       self._reposition_on_redraw = 0
 
-  def focus( self):
+  def focus( self) -> None:
     if self.show:
       drawable_chem_vertex.focus( self)
     else:
@@ -515,7 +515,7 @@ class BkAtom(drawable_chem_vertex):
       self.paper.lift( self.item)
 
 
-  def unfocus( self):
+  def unfocus( self) -> None:
     if self.show:
       drawable_chem_vertex.unfocus( self)
     if self.focus_item:
@@ -523,7 +523,7 @@ class BkAtom(drawable_chem_vertex):
       self.focus_item = None
 
 
-  def select( self):
+  def select( self) -> None:
     if self.show:
       # Makes the selector of the label visible
       drawable_chem_vertex.select( self)
@@ -539,7 +539,7 @@ class BkAtom(drawable_chem_vertex):
       self._selected = 1
 
 
-  def unselect( self):
+  def unselect( self) -> None:
     if self.show:
       drawable_chem_vertex.unselect( self)
     elif self.selector:
@@ -547,7 +547,7 @@ class BkAtom(drawable_chem_vertex):
       self.selector = None
       self._selected = 0
 
-  def read_package( self, package):
+  def read_package( self, package: object) -> None:
     """reads the dom element package and sets internal state according to it"""
     self.id = package.getAttribute( 'id')
     # marks (we read them here because they influence the charge)
@@ -612,7 +612,7 @@ class BkAtom(drawable_chem_vertex):
       self.free_sites = int( package.getAttribute( 'free_sites'))
 
 
-  def get_package( self, doc):
+  def get_package( self, doc: object) -> object:
     """returns a DOM element describing the object in CDML,
     doc is the parent document which is used for element creation
     (the returned element is not inserted into the document)"""
@@ -663,7 +663,7 @@ class BkAtom(drawable_chem_vertex):
     return a
 
 
-  def get_formula_dict( self):
+  def get_formula_dict( self) -> dict:
     """returns formula as dictionary that can
     be passed to functions in periodic_table"""
     ret = PT.formula_dict( self.symbol)
@@ -673,7 +673,7 @@ class BkAtom(drawable_chem_vertex):
 
 
   # overrides special_parents.drawable_chem_vertex method
-  def _set_mark_helper( self, mark, sign=1):
+  def _set_mark_helper( self, mark: object, sign: int=1) -> None:
     drawable_chem_vertex._set_mark_helper( self, mark, sign=sign)
     mark, _ = self._mark_to_name_and_class( mark)
     if mark == 'plus':
@@ -686,18 +686,18 @@ class BkAtom(drawable_chem_vertex):
       self.multiplicity += 2*sign
 
 
-  def update_after_valency_change( self):
+  def update_after_valency_change( self) -> None:
     if self.free_valency <= 0:
       self.raise_valency_to_senseful_value()
     if self.show_hydrogens:
       self.redraw()
 
 
-  def __str__( self):
+  def __str__( self) -> str:
     return self.id
 
 
-  def get_charge_from_marks( self):
+  def get_charge_from_marks( self) -> int:
     res = 0
     for m in self.marks:
       if m.__class__.__name__ == 'plus':
@@ -707,7 +707,7 @@ class BkAtom(drawable_chem_vertex):
     return res
 
 
-  def generate_marks_from_cheminfo( self):
+  def generate_marks_from_cheminfo( self) -> None:
     if self.charge == 1 and not self.get_marks_by_type( 'plus'):
       self.create_mark( 'plus', draw=0)
     elif self.charge == -1 and not self.get_marks_by_type( 'minus'):
@@ -718,7 +718,7 @@ class BkAtom(drawable_chem_vertex):
       self.create_mark( 'biradical', draw=0)
 
 
-  def set_valency_from_name( self):
+  def set_valency_from_name( self) -> None:
     for val in PT.periodic_table[ self.symbol]['valency']:
       self.valency = val
       try:
@@ -729,7 +729,7 @@ class BkAtom(drawable_chem_vertex):
         return
 
 
-  def bbox( self, substract_font_descent=False):
+  def bbox( self, substract_font_descent: object=False) -> object:
     """returns the bounding box of the object as a list of [x1,y1,x2,y2]"""
     if self.show:
       return drawable_chem_vertex.bbox( self, substract_font_descent=substract_font_descent)
@@ -742,7 +742,7 @@ class BkAtom(drawable_chem_vertex):
 
 
   ##LOOK  (make static)
-  def split_element_and_charge( self, txt):
+  def split_element_and_charge( self, txt: str) -> tuple | None:
     """returns tuple of (element, charge) or None if the text does not match this pattern"""
     ### this could be a static method
     splitter = re.compile("^([a-z]+)([0-9]*)([+-]?)$")
@@ -764,7 +764,6 @@ class BkAtom(drawable_chem_vertex):
       return None
 
 
-  def after_undo( self):
+  def after_undo( self) -> None:
     """this is run after undo"""
     self._clean_cache()
-

@@ -26,7 +26,7 @@ from bkchem import oasa_bridge
 
 
 
-def export_CD_SVG(paper, filename, gzipped=0):
+def export_CD_SVG(paper: object, filename: object, gzipped: object = 0) -> object:
   """Export to CD-SVG.
 
   Return 1 on success, 0 otherwise. Optionally compress with gzip.
@@ -49,7 +49,7 @@ def export_CD_SVG(paper, filename, gzipped=0):
   return 1
 
 
-def export_CDML(paper, filename, gzipped=0):
+def export_CDML(paper: object, filename: object, gzipped: object = 0) -> object:
   """Export to CDML.
 
   Rreturn 1 on success, 0 otherwise. Optionally compress with gzip.

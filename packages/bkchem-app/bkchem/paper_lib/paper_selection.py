@@ -11,22 +11,22 @@ class PaperSelectionMixin:
 	"""Selection management helpers extracted from paper.py."""
 
 	@property
-	def selected_mols(self):
+	def selected_mols(self) -> list:
 		return [o for o in self.selected_to_unique_top_levels()[0] if isinstance( o, BkMolecule)]
 
 
 	@property
-	def selected_atoms(self):
+	def selected_atoms(self) -> list:
 		return [o for o in self.selected if bkchem.chem_compat.is_chemistry_vertex(o)]
 
 
 	@property
-	def selected_bonds(self):
+	def selected_bonds(self) -> list:
 		return [o for o in self.selected if bkchem.chem_compat.is_chemistry_edge(o)]
 
 
 	@property
-	def two_or_more_selected(self):
+	def two_or_more_selected(self) -> bool:
 		if len( self.selected_to_unique_top_levels()[0]) > 1:
 			return True
 		else:
@@ -34,19 +34,19 @@ class PaperSelectionMixin:
 
 
 	@property
-	def groups_selected(self):
+	def groups_selected(self) -> bool:
 		return [o for o in self.selected if isinstance( o, BkGroup)]
 
 
 	@property
-	def one_mol_selected(self):
+	def one_mol_selected(self) -> bool:
 		if len( self.selected_mols) != 1:
 			return False
 		else:
 			return True
 
 
-	def select( self, items):
+	def select( self, items: object) -> None:
 		"adds an object to the list of other selected objects and calls their select() method"
 		for o in items:
 			if o.object_type in ('arrow','polygon','polyline'):
@@ -61,7 +61,7 @@ class PaperSelectionMixin:
 		self.event_generate( "<<selection-changed>>")
 
 
-	def unselect( self, items):
+	def unselect( self, items: object) -> None:
 		"reverse of select()"
 		for item in items:
 			try:
@@ -72,19 +72,19 @@ class PaperSelectionMixin:
 		self.event_generate( "<<selection-changed>>")
 
 
-	def unselect_all( self):
+	def unselect_all( self) -> None:
 		[o.unselect() for o in self.selected]
 		self.selected = []
 		self.event_generate( "<<selection-changed>>")
 
 
-	def select_all( self):
+	def select_all( self) -> None:
 		self.unselect_all()
 		self.select( [o for o in map( self.id_to_object, self.find_all()) if o and hasattr( o, 'select') and o.object_type != 'arrow'])
 		self.add_bindings()
 
 
-	def selected_to_unique_top_levels( self):
+	def selected_to_unique_top_levels( self) -> list:
 		"""maps all items in self.selected to their top_levels (atoms->molecule etc.),
 		filters them to be unique and returns tuple of (unique_top_levels, unique)
 		where unique is true when there was only one item from each container"""
@@ -109,13 +109,13 @@ class PaperSelectionMixin:
 		return (filtrate, unique)
 
 
-	def toggle_center_for_selected( self):
+	def toggle_center_for_selected( self) -> None:
 		for o in self.selected:
 			if o.object_type == 'atom' and o.show:
 				o.toggle_center()
 
 
-	def delete_selected( self):
+	def delete_selected( self) -> None:
 		# ARROW
 		to_delete = [o for o in self.selected if o.object_type == 'arrow']
 		[a.arrow.delete_point( a) for a in self.selected if a.object_type == 'point' and (a.arrow not in to_delete)]
@@ -181,7 +181,7 @@ class PaperSelectionMixin:
 		self.event_generate( "<<selection-changed>>")
 
 
-	def bonds_to_update( self, exclude_selected_bonds=True):
+	def bonds_to_update( self, exclude_selected_bonds: object = True) -> list:
 		a = set().union(*(set(i) for i in (v.neighbor_edges for v in self.selected
 																													if v.object_type == "atom")))
 		# if bond is also selected then it moves with and should not be updated
@@ -191,7 +191,7 @@ class PaperSelectionMixin:
 			return a
 
 
-	def atoms_to_update( self):
+	def atoms_to_update( self) -> list:
 		a = []
 		for o in self.selected:
 			if o.object_type == 'bond':
@@ -202,6 +202,6 @@ class PaperSelectionMixin:
 			return []
 
 
-	def arrows_to_update( self):
+	def arrows_to_update( self) -> list:
 		a = [o.arrow for o in [p for p in self.selected if p.object_type == 'point']]
 		return bkchem_utils.filter_unique( a)

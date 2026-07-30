@@ -9,7 +9,7 @@ import bkchem_qt.models.document
 
 
 #============================================
-def test_view_has_document_property(main_window):
+def test_view_has_document_property(main_window: object) -> None:
 	"""ChemView.document returns Document after set_document()."""
 	view = main_window.view
 	assert view.document is not None, "view.document should not be None"
@@ -19,7 +19,7 @@ def test_view_has_document_property(main_window):
 
 
 #============================================
-def test_draw_mode_finds_undo_stack(main_window):
+def test_draw_mode_finds_undo_stack(main_window: object) -> None:
 	"""Draw mode resolves undo stack via ModeEnvironment."""
 	main_window._mode_manager.set_mode("draw")
 	draw_mode = main_window._mode_manager.current_mode
@@ -29,7 +29,7 @@ def test_draw_mode_finds_undo_stack(main_window):
 
 
 #============================================
-def test_draw_mode_creates_atom(main_window):
+def test_draw_mode_creates_atom(main_window: object) -> None:
 	"""Draw mode _create_atom_at() adds AtomItem to scene and AtomModel to document."""
 	main_window._mode_manager.set_mode("draw")
 	draw_mode = main_window._mode_manager.current_mode
@@ -58,7 +58,7 @@ def test_draw_mode_creates_atom(main_window):
 
 
 #============================================
-def test_undo_removes_atom(main_window):
+def test_undo_removes_atom(main_window: object) -> None:
 	"""Undo after atom creation removes atom from scene and document."""
 	main_window._mode_manager.set_mode("draw")
 	draw_mode = main_window._mode_manager.current_mode
@@ -79,7 +79,7 @@ def test_undo_removes_atom(main_window):
 
 
 #============================================
-def test_new_document_rewires_view(main_window):
+def test_new_document_rewires_view(main_window: object) -> None:
 	"""set_document() on a new Document re-wires view.document."""
 	old_doc = main_window.document
 	# create a fresh document and wire it

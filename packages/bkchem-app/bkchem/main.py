@@ -26,7 +26,6 @@
 import builtins
 import os
 import sys
-import oasa
 import collections
 
 import tkinter.messagebox
@@ -44,7 +43,6 @@ from bkchem import dialogs
 from bkchem import pixmaps
 from bkchem import format_loader
 from bkchem import messages
-from bkchem import molecule_lib
 from bkchem import os_support
 from bkchem import interactors
 from bkchem.edit_pool import editPool
@@ -72,7 +70,7 @@ class BKChem(
 	Tk,
 ):
 
-	def __init__( self):
+	def __init__( self) -> None:
 		Tk.__init__( self)
 		# setting the singleton values
 		Store.app = self
@@ -93,10 +91,7 @@ class BKChem(
 			"insertBackground", theme_manager.get_color('entry_insert_bg'),
 		)
 
-		oasa.oasa_config.Config.molecule_class = molecule_lib.BkMolecule
-
-
-	def initialize( self):
+	def initialize( self) -> None:
 		self.in_batch_mode = 0
 		self.init_basics()
 		# register ABC virtual subclasses so is_chemistry_vertex/edge/graph work
@@ -154,7 +149,7 @@ class BKChem(
 
 		self.update_menu_after_selection_change( None)
 
-	def initialize_batch( self):
+	def initialize_batch( self) -> None:
 		self.in_batch_mode = 1
 		self.init_basics()
 		# register ABC virtual subclasses so is_chemistry_vertex/edge/graph work
@@ -183,7 +178,7 @@ class BKChem(
 		self.mode = 'draw' # this is normaly not a string but it makes things easier on startup
 
 
-	def init_menu( self):
+	def init_menu( self) -> None:
 		# defining menu using native tkinter.Menu via PlatformMenuAdapter
 		self.menu = PlatformMenuAdapter( self, balloon=self.menu_balloon,
 										main_frame=self.main_frame)
@@ -344,7 +339,7 @@ class BKChem(
 
 
 
-	def init_basics( self):
+	def init_basics( self) -> None:
 		# set default font for all widgets
 		if sys.platform == 'linux':
 			try:
@@ -395,7 +390,7 @@ class BKChem(
 		self.paper = None
 
 
-	def init_plugins_menu( self):
+	def init_plugins_menu( self) -> None:
 		# registry-backed formats
 		try:
 			self.format_entries = format_loader.load_format_entries()
@@ -419,7 +414,7 @@ class BKChem(
 
 
 
-	def init_singletons( self):
+	def init_singletons( self) -> None:
 		# logger
 		Store.logger = logger.logger()
 		Store.log = Store.logger.log
@@ -446,7 +441,7 @@ class BKChem(
 
 
 
-	def init_preferences( self):
+	def init_preferences( self) -> None:
 		# load the last working directory as def. dir.
 		self.save_dir = Store.pm.get_preference( "default-dir")
 		# self.paper has to be added before init_preferences (otherwise -> crash)
@@ -467,14 +462,14 @@ class BKChem(
 					Store.logger.set_handling( key, value)
 
 
-	def init_modes( self):
+	def init_modes( self) -> None:
 		# build all mode instances from YAML config
 		self.modes = build_all_modes()
 		self.modes_sort = get_toolbar_order()
 
 
 
-	def init_mode_buttons( self):
+	def init_mode_buttons( self) -> None:
 		# mode selection panel with slightly darker background for visual hierarchy
 		_toolbar_bg = theme_manager.get_color('toolbar')
 		_group_sep_color = theme_manager.get_color('group_separator')
@@ -558,7 +553,7 @@ class BKChem(
 		sep_bot.grid( row=4, sticky='we')
 
 
-	def invoke_mode( self, mode_name_or_index):
+	def invoke_mode( self, mode_name_or_index: object) -> None:
 		"""Invoke a toolbar mode button by name or global index.
 
 		Sets the mode variable and calls change_mode.
@@ -577,7 +572,7 @@ class BKChem(
 			self._mode_buttons[name].invoke()
 
 
-	def get_mode_button( self, mode_name):
+	def get_mode_button( self, mode_name: object) -> object:
 		"""Return the ttk.Radiobutton widget for the given mode name.
 
 		Args:
@@ -589,7 +584,7 @@ class BKChem(
 		return self._mode_buttons.get(mode_name)
 
 
-	def init_status_bar( self):
+	def init_status_bar( self) -> None:
 		status_frame = Frame( self.main_frame)
 		status_frame.grid( row=7, sticky="we")
 		# status message (expanding)
@@ -606,12 +601,12 @@ class BKChem(
 		position.pack( side="right")
 
 
-	def about( self):
+	def about( self) -> None:
 		about_msg = "BKChem " + _("version") + " " + bkchem_config.current_BKChem_version + "\n\n" + messages.about_text
 		tkinter.messagebox.showinfo(_('About BKChem'), about_msg, parent=self)
 
 
-	def update_status( self, signal, time=None):
+	def update_status( self, signal: object, time: object=None) -> None:
 		"""if time is none it is calculated based on the string length"""
 		if time is None and signal:
 			time = 4 + 0.05 * len( signal)
@@ -622,11 +617,11 @@ class BKChem(
 			self._after = self.after( int( time*1000), func=self.clear_status)
 
 
-	def clear_status( self):
+	def clear_status( self) -> None:
 		self.stat.set( '')
 
 
-	def scale( self):
+	def scale( self) -> None:
 		dialog = dialogs.scale_dialog( self)
 		if dialog.result:
 			x, y = dialog.result
@@ -636,7 +631,7 @@ class BKChem(
 																scale_font=dialog.scale_fonts.get())
 
 
-	def get_name_dic( self, name='', local_file=0):
+	def get_name_dic( self, name: str='', local_file: int=0) -> object:
 		if not name:
 			while 1:
 				name = 'untitled%d.svg' % self._untitled_counter
@@ -657,7 +652,7 @@ class BKChem(
 		return name_dic
 
 
-	def _quit( self):
+	def _quit( self) -> None:
 		while self.papers:
 			if not self.close_current_paper( call_quit_if_no_remains=False):
 				return
@@ -678,11 +673,11 @@ class BKChem(
 			sys.exit(0)
 
 
-	def change_properties( self):
+	def change_properties( self) -> None:
 		dialogs.file_properties_dialog( self, self.paper)
 
 
-	def standard_values( self):
+	def standard_values( self) -> None:
 		dial = dialogs.standard_values_dialog( self, self.paper.standard)
 		if dial.change:
 			old_standard = self.paper.standard
@@ -700,7 +695,7 @@ class BKChem(
 			self.paper.start_new_undo_record()
 
 
-	def request( self, type, **options):
+	def request( self, type: object, **options: object) -> object:
 		"""used by submodules etc. for requests of application wide resources such as pixmaps etc."""
 		if type == 'pixmap':
 			if 'name' in options:
@@ -712,24 +707,24 @@ class BKChem(
 			return None
 
 
-	def put_to_clipboard( self, xml, pos):
+	def put_to_clipboard( self, xml: object, pos: object) -> None:
 		self._clipboard = xml
 		self._clipboard_pos = pos
 
 
-	def get_clipboard( self):
+	def get_clipboard( self) -> object:
 		return self._clipboard
 
 
-	def get_clipboard_pos( self):
+	def get_clipboard_pos( self) -> object:
 		return self._clipboard_pos
 
 
-	def read_user_templates( self):
+	def read_user_templates( self) -> None:
 		[Store.utm.add_template_from_CDML( n) for n in os_support.get_local_templates()]
 
 
-	def read_biomolecule_templates( self):
+	def read_biomolecule_templates( self) -> None:
 		from bkchem import biomolecule_loader
 		entries = biomolecule_loader.load_biomolecule_entries()
 		for entry in entries:
@@ -738,7 +733,7 @@ class BKChem(
 			)
 
 
-	def save_configuration( self):
+	def save_configuration( self) -> None:
 		Store.pm.add_preference( 'geometry', self.winfo_geometry())
 		# store logging settings
 		if not self.in_batch_mode:
@@ -755,14 +750,14 @@ class BKChem(
 			print("Error: Failed to open prefs.xml file.")
 
 
-	def save_as_template( self):
+	def save_as_template( self) -> None:
 		name = interactors.save_as_template( self.paper)
 		if name:
 			self.save_CDML( name=name, update_default_dir=0)
 			Store.log( _("The file was saved as a template %s") % name)
 
 
-	def insert_biomolecule_template( self):
+	def insert_biomolecule_template( self) -> None:
 		if not Store.btm or not Store.btm.get_template_names():
 			Store.log( _("No biomolecule templates are available"))
 			return
@@ -772,17 +767,17 @@ class BKChem(
 			self.change_mode( 'biotemplate')
 
 
-	def update_cursor_position( self, x, y):
+	def update_cursor_position( self, x: object, y: object) -> None:
 		self.cursor_position.set( "(%d, %d)" % (x,y))
 
 
 	#============================================
-	def _get_menu_component( self, name):
+	def _get_menu_component( self, name: object) -> object:
 		"""Return the tkinter.Menu component for the given menu name."""
 		return self.menu.get_menu_component( name)
 
 
-	def update_menu_after_selection_change( self, e):
+	def update_menu_after_selection_change( self, e: object) -> None:
 		for temp in self.menu_template:
 			if temp[1] == "command" and temp[6] is not None:
 				state = temp[6]
@@ -795,7 +790,7 @@ class BKChem(
 				self._get_menu_component( temp[0]).entryconfigure( temp[2], state=state)
 
 
-	def ask_preferences( self):
+	def ask_preferences( self) -> None:
 		pd = dialogs.preferences_dialog( self, Store.pm)
 		if pd.result == 1:
 			for i in self.papers:
@@ -803,7 +798,7 @@ class BKChem(
 				[j.redraw() for j in i.stack]
 
 
-	def _show_theme_dialog( self):
+	def _show_theme_dialog( self) -> None:
 		"""Open theme selector and apply the chosen theme."""
 		dialog = dialogs.theme_dialog( self)
 		if dialog.result:
@@ -813,7 +808,7 @@ class BKChem(
 
 
 	## ------------------------------ THE BATCH MODE ------------------------------
-	def process_batch( self, opts):
+	def process_batch( self, opts: object) -> object:
 
 		if opts[0] == "-b":
 			plugin_path = opts[1]
@@ -824,4 +819,3 @@ class BKChem(
 			with open(plugin_path) as f:
 				code = compile(f.read(), plugin_path, 'exec')
 				exec(code, the_globals)  # nosec B102 - explicit batch script execution
-

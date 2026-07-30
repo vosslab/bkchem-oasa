@@ -6,12 +6,12 @@ from bkchem.singleton_store import Store
 
 _ = getattr( builtins, "_", None)
 if not _:
-	def _( text):
+	def _(text: str) -> str:
 		return text
 	builtins._ = _
 
 
-def main(app):
+def main(app: object) -> None:
 	bs = [b for b in app.paper.selected if b.object_type == "bond"]
 	if not len(bs) == 2:
 		Store.log(_("You have to have 2 bonds selected"), message_type="hint")

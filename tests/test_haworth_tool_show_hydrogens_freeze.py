@@ -6,7 +6,7 @@ import pathlib
 
 
 #============================================
-def _dotted_name(node):
+def _dotted_name(node: object) -> object:
 	"""Return dotted name for one AST node when possible."""
 	if isinstance(node, ast.Name):
 		return node.id
@@ -19,7 +19,7 @@ def _dotted_name(node):
 
 
 #============================================
-def _haworth_render_call_kind(call, imported_function_aliases):
+def _haworth_render_call_kind(call: object, imported_function_aliases: object) -> object:
 	"""Return canonical haworth render kind for one call node, or None."""
 	func_name = _dotted_name(call.func)
 	if func_name in (
@@ -38,7 +38,7 @@ def _haworth_render_call_kind(call, imported_function_aliases):
 
 
 #============================================
-def _has_explicit_show_h_false(call):
+def _has_explicit_show_h_false(call: object) -> object:
 	"""Return True when call has explicit show_hydrogens=False keyword."""
 	for keyword in call.keywords:
 		if keyword.arg != "show_hydrogens":
@@ -48,7 +48,7 @@ def _has_explicit_show_h_false(call):
 
 
 #============================================
-def test_tool_haworth_calls_pin_show_hydrogens_false():
+def test_tool_haworth_calls_pin_show_hydrogens_false() -> None:
 	"""Fail if any tools/ Haworth render call omits explicit show_hydrogens=False."""
 	repo_root = pathlib.Path(__file__).resolve().parents[1]
 	tools_dir = repo_root / "tools"

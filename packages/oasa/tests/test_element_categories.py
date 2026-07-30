@@ -13,7 +13,7 @@ _SKIP_SYMBOLS = {"X", "Q", "R", "Xx", "Tv", "Ts", "Og", "Mc", "Nh", "Fl", "Lv"}
 
 
 #============================================
-def test_real_elements_have_cat_key():
+def test_real_elements_have_cat_key() -> None:
 	"""Every non-query element in periodic_table should have a 'cat' key."""
 	missing = []
 	for symbol, data in oasa.periodic_table.periodic_table.items():
@@ -30,7 +30,7 @@ def test_real_elements_have_cat_key():
 
 
 #============================================
-def test_get_element_category_returns_string():
+def test_get_element_category_returns_string() -> None:
 	"""get_element_category should return a non-empty string for C, O, Fe."""
 	for symbol in ("C", "O", "Fe", "He", "F"):
 		cat = oasa.periodic_table.get_element_category(symbol)
@@ -39,7 +39,7 @@ def test_get_element_category_returns_string():
 
 
 #============================================
-def test_get_element_category_color_returns_hex():
+def test_get_element_category_color_returns_hex() -> None:
 	"""get_element_category_color should return a valid hex color string."""
 	for symbol in ("C", "O", "Fe", "He", "F", "Si"):
 		color = oasa.periodic_table.get_element_category_color(symbol)
@@ -49,7 +49,7 @@ def test_get_element_category_color_returns_hex():
 
 
 #============================================
-def test_element_category_colors_dict_complete():
+def test_element_category_colors_dict_complete() -> None:
 	"""ELEMENT_CATEGORY_COLORS should have an entry for every category used."""
 	categories_used = set()
 	for symbol, data in oasa.periodic_table.periodic_table.items():
@@ -64,7 +64,7 @@ def test_element_category_colors_dict_complete():
 
 
 #============================================
-def test_known_element_categories():
+def test_known_element_categories() -> None:
 	"""Verify specific elements have the expected categories."""
 	expected = {
 		"C": "nonmetal",
@@ -89,14 +89,14 @@ def test_known_element_categories():
 
 
 #============================================
-def test_unknown_element_category_fallback():
+def test_unknown_element_category_fallback() -> None:
 	"""get_element_category should return 'metal' for unknown symbols."""
 	cat = oasa.periodic_table.get_element_category("Zz")
 	assert cat == "metal", f"Expected 'metal' fallback, got '{cat}'"
 
 
 #============================================
-def test_unknown_element_color_fallback():
+def test_unknown_element_color_fallback() -> None:
 	"""get_element_category_color should return a valid hex for unknown."""
 	color = oasa.periodic_table.get_element_category_color("Zz")
 	assert isinstance(color, str)

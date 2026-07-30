@@ -7,6 +7,8 @@ import PySide6.QtWidgets
 
 # local repo modules
 from bkchem_qt.canvas.items import render_ops_painter
+from bkchem_qt.models.atom_model import AtomModel
+from bkchem_qt.models.bond_model import BondModel
 import oasa.render_ops
 import oasa.render_lib.molecule_ops
 import oasa.render_lib.bond_ops
@@ -44,11 +46,17 @@ class BondItem(PySide6.QtWidgets.QGraphicsItem):
 
 	# atom property names that affect label geometry and bond clipping
 	_LABEL_AFFECTING_PROPS = frozenset({
-		"symbol", "charge", "font_size", "show", "show_hydrogens", "x", "y",
+		"symbol", "charge", "font_family", "font_size", "show", "show_hydrogens", "x", "y",
+	})
+	# BondModel fields that change OASA render ops or their geometry.
+	_RENDER_AFFECTING_PROPS = frozenset({
+		"order", "type", "aromatic", "line_color", "line_width", "bond_width",
+		"wedge_width", "center", "simple_double", "auto_bond_sign",
+		"double_length_ratio", "equithick", "wavy_style",
 	})
 
 	#============================================
-	def __init__(self, bond_model, parent: PySide6.QtWidgets.QGraphicsItem = None):
+	def __init__(self, bond_model: BondModel, parent: PySide6.QtWidgets.QGraphicsItem = None) -> None:
 		"""Initialize the bond item from a bond model.
 
 		Args:
@@ -68,8 +76,11 @@ class BondItem(PySide6.QtWidgets.QGraphicsItem):
 		self.setAcceptHoverEvents(True)
 		# z-value puts bonds below atoms
 		self.setZValue(BOND_Z_VALUE)
+		self._connected_endpoint_models = []
+		self._model_signals_connected = True
 		# connect endpoint atom signals so label changes trigger bond redraw
 		self._connect_endpoint_signals()
+		self._bond_model.property_changed.connect(self._on_bond_property_changed)
 		# build initial render ops
 		self.update_from_model()
 
@@ -183,21 +194,14 @@ class BondItem(PySide6.QtWidgets.QGraphicsItem):
 		# compute label attach targets for endpoint atoms
 		a1_model = self._bond_model.atom1
 		a2_model = self._bond_model.atom2
-		endpoint_atoms = [a1_model._chem_atom, a2_model._chem_atom]
-		font_size = float(a1_model.font_size)
-		shown_vertices, label_targets, attach_targets = (
-			oasa.render_lib.molecule_ops.build_label_attach_targets(
-				vertices=endpoint_atoms,
-				show_hydrogens_on_hetero=bool(a1_model.show_hydrogens),
-				font_name="Arial",
-				font_size=font_size,
-			)
+		shown_vertices, label_targets, attach_targets = _endpoint_label_targets(
+			(a1_model, a2_model),
 		)
 		context = oasa.render_lib.data_types.BondRenderContext(
 			molecule=None,
-			line_width=2.0,
-			bond_width=6.0,
-			wedge_width=6.0,
+			line_width=self._bond_model.line_width,
+			bond_width=self._bond_model.bond_width,
+			wedge_width=self._bond_model.wedge_width,
 			bold_line_width_multiplier=1.2,
 			bond_second_line_shortening=0.0,
 			color_bonds=True,
@@ -209,7 +213,6 @@ class BondItem(PySide6.QtWidgets.QGraphicsItem):
 			label_targets=label_targets,
 			attach_targets=attach_targets,
 			attach_constraints=oasa.render_lib.data_types.make_attach_constraints(
-				font_size=font_size,
 			),
 		)
 		self._ops = oasa.render_lib.bond_ops.build_bond_ops(
@@ -231,8 +234,10 @@ class BondItem(PySide6.QtWidgets.QGraphicsItem):
 		a2_model = self._bond_model.atom2
 		if a1_model is not None:
 			a1_model.property_changed.connect(self._on_endpoint_property_changed)
+			self._connected_endpoint_models.append(a1_model)
 		if a2_model is not None:
 			a2_model.property_changed.connect(self._on_endpoint_property_changed)
+			self._connected_endpoint_models.append(a2_model)
 
 	#============================================
 	def _on_endpoint_property_changed(self, name: str, value: object) -> None:
@@ -247,6 +252,38 @@ class BondItem(PySide6.QtWidgets.QGraphicsItem):
 		"""
 		if name in self._LABEL_AFFECTING_PROPS:
 			self.update_from_model()
+
+	#============================================
+	def _on_bond_property_changed(self, name: str, value: object) -> None:
+		"""Rebuild cached geometry after a render-affecting bond mutation.
+
+		Args:
+			name: Name of the changed bond property.
+			value: New value of the property (unused).
+		"""
+		if name in self._RENDER_AFFECTING_PROPS:
+			self.update_from_model()
+
+	#============================================
+	def dispose(self) -> None:
+		"""Disconnect model callbacks before the owning scene deletes the item."""
+		if not self._model_signals_connected:
+			return
+		for atom_model in self._connected_endpoint_models:
+			try:
+				atom_model.property_changed.disconnect(
+					self._on_endpoint_property_changed
+				)
+			except (RuntimeError, TypeError):
+				pass
+		try:
+			self._bond_model.property_changed.disconnect(
+				self._on_bond_property_changed
+			)
+		except (RuntimeError, TypeError):
+			pass
+		self._connected_endpoint_models.clear()
+		self._model_signals_connected = False
 
 	#============================================
 	def _endpoint_positions(self) -> tuple:
@@ -269,9 +306,41 @@ class BondItem(PySide6.QtWidgets.QGraphicsItem):
 
 	#============================================
 	@property
-	def bond_model(self):
+	def bond_model(self) -> BondModel:
 		"""The bond model this item visualizes."""
 		return self._bond_model
+
+
+#============================================
+def _endpoint_label_targets(
+		atom_models: tuple[AtomModel, AtomModel],
+		) -> tuple[set[object], dict[object, object], dict[object, object]]:
+	"""Build clipping targets with each endpoint's own display typography.
+
+	The OASA target builder accepts one typography configuration per call.  A
+	bond can join independently styled atoms, so calculate each endpoint
+	separately and merge their model-keyed targets for the shared bond context.
+	"""
+	shown_vertices = set()
+	label_targets = {}
+	attach_targets = {}
+	for atom_model in atom_models:
+		# AtomModel.show is a frontend display override.  A hidden atom has no
+		# visible label, so its bond endpoint must remain at the atom position.
+		if not atom_model.show:
+			continue
+		shown, labels, attaches = (
+			oasa.render_lib.molecule_ops.build_label_attach_targets(
+				vertices=[atom_model._chem_atom],
+				show_hydrogens_on_hetero=bool(atom_model.show_hydrogens),
+				font_name=atom_model.font_family,
+				font_size=float(atom_model.font_size),
+			)
+		)
+		shown_vertices.update(shown)
+		label_targets.update(labels)
+		attach_targets.update(attaches)
+	return shown_vertices, label_targets, attach_targets
 
 
 #============================================

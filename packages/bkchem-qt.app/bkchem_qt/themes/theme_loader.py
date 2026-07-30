@@ -5,17 +5,14 @@ in sync. Each YAML file defines four color layers: gui, chemistry,
 paper, and grid.
 """
 
-# Standard Library
-import pathlib
-
 # PIP3 modules
 import yaml
 
-# path to the shared themes directory via the bkchem_data symlink
-_THEMES_DIR = (
-	pathlib.Path(__file__).resolve().parent.parent.parent
-	/ "bkchem_data" / "themes"
-)
+# local repo modules
+import bkchem_qt.resource_paths
+
+# Themes are package-owned so installed Qt wheels do not need the source tree.
+_THEMES_DIR = bkchem_qt.resource_paths.get_resource_path("themes")
 
 # cached theme data keyed by theme name
 _THEME_CACHE = {}

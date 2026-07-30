@@ -47,15 +47,19 @@ def _get_repo_root() -> str:
 
 
 #============================================
-def _ensure_sys_path(repo_root: str):
-	"""Add oasa package directory to sys.path."""
-	oasa_dir = os.path.join(repo_root, "packages", "oasa")
-	if oasa_dir not in sys.path:
-		sys.path.insert(0, oasa_dir)
+def _ensure_sys_path(repo_root: str) -> None:
+	"""Add the source packages required by this standalone tool to sys.path."""
+	package_dirs = [
+		os.path.join(repo_root, "packages", "oasa"),
+		os.path.join(repo_root, "packages", "bkchem-app"),
+	]
+	for package_dir in package_dirs:
+		if package_dir not in sys.path:
+			sys.path.insert(0, package_dir)
 
 
 #============================================
-def _ensure_dir(path: str):
+def _ensure_dir(path: str) -> None:
 	"""Create directory if it does not exist."""
 	if not os.path.isdir(path):
 		os.makedirs(path, exist_ok=True)
@@ -247,7 +251,8 @@ def _build_strand_atoms(x_start: float, y_base: float,
 
 
 #============================================
-def _write_cdml_strand(doc, mol_el, atoms: list, bonds: list,
+def _write_cdml_strand(
+		doc: object, mol_el: object, atoms: list, bonds: list,
 	bond_offset: int = 0) -> int:
 	"""Write bkchem CDML XML elements for one strand into a molecule element.
 
@@ -336,7 +341,7 @@ def _write_cdml_strand(doc, mol_el, atoms: list, bonds: list,
 
 
 #============================================
-def _write_cdml_file(strand_data: list, path: str):
+def _write_cdml_file(strand_data: list, path: str) -> None:
 	"""Write full bkchem CDML document with multiple strands.
 
 	Produces proper bkchem CDML with <standard>, <paper>, <viewport>
@@ -346,18 +351,21 @@ def _write_cdml_file(strand_data: list, path: str):
 		strand_data: list of (atoms, bonds) tuples, one per strand
 		path: output CDML file path
 	"""
+	import oasa.cdml_writer
+	import bkchem.versioning
+
 	doc = minidom.Document()
 
 	# root <cdml> element
 	root = doc.createElement('cdml')
-	root.setAttribute('version', '26.02')
+	root.setAttribute('version', oasa.cdml_writer.DEFAULT_CDML_VERSION)
 	root.setAttribute('xmlns', 'http://www.freesoftware.fsf.org/bkchem/cdml')
 	doc.appendChild(root)
 
 	# <info> block
 	info_el = doc.createElement('info')
 	author_el = doc.createElement('author_program')
-	author_el.setAttribute('version', '26.02')
+	author_el.setAttribute('version', bkchem.versioning.application_version())
 	author_el.appendChild(doc.createTextNode('BKChem'))
 	info_el.appendChild(author_el)
 	root.appendChild(info_el)
@@ -425,7 +433,7 @@ def _write_cdml_file(strand_data: list, path: str):
 
 
 #============================================
-def _build_oasa_strand(mol, atoms: list, bonds: list) -> dict:
+def _build_oasa_strand(mol: object, atoms: list, bonds: list) -> dict:
 	"""Add oasa atoms and bonds to molecule for one strand.
 
 	Args:
@@ -476,7 +484,7 @@ def _build_oasa_strand(mol, atoms: list, bonds: list) -> dict:
 
 
 #============================================
-def _build_oasa_molecule(strand_data: list, name: str):
+def _build_oasa_molecule(strand_data: list, name: str) -> object:
 	"""Assemble complete oasa.molecule from strand coordinate data.
 
 	Args:
@@ -497,7 +505,7 @@ def _build_oasa_molecule(strand_data: list, name: str):
 
 
 #============================================
-def _render_svg(mol, path: str):
+def _render_svg(mol: object, path: str) -> None:
 	"""Render molecule to SVG using the render_out pipeline.
 
 	Args:
@@ -517,7 +525,7 @@ def _render_svg(mol, path: str):
 
 
 #============================================
-def main():
+def main() -> None:
 	"""Generate beta-sheet SVG renders and CDML fixtures."""
 	repo_root = _get_repo_root()
 	_ensure_sys_path(repo_root)

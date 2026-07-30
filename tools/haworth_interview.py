@@ -362,7 +362,7 @@ def _sanitize_filename(name: str) -> str:
 
 
 #============================================
-def parse_args():
+def parse_args() -> object:
 	"""Parse command-line arguments."""
 	parser = argparse.ArgumentParser(
 		description="Interactive Haworth projection generator for instructors. "
@@ -396,7 +396,7 @@ def parse_args():
 
 
 #============================================
-def main():
+def main() -> None:
 	"""Interactive Haworth projection interview."""
 	args = parse_args()
 

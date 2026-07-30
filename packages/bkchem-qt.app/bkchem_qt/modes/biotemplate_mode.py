@@ -10,6 +10,8 @@ import PySide6.QtCore
 import bkchem_qt.modes.base_mode
 import bkchem_qt.canvas.items.atom_item
 import bkchem_qt.canvas.items.bond_item
+import bkchem_qt.undo.commands
+from bkchem_qt.models.molecule_model import MoleculeModel
 
 # module-level logger
 _log = logging.getLogger(__name__)
@@ -29,7 +31,7 @@ class BioTemplateMode(bkchem_qt.modes.base_mode.BaseMode):
 	"""
 
 	#============================================
-	def __init__(self, view, parent=None):
+	def __init__(self, view: object, parent: PySide6.QtCore.QObject | None = None) -> None:
 		"""Initialize biomolecule template mode.
 
 		Args:
@@ -61,7 +63,7 @@ class BioTemplateMode(bkchem_qt.modes.base_mode.BaseMode):
 	def _load_biomolecules(self) -> None:
 		"""Load biomolecule entries and build categorized submode data.
 
-		Uses bkchem.biomolecule_loader to read the YAML file, then
+		Uses the Qt biomolecule loader to read OASA's packaged YAML file, then
 		groups entries by category for the two-level submode system.
 		"""
 		entries = self._load_entries()
@@ -77,8 +79,8 @@ class BioTemplateMode(bkchem_qt.modes.base_mode.BaseMode):
 		Returns:
 			List of entry dicts with category, name, label, smiles keys.
 		"""
-		import bkchem.biomolecule_loader
-		return bkchem.biomolecule_loader.load_biomolecule_entries()
+		import bkchem_qt.biomolecule_loader
+		return bkchem_qt.biomolecule_loader.load_biomolecule_entries()
 
 	#============================================
 	def _build_categorized_submodes(self, entries: list) -> None:
@@ -255,7 +257,7 @@ class BioTemplateMode(bkchem_qt.modes.base_mode.BaseMode):
 
 	#============================================
 	def mouse_press(
-		self, scene_pos: PySide6.QtCore.QPointF, event
+		self, scene_pos: PySide6.QtCore.QPointF, event: object
 	) -> None:
 		"""Handle a mouse press to place a biomolecule template.
 
@@ -328,11 +330,11 @@ class BioTemplateMode(bkchem_qt.modes.base_mode.BaseMode):
 		)
 
 	#============================================
-	def _add_template_to_scene(self, mol_model) -> None:
+	def _add_template_to_scene(self, mol_model: MoleculeModel) -> None:
 		"""Add a template MoleculeModel to the scene with undo.
 
-		Creates AtomItem and BondItem graphics, registers the
-		molecule with the document, and pushes grouped undo commands.
+		Creates AtomItem and BondItem graphics, then pushes one command
+		that owns both the document and scene insertion.
 
 		Args:
 			mol_model: The MoleculeModel to add.
@@ -343,22 +345,20 @@ class BioTemplateMode(bkchem_qt.modes.base_mode.BaseMode):
 		doc = self._env.document
 		if doc is None:
 			return
-		undo_stack = self._env.undo_stack
-		# register molecule with document
-		doc.add_molecule(mol_model)
-		# group all additions into a single undo macro
 		template_name = self._current_template_name or "biomolecule"
-		undo_stack.beginMacro(f"Place {template_name}")
-		# create atom items
-		for atom_model in mol_model.atoms:
-			atom_item = bkchem_qt.canvas.items.atom_item.AtomItem(
-				atom_model
-			)
-			scene.addItem(atom_item)
-		# create bond items
-		for bond_model in mol_model.bonds:
-			bond_item = bkchem_qt.canvas.items.bond_item.BondItem(
-				bond_model
-			)
-			scene.addItem(bond_item)
-		undo_stack.endMacro()
+		graphics_items = [
+			bkchem_qt.canvas.items.bond_item.BondItem(bond_model)
+			for bond_model in mol_model.bonds
+		]
+		graphics_items.extend(
+			bkchem_qt.canvas.items.atom_item.AtomItem(atom_model)
+			for atom_model in mol_model.atoms
+		)
+		command = bkchem_qt.undo.commands.AddMoleculeCommand(
+			doc,
+			scene,
+			mol_model,
+			graphics_items,
+			f"Place {template_name}",
+		)
+		self._env.undo_stack.push(command)

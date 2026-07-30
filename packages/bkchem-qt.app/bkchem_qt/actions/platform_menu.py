@@ -122,7 +122,7 @@ class PlatformMenuAdapter:
 	"""Uniform wrapper around Qt QMenuBar/QMenu/QAction widgets."""
 
 	#============================================
-	def __init__(self, parent_window):
+	def __init__(self, parent_window: object) -> None:
 		"""Create the menu adapter for the given main window.
 
 		Args:
@@ -226,7 +226,7 @@ class PlatformMenuAdapter:
 		self._actions_by_label[(cascade_name, label)] = action
 
 	#============================================
-	def get_action_by_key(self, action_key: str):
+	def get_action_by_key(self, action_key: str) -> object:
 		"""Look up a QAction by its frozen English key.
 
 		Args:
@@ -238,7 +238,7 @@ class PlatformMenuAdapter:
 		return self._actions.get(action_key)
 
 	#============================================
-	def get_action(self, menu_name: str, label: str):
+	def get_action(self, menu_name: str, label: str) -> object:
 		"""Look up a QAction by menu name and label (legacy).
 
 		Prefer get_action_by_key() for new code.
@@ -291,7 +291,7 @@ class PlatformMenuAdapter:
 
 	#============================================
 	def register_direct_action(self, action_key: str,
-								qaction) -> None:
+								qaction: object) -> None:
 		"""Register a QAction created outside the menu builder.
 
 		Used for actions added directly to menus (e.g. grid toggle,
@@ -304,7 +304,7 @@ class PlatformMenuAdapter:
 		self._actions[action_key] = qaction
 
 	#============================================
-	def component(self, name: str):
+	def component(self, name: str) -> object:
 		"""Get the underlying QMenu widget by name.
 
 		Supports 'MenuName-menu' (Pmw convention) and plain 'MenuName'.
@@ -323,7 +323,7 @@ class PlatformMenuAdapter:
 		return self._menus.get(menu_name)
 
 	#============================================
-	def get_menu_component(self, menu_name: str):
+	def get_menu_component(self, menu_name: str) -> object:
 		"""Get the QMenu widget for a menu.
 
 		Args:

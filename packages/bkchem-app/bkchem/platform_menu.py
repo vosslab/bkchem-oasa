@@ -126,7 +126,7 @@ class PlatformMenuAdapter:
 	"""Uniform wrapper around native tkinter.Menu widgets."""
 
 	#============================================
-	def __init__(self, parent_window, balloon=None, main_frame=None):
+	def __init__(self, parent_window: object, balloon: object=None, main_frame: object=None) -> None:
 		"""Create the menu bar for the current platform.
 
 		Args:
@@ -214,7 +214,7 @@ class PlatformMenuAdapter:
 		self._menus[cascade_name].add_command(label=label, command=command)
 
 	#============================================
-	def component(self, name: str):
+	def component(self, name: str) -> object:
 		"""Get the underlying Tk Menu widget by Pmw-style component name.
 
 		Supports both 'MenuName-menu' (Pmw convention) and plain 'MenuName'.
@@ -233,7 +233,7 @@ class PlatformMenuAdapter:
 		return self._menus[menu_name]
 
 	#============================================
-	def get_menu_component(self, menu_name: str):
+	def get_menu_component(self, menu_name: str) -> object:
 		"""Get the underlying Tk Menu widget for a menu.
 
 		Args:

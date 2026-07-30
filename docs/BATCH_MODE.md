@@ -20,7 +20,7 @@ Batch mode still initializes the Tk application. It requires a GUI environment
 ## How a batch script works
 
 When BKChem runs a batch script it injects two globals. The structure is similar
-to a [custom plugin](CUSTOM_PLUGINS.md):
+to a `CUSTOM_PLUGINS.md`:
 
 - `App`: the live BKChem application instance.
 - `Args`: a list of extra arguments passed after the script name.

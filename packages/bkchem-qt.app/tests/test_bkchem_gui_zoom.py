@@ -27,7 +27,7 @@ def _flush_events() -> None:
 
 
 #============================================
-def _count_atoms(scene) -> int:
+def _count_atoms(scene: object) -> int:
 	"""Return AtomItem count in the scene."""
 	return sum(
 		1 for item in scene.items()
@@ -36,7 +36,7 @@ def _count_atoms(scene) -> int:
 
 
 #============================================
-def _count_bonds(scene) -> int:
+def _count_bonds(scene: object) -> int:
 	"""Return BondItem count in the scene."""
 	return sum(
 		1 for item in scene.items()
@@ -45,7 +45,7 @@ def _count_bonds(scene) -> int:
 
 
 #============================================
-def _viewport_center_scene(view) -> PySide6.QtCore.QPointF:
+def _viewport_center_scene(view: object) -> PySide6.QtCore.QPointF:
 	"""Map the viewport center to scene coordinates."""
 	center_px = view.viewport().rect().center()
 	return view.mapToScene(center_px)
@@ -92,7 +92,7 @@ def _simulate_snapped_button_zoom(start_percent: float, direction: int, steps: i
 
 
 #============================================
-def _import_cholesterol_from_smiles(main_window):
+def _import_cholesterol_from_smiles(main_window: object) -> list:
 	"""Import cholesterol from SMILES and add it to scene+document."""
 	smiles_file = io.StringIO(_CHOLESTEROL_SMILES + "\n")
 	molecules = bkchem_qt.bridge.oasa_bridge.read_codec_file("smiles", smiles_file)
@@ -103,7 +103,7 @@ def _import_cholesterol_from_smiles(main_window):
 
 
 #============================================
-def test_qt_gui_zoom_diagnostic(main_window):
+def test_qt_gui_zoom_diagnostic(main_window: object) -> None:
 	"""Validate zoom sequence behavior around content and viewport symmetry."""
 	scene = main_window.scene
 	view = main_window.view
@@ -192,7 +192,7 @@ def test_qt_gui_zoom_diagnostic(main_window):
 
 
 #============================================
-def test_qt_zoom_clamp_and_reset(main_window):
+def test_qt_zoom_clamp_and_reset(main_window: object) -> None:
 	"""Verify zoom min/max clamps and reset behavior."""
 	view = main_window.view
 

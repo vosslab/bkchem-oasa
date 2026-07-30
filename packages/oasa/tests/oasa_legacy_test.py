@@ -5,7 +5,7 @@ import oasa
 import oasa.cairo_out
 import oasa.smiles_lib
 
-def cairo_out_test2():
+def cairo_out_test2() -> None:
     mol = oasa.smiles_lib.text_to_mol( "c1ccccc1Cl.c1ccccc1OC.CCCl")
     mol.normalize_bond_length( 30)
     mol.remove_unimportant_hydrogens()
@@ -21,7 +21,7 @@ def cairo_out_test2():
         c.mols_to_cairo( mols, png_path)
         c.mols_to_cairo( mols, svg_path, format="svg")
 
-def inchi_test():
+def inchi_test() -> None:
     mol = oasa.smiles_lib.text_to_mol( r"c1ccccc1\C=C/CC")
     print(oasa.inchi.mol_to_text(mol, program="stdinchi-1.exe", fixed_hs=False))
 

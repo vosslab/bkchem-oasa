@@ -26,30 +26,30 @@ from bkchem.modes.edit_mode import edit_mode
 
 class plus_mode( edit_mode):
 
-	def __init__( self):
+	def __init__( self) -> None:
 		edit_mode.__init__( self)
 		# name loaded from YAML
 		self._start_point = None
 		self._moved_point = None
 
 
-	def mouse_down( self, event, modifiers = []):
+	def mouse_down( self, event: object, modifiers: object = []) -> None:
 		edit_mode.mouse_down( self, event, modifiers = modifiers)
 		Store.app.paper.unselect_all()
 
 
-	def mouse_drag( self, event):
+	def mouse_drag( self, event: object) -> None:
 		if not self._dragging:
 			self._dragging = 1
 
 
-	def mouse_up( self, event):
+	def mouse_up( self, event: object) -> None:
 		if not self._dragging:
 			self.mouse_click( event)
 		self._dragging = 0
 
 
-	def mouse_click( self, event):
+	def mouse_click( self, event: object) -> None:
 		if not self.focused:
 			pl = Store.app.paper.new_plus( event.x, event.y)
 			Store.app.paper.select( [pl])
@@ -59,7 +59,7 @@ class plus_mode( edit_mode):
 		Store.app.paper.add_bindings()
 
 
-	def leave_object( self, event):
+	def leave_object( self, event: object) -> None:
 		if self.focused:
 			self.focused.unfocus()
 			self.focused = None

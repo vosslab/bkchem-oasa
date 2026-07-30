@@ -15,7 +15,7 @@ DATA_PATH = os.path.abspath(
 
 
 #============================================
-def _load_isotopes():
+def _load_isotopes() -> object:
 	"""Load isotope data from JSON into a nested integer-keyed dict."""
 	with open(DATA_PATH, "r") as handle:
 		raw_data = json.load(handle)

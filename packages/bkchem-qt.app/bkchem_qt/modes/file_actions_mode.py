@@ -31,7 +31,9 @@ class FileActionsMode(bkchem_qt.modes.base_mode.BaseMode):
 	"""
 
 	#============================================
-	def __init__(self, view, main_window=None):
+	def __init__(
+			self, view: object, main_window: object = None,
+			) -> None:
 		"""Initialize the file actions mode.
 
 		Args:

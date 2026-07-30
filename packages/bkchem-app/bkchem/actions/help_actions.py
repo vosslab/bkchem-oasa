@@ -1,11 +1,12 @@
 """Help menu action registrations for BKChem."""
 
 # local repo modules
+from bkchem.actions.action_registry import ActionRegistry
 from bkchem.actions.action_registry import MenuAction
 
 
 #============================================
-def _show_keyboard_shortcuts(app) -> None:
+def _show_keyboard_shortcuts(app: object) -> None:
 	"""Open the keyboard shortcuts reference dialog.
 
 	Args:
@@ -16,7 +17,7 @@ def _show_keyboard_shortcuts(app) -> None:
 
 
 #============================================
-def register_help_actions(registry, app) -> None:
+def register_help_actions(registry: ActionRegistry, app: object) -> None:
 	"""Register all Help menu actions.
 
 	Args:

@@ -44,7 +44,7 @@ from oasa.render_lib.bond_ops import build_bond_ops
 
 
 #============================================
-def _resolved_vertex_label_layout(vertex, show_hydrogens_on_hetero, font_size, font_name):
+def _resolved_vertex_label_layout(vertex: object, show_hydrogens_on_hetero: object, font_size: object, font_name: object) -> object:
 	if not vertex_is_shown(vertex):
 		return None
 	text = vertex_label_text(vertex, show_hydrogens_on_hetero)
@@ -76,7 +76,7 @@ def _resolved_vertex_label_layout(vertex, show_hydrogens_on_hetero, font_size, f
 
 
 #============================================
-def _transform_bbox(bbox, transform_xy):
+def _transform_bbox(bbox: object, transform_xy: object) -> object:
 	if transform_xy is None:
 		return bbox
 	x1, y1, x2, y2 = bbox
@@ -86,7 +86,7 @@ def _transform_bbox(bbox, transform_xy):
 
 
 #============================================
-def _transform_target(target, transform_xy):
+def _transform_target(target: object, transform_xy: object) -> object:
 	"""Return one attachment target transformed by transform_xy."""
 	resolved = _coerce_attach_target(target)
 	if transform_xy is None:
@@ -108,9 +108,9 @@ def _transform_target(target, transform_xy):
 
 
 #============================================
-def build_vertex_ops(vertex, transform_xy=None, show_hydrogens_on_hetero=False,
-		color_atoms=True, atom_colors=None, font_name="Arial", font_size=16,
-		background_color=None, draw_label_mask=True):
+def build_vertex_ops(vertex: object, transform_xy: object = None, show_hydrogens_on_hetero: object = False,
+		color_atoms: object = True, atom_colors: object = None, font_name: object = "Arial", font_size: object = 16,
+		background_color: object = None, draw_label_mask: object = True) -> object:
 	layout = _resolved_vertex_label_layout(
 		vertex,
 		show_hydrogens_on_hetero=show_hydrogens_on_hetero,
@@ -120,7 +120,7 @@ def build_vertex_ops(vertex, transform_xy=None, show_hydrogens_on_hetero=False,
 	if layout is None:
 		return []
 
-	def transform_point(x, y):
+	def transform_point(x: object, y: object) -> object:
 		if transform_xy:
 			return transform_xy(x, y)
 		return (x, y)
@@ -224,9 +224,9 @@ def build_vertex_ops(vertex, transform_xy=None, show_hydrogens_on_hetero=False,
 
 
 #============================================
-def build_label_attach_targets(vertices, show_hydrogens_on_hetero=False,
-		font_name="Arial", font_size=16.0, transform_xy=None,
-		show_carbon_symbol=False):
+def build_label_attach_targets(vertices: object, show_hydrogens_on_hetero: object = False,
+		font_name: object = "Arial", font_size: object = 16.0, transform_xy: object = None,
+		show_carbon_symbol: object = False) -> object:
 	"""Compute shown vertices, label targets, and attach targets for bond clipping.
 
 	Iterates over the given vertices, determines which ones are visible
@@ -321,7 +321,7 @@ _DEFAULT_STYLE = {
 
 
 #============================================
-def _resolve_style(style):
+def _resolve_style(style: object) -> object:
 	resolved = dict(_DEFAULT_STYLE)
 	if style:
 		resolved.update(style)
@@ -329,7 +329,7 @@ def _resolve_style(style):
 
 
 #============================================
-def _render_edge_key(edge):
+def _render_edge_key(edge: object) -> object:
 	"""Return canonical unordered render key for one bond edge."""
 	v1, v2 = edge.vertices
 	id1 = id(v1)
@@ -340,7 +340,7 @@ def _render_edge_key(edge):
 
 
 #============================================
-def _render_edge_priority(edge):
+def _render_edge_priority(edge: object) -> object:
 	"""Return deterministic priority for duplicate bond-edge collapse."""
 	try:
 		order = int(getattr(edge, "order", 1) or 1)
@@ -354,7 +354,7 @@ def _render_edge_priority(edge):
 
 
 #============================================
-def _render_edges_in_order(mol):
+def _render_edges_in_order(mol: object) -> object:
 	"""Yield canonical non-duplicated edges for one molecule render pass."""
 	ordered_keys = []
 	chosen = {}
@@ -371,7 +371,7 @@ def _render_edges_in_order(mol):
 
 
 #============================================
-def _edge_points(mol, transform_xy):
+def _edge_points(mol: object, transform_xy: object) -> object:
 	points = {}
 	for edge in _render_edges_in_order(mol):
 		v1, v2 = edge.vertices
@@ -383,7 +383,7 @@ def _edge_points(mol, transform_xy):
 
 
 #============================================
-def molecule_to_ops(mol, style=None, transform_xy=None):
+def molecule_to_ops(mol: object, style: object = None, transform_xy: object = None) -> object:
 	"""Convert one molecule into a render-ops list for SVG/Cairo painters."""
 	if mol is None:
 		return []

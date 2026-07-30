@@ -68,7 +68,7 @@ class MainToolbar(PySide6.QtWidgets.QToolBar):
 	"""
 
 	#============================================
-	def __init__(self, parent=None):
+	def __init__(self, parent: PySide6.QtWidgets.QWidget | None = None) -> None:
 		"""Initialize the main toolbar.
 
 		Args:
@@ -81,7 +81,7 @@ class MainToolbar(PySide6.QtWidgets.QToolBar):
 		self._actions = {}
 
 	#============================================
-	def setup_actions(self, main_window) -> None:
+	def setup_actions(self, main_window: object) -> None:
 		"""Create toolbar actions connected to main window slots.
 
 		Builds three sections separated by dividers:
@@ -182,7 +182,7 @@ class MainToolbar(PySide6.QtWidgets.QToolBar):
 
 	#============================================
 	def _create_action(self, name: str, text: str, tooltip: str,
-			shortcut: str = None, callback=None) -> PySide6.QtGui.QAction:
+			shortcut: str | None = None, callback: object | None = None) -> PySide6.QtGui.QAction:
 		"""Helper to create a QAction with icon and add it to the toolbar.
 
 		Args:

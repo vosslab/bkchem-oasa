@@ -56,7 +56,7 @@ def parse_args() -> argparse.Namespace:
 
 
 #============================================
-def smiles_to_oasa_mol(smiles: str):
+def smiles_to_oasa_mol(smiles: str) -> object:
 	"""Parse a SMILES string into an OASA molecule object.
 
 	Args:
@@ -71,7 +71,7 @@ def smiles_to_oasa_mol(smiles: str):
 
 
 #============================================
-def oasa_mol_to_rustworkx(mol) -> tuple:
+def oasa_mol_to_rustworkx(mol: object) -> tuple:
 	"""Build a rustworkx PyGraph from an OASA molecule.
 
 	Args:
@@ -105,7 +105,7 @@ def oasa_mol_to_rustworkx(mol) -> tuple:
 
 
 #============================================
-def time_function(func, num_iterations: int) -> float:
+def time_function(func: object, num_iterations: int) -> float:
 	"""Time a function over multiple iterations.
 
 	Args:
@@ -124,7 +124,7 @@ def time_function(func, num_iterations: int) -> float:
 
 
 #============================================
-def verify_connected_components(mol, rx_graph, v_to_i) -> str:
+def verify_connected_components(mol: object, rx_graph: object, v_to_i: object) -> str:
 	"""Check that both backends agree on number of connected components.
 
 	Returns:
@@ -138,7 +138,7 @@ def verify_connected_components(mol, rx_graph, v_to_i) -> str:
 
 
 #============================================
-def verify_is_connected(mol, rx_graph) -> str:
+def verify_is_connected(mol: object, rx_graph: object) -> str:
 	"""Check that both backends agree on connectivity.
 
 	Returns:
@@ -152,7 +152,7 @@ def verify_is_connected(mol, rx_graph) -> str:
 
 
 #============================================
-def verify_path_exists(mol, rx_graph, v_to_i) -> str:
+def verify_path_exists(mol: object, rx_graph: object, v_to_i: object) -> str:
 	"""Check path_exists parity between start and end vertices.
 
 	Returns:
@@ -170,7 +170,7 @@ def verify_path_exists(mol, rx_graph, v_to_i) -> str:
 
 
 #============================================
-def verify_diameter(mol, rx_graph) -> str:
+def verify_diameter(mol: object, rx_graph: object) -> str:
 	"""Check diameter parity between OASA and rustworkx.
 
 	Returns:
@@ -186,7 +186,7 @@ def verify_diameter(mol, rx_graph) -> str:
 
 
 #============================================
-def verify_cycle_basis(mol, rx_graph) -> str:
+def verify_cycle_basis(mol: object, rx_graph: object) -> str:
 	"""Check cycle count parity between OASA and rustworkx.
 
 	Returns:
@@ -200,7 +200,7 @@ def verify_cycle_basis(mol, rx_graph) -> str:
 
 
 #============================================
-def verify_find_path(mol, rx_graph, v_to_i) -> str:
+def verify_find_path(mol: object, rx_graph: object, v_to_i: object) -> str:
 	"""Check that both backends find a path of the same length.
 
 	Returns:
@@ -224,7 +224,7 @@ def verify_find_path(mol, rx_graph, v_to_i) -> str:
 
 
 #============================================
-def verify_distance_from(mol, rx_graph, v_to_i) -> str:
+def verify_distance_from(mol: object, rx_graph: object, v_to_i: object) -> str:
 	"""Check BFS distance parity from vertex 0.
 
 	Returns:

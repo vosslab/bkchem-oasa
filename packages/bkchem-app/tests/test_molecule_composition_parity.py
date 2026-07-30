@@ -120,32 +120,32 @@ def _make_disconnected() -> OasaMolecule:
 class TestAtomBondAliases:
 	"""Verify atoms/bonds are proper aliases to vertices/edges."""
 
-	def test_atoms_is_vertices(self):
+	def test_atoms_is_vertices(self) -> None:
 		"""atoms should reference the same list as vertices."""
 		mol = _make_chain(3)
 		assert mol.atoms is mol.vertices
 
-	def test_bonds_is_edges(self):
+	def test_bonds_is_edges(self) -> None:
 		"""bonds should reference the same set as edges."""
 		mol = _make_chain(3)
 		assert mol.bonds is mol.edges
 
-	def test_atom_count(self):
+	def test_atom_count(self) -> None:
 		"""Chain of 4 atoms should have exactly 4 atoms."""
 		mol = _make_chain(4)
 		assert len(mol.atoms) == 4
 
-	def test_bond_count(self):
+	def test_bond_count(self) -> None:
 		"""Chain of 4 atoms should have exactly 3 bonds."""
 		mol = _make_chain(4)
 		assert len(mol.bonds) == 3
 
-	def test_benzene_atom_count(self):
+	def test_benzene_atom_count(self) -> None:
 		"""Benzene ring should have 6 atoms."""
 		mol = _make_benzene()
 		assert len(mol.atoms) == 6
 
-	def test_benzene_bond_count(self):
+	def test_benzene_bond_count(self) -> None:
 		"""Benzene ring should have 6 bonds."""
 		mol = _make_benzene()
 		assert len(mol.bonds) == 6
@@ -157,7 +157,7 @@ class TestAtomBondAliases:
 class TestGraphMutation:
 	"""Verify graph mutation operations on molecule."""
 
-	def test_add_vertex(self):
+	def test_add_vertex(self) -> None:
 		"""Adding a vertex increases atom count by one."""
 		mol = _make_chain(2)
 		a = OasaAtom()
@@ -165,7 +165,7 @@ class TestGraphMutation:
 		mol.add_vertex(a)
 		assert len(mol.atoms) == 3
 
-	def test_add_edge(self):
+	def test_add_edge(self) -> None:
 		"""Adding an edge between existing vertices increases bond count."""
 		mol = _make_chain(3)
 		# connect first and last atom to form a triangle
@@ -175,7 +175,7 @@ class TestGraphMutation:
 		mol.add_edge(first, last, e=b)
 		assert len(mol.bonds) == 3
 
-	def test_delete_vertex(self):
+	def test_delete_vertex(self) -> None:
 		"""delete_vertex removes the vertex from the atoms list."""
 		mol = _make_chain(3)
 		middle = mol.atoms[1]
@@ -183,7 +183,7 @@ class TestGraphMutation:
 		mol.remove_vertex(middle)
 		assert len(mol.atoms) == 2
 
-	def test_delete_vertex_removes_edges(self):
+	def test_delete_vertex_removes_edges(self) -> None:
 		"""remove_vertex should also disconnect edges to that vertex."""
 		mol = _make_chain(3)
 		middle = mol.atoms[1]
@@ -191,7 +191,7 @@ class TestGraphMutation:
 		# after removing the middle, no bonds should remain
 		assert len(mol.bonds) == 0
 
-	def test_disconnect(self):
+	def test_disconnect(self) -> None:
 		"""disconnect(v1, v2) removes the edge between two vertices."""
 		mol = _make_chain(3)
 		v1 = mol.atoms[0]
@@ -200,7 +200,7 @@ class TestGraphMutation:
 		assert edge is not None
 		assert len(mol.bonds) == 1
 
-	def test_disconnect_preserves_vertices(self):
+	def test_disconnect_preserves_vertices(self) -> None:
 		"""disconnect should not remove vertices, only the edge."""
 		mol = _make_chain(2)
 		v1 = mol.atoms[0]
@@ -216,41 +216,41 @@ class TestGraphMutation:
 class TestConnectivity:
 	"""Verify connectivity checks on molecule graphs."""
 
-	def test_chain_is_connected(self):
+	def test_chain_is_connected(self) -> None:
 		"""A simple chain should be connected."""
 		mol = _make_chain(4)
 		assert mol.is_connected() is True
 
-	def test_single_atom_is_connected(self):
+	def test_single_atom_is_connected(self) -> None:
 		"""A molecule with one atom should be connected."""
 		mol = _make_chain(1)
 		assert mol.is_connected() is True
 
-	def test_disconnected_not_connected(self):
+	def test_disconnected_not_connected(self) -> None:
 		"""A molecule with two separate fragments is not connected."""
 		mol = _make_disconnected()
 		assert mol.is_connected() is False
 
-	def test_disconnected_subgraphs_count(self):
+	def test_disconnected_subgraphs_count(self) -> None:
 		"""get_disconnected_subgraphs returns 2 for two separate pairs."""
 		mol = _make_disconnected()
 		subgraphs = mol.get_disconnected_subgraphs()
 		assert len(subgraphs) == 2
 
-	def test_disconnected_subgraphs_sizes(self):
+	def test_disconnected_subgraphs_sizes(self) -> None:
 		"""Each disconnected subgraph should have 2 atoms."""
 		mol = _make_disconnected()
 		subgraphs = mol.get_disconnected_subgraphs()
 		sizes = sorted([len(sg.vertices) for sg in subgraphs])
 		assert sizes == [2, 2]
 
-	def test_connected_single_subgraph(self):
+	def test_connected_single_subgraph(self) -> None:
 		"""A connected molecule returns 1 subgraph."""
 		mol = _make_chain(3)
 		subgraphs = mol.get_disconnected_subgraphs()
 		assert len(subgraphs) == 1
 
-	def test_disconnect_then_check(self):
+	def test_disconnect_then_check(self) -> None:
 		"""After disconnecting a chain, it should become disconnected."""
 		mol = _make_chain(3)
 		v1 = mol.atoms[0]
@@ -265,32 +265,32 @@ class TestConnectivity:
 class TestFactoryMethods:
 	"""Verify factory methods produce correct types."""
 
-	def test_create_vertex_type(self):
+	def test_create_vertex_type(self) -> None:
 		"""create_vertex should return an OasaAtom instance."""
 		mol = OasaMolecule()
 		v = mol.create_vertex()
 		assert isinstance(v, OasaAtom)
 
-	def test_create_edge_type(self):
+	def test_create_edge_type(self) -> None:
 		"""create_edge should return an OasaBond instance."""
 		mol = OasaMolecule()
 		e = mol.create_edge()
 		assert isinstance(e, OasaBond)
 
-	def test_create_graph_type(self):
+	def test_create_graph_type(self) -> None:
 		"""create_graph should return an OasaMolecule instance."""
 		mol = OasaMolecule()
 		g = mol.create_graph()
 		assert isinstance(g, OasaMolecule)
 
-	def test_create_vertex_is_distinct(self):
+	def test_create_vertex_is_distinct(self) -> None:
 		"""Two created vertices should be distinct objects."""
 		mol = OasaMolecule()
 		v1 = mol.create_vertex()
 		v2 = mol.create_vertex()
 		assert v1 is not v2
 
-	def test_create_edge_is_distinct(self):
+	def test_create_edge_is_distinct(self) -> None:
 		"""Two created edges should be distinct objects."""
 		mol = OasaMolecule()
 		e1 = mol.create_edge()
@@ -304,13 +304,13 @@ class TestFactoryMethods:
 class TestRingPerception:
 	"""Verify ring perception on a benzene-like graph."""
 
-	def test_benzene_one_ring(self):
+	def test_benzene_one_ring(self) -> None:
 		"""A benzene ring should have exactly 1 independent cycle."""
 		mol = _make_benzene()
 		cycles = mol.get_smallest_independent_cycles()
 		assert len(cycles) == 1
 
-	def test_benzene_ring_size(self):
+	def test_benzene_ring_size(self) -> None:
 		"""The single benzene cycle should contain 6 atoms."""
 		mol = _make_benzene()
 		cycles = mol.get_smallest_independent_cycles()
@@ -318,14 +318,14 @@ class TestRingPerception:
 		ring = cycles[0]
 		assert len(ring) == 6
 
-	def test_chain_no_cycles(self):
+	def test_chain_no_cycles(self) -> None:
 		"""A chain molecule has no cycles."""
 		mol = _make_chain(5)
 		cycles = mol.get_smallest_independent_cycles()
 		# returns empty set for tree graphs
 		assert len(cycles) == 0
 
-	def test_naphthalene_two_rings(self):
+	def test_naphthalene_two_rings(self) -> None:
 		"""A naphthalene-like graph (two fused 6-rings) has 2 cycles."""
 		mol = OasaMolecule()
 		atoms = []
@@ -360,19 +360,19 @@ class TestRingPerception:
 class TestDeepCopy:
 	"""Verify deep_copy produces an independent isomorphic graph."""
 
-	def test_deep_copy_atom_count(self):
+	def test_deep_copy_atom_count(self) -> None:
 		"""Deep copy preserves atom count."""
 		mol = _make_chain(4)
 		mol_copy = mol.deep_copy()
 		assert len(mol_copy.atoms) == len(mol.atoms)
 
-	def test_deep_copy_bond_count(self):
+	def test_deep_copy_bond_count(self) -> None:
 		"""Deep copy preserves bond count."""
 		mol = _make_chain(4)
 		mol_copy = mol.deep_copy()
 		assert len(mol_copy.bonds) == len(mol.bonds)
 
-	def test_deep_copy_independent_vertices(self):
+	def test_deep_copy_independent_vertices(self) -> None:
 		"""Deep copy vertices should be different objects."""
 		mol = _make_chain(3)
 		mol_copy = mol.deep_copy()
@@ -381,7 +381,7 @@ class TestDeepCopy:
 			for copy_v in mol_copy.atoms:
 				assert orig_v is not copy_v
 
-	def test_deep_copy_independent_edges(self):
+	def test_deep_copy_independent_edges(self) -> None:
 		"""Deep copy edges should be different objects."""
 		mol = _make_chain(3)
 		mol_copy = mol.deep_copy()
@@ -389,7 +389,7 @@ class TestDeepCopy:
 			for copy_e in mol_copy.bonds:
 				assert orig_e is not copy_e
 
-	def test_deep_copy_preserves_symbols(self):
+	def test_deep_copy_preserves_symbols(self) -> None:
 		"""Deep copy atoms retain their element symbols."""
 		mol = _make_chain(3)
 		# change middle atom to nitrogen
@@ -399,7 +399,7 @@ class TestDeepCopy:
 		copy_symbols = [a.symbol for a in mol_copy.atoms]
 		assert orig_symbols == copy_symbols
 
-	def test_deep_copy_mutation_independent(self):
+	def test_deep_copy_mutation_independent(self) -> None:
 		"""Mutating deep copy should not affect original."""
 		mol = _make_chain(3)
 		mol_copy = mol.deep_copy()
@@ -410,7 +410,7 @@ class TestDeepCopy:
 		assert len(mol.atoms) == 3
 		assert len(mol_copy.atoms) == 4
 
-	def test_deep_copy_connectivity(self):
+	def test_deep_copy_connectivity(self) -> None:
 		"""Deep copy should preserve connectivity structure."""
 		mol = _make_benzene()
 		mol_copy = mol.deep_copy()
@@ -425,12 +425,12 @@ class TestDeepCopy:
 class TestStereochemistryList:
 	"""Verify stereochemistry list operations on molecule."""
 
-	def test_initial_stereochemistry_empty(self):
+	def test_initial_stereochemistry_empty(self) -> None:
 		"""New molecule should have empty stereochemistry list."""
 		mol = OasaMolecule()
 		assert mol.stereochemistry == []
 
-	def test_add_stereochemistry(self):
+	def test_add_stereochemistry(self) -> None:
 		"""add_stereochemistry appends to the list."""
 		mol = OasaMolecule()
 		# use a simple placeholder object
@@ -439,7 +439,7 @@ class TestStereochemistryList:
 		assert len(mol.stereochemistry) == 1
 		assert mol.stereochemistry[0] is stereo
 
-	def test_remove_stereochemistry(self):
+	def test_remove_stereochemistry(self) -> None:
 		"""remove_stereochemistry removes from the list."""
 		mol = OasaMolecule()
 		stereo = {"type": "test", "value": "trans"}
@@ -447,14 +447,14 @@ class TestStereochemistryList:
 		mol.remove_stereochemistry(stereo)
 		assert len(mol.stereochemistry) == 0
 
-	def test_remove_nonexistent_raises(self):
+	def test_remove_nonexistent_raises(self) -> None:
 		"""Removing non-existent stereochemistry should raise ValueError."""
 		mol = OasaMolecule()
 		stereo = {"type": "test", "value": "cis"}
 		with pytest.raises(ValueError):
 			mol.remove_stereochemistry(stereo)
 
-	def test_get_stereochemistry_by_center_none(self):
+	def test_get_stereochemistry_by_center_none(self) -> None:
 		"""get_stereochemistry_by_center returns None when no match."""
 		mol = OasaMolecule()
 		result = mol.get_stereochemistry_by_center("fake_center")
@@ -467,7 +467,7 @@ class TestStereochemistryList:
 class TestCompositionParity:
 	"""Tests that verify composition-based molecule parity."""
 
-	def test_composition_molecule_atoms_alias(self):
+	def test_composition_molecule_atoms_alias(self) -> None:
 		"""Composition molecule.atoms should delegate to _chem_mol."""
 		# placeholder: import composition molecule when available
 		from bkchem.molecule_lib import BkMolecule as bk_molecule
@@ -476,7 +476,7 @@ class TestCompositionParity:
 		assert hasattr(mol, '_chem_mol')
 		assert mol.atoms is mol._chem_mol.atoms
 
-	def test_composition_molecule_add_vertex(self):
+	def test_composition_molecule_add_vertex(self) -> None:
 		"""Composition molecule.add_vertex should update _chem_mol."""
 		from bkchem.molecule_lib import BkMolecule as bk_molecule
 		mol = bk_molecule()
@@ -484,7 +484,7 @@ class TestCompositionParity:
 		mol.add_vertex(a)
 		assert a in mol._chem_mol.atoms
 
-	def test_composition_molecule_create_vertex_type(self):
+	def test_composition_molecule_create_vertex_type(self) -> None:
 		"""Composition create_vertex should return bkchem.atom_lib.BkAtom."""
 		from bkchem.molecule_lib import BkMolecule as bk_molecule
 		from bkchem.atom_lib import BkAtom as bk_atom
@@ -492,7 +492,7 @@ class TestCompositionParity:
 		v = mol.create_vertex()
 		assert isinstance(v, bk_atom)
 
-	def test_composition_molecule_create_edge_type(self):
+	def test_composition_molecule_create_edge_type(self) -> None:
 		"""Composition create_edge should return bkchem.bond_lib.BkBond."""
 		from bkchem.molecule_lib import BkMolecule as bk_molecule
 		from bkchem.bond_lib import BkBond as bk_bond
@@ -500,7 +500,7 @@ class TestCompositionParity:
 		e = mol.create_edge()
 		assert isinstance(e, bk_bond)
 
-	def test_composition_molecule_create_graph_type(self):
+	def test_composition_molecule_create_graph_type(self) -> None:
 		"""Composition create_graph should return bkchem.molecule_lib.BkMolecule with _chem_mol."""
 		from bkchem.molecule_lib import BkMolecule as bk_molecule
 		mol = bk_molecule()
@@ -509,7 +509,7 @@ class TestCompositionParity:
 		# must have composition delegate, not inheritance
 		assert hasattr(g, '_chem_mol')
 
-	def test_composition_deep_copy_delegates(self):
+	def test_composition_deep_copy_delegates(self) -> None:
 		"""Composition deep_copy should return an independent graph."""
 		from bkchem.molecule_lib import BkMolecule as bk_molecule
 		mol = bk_molecule()
@@ -519,7 +519,7 @@ class TestCompositionParity:
 		assert mol_copy is not mol
 		assert mol_copy is not mol._chem_mol
 
-	def test_composition_is_connected_delegates(self):
+	def test_composition_is_connected_delegates(self) -> None:
 		"""Composition is_connected should delegate to _chem_mol."""
 		from bkchem.molecule_lib import BkMolecule as bk_molecule
 		mol = bk_molecule()

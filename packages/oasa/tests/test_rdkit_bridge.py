@@ -15,7 +15,7 @@ from oasa.bond_lib import Bond
 
 
 #============================================
-def _make_ethanol_oasa():
+def _make_ethanol_oasa() -> None:
 	"""Build a simple ethanol molecule (CCO) in OASA."""
 	omol = Molecule()
 	c1 = Atom(symbol='C')
@@ -32,7 +32,7 @@ def _make_ethanol_oasa():
 
 
 #============================================
-def _make_oasa_mol_from_smiles(smiles_text: str):
+def _make_oasa_mol_from_smiles(smiles_text: str) -> None:
 	"""Parse a SMILES string into an OASA molecule."""
 	conv = smiles_mod.converter()
 	result = conv.read_text(smiles_text)
@@ -43,7 +43,7 @@ def _make_oasa_mol_from_smiles(smiles_text: str):
 
 
 #============================================
-def test_oasa_to_rdkit_roundtrip():
+def test_oasa_to_rdkit_roundtrip() -> None:
 	"""Convert ethanol OASA -> RDKit -> OASA and verify atom/bond counts."""
 	omol = _make_ethanol_oasa()
 	rmol, oatom_to_ridx = rdkit_bridge.oasa_to_rdkit_mol(omol)
@@ -57,7 +57,7 @@ def test_oasa_to_rdkit_roundtrip():
 
 
 #============================================
-def test_atom_symbols_preserved():
+def test_atom_symbols_preserved() -> None:
 	"""Verify that atom symbols survive the OASA -> RDKit -> OASA roundtrip."""
 	omol = _make_ethanol_oasa()
 	rmol, _ = rdkit_bridge.oasa_to_rdkit_mol(omol)
@@ -69,7 +69,7 @@ def test_atom_symbols_preserved():
 
 
 #============================================
-def test_calculate_coords_sets_coordinates():
+def test_calculate_coords_sets_coordinates() -> None:
 	"""Verify that calculate_coords_rdkit sets non-None x/y on all atoms."""
 	omol = _make_ethanol_oasa()
 	rdkit_bridge.calculate_coords_rdkit(omol, bond_length=1.0)
@@ -79,7 +79,7 @@ def test_calculate_coords_sets_coordinates():
 
 
 #============================================
-def test_bond_lengths_roughly_uniform():
+def test_bond_lengths_roughly_uniform() -> None:
 	"""Verify bond lengths are close to the requested bond_length."""
 	omol = _make_ethanol_oasa()
 	target_bl = 1.5
@@ -96,7 +96,7 @@ def test_bond_lengths_roughly_uniform():
 
 
 #============================================
-def test_smiles_roundtrip_acetic_acid():
+def test_smiles_roundtrip_acetic_acid() -> None:
 	"""Parse acetic acid from SMILES, convert through RDKit, verify structure."""
 	omol = _make_oasa_mol_from_smiles("CC(=O)O")
 	rmol, _ = rdkit_bridge.oasa_to_rdkit_mol(omol)
@@ -107,7 +107,7 @@ def test_smiles_roundtrip_acetic_acid():
 
 
 #============================================
-def test_calculate_coords_benzene():
+def test_calculate_coords_benzene() -> None:
 	"""Verify coordinate generation works for a ring molecule (benzene)."""
 	omol = _make_oasa_mol_from_smiles("c1ccccc1")
 	rdkit_bridge.calculate_coords_rdkit(omol, bond_length=1.0)
@@ -124,7 +124,28 @@ def test_calculate_coords_benzene():
 
 
 #============================================
-def test_double_bond_preserved():
+def test_bonds_use_canonical_atom_index_order() -> None:
+	"""Verify a scrambled OASA bond list enters RDKit in canonical endpoint order."""
+	omol = Molecule()
+	atoms = [Atom(symbol='C') for _ in range(4)]
+	for oatom in atoms:
+		omol.add_vertex(oatom)
+	# Deliberately supply edges in reverse, noncanonical endpoint order.
+	omol.bonds = [
+		Bond(vs=(atoms[3], atoms[1]), order=1),
+		Bond(vs=(atoms[2], atoms[0]), order=1),
+		Bond(vs=(atoms[3], atoms[0]), order=1),
+	]
+	rmol, _ = rdkit_bridge.oasa_to_rdkit_mol(omol)
+	bond_pairs = [
+		(rbond.GetBeginAtomIdx(), rbond.GetEndAtomIdx())
+		for rbond in rmol.GetBonds()
+	]
+	assert bond_pairs == [(0, 2), (0, 3), (1, 3)]
+
+
+#============================================
+def test_double_bond_preserved() -> None:
 	"""Verify that double bonds survive the conversion roundtrip."""
 	omol = _make_oasa_mol_from_smiles("C=C")
 	rmol, _ = rdkit_bridge.oasa_to_rdkit_mol(omol)

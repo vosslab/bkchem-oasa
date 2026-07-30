@@ -1,11 +1,12 @@
 """Align menu action registrations for BKChem."""
 
 # local repo modules
+from bkchem.actions.action_registry import ActionRegistry
 from bkchem.actions.action_registry import MenuAction
 
 
 #============================================
-def register_align_actions(registry, app) -> None:
+def register_align_actions(registry: ActionRegistry, app: object) -> None:
 	"""Register all Align menu actions.
 
 	Args:

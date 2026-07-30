@@ -31,7 +31,7 @@ from oasa.oasa_utils import signum, normalize_coords
 
 
 
-def find_parallel( x1, y1, x2, y2, d):
+def find_parallel(x1: float, y1: float, x2: float, y2: float, d: float) -> tuple:
   "returns tuple of coordinates for parallel abscissa in distance d"
   # following is here to ensure that signum of "d" clearly determines
   # the side of line on whitch the parallel is drawn
@@ -52,7 +52,7 @@ def find_parallel( x1, y1, x2, y2, d):
   return (x, y, x0, y0)
 
 
-def get_parallel_distance( l1, l2):
+def get_parallel_distance(l1: object, l2: object) -> float:
   "returns distance of two parallels - does not check whether the two are really parallels"
   x1a, y1a, x2a, y2a = l1
   x1b, y1b, x2b, y2b = l2
@@ -75,7 +75,7 @@ def get_parallel_distance( l1, l2):
     return d
 
 
-def get_parallel_signum( l1, l2):
+def get_parallel_signum(l1: object, l2: object) -> int:
   x1a, y1a, x2a, y2a = l1
   x1b, y1b, x2b, y2b = l2
   if x1a == x2a:
@@ -86,7 +86,7 @@ def get_parallel_signum( l1, l2):
     return signum( -x2a+x2b)
 
 
-def on_which_side_is_point( line, point, threshold=0):
+def on_which_side_is_point(line: object, point: object, threshold: float = 0) -> int:
   """tells whether a point is on one side of a line or on the other (1,0,-1) - 0 is for point on line.
   line is given as sequence of four coordinates, point as sequence of two coords,
   threshold means what smallest angle is considered to still be on the line"""
@@ -110,7 +110,7 @@ def on_which_side_is_point( line, point, threshold=0):
     return -1
 
 
-def point_on_circle( center_x, center_y, radius, direction = (), resolution = 15):
+def point_on_circle(center_x: float, center_y: float, radius: float, direction: object = (), resolution: int = 15) -> tuple:
   """finds point on circle in direction of (dx, dy), optionaly rounds the angle
   according to resolution"""
   dx, dy = direction
@@ -123,7 +123,7 @@ def point_on_circle( center_x, center_y, radius, direction = (), resolution = 15
   return x,y
 
 
-def angle_between_lines( l1, l2):
+def angle_between_lines(l1: object, l2: object) -> float:
   """returns angle between two lines"""
   a = clockwise_angle_from_east( l1[2]-l1[0], l1[3]-l1[1]) - clockwise_angle_from_east( l2[2]-l2[0], l2[3]-l2[1])
   if a > pi:
@@ -134,7 +134,7 @@ def angle_between_lines( l1, l2):
     return a
 
 
-def clockwise_angle_from_east( dx, dy):
+def clockwise_angle_from_east(dx: float, dy: float) -> float:
   """returns the angle in clockwise direction between the center-east line and direction"""
   angle = atan2( dy, dx)
   if angle < 0:
@@ -142,7 +142,7 @@ def clockwise_angle_from_east( dx, dy):
   return angle
 
 
-def intersection_of_line_and_rect( line, rect, round_edges=0):
+def intersection_of_line_and_rect(line: object, rect: object, round_edges: int = 0) -> object:
   """finds a point where a line and a rectangle intersect,
   both are given as lists of len == 4"""
   lx0, ly0, lx1, ly1 = list(map( float, line))
@@ -199,19 +199,19 @@ def intersection_of_line_and_rect( line, rect, round_edges=0):
     return (xx, xy)
 
 
-def point_distance( x1, y1, x2, y2):
+def point_distance(x1: float, y1: float, x2: float, y2: float) -> float:
   return sqrt( (x2-x1)**2 + (y2-y1)**2)
 
 
-def line_length(x1, y1, x2, y2):
+def line_length(x1: float, y1: float, x2: float, y2: float) -> float:
   return point_distance( x1, y1, x2, y2)
 
 
-def rectangle_intersection( rect1, rect2):
+def rectangle_intersection(rect1: object, rect2: object) -> object:
   pass
 
 
-def do_rectangles_intersect( rect1, rect2):
+def do_rectangles_intersect(rect1: object, rect2: object) -> bool:
   xs1 = [rect1[0], rect1[2]]
   xs2 = [rect2[0], rect2[2]]
   xs = xs1 + xs2
@@ -233,7 +233,7 @@ def do_rectangles_intersect( rect1, rect2):
     return False
 
 
-def is_point_inside_polygon( point, polygon):
+def is_point_inside_polygon(point: object, polygon: object) -> bool:
   """point is a tuple or list of length == 2,
   polygon is a tuple or list of points"""
   a = 0
@@ -247,7 +247,7 @@ def is_point_inside_polygon( point, polygon):
     return True
 
 
-def tkspline_to_quadratic_bezier( points):   #points = ((x1,y1),(x2,y2),...)
+def tkspline_to_quadratic_bezier(points: object) -> list:   #points = ((x1,y1),(x2,y2),...)
     if len(points) > 2:
       qbeziers = []
       startx,starty = points[0]             #start point
@@ -273,7 +273,7 @@ def tkspline_to_quadratic_bezier( points):   #points = ((x1,y1),(x2,y2),...)
     return qbeziers
 
 
-def tkspline_to_cubic_bezier( points):   #points = ((x1,y1),(x2,y2),...)
+def tkspline_to_cubic_bezier(points: object) -> list:   #points = ((x1,y1),(x2,y2),...)
     qbeziers = tkspline_to_quadratic_bezier( points)
     cbeziers = []
     for qbez in qbeziers:
@@ -288,7 +288,7 @@ def tkspline_to_cubic_bezier( points):   #points = ((x1,y1),(x2,y2),...)
     return cbeziers
 
 
-def point_at_distance_from_line( x1, y1, x2, y2, d):
+def point_at_distance_from_line(x1: float, y1: float, x2: float, y2: float, d: float) -> tuple:
   "returns tuple of coordinates for a point in distance d from line orthogonal to point (x2,y2)"
   if round( y2, 3) -round( y1, 3) != 0:
     if y2 < y1:
@@ -304,7 +304,7 @@ def point_at_distance_from_line( x1, y1, x2, y2, d):
   return (x0, y0)
 
 
-def intersection_of_two_lines (x1,y1,x2,y2,x3,y3,x4,y4,parallel_detection_threshold=3):
+def intersection_of_two_lines(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, x4: float, y4: float, parallel_detection_threshold: float = 3) -> object:
   """lines 1-2 and 3-4
   returns x-coord, y-coord , paralell(0 or 1), on line (0=no line, 1=on line 1-2, 2=on line 3-4, 3=on both)
   y=mx+c is used
@@ -344,7 +344,7 @@ def intersection_of_two_lines (x1,y1,x2,y2,x3,y3,x4,y4,parallel_detection_thresh
   return rex,rey,0,online
 
 
-def intersection_of_line_and_polygon (line, polygon):
+def intersection_of_line_and_polygon(line: object, polygon: object) -> object:
   """Calculates intersection points between an infinite line (list of four coords) and a closed
       polygon (list of 2N coords).
       Returns a list of unique (x,y) tuples representing intersections."""
@@ -369,7 +369,7 @@ def intersection_of_line_and_polygon (line, polygon):
 
   return intersections
 
-def mirror_point_on_line (xa,ya,x1,y1,x2,y2):
+def mirror_point_on_line(xa: float, ya: float, x1: float, y1: float, x2: float, y2: float) -> tuple:
   """mirroring point a on line 1-2"""
   if x1-x2 == 0:                           #y=mc+c is used
     return 2*x1-xa,ya
@@ -386,7 +386,7 @@ def mirror_point_on_line (xa,ya,x1,y1,x2,y2):
     return xb,yb
 
 
-def elongate_line (x1,y1,x2,y2,d):
+def elongate_line(x1: float, y1: float, x2: float, y2: float, d: float) -> tuple:
   """line 1-2 will be elongatet at point 2 negative d will make it shorter"""
   if x1-x2 == 0:
     rex = x2
@@ -413,14 +413,14 @@ def elongate_line (x1,y1,x2,y2,d):
   return rex, rey
 
 
-def coordinate_flat_list_to_xy_tuples( coords):
+def coordinate_flat_list_to_xy_tuples(coords: object) -> list:
   ret = []
   for i in range( 0, len( coords), 2):
     ret.append( (coords[i],coords[i+1]))
   return ret
 
 
-def find_parallel_polyline( coords, d):
+def find_parallel_polyline(coords: object, d: float) -> list:
   """take and returns list of tuples of coordinates for parallel abscissa in distance d"""
   res = []
   i = 0
@@ -464,7 +464,7 @@ def find_parallel_polyline( coords, d):
   return res
 
 
-def point_on_quadratic_bezier( coords, t):
+def point_on_quadratic_bezier(coords: object, t: float) -> tuple:
   """based on info from http://en.wikipedia.org/wiki/B%C3%A9zier_curve"""
   (x0,y0,x1,y1,x2,y2) = coords
   x = (1-t)**2*x0 + 2*t*(1-t)*x1 + t**2*x2
@@ -472,7 +472,7 @@ def point_on_quadratic_bezier( coords, t):
   return x,y
 
 
-def quadratic_beziere_to_polyline( point, n=10):
+def quadratic_beziere_to_polyline(point: object, n: int = 10) -> list:
   t = 0
   points = []
   for i in range( n+1):
@@ -481,7 +481,7 @@ def quadratic_beziere_to_polyline( point, n=10):
   return points
 
 
-def is_point_beween_points_of_line( line, point):
+def is_point_beween_points_of_line(line: object, point: object) -> bool:
   """this function asserts that the point is on a line and
   computes if it is between the points defining the line"""
   x1, y1, x2, y2 = line
@@ -491,7 +491,7 @@ def is_point_beween_points_of_line( line, point):
   return True
 
 
-def plane_normal_from_3_points( point1, point2, point3):
+def plane_normal_from_3_points(point1: object, point2: object, point3: object) -> object:
   for point in (point1,point2,point3):
     if None in point:
       return None  # some coords are missing
@@ -512,14 +512,14 @@ def plane_normal_from_3_points( point1, point2, point3):
   return a,b,c
 
 
-def angle_between_planes( plane1, plane2):
+def angle_between_planes(plane1: object, plane2: object) -> float:
   a1,b1,c1 = plane1
   a2,b2,c2 = plane2
   cos = (a1*a2 + b1*b2 + c1*c2) / sqrt( a1**2+b1**2+c1**2) / sqrt( a2**2+b2**2+c2**2)
   return cos
 
 
-def same_or_oposite_side( plane1,plane2):
+def same_or_oposite_side(plane1: object, plane2: object) -> bool:
   a1,b1,c1 = plane1
   a2,b2,c2 = plane2
   a = a1+a2
@@ -531,12 +531,12 @@ def same_or_oposite_side( plane1,plane2):
     return -1
 
 
-def expand_rectangle( coords, d):
+def expand_rectangle(coords: object, d: float) -> object:
   x1,y1,x2,y2 = coords
   return x1-d,y1-d,x2+d,y2+d
 
 
-def create_transformation_to_coincide_point_with_z_axis( mov, point):
+def create_transformation_to_coincide_point_with_z_axis(mov: object, point: object) -> object:
   """takes 3d coordinates 'point' (vector mov->point) and returns 3d transform object
   (transform3d.transform3d) that performs rotation to get 'point' onto z axis (x,y)=(0,0)
   with positive 'z'.
@@ -557,7 +557,7 @@ def create_transformation_to_coincide_point_with_z_axis( mov, point):
   return t
 
 
-def create_transformation_to_rotate_around_particular_axis( line_start, line_end, theta):
+def create_transformation_to_rotate_around_particular_axis(line_start: object, line_end: object, theta: float) -> object:
   """
   taken from http://inside.mines.edu/~gmurray/ArbitraryAxisRotation/ArbitraryAxisRotation.html
   """

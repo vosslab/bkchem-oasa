@@ -112,10 +112,10 @@ def segments_intersect(
 		b1: tuple[float, float],
 		b2: tuple[float, float]) -> bool:
 	"""Return True when two closed line segments intersect."""
-	def _cross(p1, p2, p3):
+	def _cross(p1: object, p2: object, p3: object) -> object:
 		return ((p2[0] - p1[0]) * (p3[1] - p1[1])) - ((p2[1] - p1[1]) * (p3[0] - p1[0]))
 
-	def _on_segment(p1, p2, p3):
+	def _on_segment(p1: object, p2: object, p3: object) -> object:
 		return (
 			min(p1[0], p2[0]) - 1e-9 <= p3[0] <= max(p1[0], p2[0]) + 1e-9
 			and min(p1[1], p2[1]) - 1e-9 <= p3[1] <= max(p1[1], p2[1]) + 1e-9

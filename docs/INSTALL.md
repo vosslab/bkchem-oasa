@@ -1,55 +1,112 @@
-# Installation
+# Install
 
-This repo combines the BKChem GUI and the OASA chemistry library. The steps
-below focus on running BKChem from the merged source tree. For OASA-specific
-setup, see [packages/oasa/README.md](../packages/oasa/README.md).
-The project homepage and documentation live in the GitHub repository; legacy
-websites from the Python 2 era are archived.
+Install OASA and the PySide6 `bkchem-qt` frontend from this repository to get
+the current BKChem application. The older Tkinter `bkchem` package remains a
+compatibility oracle, not the primary frontend.
 
-## Before you start
+## Requirements
 
-- Python 3.10 or newer. Tested with Python 3.12.
-- Tkinter (required for the GUI).
-- Required Python packages: `defusedxml`, `oasa`, `pycairo`.
-- Optional external tools:
-  - `inchi` (InChI generation, via OASA). Required only for InChI export.
+- Python 3.10 or newer; the repository's agent and test runtime uses Python 3.12.
+- `bkchem-qt` requires PySide6, PyYAML, and OASA; pip installs the declared
+  dependencies.
+- OASA declares `defusedxml`, `lxml`, `pycairo`, PyYAML, RDKit, and rustworkx.
+	`defusedxml` provides hardened legacy XML entry points; `lxml` handles
+	CDML/CDXML parsing and controlled SVG rendering. `pycairo` supports OASA's
+	Cairo PNG, PDF, and SVG renderers.
+- The Tkinter compatibility package directly requires OASA, plus its own YAML
+  and secure-XML readers. Pip resolves OASA's rendering and chemistry
+  dependencies transitively. Install it only when comparing legacy behavior.
 
-## Run BKChem from source
+## Install the modern frontend
 
-1. Change into the BKChem package:
-
-```sh
-cd packages/bkchem
-```
-
-2. Run the GUI:
+From the repository root, install OASA and the PySide6 frontend in editable
+mode while developing:
 
 ```sh
-python3 bkchem/bkchem.py
+python3 -m pip install -e packages/oasa -e packages/bkchem-qt.app
 ```
 
-BKChem reads templates, pixmaps, and localization files from
-`packages/bkchem-app/bkchem_data/` and loads addon descriptors from
-`packages/bkchem-app/addons/`.
-
-## System-wide install (pip)
-
-BKChem uses `pyproject.toml` and setuptools for builds.
+For a regular, non-editable install from the same source tree:
 
 ```sh
-cd packages/bkchem
-pip3 install .
+python3 -m pip install packages/oasa packages/bkchem-qt.app
 ```
 
-This installs the BKChem package, data files, and a `bkchem` launcher script.
-Run `bkchem` to start the GUI after install.
+## Install the compatibility oracle
 
-## macOS notes
-
-If you use Homebrew Python, Tk is not always included by default. Install the
-Tk support package and verify that Tk loads:
+The old `bkchem` command is the Tkinter frontend. It remains useful for
+comparison during the migration, but is not the recommended daily application:
 
 ```sh
-brew install python-tk@3.12
-python3 -c "import _tkinter, tkinter; print('tk', tkinter.TkVersion, 'tcl', tkinter.TclVersion)"
+python3 -m pip install -e packages/bkchem-app
 ```
+
+That package brings in its declared backend dependencies.
+
+## Verify install
+
+Confirm that the modern command-line entry point was installed:
+
+```sh
+bkchem-qt --version
+```
+
+## Qt app-builder preview
+
+Preview one fresh, isolated Qt-only `BKChem.app` experiment without running
+PyInstaller or creating files. The explicit run root must be a currently absent
+path below the repository `tmp/` directory:
+
+```sh
+source source_me.sh && python3 devel/build_qt_app.py \
+  --output tmp/qt_bundle/next-arm64-run --dry-run
+```
+
+The preview describes the accepted Qt bundle plan, local frontend-wheel build,
+wheel-derived metadata stage for frozen `--version`, and future normal Qt
+timer-exit smoke command. A real macOS arm64 build remains a controlled
+experiment; this repository does not yet claim a signed, notarized, or DMG
+delivery artifact.
+
+A real build supplies an explicit numeric macOS build identity. The public
+release label remains the zero-padded root `VERSION` spelling, while wheel
+metadata is normalized and the bundle stores each macOS representation in its
+appropriate field:
+
+```sh
+source source_me.sh && python3 devel/build_qt_app.py \
+  --output tmp/qt_bundle/next-arm64-run \
+  --bundle-build 26.2.1 \
+  --smoke-exit 2
+```
+
+Each real build also gives PyInstaller a fresh configuration/cache parent below
+that same retained run root. The builder copies the sourced environment for the
+PyInstaller child and sets its `PYINSTALLER_CONFIG_DIR` there, keeping tool
+state inspectable with the rest of the experiment rather than in a user-level
+location.
+
+On a real build, the wrapper first round-trips the system Chess icon through
+`iconutil`. A healthy system encoder retains the standard ten-member iconset
+route. When that bounded host check cannot encode a known-good iconset, the
+wrapper visibly selects its deterministic Qt SVG-to-seven-size PNG-chunk ICNS
+route instead. Both routes derive only from the Qt application icon source.
+
+## Development runtime
+
+Repository automation uses the configured Python 3.12 environment. From the
+repository root, load it before running source-tree tools:
+
+```sh
+source source_me.sh
+python3 -c "import oasa, bkchem_qt; print('OASA and BKChem-Qt imports OK')"
+```
+
+For PySide6 tests, set `QT_QPA_PLATFORM=offscreen` before PySide6 imports and
+use only focused tests. See [QT_CONTRACT.md](QT_CONTRACT.md) for the native
+wrapper teardown contract.
+
+## Known gaps
+
+- TODO: Verify platform-specific binary-install workflows before documenting
+  installers beyond pip source installs.

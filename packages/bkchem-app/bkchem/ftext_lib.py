@@ -58,7 +58,7 @@ def _pick_nearest(table: dict, font_size: int) -> int:
 
 class BkFtext(object):
 
-	def __init__( self, canvas, xy, text, font=None, pos="center-first", fill='#000', big_charges=True, justify='right'):
+	def __init__( self, canvas: object, xy: object, text: object, font: object = None, pos: object = "center-first", fill: object = '#000', big_charges: object = True, justify: object = 'right') -> None:
 		self.big_charges = big_charges  # should +- in <sup> be drawn in bigger font (not scaled down)?
 		self.canvas = canvas
 		self.items = []
@@ -78,7 +78,7 @@ class BkFtext(object):
 		self.justify = justify
 
 
-	def draw( self):
+	def draw( self) -> object:
 		# split text to chunks
 		chs = self.get_chunks()
 		if not chs:
@@ -121,7 +121,7 @@ class BkFtext(object):
 		return self.bbox()
 
 
-	def _draw_chunk( self, chunk, scale=1):
+	def _draw_chunk( self, chunk: object, scale: object = 1) -> object:
 		weight = ''
 		canvas = self.canvas
 		x = self._current_x
@@ -159,7 +159,7 @@ class BkFtext(object):
 		return bbox
 
 
-	def get_chunks( self):
+	def get_chunks( self) -> object:
 		text = self.sanitized_text()
 		try:
 			root = safe_xml.parse_xml_string( text)
@@ -181,7 +181,7 @@ class BkFtext(object):
 		return split_chunks
 
 
-	def bbox( self, complete=False):
+	def bbox( self, complete: object = False) -> object:
 		"""returns the bounding box of the object as a list of [x1,y1,x2,y2]"""
 		xbbox = list( self.canvas.list_bbox( [i.item for i in self.items if complete or not i.ignore_x]))
 		ybbox = list( self.canvas.list_bbox( [i.item for i in self.items if complete or not i.ignore_y]))
@@ -197,34 +197,34 @@ class BkFtext(object):
 		return bbox
 
 
-	def move( self, dx, dy):
+	def move( self, dx: object, dy: object) -> object:
 		for i in self.items:
 			self.canvas.move( i.item, dx, dy)
 
 
-	def move_to( self, x, y):
+	def move_to( self, x: object, y: object) -> object:
 		dx = self.x - x - self.diff
 		dy = self.y - y
 		for i in self.items:
 			self.canvas.move( i.item, dx, dy)
 
 
-	def lift( self):
+	def lift( self) -> object:
 		for i in self.items:
 			self.canvas.lift( i.item)
 
 
-	def delete( self):
+	def delete( self) -> object:
 		for i in self.items:
 			self.canvas.delete( i.item)
 
 
-	def sanitized_text( self):
+	def sanitized_text( self) -> object:
 		return self.__class__.sanitize_text( self.text)
 
 
 	@classmethod
-	def sanitize_text( cls, text):
+	def sanitize_text( cls, text: object) -> object:
 		text = unescape_html_entity_references(text)
 		# Explicitly decode byte strings to avoid polluting results with b''
 		if sys.version_info[0] > 2:
@@ -252,7 +252,7 @@ class BkFtext(object):
 
 class text_chunk(object):
 
-	def __init__( self, text, attrs=None, newline_after=False):
+	def __init__( self, text: object, attrs: object = None, newline_after: object = False) -> None:
 		# Internally use only unicode strings
 		if sys.version_info[0] > 2:
 			if isinstance(text, bytes):
@@ -271,35 +271,35 @@ class text_chunk(object):
 
 class FtextHandler ( xml.sax.ContentHandler):
 
-	def __init__( self):
+	def __init__( self) -> None:
 		xml.sax.ContentHandler.__init__( self)
 		self._above = []
 		self.chunks = []
 		self._text = ""
 
 
-	def startElement( self, name, attrs):
+	def startElement( self, name: object, attrs: object) -> object:
 		self._closeCurrentText()
 		self._above.append( name)
 
 
-	def endElement( self, name):
+	def endElement( self, name: object) -> object:
 		self._closeCurrentText()
 		self._above.pop( -1)
 
 
-	def _closeCurrentText( self):
+	def _closeCurrentText( self) -> object:
 		if self._text:
 			self.chunks.append( text_chunk( self._text, attrs = set( self._above)))
 			self._text = ""
 
 
-	def characters( self, data):
+	def characters( self, data: object) -> object:
 		self._text += data
 
 
 #============================================
-def _collect_chunks_from_element( element, chunks, above):
+def _collect_chunks_from_element( element: object, chunks: object, above: object) -> object:
 	above.append( element.tag)
 	if element.text:
 		chunks.append( text_chunk( element.text, attrs=set( above)))
@@ -318,7 +318,7 @@ except ImportError:
 	from html.entities import name2codepoint
 
 
-def unescape_html_entity_references( text):
+def unescape_html_entity_references( text: object) -> object:
 	reX = "&([a-zA-Z]+);"
 	# Type of text and reX has to be the same
 	if sys.version_info[0] > 2:
@@ -330,7 +330,7 @@ def unescape_html_entity_references( text):
 	return re.sub(reX , _unescape_one_html_entity_reference, text)
 
 
-def _unescape_one_html_entity_reference( m):
+def _unescape_one_html_entity_reference( m: object) -> object:
 	"""we will use this function inside a regexp to replace entities"""
 	hit = m.group(1)
 	if hit not in ["amp","gt","lt"] and hit in name2codepoint:
@@ -340,4 +340,3 @@ def _unescape_one_html_entity_reference( m):
 			return chr(name2codepoint[hit])
 	else:
 		return "&"+hit+";"
-

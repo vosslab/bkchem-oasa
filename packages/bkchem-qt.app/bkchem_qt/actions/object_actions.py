@@ -2,236 +2,192 @@
 
 # local repo modules
 from bkchem_qt.actions.action_registry import MenuAction
-import bkchem_qt.canvas.items.atom_item
-import bkchem_qt.canvas.items.bond_item
+import bkchem_qt.actions.property_editing
+import bkchem_qt.canvas.document_projection
+import bkchem_qt.geometry
+import bkchem_qt.models.document_object
+import bkchem_qt.models.document_session
+import bkchem_qt.models.molecule_model
 import bkchem_qt.undo.commands
 
-# minimum z-value floor to avoid overlapping paper/grid layers
-_Z_FLOOR = -50
+#============================================
+def _active_presentation_stack_session(app: object) -> object | None:
+	"""Return the registered synchronized session owning all active aliases."""
+	session = getattr(app, "_active_session", None)
+	document = getattr(app, "document", None)
+	scene = getattr(app, "scene", None)
+	view = getattr(app, "view", None)
+	sessions = getattr(app, "sessions", ())
+	if session is None or document is None or scene is None or view is None:
+		return None
+	if session.is_disposed or session not in sessions:
+		return None
+	if session.document is not document or session.scene is not scene or session.view is not view:
+		return None
+	return session
 
 
 #============================================
-def _get_selected_items(app) -> list:
-	"""Collect all selected atom and bond QGraphicsItems.
-
-	Args:
-		app: The main application object.
-
-	Returns:
-		List of AtomItem and BondItem instances that are selected.
-	"""
-	atoms = app.document.selected_atoms
-	bonds = app.document.selected_bonds
-	items = list(atoms) + list(bonds)
-	return items
-
-
-#============================================
-def _scene_z_range(app) -> tuple:
-	"""Compute min and max z-values of interactive items in the scene.
-
-	Skips items with z-values below _Z_FLOOR to exclude the paper
-	background and grid overlay layers.
-
-	Args:
-		app: The main application object.
-
-	Returns:
-		Tuple of (min_z, max_z). Returns (0.0, 0.0) if no items exist.
-	"""
-	scene = app.document._scene
-	if scene is None:
-		return (0.0, 0.0)
-	z_values = []
-	for item in scene.items():
-		z = item.zValue()
-		# skip paper background and grid layers
-		if z < _Z_FLOOR:
-			continue
-		z_values.append(z)
-	if not z_values:
-		return (0.0, 0.0)
-	return (min(z_values), max(z_values))
-
-
-#============================================
-def handle_bring_to_front(app) -> None:
-	"""Lift selected items to the top of the z-order stack.
-
-	Finds the maximum z-value among all interactive scene items and
-	sets each selected item one level above it.
-
-	Args:
-		app: The main application object.
-	"""
-	items = _get_selected_items(app)
-	if not items:
+def _submit_presentation_stack_reorder(app: object, mode: str) -> None:
+	"""Submit one eligible presentation-stack action through backend authority."""
+	session = _active_presentation_stack_session(app)
+	if session is None or not session.can_commit_persistent_action:
+		app.statusBar().showMessage("Presentation stack action is unavailable", 3000)
 		return
-	_min_z, max_z = _scene_z_range(app)
-	# place all selected items above the current max
-	new_z = max_z + 1
-	for item in items:
-		item.setZValue(new_z)
-	app.statusBar().showMessage("Brought to front", 2000)
-
-
-#============================================
-def handle_send_back(app) -> None:
-	"""Lower selected items to the bottom of the z-order stack.
-
-	Finds the minimum z-value among interactive scene items (above
-	the paper/grid floor) and sets each selected item one level
-	below it.
-
-	Args:
-		app: The main application object.
-	"""
-	items = _get_selected_items(app)
-	if not items:
-		return
-	min_z, _max_z = _scene_z_range(app)
-	# place all selected items below the current min but above floor
-	new_z = max(min_z - 1, _Z_FLOOR)
-	for item in items:
-		item.setZValue(new_z)
-	app.statusBar().showMessage("Sent to back", 2000)
-
-
-#============================================
-def handle_swap_on_stack(app) -> None:
-	"""Reverse the z-order of selected items.
-
-	Collects the z-values of all selected items, sorts them, then
-	assigns them in reverse order so items swap their stacking
-	positions.
-
-	Args:
-		app: The main application object.
-	"""
-	items = _get_selected_items(app)
-	if len(items) < 2:
-		app.statusBar().showMessage(
-			"Select at least two items to swap", 3000
-		)
-		return
-	# collect current z-values sorted ascending
-	z_values = sorted(item.zValue() for item in items)
-	# sort items by current z ascending
-	items_sorted = sorted(items, key=lambda it: it.zValue())
-	# assign z-values in reverse order
-	for item, new_z in zip(items_sorted, reversed(z_values)):
-		item.setZValue(new_z)
-	app.statusBar().showMessage("Swapped on stack", 2000)
-
-
-#============================================
-def _compute_selection_center(atoms) -> tuple:
-	"""Compute the centroid of selected atom positions.
-
-	Args:
-		atoms: List of AtomItem instances.
-
-	Returns:
-		Tuple of (center_x, center_y).
-	"""
-	sum_x = 0.0
-	sum_y = 0.0
-	for atom_item in atoms:
-		sum_x += atom_item.atom_model.x
-		sum_y += atom_item.atom_model.y
-	n = len(atoms)
-	center_x = sum_x / n
-	center_y = sum_y / n
-	return (center_x, center_y)
-
-
-#============================================
-def handle_vertical_mirror(app) -> None:
-	"""Reflect selected atoms across their common vertical axis.
-
-	Computes the horizontal center of the selection and mirrors
-	each atom's x-coordinate across it. Creates an undoable
-	MoveAtomsCommand for the transformation.
-
-	Args:
-		app: The main application object.
-	"""
-	atoms = app.document.selected_atoms
-	if not atoms:
-		app.statusBar().showMessage(
-			"Select atoms to mirror", 3000
-		)
-		return
-	center_x, _center_y = _compute_selection_center(atoms)
-	# compute offsets and apply moves
-	items_and_offsets = []
-	for atom_item in atoms:
-		model = atom_item.atom_model
-		old_x = model.x
-		new_x = 2 * center_x - old_x
-		dx = new_x - old_x
-		# apply the move immediately
-		model.x = new_x
-		items_and_offsets.append((atom_item, dx, 0.0))
-	# push undoable command (first redo is skipped since already moved)
-	cmd = bkchem_qt.undo.commands.MoveAtomsCommand(
-		items_and_offsets, "Vertical Mirror"
+	root_ids = bkchem_qt.canvas.document_projection.selected_presentation_stack_root_ids(
+		session.document, session.scene,
 	)
-	app.document.undo_stack.push(cmd)
-	app.statusBar().showMessage("Vertical mirror applied", 2000)
-
-
-#============================================
-def handle_horizontal_mirror(app) -> None:
-	"""Reflect selected atoms across their common horizontal axis.
-
-	Computes the vertical center of the selection and mirrors each
-	atom's y-coordinate across it. Creates an undoable
-	MoveAtomsCommand for the transformation.
-
-	Args:
-		app: The main application object.
-	"""
-	atoms = app.document.selected_atoms
-	if not atoms:
+	if not root_ids:
 		app.statusBar().showMessage(
-			"Select atoms to mirror", 3000
+			"Select only durable presentation objects to reorder", 3000,
 		)
 		return
-	_center_x, center_y = _compute_selection_center(atoms)
-	# compute offsets and apply moves
-	items_and_offsets = []
-	for atom_item in atoms:
-		model = atom_item.atom_model
-		old_y = model.y
-		new_y = 2 * center_y - old_y
-		dy = new_y - old_y
-		# apply the move immediately
-		model.y = new_y
-		items_and_offsets.append((atom_item, 0.0, dy))
-	# push undoable command (first redo is skipped since already moved)
-	cmd = bkchem_qt.undo.commands.MoveAtomsCommand(
-		items_and_offsets, "Horizontal Mirror"
+	if mode == "swap-at-slots" and len(root_ids) < 2:
+		app.statusBar().showMessage("Select at least two items to swap", 3000)
+		return
+	try:
+		submit = app.persistent_operation_capability_for(session)
+	except ValueError:
+		app.statusBar().showMessage("Presentation stack action is unavailable", 3000)
+		return
+	if _active_presentation_stack_session(app) is not session:
+		app.statusBar().showMessage("Presentation stack action no longer applies to this tab", 3000)
+		return
+	request = bkchem_qt.models.document_session.build_presentation_stack_request(
+		session.backend_snapshot.revision, mode, root_ids,
 	)
-	app.document.undo_stack.push(cmd)
-	app.statusBar().showMessage("Horizontal mirror applied", 2000)
+	outcome = submit(request)
+	app._show_persistent_action_outcome(outcome)
+	app._refresh_document_actions()
 
 
 #============================================
-def handle_scale(app) -> None:
-	"""Scale selected atom positions relative to the selection center.
+def handle_bring_to_front(app: object) -> None:
+	"""Bring eligible direct presentation roots to the front authoritatively."""
+	_submit_presentation_stack_reorder(app, "bring-to-front")
 
-	Opens the ScaleDialog to get X and Y scale factors. Each atom's
-	position is scaled around the centroid of the selection. Creates
-	an undoable MoveAtomsCommand for the transformation.
 
-	Args:
-		app: The main application object.
-	"""
-	atoms = app.document.selected_atoms
-	if not atoms:
+#============================================
+def handle_send_back(app: object) -> None:
+	"""Send eligible direct presentation roots to the back authoritatively."""
+	_submit_presentation_stack_reorder(app, "send-back")
+
+
+#============================================
+def handle_swap_on_stack(app: object) -> None:
+	"""Reverse eligible presentation roots in their backend stack slots."""
+	_submit_presentation_stack_reorder(app, "swap-at-slots")
+
+
+#============================================
+def _selection_bounds(objects: list) -> tuple[float, float, float, float] | None:
+	"""Return persistent aggregate bounds for selected document top levels."""
+	bounds = bkchem_qt.geometry.union_bounds([
+		bkchem_qt.geometry.top_level_bounds(object_model)
+		for object_model in objects
+	])
+	return bounds
+
+
+#============================================
+def _push_affine_transform(
+		app: object, objects: list, origin: tuple[float, float],
+		scale_x: float, scale_y: float, text: str,
+		) -> bool:
+	"""Push a non-merging model-state affine transform for selected objects."""
+	atom_changes = []
+	presentation_changes = []
+	for object_model in objects:
+		if isinstance(
+			object_model, bkchem_qt.models.molecule_model.MoleculeModel,
+			):
+			for atom_model in object_model.atoms:
+				before = (atom_model.x, atom_model.y)
+				after = bkchem_qt.geometry.transform_point(
+					before, origin, scale_x, scale_y,
+				)
+				if after != before:
+					atom_changes.append((atom_model, before, after))
+		elif isinstance(
+			object_model, bkchem_qt.models.document_object.PresentationObject,
+			):
+			before_points = object_model.points
+			before_bounds = object_model.bounds
+			after_points = [
+				(*bkchem_qt.geometry.transform_point(
+					(x, y), origin, scale_x, scale_y,
+				), z)
+				for x, y, z in before_points
+			]
+			after_bounds = bkchem_qt.geometry.transform_bounds(
+				before_bounds, origin, scale_x, scale_y,
+			)
+			if after_points != before_points or after_bounds != before_bounds:
+				presentation_changes.append((
+					object_model,
+					(before_points, before_bounds),
+					(after_points, after_bounds),
+				))
+		else:
+			raise TypeError(f"Unsupported document object: {type(object_model)!r}")
+	if not atom_changes and not presentation_changes:
+		return False
+	app.document.undo_stack.push(
+		bkchem_qt.undo.commands.TransformGeometryCommand(
+			atom_changes, presentation_changes, text,
+		),
+	)
+	return True
+
+
+#============================================
+def handle_vertical_mirror(app: object) -> None:
+	"""Reflect selected top levels across their aggregate vertical center."""
+	objects = app.document.selected_top_level_objects
+	bounds = _selection_bounds(objects)
+	if bounds is None:
 		app.statusBar().showMessage(
-			"Select atoms to scale", 3000
+			"Select objects to mirror", 3000
+		)
+		return
+	left, top, right, bottom = bounds
+	if _push_affine_transform(
+			app, objects, ((left + right) / 2.0, (top + bottom) / 2.0),
+			-1.0, 1.0, "Vertical Mirror",
+		):
+		app.statusBar().showMessage("Vertical mirror applied", 2000)
+
+
+#============================================
+def handle_horizontal_mirror(app: object) -> None:
+	"""Reflect selected top levels across their aggregate horizontal center."""
+	objects = app.document.selected_top_level_objects
+	bounds = _selection_bounds(objects)
+	if bounds is None:
+		app.statusBar().showMessage(
+			"Select objects to mirror", 3000
+		)
+		return
+	left, top, right, bottom = bounds
+	if _push_affine_transform(
+			app, objects, ((left + right) / 2.0, (top + bottom) / 2.0),
+			1.0, -1.0, "Horizontal Mirror",
+		):
+		app.statusBar().showMessage("Horizontal mirror applied", 2000)
+
+
+#============================================
+def handle_scale(app: object) -> None:
+	"""Scale selected top levels around their aggregate bounding-box center.
+
+	The dialog retains its existing independent X/Y scale choices.  Its pivot is
+	the center of the selected document objects' aggregate persistent bounds.
+	"""
+	objects = app.document.selected_top_level_objects
+	bounds = _selection_bounds(objects)
+	if bounds is None:
+		app.statusBar().showMessage(
+			"Select objects to scale", 3000
 		)
 		return
 	# show scale dialog
@@ -245,31 +201,16 @@ def handle_scale(app) -> None:
 	# avoid no-op scaling
 	if scale_x == 1.0 and scale_y == 1.0:
 		return
-	center_x, center_y = _compute_selection_center(atoms)
-	# compute offsets and apply moves
-	items_and_offsets = []
-	for atom_item in atoms:
-		model = atom_item.atom_model
-		old_x = model.x
-		old_y = model.y
-		new_x = center_x + (old_x - center_x) * scale_x
-		new_y = center_y + (old_y - center_y) * scale_y
-		dx = new_x - old_x
-		dy = new_y - old_y
-		# apply the move immediately
-		model.x = new_x
-		model.y = new_y
-		items_and_offsets.append((atom_item, dx, dy))
-	# push undoable command (first redo is skipped since already moved)
-	cmd = bkchem_qt.undo.commands.MoveAtomsCommand(
-		items_and_offsets, "Scale"
-	)
-	app.document.undo_stack.push(cmd)
-	app.statusBar().showMessage("Scale applied", 2000)
+	left, top, right, bottom = bounds
+	if _push_affine_transform(
+			app, objects, ((left + right) / 2.0, (top + bottom) / 2.0),
+		scale_x, scale_y, "Scale",
+		):
+		app.statusBar().showMessage("Scale applied", 2000)
 
 
 #============================================
-def handle_configure(app) -> None:
+def handle_configure(app: object) -> None:
 	"""Open the properties dialog for a single selected atom or bond.
 
 	If exactly one atom is selected, opens AtomDialog. If exactly
@@ -283,17 +224,19 @@ def handle_configure(app) -> None:
 	bonds = app.document.selected_bonds
 	# exactly one atom, no bonds
 	if len(atoms) == 1 and len(bonds) == 0:
-		import bkchem_qt.dialogs.atom_dialog
-		bkchem_qt.dialogs.atom_dialog.AtomDialog.edit_atom(
-			atoms[0].atom_model, app
+		changed = bkchem_qt.actions.property_editing.edit_atom_properties(
+			atoms[0].atom_model, app, app.document.undo_stack,
 		)
+		if changed:
+			app.statusBar().showMessage("Edited atom properties", 2000)
 		return
 	# exactly one bond, no atoms
 	if len(bonds) == 1 and len(atoms) == 0:
-		import bkchem_qt.dialogs.bond_dialog
-		bkchem_qt.dialogs.bond_dialog.BondDialog.edit_bond(
-			bonds[0].bond_model, app
+		changed = bkchem_qt.actions.property_editing.edit_bond_properties(
+			bonds[0].bond_model, app, app.document.undo_stack,
 		)
+		if changed:
+			app.statusBar().showMessage("Edited bond properties", 2000)
 		return
 	app.statusBar().showMessage(
 		"Select a single atom or bond to configure", 3000
@@ -301,7 +244,7 @@ def handle_configure(app) -> None:
 
 
 #============================================
-def register_object_actions(registry, app) -> None:
+def register_object_actions(registry: object, app: object) -> None:
 	"""Register all Object menu actions.
 
 	Args:
@@ -309,8 +252,8 @@ def register_object_actions(registry, app) -> None:
 		app: The main BKChem-Qt application object providing handler methods.
 	"""
 	# predicate: true when the document has selected items
-	def has_selection():
-		return app.document.has_selection
+	def has_selection() -> bool:
+		return app.document is not None and app.document.has_selection
 
 	# scale selected objects
 	registry.register(MenuAction(

@@ -1,5 +1,1293 @@
 # Changelog
 
+## 2026-07-30
+
+- Made the direct Qt projection-disposal E2E deterministic: every unavailable
+  projection case retains a clean control tab and retires its error tab before
+  terminal shutdown, while `--kill-after` supplies an application-owned
+  three-second nested-event-loop watchdog.
+
+- Tightened Qt backend-projection replacement around typed lifecycle outcomes:
+  session-bound ports recheck liveness after synchronous delivery before
+  notices, replacement preserves its primary failure when candidate cleanup
+  also faults, and active dock bindings occur only after an installed result.
+  Window-owned document callbacks now have explicit active-binding ownership,
+  so a preparation-unavailable projection remains view-only without native
+  disconnect diagnostics during later tab teardown.
+  Native scene/root deletion validates both wrappers immediately at the
+  boundary, while post-retirement recovery requires an explicit exact-current
+  retry rather than installing an older projection.
+
+- Corrected the Qt projection lifecycle so an accepted backend revision is
+  final even when projection preparation or installation fails. Session-bound
+  typed lifecycle delivery now makes stale tab results inert; recovery prepares
+  only the exact current snapshot, never restores an older display or resubmits
+  accepted intent. Prepared marks retain declared atom-parent ownership, and
+  native wrapper validation gates installation and retirement boundaries.
+
+- Added a stable plain failure discriminator to frontend persistent-operation
+  results. Stale Atom and Bond Property dialog and dock intents now report
+  `revision-conflict`; validation rejections report `validation`. Focused
+  tests prove these rejections preserve the accepted snapshot, history,
+  projection, dirty state, durable selection, and empty Qt undo stack.
+
+- Bound synchronized Atom and Bond Properties intents to the exact backend
+  revision captured before a modal dialog opens. PropertyDock now captures a
+  fresh revision for each control event. A later backend edit produces one
+  typed stale rejection, refreshes from the authoritative projection, and
+  never falls back to Qt-local property history.
+
+- Made Normalize Bond Angles a backend-authoritative Repair action. Its
+  revision-bound durable-ID request atomically preserves complete CDML while
+  fixing ring atoms, assigning non-ring outgoing bonds to deterministic
+  60-degree slots, preserving nondegenerate distances, and using backend
+  history, dirty state, and exact-snapshot reprojection instead of Qt-local
+  undo. Normalize Rings and Straighten Bonds remain local repair routes.
+
+- Made Snap to Hex Grid a backend-authoritative Repair action alongside
+  Normalize Bond Lengths and Clean Geometry. The revision-bound
+  `geometry.repair` request carries durable direct-root molecule IDs, its kind,
+  and finite-positive PostScript-point spacing; accepted results use backend
+  history and canonical reprojection, while lexical no-ops preserve revision
+  and history. The persistent Repair action remains distinct from transient
+  canvas drag snapping.
+
+- Migrated whole-root Qt Cut to one backend-authoritative `top-level.delete`
+  transaction. Cut resolves atom, bond, and mark selections to canonical
+  direct-root molecules, copies the selected CDML fragment first, and submits
+  only immutable durable root IDs through the originating session capability.
+  Accepted deletion now uses backend history and canonical reprojection;
+  synchronized unavailable, stale, ID-less, foreign, unsupported, and rejected
+  paths remain document-inert, while intentionally isolated documents retain
+  the local Cut undo behavior. Clipboard callbacks now use the frozen Cut
+  revision, preserve a stale rejection after another accepted origin mutation,
+  and keep a synchronized Cut unavailable rather than downgrading it to local
+  undo after an isolation transition.
+
+- Routed EditMode atom-only mouse drags through the existing revision-bound
+  OASA `atom.translate` operation. The Qt preview preserves snapping and axis
+  locks, then restores its captured geometry before one session-bound plain
+  request; accepted state arrives through canonical reprojection and backend
+  history. The session explicitly distinguishes backend, legacy-local, and
+  temporarily unavailable drag authority, so unavailable or unaddressable
+  synchronized drags cannot fall back to a Qt move command.
+
+- Added atomic backend-authoritative `atom.properties.patch`. Atom Properties
+  now submits one validated immutable request for all changed atom dialog
+  fields, preserves complete CDML content, and reprojects the accepted backend
+  snapshot with durable atom selection rather than creating synchronized Qt
+  property undo entries.
+  PropertyDock Symbol, Charge, and Show Label controls now submit the same
+  atom-patch grammar through a callback frozen to their owning tab; isolated
+  documents retain the intended local undo path.
+
+- Added the atomic backend-authoritative `bond.properties.patch` operation.
+  One revision-bound request now applies explicitly touched order, type, center,
+  widths, and color together while preserving untouched and opaque CDML.  Bond
+  Properties routes and synchronized PropertyDock order/type controls submit
+  this backend patch rather than creating a Qt bond-property undo command.
+  The dialog copies its plain display values before opening, while each
+  submission capability stays bound to the original view/session; fresh
+  reprojections preserve durable bond selection and a failed accepted
+  projection retries only the already accepted snapshot.
+
+- Moved the context-menu Set Bond Type action onto the revision-bound OASA
+  `bond.type.set` operation. It accepts one direct durable molecule/bond pair
+  and an ordinary type character, preserves bond order, direction, attributes,
+  children, and opaque document content, and uses backend history plus
+  canonical reprojection and durable selection instead of a Qt property command.
+  `q1` can convert to an ordinary type; compatibility `l1`/`r1` remain lexical
+  no-ops for requested `h` and otherwise change only the type character.
+
+- Reconciled CDML 26.07 bond-style semantics across OASA and Qt: `a` is adder,
+  `b` bold, `d` dashed, `o` dotted, and `s` wavy. Legacy `l` and `r` remain
+  readable compatibility forms that normalize to hashed bonds.
+
+- Implemented native OASA adder, dashed, and dotted render operations for
+  orders 1 through 3, with shared CDML lane/default semantics and lossless Qt
+  projection of explicit depiction fields.
+
+- Corrected authored OASA CDML serialization to reject unsupported bond
+  type/order pairs, including `q2`; Haworth front edges remain authorable only
+  as `q1` while compatibility document parsing remains permissive.
+
+- Centralized Qt bond labels and choices so Draw, ribbon, property, dialog, and
+  context-menu surfaces use canonical persistent codes. Existing Haworth `q`
+  bonds display as Haworth front edges without becoming a generic authoring
+  choice.
+
+- Retired each transient Qt context-menu tree through deferred deletion as soon
+  as its modal interaction ends. This keeps view ownership valid during the
+  nested event loop while preventing stale `QMenu` and submenu wrappers from
+  surviving into later scene teardown or Python finalization.
+
+- Migrated focused Qt fragment, group, and PropertyDock tests to the shared
+  known-scene retirement path, so scene-owned graphics never enter the
+  detached-item disposal boundary during test teardown.
+
+- Moved the context-menu Set Bond Order action onto the revision-bound OASA
+  `bond.order.set` operation. It accepts one direct durable molecule/bond pair
+  and an exact order, preserves the existing supported bond type and all
+  unrelated CDML, and uses backend history plus canonical reprojection and
+  durable bond selection instead of a Qt property command.
+
+- Routed EditMode atom-only arrow-key nudges through the revision-bound OASA
+  `atom.translate` operation. It validates durable direct molecule/atom targets
+  and finite scene-point deltas atomically, patches only direct point
+  coordinates, preserves canonical coordinate no-ops including zero-delta
+  lexical CDML, and uses backend history plus canonical reprojection and
+  durable selection recovery
+  instead of a local Qt nudge undo command. Presentation selections remain
+  ignored; an ID-less atom or unavailable session route leaves the gesture
+  inert.
+
+- Corrected one-axis `atom.translate` requests to preserve the untouched point
+  attribute exactly, including compatible unitless coordinate spellings. The
+  detached backend candidate now rewrites only coordinate axes with nonzero
+  request deltas after all targets and coordinates validate.
+
+- Corrected `atom.translate` so a finite sub-resolution delta whose validated
+  three-decimal coordinate serialization is unchanged creates no revision or
+  history entry.
+
+- Moved Clean Geometry onto the backend-authoritative `geometry.repair`
+  boundary. The synchronous `clean-geometry` kind regenerates deterministic
+  OASA/RDKit layouts at the requested bond length, retains each molecule's
+  source centroid, patches only direct atom-point `x`/`y`, and commits through
+  backend history and fresh projection instead of Qt workers or local undo.
+  Its accepted repair decodes only direct core chemistry, preserving foreign
+  atom-shaped molecule extensions as opaque CDML. Backend-only timing through
+  a 60-atom representative supports the synchronous M0; a later asynchronous
+  tier requires full document-plus-projection measurements.
+
+- Made OASA-to-RDKit bond insertion deterministic. RDKit atom indices retain
+  OASA atom-list order, while graph-set bonds now enter by ascending unordered
+  atom-index pair so equivalent molecules produce repeatable 2D depictions.
+
+- Implemented the bounded backend-authoritative rectangular Bracket route.
+  Manual drags and selected-atom bounds now submit one immutable `bracket.add`
+  request that appends an atomic left/right top-level polyline pair through the
+  canonical CDML candidate, backend history, and reprojection path. Removed
+  the exposed unimplemented Round bracket option. Independent authority,
+  Qt-lifecycle, and test-quality reviews accepted its preview retirement,
+  persistence, and undo/redo proofs.
+
+- Implemented the bounded Atom Align M0 route: horizontal and vertical
+  BondAlign controls submit immutable revision-bound durable atom targets to
+  OASA, which changes only the selected direct point coordinate axis and uses
+  canonical no-op, backend history, and reprojection behavior. Removed the
+  unimplemented mirror, inversion, and free-rotation controls from this Qt
+  mode rather than silently assigning them unrelated persistent behavior.
+
+- Repaired and accepted Atom Align M0 semantic no-ops and its Qt session seam:
+  parsed equal selected coordinates now preserve lexical CDML and history
+  without a false commit, while the mode supplies only axis and durable target
+  pairs to an explicit session-owned adapter. Focused backend, Qt-lifecycle,
+  and test-quality reviews confirmed its atomic backend undo/redo and fresh
+  projection behavior.
+
+- Implemented the bounded backend-authoritative VectorMode creation route for
+  rectangles, ovals, and polylines. Completed gestures now commit canonical
+  complete CDML through the session, receive OASA durable IDs, and use backend
+  history/reprojection instead of Qt undo ownership; the legacy one-axis-zero
+  box gesture remains accepted.
+
+- Corrected VectorMode creation to follow the normal complete-candidate path
+  without a mismatched provisional selection correlation, preserving accepted
+  canonical reprojection for rectangle, oval, and polyline gestures.
+
+- Accepted the presentation-stack migration after fresh independent authority
+  and pytest-quality review confirmed its backend-owned CDML transaction,
+  disposable Qt projection, preservation, atomic rejection, and focused
+  offscreen evidence.
+
+- Hardened the presentation-stack eligibility bridge so only the exact live
+  projection binding for a supported document presentation root can submit an
+  Object action. Added focused backend/projection tests for forged graphics,
+  stale requests, semantic no-ops, opaque preservation, and backend undo/redo;
+  the focused offscreen suite passed 9 tests in 0.42s.
+
+- Routed presentation-stack Bring to Front, Send to Back, and Swap on Stack
+  through revision-bound backend complete-CDML candidates. The strict selection
+  bridge accepts only durable document-owned presentation roots; accepted
+  results use backend history and canonical reprojection rather than local Qt
+  object-stack authority.
+
+- Added direct-root presentation reorder validation that preserves molecule,
+  envelope, comments, and opaque CDML content while rejecting stale, invalid,
+  mixed, or unsupported targets atomically.
+
+- Defined one shared OASA preservation-only CDML container boundary for
+  `display-form`, `user-data`, and handler-less `external-data`. Their literal
+  payload IDs and reference-like values now survive candidate commits without
+  provisional mapping or reference rewrite, while still reserving global ID
+  collisions and leaving direct editable CDML declarations unchanged.
+
+- Corrected the CDML v26.07 paper grammar: custom `paper@size_x` and
+  `paper@size_y` are positive finite decimal millimetre values, rather than
+  integers. Unchanged accepted legacy lexical values remain preserved.
+
+- Added the frontend-neutral OASA paper-properties patch transaction. It
+  accepts one revision-bound immutable list of explicit paper-field intent,
+  validates the complete CDML v26.07 paper catalog and custom dimensions,
+  preserves untouched legacy and extension XML, and uses ordinary atomic
+  commit, history, no-op, and restore behavior. The backend also exposes its
+  plain millimetre paper-size catalog for frontend consumers.
+
+- Routed File > Document Properties through OASA's revision-bound explicit
+  paper-properties patch. The detached dialog now returns only deliberately
+  changed plain values, preserves unsupported raw type/orientation values and
+  absent or legacy fields when untouched, and obtains the complete paper-size
+  catalog from the backend. The Qt scene and snapshot renderer use that same
+  catalog for recognized page sizes; accepted snapshots own undo, dirty state,
+  and projection replacement.
+
+- Made the Document Properties dialog observe OASA's first-direct-core-paper
+  boundary and effective absent-paper defaults. Foreign namespaced `paper`
+  records stay opaque, while a later explicit patch now displays and creates
+  the same standard-derived or `A4`/portrait default that the backend owns.
+
+- Made successful persistent-operation no-ops preserve the installed Qt
+  projection from the authoritative returned snapshot. An unchanged Set
+  molecule name result now creates no backend-history entry, revision, dirty
+  transition, generation change, or graphics retirement while changed results
+  retain the normal backend commit and reprojection path.
+
+- Routed Set molecule name through a revision-bound OASA CDML operation and
+  retired the visible Qt Set molecule ID action so durable identity remains
+  backend-owned.
+
+- Separated compatibility projection linkage from backend-issued CDML identity.
+  ID-less legacy atom and bond records still render and round-trip exactly, but
+  their Qt-local `atom1`/`bond1` linkage cannot become a durable child
+  selection key or persistent mutation target. A selected ID-less child may
+  observe only its owning durable molecule through the root-only SMILES query;
+  the request never fabricates or submits a child ID. Backend-issued core IDs
+  retain the existing child-addressed backend-authoritative interaction routes.
+
+- Removed the Qt Chemistry > Export InChI action, menu item, and
+  `format_bridge.export_inchi` adapter. That route reconstructed chemistry
+  from a disposable Qt projection, rather than observing the authoritative
+  backend document. InChI import remains supported through its existing
+  backend-authoritative insertion route; Export SMILES remains the supported
+  authoritative observation export.
+
+- Routed Chemistry > Export SMILES through the synchronized OASA CDML session
+  observation. The Qt action now resolves one durable direct-root molecule ID
+  in canonical selection order and copies only the returned authoritative
+  string; it no longer rebuilds chemistry from disposable Qt molecule models.
+  Unsupported selection, stale, unavailable, and projection-out-of-sync paths
+  remain nonmutating local warnings.
+
+- Corrected authoritative CDML SMILES observation for directed wedge and
+  hashed-bond stereo. Supported finite, unambiguous `w1`/`h1` tetrahedral
+  depictions now produce canonical isomeric SMILES; a styled depiction that
+  cannot be represented returns the existing typed unavailable result without
+  changing the authoritative snapshot.
+
+- Added the frontend-neutral `query_molecule_smiles` OASA document-session
+  observation. A revision-bound direct-root molecule ID now produces an
+  immutable canonical/isomeric SMILES result without changing authoritative
+  CDML, revision history, dirty state, or saved baseline; invalid targets and
+  unavailable chemistry conversion produce typed failures.
+
+- Corrected authoritative molecule-SMILES decoding to read only direct
+  canonical or legacy-core atom, bond, point, and font records. Foreign and
+  nested opaque XML remains preservation-only data, while legacy compatibility
+  decoding retains its historical descendant behavior.
+
+- Recorded M0 evidence for a backend-authoritative Normalize Bond Angles
+  slice. The existing 60-degree subtree operation preserves the direct-CDML
+  boundary, but its incoming-edge slot collision requires a product and
+  algorithm decision before the Qt-local action can move behind OASA.
+
+- Kept a failed detached undo-history graphics root under one explicit terminal
+  reaper through session disposal. A later history-clear traversal now skips a
+  root already owned by that reaper, so it cannot inspect the stale wrapper or
+  issue a duplicate native-deletion attempt before MainWindow's controlled
+  resolution pass.
+
+- Corrected the direct Arrow backend-authority E2E shutdown path. The temporary
+  exercised document now supplies explicit production Discard decisions for
+  both ordinary and Recovery Export close prompts while retaining backend-owned
+  dirty state through teardown, rather than marking only its Qt projection
+  clean before close.
+
+- Strengthened the Arrow backend-authority E2E close proof: its exercised
+  authoritative snapshot must remain dirty and ordinarily Save-eligible before
+  tab closure, and the scoped decision seam records that the normal production
+  Discard route handles that document.
+
+- Added one bounded event-loop retry for a MainWindow-owned terminal graphics
+  record that remains unresolved after the destroyed-session callback. A
+  transient native failure now gets one ordinary Qt retry; a repeated failure
+  stays explicitly retained for controlled shutdown handling without a
+  zero-delay retry loop.
+
+- Kept terminal Qt graphics failures under their session owner through tab
+  close. Transient modes and prepared projection cleanup now receive the
+  session reaper, and a single explicit aggregate transfers both detached-root
+  and failed scene-transition records to MainWindow for controlled retry.
+
+- Routed direct Qt E2E programs through the production MainWindow shutdown
+  boundary. Their terminal cleanup now approves normal session shutdown,
+  drains the session reaper, and confirms MainWindow QObject deletion before
+  returning to Python; projection-disposal evidence records safe pre-retirement
+  state and terminal native-wrapper validity without calling graphics methods
+  after retirement.
+
+- Made Document the terminal owner for graphics retained by discarded Qt undo
+  history. Rebranching and clearing now retire detached command trees before
+  QUndoStack releases their wrappers, while commands still in undo/redo retain
+  their existing nonterminal ownership. Failed native deletion transfers
+  through the document session's controlled graphics reaper. Scene-owned
+  current projections and detached history now use separate terminal paths,
+  so a failed root has one reaper owner; the current unlimited history policy
+  rejects unowned finite Qt eviction until it has its own retirement route.
+
+- Hardened terminal Qt projection retirement when a retained scene wrapper is
+  already invalid or rejects a root removal. The coordinator now routes
+  surviving roots through an explicit detached boundary or retains the complete
+  root set with its known scene for controlled retry before reporting the
+  diagnostic, instead of allowing a mode to release the last Python owner.
+
+## 2026-07-29
+
+- Corrected ChemScene paper and hex-grid decoration retirement. Their named
+  frontend-only graphics now use the same child-first terminal coordinator as
+  document projections, while anonymous scene contents remain scene-owned.
+  A failed native decoration deletion transfers to the controlled reaper for
+  explicit retry instead of depending on Python finalization. A live session
+  owns that failure through its terminal handoff to the MainWindow reaper;
+  constructor-only cleanup uses the process reaper after no session survives.
+
+- Routed Arrow, Vector, Bracket, Wavy, and Edit-mode terminal preview cleanup through the Qt graphics-retirement coordinator so native preview wrappers retire before Python releases them.
+
+- Corrected same-tab backend projection replacement so a failed terminal
+  graphics deletion remains owned by the live document session until its
+  controlled retry. Session teardown now transfers any unresolved replacement
+  record into the MainWindow terminal reaper before its Python roots release.
+
+- Corrected terminal PySide6 graphics retirement. Prepared and replaced
+  projections now snapshot complete child graphics trees, explicitly retire
+  child-before-parent native wrappers, and transfer any failed deletion to a
+  controlled frontend reaper. Undo-owned graphics retain their separate
+  nonterminal detach path; atom-number labels now remain attached and hidden
+  until their parent crosses the same terminal boundary.
+
+- Added backend-authoritative direct-atom numbering. Number and Clear Numbers
+  now submit revision-bound durable-ID and scalar intent, commit canonical CDML,
+  and reproject the accepted snapshot. The bounded route preserves explicit
+  visibility, backend undo/redo and saved-state behavior, exact-snapshot
+  recovery, and atomic typed rejection for a targeted legacy atom-number mark;
+  it does not add allocation, batch renumbering, or legacy conversion.
+
+- Added backend-authoritative detached system-template placement. TemplateMode
+  now submits one revision-bound catalog-name and finite-anchor intent; OASA
+  prepares, commits, and returns the canonical CDML result, while Qt restores
+  selection only through accepted durable-ID correlation after reprojection.
+  Atom anchoring adds a separate molecule and does not attach or fuse it.
+
+- Added backend-authoritative atom element substitutions. Element changes now
+  commit canonical CDML and reproject the accepted backend snapshot.
+
+- Routed the active-view context-menu Set Element action through the same
+  revision-bound backend atom-element request as AtomMode. Its accepted result
+  restores selection through the replacement atom's durable ID and remains
+  available to backend undo; same-symbol and inactive-view actions are inert.
+
+- Added the bounded backend-authoritative Draw route for bonded-pair creation,
+  atom extension, same-molecule joining, and bond-tool application; it commits
+  canonical CDML revisions without claiming generic structural editing or M5 completion.
+
+- Added an active backend-authoritative Draw-mode execution plan. It preserves
+  the blank-canvas bonded-pair behavior as a fresh top-level molecule and
+  scopes the OASA-owned structural operations needed to deliver it.
+
+- Corrected frozen Qt menu startup to load action registrars from one immutable
+  ordered manifest shared with PyInstaller hidden-import planning. Startup now
+  preflights every required `menus.yaml` action before native menu creation and
+  reports deterministic typed module, registrar, or missing-key failures.
+
+- Strengthened the macOS frozen Qt smoke receipt evidence. Focused shutdown
+  coverage now captures and invokes the scheduled Qt callback, proving it
+  records timer delivery before requesting normal event-loop exit and before
+  the successful atomic receipt is published.
+
+- Hardened the macOS frozen Qt smoke proof. A receipt now requires delivery of
+  the scheduled controlled-exit timer as well as zero successful Qt retirement,
+  and the builder resolves every smoke log and receipt path below the selected
+  retained run root before creating the smoke directory or launching the app.
+
+- Corrected the macOS frozen Qt smoke boundary. The builder now launches a
+  GUI smoke through the normal LaunchServices application path, retains its
+  app stdout/stderr under the fresh run root, and requires an app-written
+  zero-exit lifecycle receipt in addition to launcher success and clean fatal
+  diagnostics. The receipt is atomically published only after normal timer
+  exit and the existing controlled Qt retirement sequence complete; the
+  lightweight direct frozen `--version` inspection remains separate.
+
+- Corrected the Qt frozen-app version authority. The root zero-padded CalVer
+  spelling remains the public release label; a shared pure profile derives
+  normalized wheel metadata and numeric macOS plist projections, restores the
+  display form for installed `bkchem-qt --version`, requires an explicit
+  numeric `--bundle-build` for real app builds, and independently inspects the
+  staged distribution, display plist key, short release key, build key, and
+  frozen CLI result.
+
+- Strengthened the Qt macOS application inspection gate so the Python runtime
+  capability requires a contained executable regular leaf under its framework,
+  while PySide6, RDKit, Cairo, and rustworkx native checks search only below
+  their declared package roots. Focused fixture coverage rejects nonexecutable
+  runtimes and matching filenames outside each owner root while preserving
+  contained PyInstaller resource/framework links.
+
+- Corrected the Qt macOS application inspection boundary to validate the
+  native `.app` layout rather than the parallel PyInstaller one-dir output.
+  The builder now classifies self-contained `Contents/MacOS`, `Resources`, and
+  `Frameworks` roots; verifies frontend/OASA resources, staged wheel identity,
+  Python, PySide6 Cocoa, and collected chemistry-native capabilities; and
+  accepts only contained payload links. This keeps malformed, partial, and
+  escaping bundles out of the public version and smoke gates.
+
+- Added a per-run PyInstaller configuration/cache boundary to the Qt app
+  builder. A real build now creates one fresh repository-local parent below its
+  retained run root and passes it only through a copied PyInstaller child
+  environment, preserving sourced parent settings while keeping tool state
+  together with the inspected experiment. Dry-run remains a no-write preview.
+
+- Corrected snapshot-authoritative visual export so temporary projection
+  retirement is an observable terminal phase. A renderer now withholds a
+  success artifact when its coordinator or reaper reports cleanup failure,
+  preserves a preceding render failure as primary, and returns plain typed
+  cleanup diagnostics without changing backend or live-session state.
+
+- Routed interactive SMILES worker-proposal test structure assertions through
+  CDML inspection before their compatibility-only DOM parsing.
+
+- Corrected interactive SMILES insertion to construct the same
+  `TextMoleculeInsertionWorker`, request capture, relay, and backend-authoritative
+  delivery path as InChI and peptide input. SMILES keeps its existing labels and
+  error vocabulary as route metadata, while file Open retains its separate
+  complete-document worker path.
+
+- Added a snapshot-authoritative visual-output seam for the Qt frontend. SVG,
+  PNG, PDF, cropped SVG, and Copy as SVG now capture immutable backend CDML
+  plus durable selection IDs, render only a disposable snapshot projection,
+  report typed unavailable/render/opaque-coverage outcomes, and leave session
+  revisions, saved baseline, history, live projection, and candidate state
+  unchanged.
+
+- Corrected the Qt source-tree PyInstaller metadata boundary. The isolated
+  builder now produces one local, no-isolation frontend wheel beneath its fresh
+  retained run root, validates and safely stages the complete matching
+  wheel-produced `bkchem_qt-<version>.dist-info` record, and supplies that
+  record as explicit top-level bundle data. The plan now describes the frontend
+  distribution and source project rather than a PyInstaller metadata hook;
+  source analysis and OASA-owned source/data inputs remain unchanged.
+
+- Hardened Qt wheel metadata staging so `METADATA`, `WHEEL`, and `RECORD` each
+  must be a direct regular `.dist-info` ZIP member. The host-aware ZIP check
+  rejects DOS/FAT directory and volume-label entries plus POSIX directories,
+  links, and special files, so each complete-record member has ordinary-file
+  semantics.
+
+- Routed Chemistry > Import InChI and Import Peptide Sequence through the
+  backend-authoritative molecule-insertion boundary. Interactive SMILES,
+  InChI, and peptide input now share one plain-data worker proposal path with
+  captured revision, token, placement, and label; accepted mutations use OASA
+  history and canonical snapshot reprojection rather than Qt model conversion
+  or local undo. CML and CDXML capability coverage now validates the immutable
+  complete-CDML worker result through imported-session staging.
+
+- Corrected the Qt ICNS build reliability boundary. Both `iconutil` self-test
+  directions now use one finite deadline and return a structured fallback
+  diagnostic for timeout, execution unavailability, or nonzero exit. The
+  Qt-rendered PNG fallback now validates complete PNG structure, chunk bounds,
+  chunk types, CRCs, 8-bit RGBA IHDR fields, one nonempty contiguous IDAT
+  sequence, and terminal IEND before framing any payload into ICNS chunks.
+
+- Added a host-adaptive Qt macOS ICNS encoder policy. Real Qt bundle builds
+  retain the complete ten-member iconset and `iconutil` route only after a
+  bounded Chess system-icon round-trip proves the local encoder works. A host
+  with an unavailable or failing encoder now runs a controlled Qt SVG renderer
+  subprocess and writes a validated seven-size PNG-chunk ICNS container from
+  the current Qt-owned source. Dry-run remains a no-write preview and reports
+  that the real build selects its encoder after the self-test.
+
+- Hardened the Qt macOS iconset builder seam to derive every standard
+  point-size and Retina filename from one platform contract. Focused tests now
+  pin the ten PNG mappings and the Qt SVG-to-`iconutil` command boundary. A
+  bounded icon-only probe records that the current macOS 26.6 `iconutil`
+  rejects both the generated set and its own extracted system-icon set, so a
+  future controlled build retains the required conversion gate rather than
+  masking that host-tool failure.
+
+- Added a required post-PyInstaller BKChem.app inspection gate to the Qt-only
+  builder. A real build now applies the canonical bundle version metadata,
+  validates the executable, plist identity, plan-declared Qt/OASA/native
+  payloads, and bounded frozen `--version` result before its normal
+  timer-backed smoke launch. Dry-run remains a no-write command preview.
+
+- Added `devel/build_qt_app.py`, an isolated Qt-only PyInstaller app-builder
+  wrapper. It consumes the accepted `QtBundlePlan`, requires one fresh
+  repository-local `tmp/` run root, prints a deterministic no-write preview,
+  and keeps app, work, spec, and icon output isolated. The command carries the
+  Qt entrypoint, resources, OASA data, action and worker imports, native binary
+  collection, and `bkchem-qt` metadata for frozen `--version`. A future built
+  app uses `--smoke-exit` for normal Qt timer-backed shutdown rather than a
+  process kill.
+
+- Added a side-effect-free Qt-only macOS bundle plan and the
+  `build_qt_app.py --dry-run` inspection path. The preview validates
+  `bkchem_qt.cli`, Qt package resources, OASA data, dynamic action imports,
+  native collection targets, and a Qt-owned icon without running PyInstaller
+  or creating build output. `devel/build_macos_dmg.py` is now retired;
+  `build_qt_app.py` plus `qt_bundle_plan.py` are the only active macOS app
+  build path. That Qt-only path remains experimental, with no DMG release
+  claim until controlled native-build evidence exists. The historical Tk tree
+  remains an unshipped reference outside this plan.
+
+- Kept deterministic bounded Qt zoom coverage from 25% through 400% while
+  removing the sleeping and unreachable sweep tests.
+
+- Aligned stale property-editing docstrings with synchronized backend patch
+  and canonical reprojection behavior. [INSTALL.md](INSTALL.md) now
+  distinguishes `defusedxml` hardened compatibility parsing from lxml use in
+  CDML/CDXML parsing paths and controlled SVG construction/rendering.
+
+- Added a bounded backend-authoritative top-level Delete operation. It accepts
+  revision-bound durable direct-root IDs, rejects nested/opaque/unsupported and
+  reaction-referenced targets atomically, preserves surviving CDML order and
+  opaque XML, and routes whole-root Qt selections through backend
+  history/reprojection rather than a local Delete command. Partial structural
+  Delete remains explicitly legacy-isolated pending its own operation grammar.
+
+- Corrected whole-root Delete routing after an authoritative request is formed.
+  An unavailable, rejected, stale, or closed backend result now remains the
+  final non-destructive outcome for that gesture and reports its status; only
+  selections that fail the documented eligibility check before request
+  construction use the legacy-isolated structural Delete route.
+
+- Retired the public Qt complete-document CDML writer and its compatibility
+  aliases. Qt I/O now decodes backend snapshots into disposable projections,
+  while Clipboard Copy builds an explicit selected-object proposal fragment for
+  backend Paste; Save, Template export, and Recovery Export remain exact
+  backend-snapshot publication paths.
+
+- Corrected backend-authoritative Normalize bond lengths to select editable
+  targets through the core-CDML namespace-and-ancestor predicate. Vendor
+  extension subtrees with molecule-, atom-, bond-, or point-shaped local names
+  now remain opaque and reject repair atomically. Focused coverage also proves
+  the registered Qt action uses backend history/reprojection and that a failed
+  projection recovers only the already-accepted snapshot.
+
+- Added the bounded backend-authoritative `geometry.repair` operation for
+  Normalize bond lengths. It validates durable direct-root molecule targets,
+  patches only detached authoritative atom coordinates through OASA, preserves
+  opaque CDML, returns a true no-op without history, and drives Qt through the
+  ordinary backend history/reprojection/save path instead of a local move
+  command.
+
+- Corrected the test-only bare document-scene retirement helper's failure
+  reporting. A cleanup-only failure now preserves its first native retirement
+  diagnostic as the explicit cause, while a test-body failure remains primary
+  and carries the cleanup detail as an exception note.
+
+- Added a shared test-only bare-document scene retirement context manager for
+  focused undo and object-stack coverage. It uses the production temporary
+  scene reaper after `Document` teardown, replacing duplicated raw scene
+  cleanup without changing shipping Qt behavior.
+
+- Added typed reaction-role target checks to the opt-in `authored-26.07` CDML
+  profile. New reaction output now verifies direct-root durable-ID targets for
+  reactants/products, arrows, conditions, and plus signs, while compatibility
+  Load and Commit continue preserving historical nested and ID-less structures.
+
+- Routed temporary ExportProjection scene retirement through the Qt graphics
+  ownership coordinator and a deferred-delete reaper. Export-created scene
+  roots and explicit construction-failure roots now retain a deterministic
+  frontend owner through native-resolution failure rather than falling through
+  to Python finalization; export bytes and backend/CDML behavior are unchanged.
+
+- Routed programmatic Qt event-loop exit through the same idempotent
+  MainWindow approval, session-retirement coordinator, and terminal reaper as
+  an ordinary window close. A canceled Save/Discard/Recovery Export decision
+  resumes the live event loop; graceful shutdown no longer returns to Python
+  with an unretired document-session graph.
+
+- Made durable IDs an explicit `authored-26.07` profile requirement for newly
+  authored selectable CDML direct children: molecules, arrows, plus signs,
+  standalone text, vector shapes, polylines, polygons, and reactions. The
+  compatibility Load and Commit boundary remains ID-less-friendly and
+  preservation-safe for historical records.
+
+- Consolidated Qt graphics teardown behind one scene/item retirement
+  coordinator. Live scene contents now use the scene's one terminal clear
+  after callbacks are disconnected, while detached prepared and undo-held
+  trees use a deterministic child-before-parent protocol guarded by native
+  wrapper validity. Document-session teardown now records monotonic callback,
+  scene, and queued-root phases before releasing Python references. Focused
+  serial coverage closes a graphics-rich session containing atom labels,
+  marks, an active preview, and undo-retained graphics through the production
+  reaper.
+
+- Completed the graphics-retirement failure handoff: a failed explicit
+  detached-root deletion now transfers its wrapper and diagnostic from the
+  transition-local coordinator to the session record and then the MainWindow
+  reaper. The controlled reaper resolution uses a validity-checked native
+  boundary and retains unresolved roots rather than leaving them to Python
+  finalization. Focused serial coverage simulates this boundary failure through
+  the public tab-close path and proves the reaper owns the root until safe
+  cleanup succeeds.
+
+- Clarified CDML v26.07's compatibility acceptance frontier and backend
+  snapshot identity. Ordinary complete-document Load and Commit retain
+  XML-safe, identity/reference-safe compatibility content; `authored-26.07`
+  remains an opt-in authored-profile assessment. Revisions, Save, Recovery
+  Export, and clean/dirty state now explicitly use the owning backend's exact
+  returned immutable snapshot. Focused OASA evidence covers id-less arrows,
+  empty text, and incomplete arrow geometry through compatibility Load/Commit.
+
+- Added the named `verified_sucrose_haworth_v2` Insert-menu preset. OASA
+  verifies its exact recorded PubChem CID 5988 isomeric-SMILES bytes,
+  provenance, and SHA-256 before parsing, then produces the fixed
+  alpha-glucose/beta-fructose 6+5 Haworth depiction with directed q/w/n bonds.
+  Qt captures only placement/session request data; the frozen proposal uses
+  the existing atomic backend molecule-insertion, history, and reprojection
+  path. This bounded preset does not recognize arbitrary disaccharides or
+  claim generic tetrahedral-stereochemistry recovery.
+
+- Corrected Qt projection-unavailable lifecycle handling: projection-dependent
+  menu predicates now evaluate false while a session has no disposable scene
+  projection, while backend-snapshot recovery remains available. Focused close
+  cancellation tests now drive the Recovery Export/Discard/Cancel contract
+  through its explicit decision seam and deterministically retire their tab.
+
+- Closed the Qt ordinary Save boundary: Save and Save As now publish only the
+  exact immutable backend snapshot after the session provenance predicate
+  succeeds, then mark the accepted backend revision saved. Save-ineligible
+  sessions keep their backend snapshot available through Recovery Export
+  without Qt CDML reconstruction or saved-state mutation. Template export now
+  publishes backend-validated canonical CDML through the same atomic snapshot
+  publisher without changing the current document's saved baseline.
+
+- Began the worker-backed external Open migration with the Molfile and SDF
+  document-replacement route. OASA now serializes detached parsed components
+  into a strict complete CDML document, workers deliver only frozen CDML data,
+  and imported sessions establish their backend saved baseline from an empty
+  document. The resulting pathless tab is backend-dirty until authoritative
+  CDML Save publishes its exact snapshot; the original foreign source is never
+  adopted as a save target.
+
+- Corrected same-tab worker-backed Open lifecycle ownership. A queued import
+  result can now replace its source tab without that tab joining the still
+  delivering worker; MainWindow retains that worker through its terminal
+  `finished` delivery and closes it deterministically during shutdown. Focused
+  serial Molfile and multi-component SDF Open coverage now proves pathless
+  backend-dirty staging, exact-snapshot Save, rollback, stale delivery, and
+  closed-tab cleanup.
+
+- Added `MoleculeModel.connected_display_atoms()` as the immutable public
+  displayed-projection adjacency query. Draw Mode placement now consumes that
+  query for ordinary, triple-bond, transoid, and crowded-angle placement,
+  without reaching into OASA topology or wrapper maps.
+
+- Strengthened Draw Mode geometry regression coverage for the degree-two
+  transoid branch and the deterministic largest-gap midpoint used by crowded
+  placement.
+
+## 2026-07-28
+
+- Moved `render_out` controlled SVG construction and serialization to lxml
+  through one shared semantic render-operation walker with thin lxml and
+  minidom adapters. The legacy `svg_out` minidom facade and callback protocol
+  remain unchanged.
+
+- Moved external CDXML molecule input to a fresh hardened lxml parser that
+  rejects every DOCTYPE/DTD while preserving the deliberately narrow import
+  behavior. CDXML export remains the controlled minidom compatibility writer.
+
+- Clarified CDML 26.07's existing directed `w1` and `h1` endpoint semantics:
+  `start` is the narrow tip and `end` is the wide base. Normal OASA molecule
+  decoding now preserves that serialized order, including reflected Haworth
+  drawings and strict authoritative insertion reloads; optional construction
+  canonicalization remains an explicit helper rather than an implicit codec
+  repair.
+
+- Corrected backend-authoritative interactive SMILES, explicit PubChem Insert,
+  and accepted Haworth H6a proposal geometry at their shared producer-side
+  boundary. A captured active-scene grid spacing and paper-center anchor now
+  cross into workers only as finite built-in floats and tuples; detached OASA
+  graphs are collectively scaled by real-bond mean and centered before their
+  molecule-only CDML proposal is serialized. Bond-free proposals anchor
+  without invented bonds. This fixes the prior microscopic, origin-centred
+  SMILES and PubChem accepted geometry while preserving backend-only commit,
+  revision, token, history, and exact-snapshot reprojection semantics.
+
+- Migrated the existing Haworth pyranose and furanose insertion actions to the
+  backend-authoritative molecule-insertion route. Their worker now emits one
+  frozen molecule-only CDML proposal bound to its originating tab, revision,
+  and request token; accepted insertion uses backend history and exact-snapshot
+  reprojection. Before preparation, the action captures finite scene grid
+  spacing and the paper center as plain values; the detached Haworth graph is
+  scaled and centered before proposal serialization, so canonical accepted
+  CDML retains scene-scale coordinates as well as Haworth q/w/n annotations.
+
+- Routed queued import-worker finalization through `MainWindow`'s live-session
+  registry. A completed worker now releases its registered live owner or
+  retires directly, so PubChem, SMILES, repair, and shared import relays never
+  dereference a closed `DocumentSession` after terminal disposal begins.
+
+- Migrated PubChem Lookup insertion to the existing backend-authoritative
+  molecule-insertion transaction. Its worker now returns frozen display facts
+  and a complete molecule-only CDML proposal; Insert remains bound to its
+  captured origin tab and revision, records backend history, and consumes an
+  accepted proposal before any projection recovery. It no longer creates Qt
+  molecule models or local undo commands.
+
+- Added a frontend-neutral, atomic CDML top-level insertion transaction. It
+  accepts only a closed allowlist of drawable records, exact built-in plain-data
+  request values, and reaction-role IDREF children without `id` declarations;
+  it remaps fragment-local declarations and references privately, and translates
+  established molecular and presentation geometry before the ordinary
+  authoritative commit path.
+
+- Migrated Qt Paste to submit one raw complete CDML clipboard fragment through
+  the authoritative backend insertion transaction and canonically reproject its
+  accepted snapshot. Clipboard decoding remains a Qt adapter concern; Paste no
+  longer parses, retokens, translates, detaches, selects, or undo-records Qt
+  document objects. Copy and Cut remain their existing transitional routes.
+
+- Completed the CDML semantic-fingerprint registry for writer-shaped metadata,
+  documented author information, and OASA's nonzero explicit-hydrogen atom
+  count. Legacy direct rich-text markup remains opaque compatibility content,
+  retaining lexical QName and namespace context rather than acquiring a new
+  global typed-markup grammar.
+
+- Documented the XML test-authoring boundary: new tests exercise public CDML
+  behavior or hardened format parsers rather than copying native ElementTree
+  or minidom input parsing. The existing Bandit gate remains the enforcement
+  mechanism; stdlib XML builders and type annotations remain allowed.
+
+- Routed OASA's CDML and embedded CD-SVG molecule-only import paths through
+  the shared lxml complete-CDML gate before their retained minidom traversal.
+  The APIs remain chemistry extraction only; they do not acquire native
+  complete-document Open authority.
+
+- Added an OASA-owned lxml security gate for complete CDML parsing. The
+  authoritative backend and public conformance inspector now share one
+  DOCTYPE-free, no-network parser policy while the existing defused minidom
+  storage bridge retains accepted source semantics.
+
+- Corrected complete-CDML semantic fingerprints so known CDML prefix renames
+  compare by expanded name, while unknown attributes on core elements and
+  opaque extension subtrees retain lexical QNames, literal values, and complete
+  in-scope namespace bindings. CDATA now has explicit character-data semantics;
+  the duplicate implementation-coupled lxml dependency test was removed in
+  favor of the repository import gate.
+
+- Hardened all file-input SVG parses in the LCF optical measurement helper
+  with `defusedxml.ElementTree`. Stdlib ElementTree remains only for controlled
+  SVG construction and serialization, and obsolete Bandit suppressions were
+  removed.
+
+- Replaced the eager Qt hex-grid child forest with one disposable,
+  paper-local overlay that paints cached paths from OASA's existing pure
+  geometry. Theme changes now update only overlay style; paper and spacing
+  changes update that one item's geometry; snapping, CDML, and export
+  authority remain unchanged. The full rectangle replacement/close lifecycle
+  scenario now runs in the explicit Qt E2E lane rather than fast pytest.
+
+- Wired the authored CDML 26.07 profile into OASA output and the legacy
+  migration utility. New OASA and beta-sheet CDML roots now declare 26.07;
+  the retained 0.16 -> 26.02 edge now continues through a structurally no-op
+  26.02 -> 26.07 root-version update. Backend loading and commits preserve
+  supported-old and unknown-future root values unchanged.
+
+- Corrected biomolecule-template CDML metadata so its root declares the
+  authored 26.07 format profile while `author_program@version` reports the
+  independent BKChem application release, matching the ordinary CDML writer
+  and beta-sheet fixture generator.
+
+- Established CDML 26.07 as the authored-current documentation profile while
+  retaining 26.02 and earlier versions as compatible, preservation-first
+  inputs. The specification now distinguishes authored rules, opaque content,
+  and proposals; preserves direct-child document order and drawable paint
+  order; separates format grammar from backend transactions; and marks the
+  checked-in DTD/XSD as historical non-validators. The writer/default,
+  transformer, and focused preservation/authoring test wiring is implemented;
+  the structurally no-op transition changes only root `cdml@version` and does
+  not reinterpret 26.02 documents.
+
+- Refined the CDML 26.07 specification around the established document model:
+  documented `compat` and `authored-26.07` inspection profiles and their
+  semantic corpus; corrected Haworth `q1` and `haworth_position`; separated
+  portable `cm` authoring from compatibility units; stated authored drawing
+  minima and durable-ID guidance without rejecting legacy records; defined
+  collision names only for ID definitions rather than fragment IDREFs; and
+  made opaque preservation semantic rather than lexical. Bracket/vector
+  containers, scene-graph concepts, and a new XSD remain explicitly deferred.
+
+- Made temporary export projection construction transactional: an item created
+  before a later setup, scene-addition, or constructor failure now releases its
+  callbacks and native ownership before the temporary scene is cleared and
+  queued for deletion.
+
+- Completed temporary export-projection terminal ownership: disposal is
+  idempotent, reverse-retires callbacks, then clears and queues the temporary
+  scene; one render scope now preserves primary export errors while ending
+  native painters before projection retirement on all caller paths.
+
+- Replaced molecule-insertion test XML parsing with a hardened explicit lxml
+  parser. Production complete-CDML parsing now independently uses the shared
+  OASA lxml gate described above.
+
+- Migrated only `Chemistry > Import SMILES...` to prepare a plain,
+  molecule-only CDML proposal in its worker and commit it through the shared
+  backend persistent-operation/history/reprojection path. Other chemistry and
+  file import routes remain unchanged.
+
+- Recorded the accepted WP-F0 A/B/C capability disposition and backend-only
+  molecule-insertion prerequisite in the active authority plan. Required Qt
+  consumer slices remain unmigrated; no consumer delivery is claimed.
+
+- Added the frontend-neutral OASA molecule-insertion seam. Detached,
+  molecule-only complete-CDML proposals now append atomically through the
+  existing revision/ID authority, while a new OASA-only serializer emits
+  provisional molecule, atom, and bond tokens without mutating source graphs.
+  Qt consumers remain unchanged.
+
+- Repaired and focused-validated Qt scene and tab teardown ownership:
+  `ChemScene` now clears its named graphics sentinels before group-first,
+  explicit native disposal and clears anonymous items last; grid rebuilds
+  delete one detached group with its children; and delayed session reaping
+  retains QObject roots only. Bounded deferred-delete draining now proves a
+  target window reaper is empty or a queued QObject emitted `destroyed`, and
+  approved shutdown plus standalone export scenes use that completion proof.
+
+- Extended Qt projection retirement to temporary export scenes and duplicated
+  test teardowns: binding callbacks now release before scene-owned graphics,
+  cleanup exhausts callback failures, and context-managed export fixtures do
+  not retain a raw graphics wrapper across their yield boundary.
+
+- Implemented creation-only backend-authoritative Wavy placement: normal
+  drags commit one complete-CDML polyline and canonically reproject; Wavy
+  configure, move, delete, and other presentation editing remain out of scope.
+
+- Independently accepted creation-only Wavy authority. Normal creation commits
+  complete CDML, records backend history and dirty state, canonically
+  reprojects, and uses authoritative Save; configure, move, delete, and other
+  presentation editing remain pending.
+
+- Added bounded Qt-free Wavy geometry with finite-coordinate validation and
+  overflow protection; this is a shared geometry prerequisite, not a Wavy
+  backend-authority migration.
+
+- Fixed focused Wavy creation tests to discard their Qt-local edits through
+  canonical reprojection and release their separate CDML round-trip document
+  before Qt teardown.
+
+- Implemented creation-only backend-authoritative Plus placement. A normal
+  click now commits one complete-CDML Plus candidate, receives an OASA-issued
+  durable ID, and canonically reprojects without a Qt undo command.
+
+- Fixed Plus projection so every refresh retains its literal glyph while
+  preserving center-point placement semantics.
+
+- Implemented and validated backend-authoritative plain Text creation. Text
+  clicks now submit complete CDML candidates, receive durable backend-issued
+  IDs, and rebuild the Qt projection without a Qt undo command. This is
+  creation-only; broader Text and presentation actions remain pending.
+
+- Added Qt File > Recovery Export for an exact immutable backend CDML snapshot.
+  The export leaves backend/session state unchanged, remains available without
+  a Qt projection, retains a tab after publication failure, and close now uses
+  Recovery Export/Discard/Cancel whenever authoritative Save is ineligible.
+
+- Stabilized the CDML and PySide6 contracts around implementation-independent
+  backend transactions and explicit frontend session states. The contracts now
+  distinguish authoritative Save from the bounded Recovery Export route,
+  keep saved canonical-content state independent of bounded revision history,
+  and define accepted provisional tokens as single-use. OASA now enforces that
+  token rule per backend document session without consuming tokens from
+  rejected candidates or interpreting opaque lookalikes.
+
+- Routed CDML authority test parsing through OASA's hardened XML helpers,
+  resolving Bandit B314 and B318 without security suppressions.
+
+- Corrected hex-grid snapping to choose the Euclidean-nearest vertex in the
+  skew lattice instead of independently rounding its basis coordinates.
+  Candidate comparison is constant-time, scale-independent, and deterministic
+  on exact ties; invalid or unrepresentable finite-canvas inputs now fail
+  explicitly.
+
+- Bound each ready PubChem result to its exact originating document session
+  and request generation. Superseding a request or disposing the source tab
+  now immediately clears the cached result and disables insertion, while a
+  submit-time liveness check prevents stale or active-tab-retargeted edits.
+
+- Accepted the M3 normal Arrow Mode backend-authority slice. Arrow gestures
+  submit plain coordinates through complete CDML; OASA atomically returns
+  canonical state and backend-issued durable IDs; and Qt rebuilds a disposable
+  projection. Menu, toolbar, and shortcuts share backend revision navigation.
+  Accepted-but-unprojectable state blocks Save/navigation until exact retry,
+  while confirmed discard recovers legacy-local edits. Native Save and
+  close/reopen preserve opaque CDML. This is the first accepted action only;
+  broader presentation, chemistry, worker, and multi-action migration remains
+  incomplete.
+
+- Accepted the M4-0 generic persistent-operation seam. Arrow now uses one
+  immutable plain-data request/outcome path, construction-time mode capability
+  discovery, and an exact-session non-mode capability that cannot retarget an
+  active tab. Multi-entry undo/redo stores only backend revision labels and
+  integers in a Qt-free immutable history value; other presentation and
+  chemistry actions remain unmigrated.
+
+- Expanded the active CDML authority migration plan without claiming feature
+  implementation. It now assigns Qt-only delivery/packaging, composition
+  boundary, pre-M5 capability disposition, and one-time final release gates.
+  RDKit is the required shipped chemistry dependency; render sharing now
+  requires measured cross-consumer divergence; and Haworth, PubChem, and
+  import/export remain bounded slices that must ship with focused evidence or
+  be explicitly excluded. Browser, WASM, TypeScript, and SolidJS delivery
+  remain out of scope.
+
+- Aligned the CDML authority contracts and active migration plan with Qt as the
+  sole delivered BKChem frontend. Legacy Tk code and fixtures are now described
+  only as historical behavioral and CDML evidence, never as a supported
+  frontend, packaging target, compatibility requirement, or architecture
+  constraint. The frontend-neutral OASA boundary does not add a browser, WASM,
+  TypeScript, or SolidJS implementation.
+
+- Accepted backend-first native CDML Open and its registration/replacement
+  atomic rollback as WP-C1b. Native documents load into OASA and are projected
+  only after successful installation.
+
+- Added and independently accepted the guarded authoritative-Save route
+  (C1c). When a live projection proves exact backend-snapshot provenance and no
+  later Qt-local persistent mutation, `MainWindow` publishes only canonical
+  OASA CDML and then marks that backend revision saved. Other sessions remain
+  on an explicit transitional Qt-serialization route that does not synchronize
+  OASA. Publication uses same-directory atomic replacement, preserves target
+  mode and symlink behavior, and reports post-replacement failures as partial
+  external results without falsely claiming a clean or dirty backend state.
+  Persistent action migration is not yet complete.
+
+- Implemented and independently accepted safe Qt projection replacement (C2).
+  Qt projections can be discarded and rebuilt from immutable backend CDML.
+  Old callbacks, graphics items, scene links, and document ownership are
+  exhaustively detached on success and failure; failed installation recovers
+  only from a backend snapshot or enters an explicit retryable unavailable
+  state. Selection restoration uses durable IDs rather than old Qt wrapper
+  identity. Existing Qt edit actions remain transitional until they commit
+  complete CDML and install the canonical response.
+
+## 2026-07-27
+
+- Corrected the CDML authority contracts and active migration plan: OASA, not
+  Qt, owns the complete persistent CDML document, including opaque
+  non-molecular XML. The revision/history and backend-issued-ID rules are now
+  explicit. This records an architecture correction and migration in progress;
+  it does not claim backend-authority implementation completion.
+
+- Clarified the authority migration's recognized-token scope, exact saved
+  revision retention, `mark_saved` timing, secure XML boundary, and detached
+  group-expansion proposal rule. These are implementation constraints, not a
+  backend-authority implementation claim.
+
+- Clarified the planned backend-history invariant: capacity is at least three
+  when current, saved, and immediate pre-restore revisions differ; restore
+  protects only its immediate redo target, later restores replace that
+  protection, and a normal accepted edit clears it. This is a contract
+  clarification, not an implementation claim.
+
+- Clarified that cleanup preserves backend/frontend-agnostic contracts without
+  authorizing architecture redesign or scope expansion. OASA-facing boundaries
+  remain plain-data, complete-CDML, explicit request/response APIs; Qt types
+  and lifetimes remain confined to frontend projections and adapters.
+
+- Documented the frontend-neutral complete-CDML operation boundary:
+  `CDMLDocumentSession` load, snapshot, commit, restore, and save-baseline
+  results use only CDML, integers, and immutable data; typed failures and
+  all-or-nothing mutation semantics are explicit. Qt `DocumentSession` is a
+  client of that interface, not part of it.
+
+- Added read-only in-memory PySide6 CDML serialization. Missing and colliding
+  chemistry IDs are now allocated only in the output DOM with document-wide
+  reservations for retained source XML and frontend metadata, leaving live
+  models, dirty state, undo history, and raw source untouched. ID-less legacy
+  source remains normalized explicitly at load time.
+
+- Added a pure OASA group-expansion planner for the narrow legacy-coherent
+  builtin-template, implicit-formula, and saturated-chain cases.  It returns a
+  detached graph plus deterministic coordinates and exterior-bond rewiring
+  intent through explicit factories/resolvers; it does not mutate a document
+  or provide a Qt expand-groups command yet.
+
+- Refined PySide6 atom and bond label geometry: bond endpoint clipping now
+  builds each endpoint target with that atom's own font family, size, and
+  hydrogen-display setting and omits targets for hidden atom labels; atom
+  labels now use OASA's glyph-local background polygon instead of painting a
+  padded rectangular mask across the item.  Its symbolic background fill is
+  resolved at paint time, so existing atom labels track dark/light theme
+  changes without stale cached paper colors.
+
+### Additions and New Features
+
+- Added the OASA complete-CDML document session for M1. It holds detached,
+  immutable canonical snapshots; atomically commits complete candidate CDML
+  with revision checks and backend-issued durable IDs; retains ordered typed
+  and opaque persistent XML; and implements saved-baseline plus bounded
+  restore/redo history. This backend-only slice does not yet bind Qt Open,
+  Save, or projection replacement to the session.
+
+- Added the accepted C1a Qt-session authority checkpoint: each tab has a
+  private backend session, canonical blank authority, immutable snapshots,
+  one-use non-aliasing native-CDML staging, a projection-stale latch, and a
+  guarded backend writer. Nineteen focused lifecycle tests are warning-clean
+  and independent review is accepted. Later 2026-07-28 C1b/C1c/C2 work added
+  backend-first native Open, provenance-safe backend-snapshot Save, and safe
+  projection replacement. Persistent action commits remain pending.
+
+- Completed Qt Misc-mode ribbon behavior: the visible `numbering` key now
+  reaches persistent atom numbering, and `wavy` draws a deterministic,
+  presentation-only polyline through one undoable command. Wavy previews are
+  transient; saved CDML retains the editable polyline and its exact gesture
+  endpoints in the document model.
+
+- Added a narrow PySide6 native-CDML group foundation: `GroupModel` owns stable
+  group metadata, style, and retained incident-bond endpoints, while
+  `GroupItem` provides selectable canvas projection and the existing Expand
+  Groups predicate now requires a selected group. Supported groups remain
+  structural only; unrecognized group types or child XML render with a warning
+  and round-trip losslessly without claiming editable chemistry or expansion.
+
+- Added command-backed File > Document Properties paper editing in PySide6.
+  The dialog changes CDML-owned paper type/orientation/custom dimensions,
+  SVG crop, and minus-character fields through one undoable snapshot command;
+  redo and undo refresh the live paper/grid while retaining raw paper-header
+  extensions and unknown attributes.
+
+- Added an explicit non-mutating PySide6 export render plan. SVG now honors
+  modeled CDML `crop_svg` and `crop_margin` as a content-only render without
+  paper/grid decorations, while PNG and PDF retain the modeled paper page.
+  Copy as SVG projects only supported selected molecules, presentation objects,
+  and atom-attached marks into a temporary scene; it no longer toggles live
+  item visibility or represents retained unsupported XML as drawn output.
+
+- Added `oasa.pubchem_http.fetch_json`, a caller-invoked, stdlib-only HTTPS
+  PUG transport with endpoint validation and redirect refusal before any
+  destination request, bounded timeout and body
+  size, JSON request headers, and explicit 404/transport errors. PubChem
+  lookups remain transport-injected and make no request by themselves.
+
+- Made Qt atom numbering model-owned, undoable, and CDML-persistent; number
+  labels now react to their atom model instead of being scene-only children.
+
+- Added injected-transport OASA PubChem lookup APIs for names, InChI, and
+  InChIKey values. They percent-encode PUG REST path input, require exactly
+  one normalized compound, and fetch validated synonyms by the returned CID
+  without adding network, cache, CLI, or UI policy to the backend module.
+
+- Added an explicit PySide6 PubChem lookup dialog. Its session-owned worker
+  performs the caller-initiated transport, SMILES parsing, and coordinate
+  preparation off the GUI thread; only the separate Insert action mutates the
+  originating tab through undo.
+
+- Added [QT_CONTRACT.md](QT_CONTRACT.md), defining PySide6 model, scene,
+  undo-stack, worker, signal, and teardown ownership.
+- Added the active
+  [BKCHEM_QT_COMPLETION_PLAN_2026-07-27.md](active_plans/active/BKCHEM_QT_COMPLETION_PLAN_2026-07-27.md)
+  roadmap for data integrity, document sessions, full-document CDML, action
+  parity, and distribution closure.
+- Added real PySide6 `DocumentSession` tabs. Each tab now owns its document,
+  scene, view, mode manager, undo state, source identity, and import workers.
+- Added a shared pytest `--kill-after SECONDS` deadline for BKChem, BKChem-Qt,
+  OASA, and repository tests. Expiry prints live thread stacks and exits with
+  status 124.
+- Added Qt full-document CDML round-trip preservation for the supported
+  document model. Ordered molecules, paper, supported presentation objects,
+  atom marks, reactions, external data, and unknown XML survive save/reopen
+  without turning presentation data into OASA chemistry. Namespace-prefixed
+  core CDML now loads and round-trips by semantic local element name.
+- Added document-owned presentation models and projections for arrows, text,
+  plus signs, brackets, and vector graphics. Edit mode now selects, moves, and
+  deletes presentation content through undo commands; object-stack actions
+  reorder the document model rather than only changing scene z-values.
+- Added OASA-to-Qt display-field transfer for atom labels/fonts and bond
+  depiction settings, retaining explicit display attributes without forcing
+  defaults into saved CDML.
+- Added a capability-driven File > Import menu, including worker-backed,
+  chemistry-only CDXML and CML import. CML is advertised only as `.cml`;
+  generic `.xml` remains excluded because its format is ambiguous.
+- Routed repair operations to OASA `repair_ops` so the frontend applies backend
+  geometry algorithms through
+  reversible document commands.
+- Added 3-ketose ring-form SMILES generation with the complete C1--C2
+  pre-anomeric chain and distinct C2/anomeric stereochemistry.
+- Added package-owned Qt menus, modes, themes, and icons, plus OASA YAML/JSON
+  package data and an explicit Qt-to-OASA runtime dependency for wheel builds.
+- Added package-local GPL-2.0 license artifacts and explicit package metadata
+  for OASA, the legacy Tk application, and the PySide6 application so their
+  wheels and source distributions retain the canonical license text.
+- Added top-level CDML clipboard semantics: copy and cut operate on whole
+  selected molecules and presentation objects in document order; paste remaps
+  IDs, preserves mixed-content undo as one operation, and selects the inserted
+  projections. Clipboard shutdown now preserves a plain-text fallback after
+  removing the private CDML MIME payload.
+- Added active-session keybinding installation from registered `QAction`
+  shortcuts. Mode bindings follow the active tab, and conflicting shortcuts are
+  diagnosed instead of silently selecting an arbitrary action.
+- Added a Qt-owned CDML fragment metadata foundation with stable atom/bond ID
+  references, raw preservation for unsupported fragments, and structural-undo
+  restoration after referenced atoms or bonds are removed.
+- Added Insert-menu Haworth pyranose and furanose actions. Sugar-code parsing,
+  coordinate generation, and Haworth layout run in a session-owned OASA worker;
+  the GUI relay inserts one editable, undoable molecule while preserving front
+  edge depiction. Multi-ring and glycosidic-link automation remain future work.
+- Added a pure OASA direct-glycosidic disaccharide Haworth planner. It accepts
+  only two vertex-disjoint 5/6-member C/O rings with one direct external oxygen
+  bridge, returns immutable positional-index geometry metadata with explicit
+  identity/topology validation seams, and deliberately leaves molecular
+  coordinates, bonds, and frontend actions untouched.
+- Added command-backed Qt fragment creation and deletion for a single selected
+  molecule. Created metadata uses document-global durable CDML IDs, undo
+  restores both its original order and prior graph IDs, and unsupported
+  imported fragments remain visible but read-only in document-wide viewing.
+- Added command-backed Qt linear-form conversion. A selected connected,
+  unbranched path is laid out with glyph-safe uniform spacing, its uniquely
+  attached external components, visible hydrogens, and `linear_form` CDML
+  metadata in one reversible undo macro. Later command-backed geometry or
+  topology edits remove stale linear metadata and restore it on undo.
+
+### Fixes and Maintenance
+
+- Added backend-authoritative atom-only 2D Rotate. The new revision-bound
+  `atom.rotate` request validates durable atom targets, finite scene center,
+  and finite radians before an atomic CDML commit. Qt now treats drag geometry
+  as transient, unwraps pointer angles across the branch cut, and accepts
+  persistent rotation only through canonical backend reprojection and history.
+
+- Retired projection bindings before graphics-item teardown so CDML presentation
+  callbacks cannot retain native Qt wrappers through interpreter shutdown.
+
+- Removed mutable default-list parameters from OASA molecule and bond
+  constructors while preserving their empty-graph behavior, and stopped bond
+  imports from modifying the process-wide module search path.
+- Persisted the safe `haworth_position` front/back bond depiction attribute
+  through OASA CDML read/write and the PySide6 document save/reload route,
+  including namespace-prefixed input. Editable Haworth `n`, `q`, and `w` bond
+  semantics now retain their front-depth tags after reopening a drawing.
+- Kept Qt atom-number state authoritative on CDML save: obsolete Tk
+  `atom_number` marks are discarded, and numbering continues safely after
+  mode/submode changes or a repeated valid click.
+- Made OASA graph splitting and copying create the same class as the source
+  molecule instead of consulting the legacy process-global frontend molecule
+  class.
+- Added explicit factory and root-molecule injection to legacy stateful SMILES
+  and linear-formula parsing. Legacy BKChem groups and query atoms now request
+  paper-aware `BkMolecule` graphs directly, and lazy templates no longer swap
+  the process-wide OASA molecule class. Removed BKChem startup's global class
+  assignment; OASA retains that setting only as a documented external-legacy
+  fallback.
+- Replaced the stale `version.txt` and runtime version literals with the root
+  `VERSION` registry, synchronized static package metadata, and package-local
+  installed-metadata/source-tree runtime resolution.
+- Centralized strict root `VERSION` parsing and assignment-preserving release
+  updates so changelog, release, PyPI, macOS installer, and bump tooling retain
+  registry comments and resolve the monorepo root from package subdirectories.
+  PyPI version changes now update every package version and OASA lower bound.
+- Preserved OASA atom multiplicity, valency, free sites, isotope, explicit
+  hydrogens, and 3D coordinates across direct and Qt-bridge CDML round trips.
+- Repaired structural undo so removing and restoring atoms also restores bond
+  endpoints and OASA graph edges. Template placement now uses one reversible
+  molecule-and-scene command.
+- Routed property-dock edits through the active document undo stack, restored
+  clean-point dirty tracking, and made bond property changes redraw from model
+  widths and bond style.
+- Protected New, Open, Save, Save As, and window close from cancelled or failed
+  saves. Native CDML opens cleanly, while imported chemistry remains pathless
+  and dirty so CDML cannot overwrite the source format.
+- Added request tokens and GUI-thread relays for asynchronous imports. Parsing,
+  coordinate generation, and component splitting now stay off the GUI thread;
+  stale workers cannot replace a newer document.
+- Routed interactive SMILES parsing and 2D layout through the same
+  session-owned worker relay as file imports, while preserving GUI-thread
+  document insertion in the originating tab.
+- Routed interactive InChI and peptide parsing, conversion, and 2D layout
+  through that same session-owned relay. Their GUI delivery remains
+  token-checked and undo-backed, while parser-specific error labels are kept.
+- Changed New and Open to preserve independent tabs, added guarded same-tab
+  Open and tab Close, activated existing tabs for duplicate source paths, and
+  routed command-line file paths through the same lifecycle.
+- Hardened Qt teardown by disconnecting live and undo-retained graphics items
+  before clearing undo commands or deleting a `QGraphicsScene`.
+- Replaced ambiguous tab-page and QObject teardown with detached independent
+  roots. `MainWindow` retains a flat set of session, scene, document, view,
+  undo, and mode wrappers until deferred native deletion completes; sessions
+  then release nested Python references safely.
+- Made action registration and required menu definitions fail with contextual
+  diagnostics instead of suppressing import or configuration failures.
+- Routed Configure dialogs through before/after property commands, so accepted
+  atom and bond dialog edits are undoable and cancellation leaves no mutation.
+- Routed atom-symbol clicks, rotate drags, bond alignment, mixed
+  molecule/artwork alignment, reflection, and scaling through non-merging
+  model-geometry commands with clean-point dirty tracking.
+- Made Repair actions resolve selected atoms, bonds, and marks through their
+  top-level molecule owners. Repair-mode clicks now target only the clicked
+  molecule through the same command-backed OASA repair path; clean geometry
+  now prepares every target before committing one all-or-nothing transform and
+  retains each cleaned molecule's scene-space placement.
+- Restored legacy atom and query-atom context-menu symbol/group choices without
+  using OASA graph classes as frontend configuration targets.
+- Removed the package-wide autouse Tk root from legacy tests. Native Tk
+  compatibility checks now require `--run-legacy-tk-e2e`, while headless tests
+  and platform accelerator checks no longer initialize Cocoa/Tk.
+- Removed redundant `xmlns` declarations from serialized formatted-text CDML.
+- Extended `devel/dist_clean.sh` to remove nested Python `build`, `*.egg-info`,
+  `*.dist-info`, and the ignored repo-local `tmp/` agent workspace as well as
+  caches and dependency installs.
+- Repaired repository Markdown links after documentation moves and removed
+  obsolete plugin-document references.
+- Declared OASA's direct `defusedxml` and `pycairo` runtime dependencies and
+  routed new Qt clipboard and CDML parsing through the secure XML helpers.
+- Declared the legacy Tkinter package's direct OASA dependency, retaining only
+  its own YAML and secure-XML dependencies instead of duplicating OASA's
+  rendering and chemistry requirements.
+- Removed the unused manual Qt menu implementation and the molecule-only file
+  action fallback that could discard document presentation data.
+- Completed the repository function-annotation gate across legacy BKChem,
+  OASA, PySide6, tests, and tools, and repaired the resulting indentation and
+  unused-import findings.
+- Rebuilt all three wheels, verified dependency metadata and package data, and
+  launched an installed PySide6 `MainWindow` offscreen from a clean temporary
+  target without importing source-tree packages.
+
+### Decisions and Failures
+
+- Corrected the document-ownership architecture: OASA owns the authoritative
+  complete persistent CDML document, while Qt owns only transient interaction
+  state and replaceable projections. A backend round-trip must preserve every
+  persistent object, typed or opaque, without a Qt re-merge. The prior plan and
+  contract wording that made Qt the full-document envelope authority is
+  explicitly superseded; implementation migration remains in progress.
+
+### Tests
+
+- Added focused chemistry-field, structural-undo, property-edit, clipboard,
+  document-lifetime, worker-relay, and native-wrapper teardown regressions.
+- Pruned broad GUI workflows, assertion dumps, collection-size checks,
+  hardcoded defaults, and timed event-loop tests. An independent audit found
+  all 28 added pytest files conform to `PYTEST_STYLE.md`; deterministic Qt
+  deferred deletion remains only in focused native-lifetime guards.
+- Cleared the cached 335-failure hygiene baseline with exact failing-node
+  replays. The repository function-typing module passes all 506 discovered
+  Python files, and the Bandit, indentation, import-requirement, pyflakes, and
+  function-typing report files are absent after clean checks.
+- Replaced the prefix-qualified core-CDML xfail with a load, save, and reload
+  regression covering editable chemistry and presentation content.
+
 ## 2026-03-27
 
 ### Additions and New Features
@@ -85,7 +1373,7 @@
   refreshes on each open/save and shows a disabled "(No recent files)" placeholder
   when empty. Missing files are caught with a warning dialog before load attempt.
 - Added `PropertyDock` widget
-  ([bkchem_qt/widgets/property_dock.py](../packages/bkchem-qt.app/bkchem_qt/widgets/property_dock.py))
+  ([property_dock.py](../packages/bkchem-qt.app/bkchem_qt/widgets/property_dock.py))
   -- a QDockWidget on the right side of the main window that shows editable
   fields for the currently selected scene item. When a single AtomItem is
   selected, symbol (QLineEdit), charge (QSpinBox), and show-label (QCheckBox)
@@ -235,39 +1523,39 @@
   menu action, shortcut, preference, and scene flag).
 - Fixed Bandit XML parser warning in methanol SVG smoke test by switching from
   `xml.dom.minidom` to `defusedxml.minidom` in
-  [test_methanol_ab_compare.py](packages/oasa/tests/test_methanol_ab_compare.py).
+  [test_methanol_ab_compare.py](../packages/oasa/tests/test_methanol_ab_compare.py).
 - Fixed mixed indentation style in
-  [periodic_table.py](packages/oasa/oasa/periodic_table.py) by converting new
+  `periodic_table.py` by converting new
   element-category helper block indentation to spaces.
 - Fixed pyflakes lint in
-  [test_interactions.py](packages/bkchem-qt.app/tests/test_interactions.py) by
+  [test_interactions.py](../packages/bkchem-qt.app/tests/test_interactions.py) by
   removing an unused local variable.
 - Fixed Tk SMILES import compatibility in
-  [oasa_bridge.py](packages/bkchem-app/bkchem/oasa_bridge.py) by replacing
+  `oasa_bridge.py` by replacing
   legacy `transform3d.transform3d()` constructor calls with
   `transform3d.Transform3d()`, matching current OASA API and unblocking
   cholesterol-based zoom subprocess tests.
 - Fixed Tk zoom anchoring drift and bond stroke scaling inconsistencies:
-  - [paper_properties.py](packages/bkchem-app/bkchem/paper_lib/paper_properties.py)
+  - [paper_properties.py](../packages/bkchem-app/bkchem/paper_lib/paper_properties.py)
     now uses viewport-aware adaptive scrollregion padding (instead of fixed
     `±100`) to prevent xview/yview clamping during zoom round-trips.
-  - [bond_render_ops.py](packages/bkchem-app/bkchem/bond_render_ops.py) now
+  - [bond_render_ops.py](../packages/bkchem-app/bkchem/bond_render_ops.py) now
     builds `BondRenderContext.line_width` in zoomed display space, matching
     bond and wedge width units and keeping render-op stroke fallbacks in the
     same unit system.
-  - [bond_display.py](packages/bkchem-app/bkchem/bond_display.py) now uses
+  - [bond_display.py](../packages/bkchem-app/bkchem/bond_display.py) now uses
     display-space stroke width for simple redraw and focus/unfocus so selection
     highlighting no longer reverts to unscaled widths.
-  - [test_bkchem_gui_zoom.py](packages/bkchem-app/tests/test_bkchem_gui_zoom.py)
+  - `test_bkchem_gui_zoom.py`
     now asserts bond-line width scales down on zoom-out, up on zoom-in, and
     approximately round-trips with the scale round-trip.
 - Refined Tk stereobond rendering smoothness after the zoom-width fix:
-  [`bond_render_ops.py`](packages/bkchem-app/bkchem/bond_render_ops.py)
+  [`bond_render_ops.py`](../packages/bkchem-app/bkchem/bond_render_ops.py)
   now keeps path tessellation step length in model-space width units instead of
   zoomed display-width units, preventing coarse/choppy rounded wedge geometry
   at higher zoom levels (notably on stereochem-rich molecules like cholesterol).
 - Reduced visible Tk zoom "bounce" on large molecules during interactive zoom:
-  [`paper_zoom.py`](packages/bkchem-app/bkchem/paper_lib/paper_zoom.py) now
+  [`paper_zoom.py`](../packages/bkchem-app/bkchem/paper_lib/paper_zoom.py) now
   pre-centers the viewport before the forced idletasks/scrollregion recompute
   and re-centers again after recompute, so the user does not see a large
   intermediate jump while heavy redraws are in progress.
@@ -279,16 +1567,16 @@
 - Added a dedicated `file_actions` mode icon asset from user-provided folder
   artwork:
   - moved source SVG to
-    [`pixmaps/src/file_actions.svg`](packages/bkchem-app/bkchem_data/pixmaps/src/file_actions.svg)
+    [file_actions.svg](../packages/bkchem-app/bkchem_data/pixmaps/src/file_actions.svg)
   - generated matching toolbar PNG assets in
-    [`pixmaps/png/file_actions.png`](packages/bkchem-app/bkchem_data/pixmaps/png/file_actions.png)
+    `file_actions.png`
     and
-    [`pixmaps/png-dark/file_actions.png`](packages/bkchem-app/bkchem_data/pixmaps/png-dark/file_actions.png)
+    `file_actions.png`
   - existing mode mapping in
-    [`modes.yaml`](packages/bkchem-app/bkchem_data/modes.yaml)
+    [`modes.yaml`](../packages/bkchem-app/bkchem_data/modes.yaml)
     (`modes.file_actions.icon: file_actions`) now resolves to this icon.
 - Added an opt-in visual mode for Qt pytest runs in
-  [`tests/conftest.py`](packages/bkchem-qt.app/tests/conftest.py):
+  `conftest.py`:
   - set `BKCHEM_QT_TEST_VISUAL=1` to show and raise `MainWindow` during tests
   - set `BKCHEM_QT_TEST_VISUAL_HOLD_MS=<ms>` to add a per-test observation
     pause for manual visual checking
@@ -296,23 +1584,23 @@
     that use the shared `main_window` fixture now auto-show the window for
     visual inspection without requiring extra flags.
 - Expanded
-  [`test_zoom_controls.py`](packages/bkchem-qt.app/tests/test_zoom_controls.py)
+  [`test_zoom_controls.py`](../packages/bkchem-qt.app/tests/test_zoom_controls.py)
   to include cholesterol-backed zoom diagnostics (content round-trip stability,
   model-coordinate invariance across min/max zoom clamps, and high-zoom
   viewport center symmetry), aligning Qt zoom coverage more closely with the Tk
   zoom stress-test style.
 - Fixed Qt programmatic zoom anchor drift in
-  [`canvas/view.py`](packages/bkchem-qt.app/bkchem_qt/canvas/view.py):
+  [view.py](../packages/bkchem-qt.app/bkchem_qt/canvas/view.py):
   toolbar/button zoom paths (`zoom_in`, `zoom_out`, `reset_zoom`,
   `set_zoom_percent`) now preserve the current viewport center in scene space
   instead of drifting with `AnchorUnderMouse`, which stabilizes
   zoom-out/zoom-in round-trips on macOS `cocoa` visual runs.
 - Added Qt transform upright guard in
-  [`canvas/view.py`](packages/bkchem-qt.app/bkchem_qt/canvas/view.py) to
+  [view.py](../packages/bkchem-qt.app/bkchem_qt/canvas/view.py) to
   auto-normalize accidental reflected transforms (negative axis scale /
   determinant), preventing molecule inversion during zoom paths.
 - Added discrete zoom ladder support in
-  [`canvas/view.py`](packages/bkchem-qt.app/bkchem_qt/canvas/view.py) via
+  [view.py](../packages/bkchem-qt.app/bkchem_qt/canvas/view.py) via
   `ZOOM_SNAP_LEVELS` (including low-end fine steps `10, 15, 20, 25` and
   high-end anchors `350, 375, 400`, plus levels up to `1000`).
   `zoom_to_content()` now snaps to the nearest configured level at or below
@@ -328,11 +1616,11 @@
   entry paths) remains exact and is **not** snapped, so arbitrary values such
   as `173.91%` are preserved when set directly.
 - Added focused Qt zoom regression assertions in
-  [`test_zoom_controls.py`](packages/bkchem-qt.app/tests/test_zoom_controls.py):
+  [`test_zoom_controls.py`](../packages/bkchem-qt.app/tests/test_zoom_controls.py):
   `zoom_to_fit()` and `zoom_to_content()` must land on `ZOOM_SNAP_LEVELS`,
   while `set_zoom_percent(173.91)` must remain exact (non-snapped).
 - Expanded
-  [`test_zoom_controls.py`](packages/bkchem-qt.app/tests/test_zoom_controls.py)
+  [`test_zoom_controls.py`](../packages/bkchem-qt.app/tests/test_zoom_controls.py)
   diagnostics with dense bidirectional zoom sweeps (`25% -> 400%` and
   `400% -> 25%`), explicit transform orientation assertions
   (`m11 > 0`, `m22 > 0`, determinant `> 0`), and fixed-point pair tracking
@@ -340,17 +1628,17 @@
   checks) so visual mirror/inversion regressions fail fast with printed
   diagnostics.
 - Decoupled Qt zoom sweep diagnostics from snap policy:
-  [`test_zoom_controls.py`](packages/bkchem-qt.app/tests/test_zoom_controls.py)
+  [`test_zoom_controls.py`](../packages/bkchem-qt.app/tests/test_zoom_controls.py)
   now drives the `25..400` sweep with explicit direct
   `set_zoom_percent(...)` levels (dense `10%` stepping plus `400%` endpoint)
   instead of deriving from `ZOOM_SNAP_LEVELS`, so the sweep remains a true
   non-snapped path.
 - Added a second full-range non-snapped sweep gate in
-  [`test_zoom_controls.py`](packages/bkchem-qt.app/tests/test_zoom_controls.py):
+  [`test_zoom_controls.py`](../packages/bkchem-qt.app/tests/test_zoom_controls.py):
   bidirectional direct-set diagnostics now also cover `10% -> 1000%` and
   `1000% -> 10%` with the same fixed-point inversion and symmetry checks.
 - Reduced Qt direct-set zoom drift in
-  [`canvas/view.py`](packages/bkchem-qt.app/bkchem_qt/canvas/view.py):
+  [view.py](../packages/bkchem-qt.app/bkchem_qt/canvas/view.py):
   viewport-center preservation now uses precise mapped-rect center capture plus
   a correction re-center pass, and `set_zoom_percent(...)` scales from current
   transform scale instead of reset/rebuild each step.
@@ -367,7 +1655,7 @@
   geometry instead of empty-canvas-only zoom changes.
 - Added matched up-vs-down coordinate comparison output for fixed points at
   each zoom level in
-  [`test_zoom_controls.py`](packages/bkchem-qt.app/tests/test_zoom_controls.py),
+  [`test_zoom_controls.py`](../packages/bkchem-qt.app/tests/test_zoom_controls.py),
   including per-level point deltas and translation vectors, plus translation-
   aware symmetry assertions (vector consistency and shift consistency).
 
@@ -378,66 +1666,66 @@
 - Consolidated ~35 hardcoded hex color values across ~17 source files into
   YAML-driven theme system and OASA chemistry backend:
   - Added `canvas:` section to
-    [light.yaml](packages/bkchem-app/bkchem_data/themes/light.yaml) /
-    [dark.yaml](packages/bkchem-app/bkchem_data/themes/dark.yaml) with
+    [light.yaml](../packages/bkchem-app/bkchem_data/themes/light.yaml) /
+    [dark.yaml](../packages/bkchem-app/bkchem_data/themes/dark.yaml) with
     `selection`, `hover`, `preview` colors.
   - Added `high_contrast_1`, `high_contrast_2`, `tooltip_bg`, `tooltip_fg`
     keys to theme `gui:` section.
   - Added `charge_plus`, `charge_minus` keys to theme `chemistry:` section.
   - Added `get_canvas_colors()` to
-    [theme_loader.py](packages/bkchem-qt.app/bkchem_qt/themes/theme_loader.py);
+    [theme_loader.py](../packages/bkchem-qt.app/bkchem_qt/themes/theme_loader.py);
     extended `get_chemistry_colors()` with charge keys.
   - Added `set_canvas_colors()`, `get_canvas_color()`, `set_charge_colors()`,
     `get_charge_color()`, `set_light_default_line()` to
-    [render_ops_painter.py](packages/bkchem-qt.app/bkchem_qt/canvas/items/render_ops_painter.py).
+    [render_ops_painter.py](../packages/bkchem-qt.app/bkchem_qt/canvas/items/render_ops_painter.py).
   - Wired canvas, charge, and sentinel colors from
-    [main_window.py](packages/bkchem-qt.app/bkchem_qt/main_window.py) at
+    [main_window.py](../packages/bkchem-qt.app/bkchem_qt/main_window.py) at
     startup and on theme change.
 - Added element category classification to OASA
-  [periodic_table.py](packages/oasa/oasa/periodic_table.py): `"cat"` key on
+  `periodic_table.py`: `"cat"` key on
   every element, `ELEMENT_CATEGORY_COLORS` dict, `get_element_category()` and
   `get_element_category_color()` accessors.
 - Added `charge_mark_colors` dict to
-  [atom_colors.py](packages/oasa/oasa/atom_colors.py) for chemistry-backend
+  [atom_colors.py](../packages/oasa/oasa/atom_colors.py) for chemistry-backend
   charge color convention data.
 - Added
-  [test_element_categories.py](packages/oasa/tests/test_element_categories.py)
+  [test_element_categories.py](../packages/oasa/tests/test_element_categories.py)
   with 7 tests covering category data, accessors, and fallbacks.
 - Extended
-  [test_qt_theme_yaml_mapping.py](packages/bkchem-qt.app/tests/test_qt_theme_yaml_mapping.py)
+  [test_qt_theme_yaml_mapping.py](../packages/bkchem-qt.app/tests/test_qt_theme_yaml_mapping.py)
   with 6 new tests for canvas, charge, tooltip, and high-contrast YAML keys.
 
 ### Behavior or Interface Changes
 
 - Qt canvas item selection/hover/preview colors now follow the active theme
   instead of using hardcoded hex values.  Affected files:
-  [atom_item.py](packages/bkchem-qt.app/bkchem_qt/canvas/items/atom_item.py),
-  [bond_item.py](packages/bkchem-qt.app/bkchem_qt/canvas/items/bond_item.py),
-  [arrow_item.py](packages/bkchem-qt.app/bkchem_qt/canvas/items/arrow_item.py),
-  [text_item.py](packages/bkchem-qt.app/bkchem_qt/canvas/items/text_item.py).
+  [atom_item.py](../packages/bkchem-qt.app/bkchem_qt/canvas/items/atom_item.py),
+  [bond_item.py](../packages/bkchem-qt.app/bkchem_qt/canvas/items/bond_item.py),
+  [arrow_item.py](../packages/bkchem-qt.app/bkchem_qt/canvas/items/arrow_item.py),
+  [text_item.py](../packages/bkchem-qt.app/bkchem_qt/canvas/items/text_item.py).
 - Qt mode preview colors now follow theme: rubber band selection in
-  [edit_mode.py](packages/bkchem-qt.app/bkchem_qt/modes/edit_mode.py),
+  `edit_mode.py`,
   bond preview in
-  [draw_mode.py](packages/bkchem-qt.app/bkchem_qt/modes/draw_mode.py),
+  `draw_mode.py`,
   arrow preview in
-  [arrow_mode.py](packages/bkchem-qt.app/bkchem_qt/modes/arrow_mode.py).
+  `arrow_mode.py`.
 - Qt charge marks in
-  [mark_item.py](packages/bkchem-qt.app/bkchem_qt/canvas/items/mark_item.py)
+  [mark_item.py](../packages/bkchem-qt.app/bkchem_qt/canvas/items/mark_item.py)
   now read colors from `render_ops_painter.get_charge_color()` instead of
   hardcoded constants.
 - Qt
-  [periodic_table.py](packages/bkchem-qt.app/bkchem_qt/widgets/periodic_table.py)
+  `periodic_table.py`
   widget now uses `oasa.periodic_table.get_element_category_color()` instead of
   local hardcoded color constants and classification sets.
 - Qt
-  [color_picker.py](packages/bkchem-qt.app/bkchem_qt/widgets/color_picker.py)
+  [color_picker.py](../packages/bkchem-qt.app/bkchem_qt/widgets/color_picker.py)
   border color now reads from `render_ops_painter.get_canvas_color("preview")`.
 - Tk
-  [bk_tooltip.py](packages/bkchem-app/bkchem/bk_tooltip.py) tooltip colors now
+  [bk_tooltip.py](../packages/bkchem-app/bkchem/bk_tooltip.py) tooltip colors now
   read from theme `gui.tooltip_bg` / `gui.tooltip_fg` instead of hardcoded
   `#ffffe0` / `#000000`.
 - Tk
-  [widgets.py](packages/bkchem-app/bkchem/widgets.py) `ColorButton` foreground
+  [widgets.py](../packages/bkchem-app/bkchem/widgets.py) `ColorButton` foreground
   and `GraphicalAngleChooser` line/fill colors now read from theme
   `high_contrast_1` / `high_contrast_2`.
 - render_ops_painter `_color_to_qcolor()` sentinel comparison now uses
@@ -447,7 +1735,7 @@
 
 - Deleted static color fallback variables (`background_color`, `toolbar_color`,
   `separator_color`, `hover_color`, `active_mode_color`) from
-  [bkchem_config.py](packages/bkchem-app/bkchem/bkchem_config.py); all callers
+  [bkchem_config.py](../packages/bkchem-app/bkchem/bkchem_config.py); all callers
   use `get_*_color()` functions which delegate to `theme_manager`.
 - Deleted `_SELECTION_COLOR` / `_HOVER_COLOR` constants from `atom_item.py`,
   `bond_item.py`, `arrow_item.py`, `text_item.py`.
@@ -462,7 +1750,7 @@
 
 - Fixed Qt dark mode bonds and atom text rendering as black (unreadable on dark
   background). Root cause: `set_light_default_line()` in
-  [render_ops_painter.py](packages/bkchem-qt.app/bkchem_qt/canvas/items/render_ops_painter.py)
+  [render_ops_painter.py](../packages/bkchem-qt.app/bkchem_qt/canvas/items/render_ops_painter.py)
   stored the 3-char hex sentinel `"#000"` from YAML without normalizing, but
   `_color_to_qcolor()` expanded incoming colors to 6-char `"#000000"` via
   `color_to_hex()`. The mismatch `"#000000" == "#000"` was always False, so the
@@ -470,15 +1758,15 @@
   `oasa.render_ops.color_to_hex()`.
 - Fixed Qt dark mode grid colors: hex lines were plain grey (`#3a3a3a`) instead
   of teal, and dots were nearly invisible (`#2a4a3a` on `#2b2b2b` paper). Updated
-  [dark.yaml](packages/bkchem-app/bkchem_data/themes/dark.yaml) grid colors to
+  [dark.yaml](../packages/bkchem-app/bkchem_data/themes/dark.yaml) grid colors to
   teal tones (`line: #2a4a3a`, `dot_fill: #3a6a5a`, `dot_outline: #3a6a5a`)
   matching the Tk dark theme appearance.
 - Extracted `build_label_attach_targets()` public helper from
-  [`molecule_ops.py`](packages/oasa/oasa/render_lib/molecule_ops.py) to compute
+  [`molecule_ops.py`](../packages/oasa/oasa/render_lib/molecule_ops.py) to compute
   shown vertices, label targets, and attach targets for bond endpoint clipping.
   GUI-agnostic: usable by Qt, Tk, SVG, and Cairo frontends.
 - Wired Qt `BondItem.update_from_model()` in
-  [`bond_item.py`](packages/bkchem-qt.app/bkchem_qt/canvas/items/bond_item.py)
+  [`bond_item.py`](../packages/bkchem-qt.app/bkchem_qt/canvas/items/bond_item.py)
   to call the OASA helper and populate `BondRenderContext` with real label
   targets, replacing the previous empty-targets stub. Bond endpoints now clip
   at atom label boundaries for heteroatoms (N, O, etc.).
@@ -487,17 +1775,17 @@
   (symbol, charge, font_size, show, show_hydrogens, x, y). Atom edits
   immediately recompute bond clipping.
 - Added `draw_label_mask` parameter to `build_vertex_ops()` in
-  [`molecule_ops.py`](packages/oasa/oasa/render_lib/molecule_ops.py). When
+  [`molecule_ops.py`](../packages/oasa/oasa/render_lib/molecule_ops.py). When
   `False`, background mask rectangles are suppressed even if `background_color`
   is set. Default `True` preserves backward compatibility.
 - Restored paper-colored `drawRect()` mask in Qt `AtomItem.paint()` in
-  [`atom_item.py`](packages/bkchem-qt.app/bkchem_qt/canvas/items/atom_item.py)
+  [`atom_item.py`](../packages/bkchem-qt.app/bkchem_qt/canvas/items/atom_item.py)
   as phase-1 safety net. Bond endpoint clipping is active underneath but the
   mask stays until OASA analytic label geometry is validated against Qt font
   metrics. Premature mask removal caused a visual regression where font-metric
   differences made bonds appear to penetrate glyphs.
 - Fixed `_bounding_rect_from_ops()` in
-  [`atom_item.py`](packages/bkchem-qt.app/bkchem_qt/canvas/items/atom_item.py)
+  [`atom_item.py`](../packages/bkchem-qt.app/bkchem_qt/canvas/items/atom_item.py)
   to use Qt `QFontMetricsF` for accurate text width/height measurement instead
   of rough character-count estimates. Also fixed text anchor alignment: "middle"
   and "end" anchors now correctly offset the bounding rectangle so the
@@ -509,54 +1797,54 @@
   `background_color="#fff"` since `build_vertex_ops()` now requires it to
   generate the mask PolygonOp.
 - Fixed 8 failing Qt tests by adding autouse fixture in
-  [`conftest.py`](packages/bkchem-qt.app/tests/conftest.py) that resets
+  `conftest.py` that resets
   document, scene items, and zoom between tests for isolation. The
   module-scoped `main_window` fixture stays for efficiency, but each test
   now starts with a clean state.
 - Fixed dark mode: bonds and carbon atom labels now use theme default color
   instead of hardcoded black. The `_color_to_qcolor()` function in
-  [`render_ops_painter.py`](packages/bkchem-qt.app/bkchem_qt/canvas/items/render_ops_painter.py)
+  [`render_ops_painter.py`](../packages/bkchem-qt.app/bkchem_qt/canvas/items/render_ops_painter.py)
   remaps `#000000` to `_default_color` so dark mode renders in light gray
   while heteroatom colors (N=blue, O=red) pass through unchanged.
 - Fixed dark mode: text annotations
-  ([`text_item.py`](packages/bkchem-qt.app/bkchem_qt/canvas/items/text_item.py)),
+  ([`text_item.py`](../packages/bkchem-qt.app/bkchem_qt/canvas/items/text_item.py)),
   arrows
-  ([`arrow_item.py`](packages/bkchem-qt.app/bkchem_qt/canvas/items/arrow_item.py)),
+  ([`arrow_item.py`](../packages/bkchem-qt.app/bkchem_qt/canvas/items/arrow_item.py)),
   radical/electron pair marks
-  ([`mark_item.py`](packages/bkchem-qt.app/bkchem_qt/canvas/items/mark_item.py)),
+  ([`mark_item.py`](../packages/bkchem-qt.app/bkchem_qt/canvas/items/mark_item.py)),
   and vector shapes
-  ([`graphics_item.py`](packages/bkchem-qt.app/bkchem_qt/canvas/items/graphics_item.py))
+  ([`graphics_item.py`](../packages/bkchem-qt.app/bkchem_qt/canvas/items/graphics_item.py))
   now use theme default colors instead of hardcoded black.
 - Made OASA `build_vertex_ops()` background PolygonOp optional via new
   `background_color=None` parameter in
-  [`molecule_ops.py`](packages/oasa/oasa/render_lib/molecule_ops.py). When
+  [`molecule_ops.py`](../packages/oasa/oasa/render_lib/molecule_ops.py). When
   `None`, no background is generated. The Qt `AtomItem` paints a
   paper-colored masking background instead via `_default_area_color` in
-  [`render_ops_painter.py`](packages/bkchem-qt.app/bkchem_qt/canvas/items/render_ops_painter.py).
+  [`render_ops_painter.py`](../packages/bkchem-qt.app/bkchem_qt/canvas/items/render_ops_painter.py).
 - Brightened charge mark colors from `#0000cc`/`#cc0000` to
   `#3366ff`/`#ff3333` in
-  [`mark_item.py`](packages/bkchem-qt.app/bkchem_qt/canvas/items/mark_item.py)
+  [`mark_item.py`](../packages/bkchem-qt.app/bkchem_qt/canvas/items/mark_item.py)
   for better visibility on both light and dark backgrounds.
 - Qt test suite speed optimization: reduced from 248s to ~6s (40x speedup).
   - Converted all 21 subprocess tests across 5 files to standard pytest
     functions using shared fixtures from `conftest.py`. Each subprocess spawn
     added 10-15s of Python startup overhead.
-    Files: [`test_qt_theme_yaml_mapping.py`](packages/bkchem-qt.app/tests/test_qt_theme_yaml_mapping.py),
-    [`test_qt_theme_toggle_runtime.py`](packages/bkchem-qt.app/tests/test_qt_theme_toggle_runtime.py),
-    [`test_qt_menu_build.py`](packages/bkchem-qt.app/tests/test_qt_menu_build.py),
-    [`test_qt_menu_cascades.py`](packages/bkchem-qt.app/tests/test_qt_menu_cascades.py),
-    [`test_qt_gui_smoke.py`](packages/bkchem-qt.app/tests/test_qt_gui_smoke.py).
+    Files: [`test_qt_theme_yaml_mapping.py`](../packages/bkchem-qt.app/tests/test_qt_theme_yaml_mapping.py),
+    [`test_qt_theme_toggle_runtime.py`](../packages/bkchem-qt.app/tests/test_qt_theme_toggle_runtime.py),
+    [`test_qt_menu_build.py`](../packages/bkchem-qt.app/tests/test_qt_menu_build.py),
+    [`test_qt_menu_cascades.py`](../packages/bkchem-qt.app/tests/test_qt_menu_cascades.py),
+    [`test_qt_gui_smoke.py`](../packages/bkchem-qt.app/tests/test_qt_gui_smoke.py).
   - Fixed grid theme-switch hang: replaced `destroyItemGroup()` on ~10,400
     items with in-place recoloring via new `_recolor_grid()` method in
-    [`scene.py`](packages/bkchem-qt.app/bkchem_qt/canvas/scene.py).
+    [`scene.py`](../packages/bkchem-qt.app/bkchem_qt/canvas/scene.py).
   - Added try/except RuntimeError guards for C++ object lifetime issues
     during teardown in
-    [`edit_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/edit_actions.py)
+    `edit_actions.py`
     (can_undo/can_redo) and
-    [`platform_menu.py`](packages/bkchem-qt.app/bkchem_qt/actions/platform_menu.py)
+    `platform_menu.py`
     (set_item_state).
   - Changed `main_window` fixture to module scope in
-    [`conftest.py`](packages/bkchem-qt.app/tests/conftest.py) to reduce
+    `conftest.py` to reduce
     MainWindow creation count from 45+ to ~8.
 
 ### Additions and New Features
@@ -564,40 +1852,40 @@
 - Qt UX/UI Phase 1-3 fixes for dark-theme visual parity with Tk:
   - Bond/atom default color now uses YAML `chemistry.default_line` instead of
     hardcoded black. Added `set_default_color()` in
-    [`render_ops_painter.py`](packages/bkchem-qt.app/bkchem_qt/canvas/items/render_ops_painter.py).
+    [`render_ops_painter.py`](../packages/bkchem-qt.app/bkchem_qt/canvas/items/render_ops_painter.py).
     Wired from
-    [`main_window.py`](packages/bkchem-qt.app/bkchem_qt/main_window.py) at
+    [`main_window.py`](../packages/bkchem-qt.app/bkchem_qt/main_window.py) at
     startup and on theme change.
   - Paper outline now uses YAML `paper.outline` color via `get_paper_outline()`
-    in [`scene.py`](packages/bkchem-qt.app/bkchem_qt/canvas/scene.py) instead
+    in [`scene.py`](../packages/bkchem-qt.app/bkchem_qt/canvas/scene.py) instead
     of `NoPen`. Outline updates on theme change.
   - `zoom_to_content` in
-    [`view.py`](packages/bkchem-qt.app/bkchem_qt/canvas/view.py) now filters
+    [`view.py`](../packages/bkchem-qt.app/bkchem_qt/canvas/view.py) now filters
     chemistry items only (AtomItem, BondItem, ArrowItem, TextItem, MarkItem),
     ignoring paper and grid. Falls back to `zoom_to_fit` when empty.
   - Added `QToolButton:checked` and `QToolButton:hover` QSS rules in
-    [`palettes.py`](packages/bkchem-qt.app/bkchem_qt/themes/palettes.py) for
+    [`palettes.py`](../packages/bkchem-qt.app/bkchem_qt/themes/palettes.py) for
     active mode highlight. Added `QPushButton:checked` for submode buttons.
   - Toolbar icon size increased from 24x24 to 32x32 in
-    [`mode_toolbar.py`](packages/bkchem-qt.app/bkchem_qt/widgets/mode_toolbar.py).
+    [`mode_toolbar.py`](../packages/bkchem-qt.app/bkchem_qt/widgets/mode_toolbar.py).
   - Added `add_action_button()` to ModeToolbar for non-checkable actions
     (Undo/Redo). Added 8px spacer after separator markers.
   - Undo/Redo buttons added to mode toolbar in main_window, wired to
     `canUndoChanged`/`canRedoChanged` for enabled state tracking.
   - Removed `setFlat(True)` from submode ribbon buttons for better visibility.
     Increased group spacing to 6px in
-    [`submode_ribbon.py`](packages/bkchem-qt.app/bkchem_qt/widgets/submode_ribbon.py).
+    [`submode_ribbon.py`](../packages/bkchem-qt.app/bkchem_qt/widgets/submode_ribbon.py).
   - Submode toolbar stays visible at fixed minimum height to prevent layout
     jumps when switching modes.
   - Status bar: removed redundant zoom label (zoom shown in zoom controls
     widget), added stretch message label on left in
-    [`status_bar.py`](packages/bkchem-qt.app/bkchem_qt/widgets/status_bar.py).
+    [`status_bar.py`](../packages/bkchem-qt.app/bkchem_qt/widgets/status_bar.py).
   - Added missing bond types (Dotted, Dashed, Bold Wedge) in
-    [`edit_ribbon.py`](packages/bkchem-qt.app/bkchem_qt/widgets/edit_ribbon.py).
+    [`edit_ribbon.py`](../packages/bkchem-qt.app/bkchem_qt/widgets/edit_ribbon.py).
   - Extended zoom slider range from 25-400% to 10-1000% in
-    [`zoom_controls.py`](packages/bkchem-qt.app/bkchem_qt/widgets/zoom_controls.py).
+    [`zoom_controls.py`](../packages/bkchem-qt.app/bkchem_qt/widgets/zoom_controls.py).
   - Added `signal.SIGINT` handler in
-    [`app.py`](packages/bkchem-qt.app/bkchem_qt/app.py) so Ctrl+C in terminal
+    [`app.py`](../packages/bkchem-qt.app/bkchem_qt/app.py) so Ctrl+C in terminal
     kills the Qt app immediately.
 
 
@@ -606,7 +1894,7 @@
   `test_no_stubs.py` confirms zero stubs remain.
 
 - Implemented 5 file action handlers in
-  [`packages/bkchem-qt.app/bkchem_qt/actions/file_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/file_actions.py):
+  `file_actions.py`:
   `file.save_as` (wired to existing `_on_save_as`), `file.close_tab` (wired to
   `app.close`), `file.save_as_template` (CDML template save with QFileDialog),
   `file.load_same_tab` (dirty guard, clear scene/document, fresh Document, then
@@ -622,14 +1910,14 @@
   offsets by 20px, adds to scene), `edit.selected_to_svg` (renders selection
   to SVG via QSvgGenerator, places on clipboard as `image/svg+xml`).
   Modified
-  [`packages/bkchem-qt.app/bkchem_qt/main_window.py`](packages/bkchem-qt.app/bkchem_qt/main_window.py)
+  [main_window.py](../packages/bkchem-qt.app/bkchem_qt/main_window.py)
   (added on_cut, on_copy, on_paste, on_select_all, _selected_mols_to_cdml,
   _delete_selected methods) and
-  [`packages/bkchem-qt.app/bkchem_qt/actions/edit_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/edit_actions.py)
+  `edit_actions.py`
   (added _selected_to_svg function, wired select_all handler).
 
 - Implemented all 6 repair action handlers in
-  [`packages/bkchem-qt.app/bkchem_qt/actions/repair_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/repair_actions.py):
+  `repair_actions.py`:
   `repair.clean_geometry` (full OASA coordinate regeneration via
   `coords_generator.calculate_coords` with force=1, converts to OASA mol and
   back, maps fresh coordinates to existing AtomModels with undo support),
@@ -647,7 +1935,7 @@
   enabled_when.
 
 - Implemented 4 options menu action handlers in
-  [`packages/bkchem-qt.app/bkchem_qt/actions/options_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/options_actions.py):
+  `options_actions.py`:
   `options.standard` (QDialog with QFormLayout for bond length, line width,
   font size, font family with OK/Cancel persistence to Preferences),
   `options.language` (QInputDialog language picker with restart notice),
@@ -655,17 +1943,17 @@
   logging.setLevel application), `options.inchi_path` (QFileDialog with
   exists/executable validation and confirmation). Added 7 new KEY constants
   and DEFAULTS entries to
-  [`packages/bkchem-qt.app/bkchem_qt/config/preferences.py`](packages/bkchem-qt.app/bkchem_qt/config/preferences.py)
+  [preferences.py](../packages/bkchem-qt.app/bkchem_qt/config/preferences.py)
   for the new preference keys.
 
 - Implemented 1 help menu action handler in
-  [`packages/bkchem-qt.app/bkchem_qt/actions/help_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/help_actions.py):
+  `help_actions.py`:
   `help.keyboard_shortcuts` (modal QDialog with QTableWidget showing all
   registered shortcuts from ActionRegistry, sorted by category, with
   accelerator format conversion from `(C-S-x)` to `Ctrl+Shift+X`).
 
 - Implemented all 14 chemistry action handlers in
-  [`packages/bkchem-qt.app/bkchem_qt/actions/chemistry_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/chemistry_actions.py):
+  `chemistry_actions.py`:
   `chemistry.info` (molecule summary with formula, weight, atom/bond counts),
   `chemistry.check` (valency violation detection), `chemistry.read_smiles` and
   `chemistry.read_inchi` (parse via OASA, generate coords, add to scene),
@@ -676,11 +1964,11 @@
   `convert_to_linear`. All actions have appropriate predicates: import actions
   always enabled, export/set actions require `one_mol_selected`, check/modify
   actions require `has_selection`. Added `name` and `mol_id` properties to
-  [`packages/bkchem-qt.app/bkchem_qt/models/molecule_model.py`](packages/bkchem-qt.app/bkchem_qt/models/molecule_model.py)
+  [molecule_model.py](../packages/bkchem-qt.app/bkchem_qt/models/molecule_model.py)
   with string getter/setter pairs for molecule metadata.
 
 - Implemented all 7 object action handlers in
-  [`packages/bkchem-qt.app/bkchem_qt/actions/object_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/object_actions.py):
+  `object_actions.py`:
   `bring_to_front`, `send_back`, `swap_on_stack`, `vertical_mirror`,
   `horizontal_mirror`, `scale`, and `configure`. Z-order actions
   (`bring_to_front`, `send_back`, `swap_on_stack`) manipulate QGraphicsItem
@@ -692,7 +1980,7 @@
   predicates so they are disabled when nothing is selected.
 
 - Implemented all 6 align action handlers in
-  [`packages/bkchem-qt.app/bkchem_qt/actions/align_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/align_actions.py):
+  `align_actions.py`:
   top, bottom, left, right, center horizontally, center vertically. Actions
   group selected atoms by parent MoleculeModel, compute per-group bounding
   boxes, then shift each group so the relevant edge (or center) matches the
@@ -711,8 +1999,8 @@
   X axis (vertical only), Shift locks Y axis (horizontal only), matching Tk
   `edit_mode.mouse_drag` modifier behavior. All changes have undo support.
   Files modified:
-  [`packages/bkchem-qt.app/bkchem_qt/modes/draw_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/draw_mode.py),
-  [`packages/bkchem-qt.app/bkchem_qt/modes/edit_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/edit_mode.py).
+  `draw_mode.py`,
+  `edit_mode.py`.
 
 - Milestone 2 (Selection system + delete pipeline): Added
   `selected_to_unique_top_levels()` to Document for chemistry-aware selection
@@ -725,26 +2013,26 @@
   and `QUndoStack.canUndoChanged`/`canRedoChanged` signals to menu predicate
   updates in MainWindow. Added shiboken6 guards for C++ object lifetime during
   shutdown. Files modified:
-  [`packages/bkchem-qt.app/bkchem_qt/models/document.py`](packages/bkchem-qt.app/bkchem_qt/models/document.py),
-  [`packages/bkchem-qt.app/bkchem_qt/modes/edit_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/edit_mode.py),
-  [`packages/bkchem-qt.app/bkchem_qt/actions/edit_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/edit_actions.py),
-  [`packages/bkchem-qt.app/bkchem_qt/main_window.py`](packages/bkchem-qt.app/bkchem_qt/main_window.py).
+  [document.py](../packages/bkchem-qt.app/bkchem_qt/models/document.py),
+  `edit_mode.py`,
+  `edit_actions.py`,
+  [main_window.py](../packages/bkchem-qt.app/bkchem_qt/main_window.py).
 
 - Milestone 1 (Document/mode wiring and dispatch contract): Added complete event
   dispatch contract to `BaseMode` matching Tk `modes_lib.py` interface: added
   `mouse_press3` (right-click), `enter_object`/`leave_object` (hover tracking
   during drag), `on_paper_switch` (tab switch), `cleanup`, and `copy_settings`
   lifecycle hooks. Files modified:
-  [`packages/bkchem-qt.app/bkchem_qt/modes/base_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/base_mode.py),
-  [`packages/bkchem-qt.app/bkchem_qt/modes/mode_manager.py`](packages/bkchem-qt.app/bkchem_qt/modes/mode_manager.py).
+  [base_mode.py](../packages/bkchem-qt.app/bkchem_qt/modes/base_mode.py),
+  [mode_manager.py](../packages/bkchem-qt.app/bkchem_qt/modes/mode_manager.py).
 
 - Added right-click dispatch path: `view.py` now routes right-click through
   `mouse_press3` instead of `mouse_press`, matching Tk's `mouse_down3` contract.
   `ModeManager` dispatches `mouse_press3` to the active mode. `EditMode` moved
   context menu handling from inline `mouse_press` check to dedicated
   `mouse_press3` method. Files modified:
-  [`packages/bkchem-qt.app/bkchem_qt/canvas/view.py`](packages/bkchem-qt.app/bkchem_qt/canvas/view.py),
-  [`packages/bkchem-qt.app/bkchem_qt/modes/edit_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/edit_mode.py).
+  [view.py](../packages/bkchem-qt.app/bkchem_qt/canvas/view.py),
+  `edit_mode.py`.
 
 - Added Document selection query helpers and scene wiring: `Document.set_scene()`
   connects QGraphicsScene selection changes to a new `selection_changed` signal.
@@ -752,8 +2040,8 @@
   properties and `bonds_to_update()`/`atoms_to_update()` helpers porting Tk
   `paper_selection.py` patterns. Wired scene into document in `MainWindow`
   setup and new-document flow. Files modified:
-  [`packages/bkchem-qt.app/bkchem_qt/models/document.py`](packages/bkchem-qt.app/bkchem_qt/models/document.py),
-  [`packages/bkchem-qt.app/bkchem_qt/main_window.py`](packages/bkchem-qt.app/bkchem_qt/main_window.py).
+  [document.py](../packages/bkchem-qt.app/bkchem_qt/models/document.py),
+  [main_window.py](../packages/bkchem-qt.app/bkchem_qt/main_window.py).
 
 - Implemented Tk-parity click-to-place bond drawing in Qt `DrawMode`. Clicking
   an existing atom now immediately adds a new bonded atom at fixed bond length
@@ -764,42 +2052,42 @@
   `_find_place()`, `_get_angle()`, `_find_least_crowded_place()`,
   `_point_on_circle()`, `_on_which_side()`. Bond length now uses the scene grid
   spacing (26.5) instead of the old hardcoded 40.0. File modified:
-  [`packages/bkchem-qt.app/bkchem_qt/modes/draw_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/draw_mode.py).
+  `draw_mode.py`.
 
 - Added an extensive evaluation of Tk `main.py`/`paper.py` and their submodules
   to guide Qt parity work, including architecture decomposition, runtime
   contracts to preserve, mapping of current Qt failures to missing contracts,
   and screenshot-gated milestone acceptance criteria. File created:
-  [`docs/active_plans/TK_MAIN_PAPER_QT_PARITY_EVALUATION_2026-03-01.md`](docs/active_plans/TK_MAIN_PAPER_QT_PARITY_EVALUATION_2026-03-01.md).
+  [TK_MAIN_PAPER_QT_PARITY_EVALUATION_2026-03-01.md](archive/TK_MAIN_PAPER_QT_PARITY_EVALUATION_2026-03-01.md).
 
 - Added a drawing-environment deep dive for Tk event and mutation flow, with
   operation-by-operation call chains for bond drawing, atom label editing,
   selection/move/delete behavior, bond type toggling, rotate mode,
   bond-transform mode, and repair transformations. Includes a Qt parity
   checklist and targeted test focus list. File created:
-  [`docs/active_plans/TK_DRAWING_ENVIRONMENT_EVENT_FLOW_2026-03-01.md`](docs/active_plans/TK_DRAWING_ENVIRONMENT_EVENT_FLOW_2026-03-01.md).
+  [TK_DRAWING_ENVIRONMENT_EVENT_FLOW_2026-03-01.md](archive/TK_DRAWING_ENVIRONMENT_EVENT_FLOW_2026-03-01.md).
 
 ### Fixes and Maintenance
 
 - Fixed `test_bkchem_gui_events` mode-switch shortcut assumptions in
-  [`packages/bkchem-app/tests/test_bkchem_gui_events.py`](packages/bkchem-app/tests/test_bkchem_gui_events.py):
+  `test_bkchem_gui_events.py`:
   replaced hardcoded `Ctrl-1`/`Ctrl-2` expectations with dynamic shortcut
   lookup from `app.modes_sort`, so the test stays valid when toolbar order
   changes (for example with `file_actions` at index 1).
 
 - Removed temporary `shiboken6` lifetime guards from Qt menu predicate wiring:
   deleted `import shiboken6` and `isValid(...)` checks in
-  [`packages/bkchem-qt.app/bkchem_qt/main_window.py`](packages/bkchem-qt.app/bkchem_qt/main_window.py)
+  [main_window.py](../packages/bkchem-qt.app/bkchem_qt/main_window.py)
   and
-  [`packages/bkchem-qt.app/bkchem_qt/actions/edit_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/edit_actions.py).
+  `edit_actions.py`.
 
 - Fixed pyflakes lint: removed unused `import io` from
-  [`packages/bkchem-qt.app/bkchem_qt/actions/edit_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/edit_actions.py)
+  `edit_actions.py`
   and unused `from oasa import dom_extensions as dom_ext` from
-  [`packages/bkchem-qt.app/bkchem_qt/main_window.py`](packages/bkchem-qt.app/bkchem_qt/main_window.py).
+  [main_window.py](../packages/bkchem-qt.app/bkchem_qt/main_window.py).
   All 92 bkchem_qt pyflakes tests now pass.
 - Reworked methanol A/B smoke ownership in
-  [`packages/oasa/tests/test_methanol_ab_compare.py`](packages/oasa/tests/test_methanol_ab_compare.py):
+  [test_methanol_ab_compare.py](../packages/oasa/tests/test_methanol_ab_compare.py):
   pytest now writes deterministic repo-level artifacts
   `output_smoke/methanol_A_mask.svg` and `output_smoke/methanol_B_clip.svg`
   and enforces SVG DOM gates for non-degenerate bond lines, `OH` label
@@ -808,19 +2096,19 @@
   positive-space placement (`C=(20,20)`, `O=(60,20)`) so generated smoke SVGs
   render cleanly in browsers without edge clipping at `(0,0)`.
 - Converted
-  [`tools/compare_bond_mask_vs_clip.py`](tools/compare_bond_mask_vs_clip.py)
+  [compare_bond_mask_vs_clip.py](../tools/compare_bond_mask_vs_clip.py)
   into a thin wrapper that runs the authoritative pytest target instead of
   maintaining a separate direct-rendering code path.
 
 ### Developer Tests and Notes
 
 - Added 7 OASA tests for `build_label_attach_targets()` in
-  [`test_render_geometry.py`](packages/oasa/tests/test_render_geometry.py):
+  [`test_render_geometry.py`](../packages/oasa/tests/test_render_geometry.py):
   heteroatom shown, carbon hidden, carbon with show_carbon_symbol, charged
   carbon, mixed atoms, coordinate transforms, and bond clipping with vs without
   targets.
 - Added 7 methanol A/B comparison tests in
-  [`test_methanol_ab_compare.py`](packages/oasa/tests/test_methanol_ab_compare.py):
+  [`test_methanol_ab_compare.py`](../packages/oasa/tests/test_methanol_ab_compare.py):
   GUI-agnostic OASA-level test building methanol (C-O) and rendering two
   variants -- (A) full-length bond + label mask polygon, (B) clipped bond +
   no mask -- with assertions on endpoint shortening, non-degenerate bond line
@@ -829,32 +2117,32 @@
   SVG output to `output_smoke/methanol_A_mask.svg` and
   `output_smoke/methanol_B_clip.svg`.
 - Added 6 Qt tests for bond endpoint clipping and signal chain in
-  [`test_interactions.py`](packages/bkchem-qt.app/tests/test_interactions.py):
+  [`test_interactions.py`](../packages/bkchem-qt.app/tests/test_interactions.py):
   clips at labeled atom, no clip for hidden carbon, symbol/charge/position
   change triggers bond redraw, real targets in BondRenderContext.
 - Added Qt parity GUI-event flow test
-  [`packages/bkchem-qt.app/tests/test_bkchem_gui_events.py`](packages/bkchem-qt.app/tests/test_bkchem_gui_events.py)
+  `test_bkchem_gui_events.py`
   covering draw-mode atom/bond creation, draw->edit mode switching, delete via
   key event dispatch, undo via MainWindow handler, and edit->draw switch
   verification.
 
 - Added Qt GUI zoom diagnostic test
-  [`packages/bkchem-qt.app/tests/test_bkchem_gui_zoom.py`](packages/bkchem-qt.app/tests/test_bkchem_gui_zoom.py)
+  `test_bkchem_gui_zoom.py`
   covering zoom in/out/reset sequence checks, zoom_to_content bounds, round-trip
   viewport drift tolerance, and min/max zoom clamp behavior.
 
 - Updated both GUI zoom test suites to use cholesterol SMILES import (biomolecule
   template content) instead of benzene construction:
-  [`packages/bkchem-app/tests/test_bkchem_gui_zoom.py`](packages/bkchem-app/tests/test_bkchem_gui_zoom.py)
+  `test_bkchem_gui_zoom.py`
   and
-  [`packages/bkchem-qt.app/tests/test_bkchem_gui_zoom.py`](packages/bkchem-qt.app/tests/test_bkchem_gui_zoom.py).
+  `test_bkchem_gui_zoom.py`.
   Follow-up fixes corrected Tk test indentation in all cholesterol import blocks
   and relaxed Qt zoom assertions for cholesterol-scale content: accept valid
   sub-minimum `zoom_to_content` percentages, guard round-trip setup away from
   clamp edges, and use a wider viewport drift tolerance.
 
 - Added anti-stub gate test
-  [`packages/bkchem-qt.app/tests/test_no_stubs.py`](packages/bkchem-qt.app/tests/test_no_stubs.py)
+  [test_no_stubs.py](../packages/bkchem-qt.app/tests/test_no_stubs.py)
   with 4 tests: `test_no_stub_handlers` (inspects handler source code and
   bytecode constants for 'not yet implemented', 'stub', 'TODO' patterns),
   `test_all_handlers_are_callable`, `test_minimum_action_count` (asserts >= 48
@@ -867,14 +2155,14 @@
   axis-lock drag (Ctrl locks X, Shift locks Y, free movement without modifiers),
   undo boundaries (draw creates separate entries, bond toggle undoable),
   and bond finding helpers. Full Qt test suite: 135 tests. File created:
-  [`packages/bkchem-qt.app/tests/test_milestone3_draw_edit.py`](packages/bkchem-qt.app/tests/test_milestone3_draw_edit.py).
+  `test_milestone3_draw_edit.py`.
 
 - Added 15 Milestone 2 selection and delete tests covering: top-level dedup
   (`selected_to_unique_top_levels`), bond/atom deletion with orphan cleanup,
   single-undo-macro for delete, `bonds_to_update`/`atoms_to_update` adjacency
   helpers, and menu predicate wiring (`edit.cut` enabled_when, undo predicate).
   File created:
-  [`packages/bkchem-qt.app/tests/test_milestone2_selection.py`](packages/bkchem-qt.app/tests/test_milestone2_selection.py).
+  `test_milestone2_selection.py`.
 
 - Added 24 Milestone 1 contract enforcement tests covering: BaseMode contract
   methods (mouse_press3, enter_object, leave_object, lifecycle hooks), right-click
@@ -883,13 +2171,13 @@
   switch lifecycle (deactivate cleans state, submodes rebuild), and document
   authority (undo stack, scene re-wiring on new document). Full Qt test suite
   passes: 105 tests. File created:
-  [`packages/bkchem-qt.app/tests/test_milestone1_contract.py`](packages/bkchem-qt.app/tests/test_milestone1_contract.py).
+  `test_milestone1_contract.py`.
 
 - Added 6 bond placement tests to `test_interactions.py`: fixed-length bonds,
   120-degree angle placement, grid snapping, drag angle snapping, zero-neighbor
   default angle, and least-crowded placement. Full Qt test suite passes: 81
   tests (up from 75). File modified:
-  [`packages/bkchem-qt.app/tests/test_interactions.py`](packages/bkchem-qt.app/tests/test_interactions.py).
+  [test_interactions.py](../packages/bkchem-qt.app/tests/test_interactions.py).
 
 ## 2026-02-28
 
@@ -903,12 +2191,12 @@
   status bar widget with buttons (-, +, 100%, Fit, Content) and a horizontal
   slider for continuous zoom. Wired zoom controls signals to main window
   handlers and view feedback. File created:
-  [`packages/bkchem-qt.app/bkchem_qt/widgets/zoom_controls.py`](packages/bkchem-qt.app/bkchem_qt/widgets/zoom_controls.py),
-  [`packages/bkchem-qt.app/tests/test_zoom_controls.py`](packages/bkchem-qt.app/tests/test_zoom_controls.py).
+  [zoom_controls.py](../packages/bkchem-qt.app/bkchem_qt/widgets/zoom_controls.py),
+  [test_zoom_controls.py](../packages/bkchem-qt.app/tests/test_zoom_controls.py).
   Files modified:
-  [`packages/bkchem-qt.app/bkchem_qt/canvas/view.py`](packages/bkchem-qt.app/bkchem_qt/canvas/view.py),
-  [`packages/bkchem-qt.app/bkchem_qt/main_window.py`](packages/bkchem-qt.app/bkchem_qt/main_window.py),
-  [`packages/bkchem-qt.app/bkchem_qt/actions/view_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/view_actions.py).
+  [view.py](../packages/bkchem-qt.app/bkchem_qt/canvas/view.py),
+  [main_window.py](../packages/bkchem-qt.app/bkchem_qt/main_window.py),
+  `view_actions.py`.
 
 - Added Qt submode framework: modes now display context-sensitive submode
   buttons in a horizontal ribbon below the mode toolbar, matching the Tk
@@ -916,20 +2204,20 @@
   YAML-driven submode data, with selection highlighting and dynamic refresh.
   The `EditRibbon` is now shown/hidden based on the mode's `show_edit_pool`
   flag rather than being always visible. Files created:
-  [`packages/bkchem-qt.app/bkchem_qt/widgets/submode_ribbon.py`](packages/bkchem-qt.app/bkchem_qt/widgets/submode_ribbon.py),
-  [`packages/bkchem-qt.app/bkchem_qt/modes/config.py`](packages/bkchem-qt.app/bkchem_qt/modes/config.py).
+  [submode_ribbon.py](../packages/bkchem-qt.app/bkchem_qt/widgets/submode_ribbon.py),
+  `config.py`.
   Files modified:
-  [`packages/bkchem-qt.app/bkchem_qt/modes/base_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/base_mode.py),
-  [`packages/bkchem-qt.app/bkchem_qt/main_window.py`](packages/bkchem-qt.app/bkchem_qt/main_window.py).
+  [base_mode.py](../packages/bkchem-qt.app/bkchem_qt/modes/base_mode.py),
+  [main_window.py](../packages/bkchem-qt.app/bkchem_qt/main_window.py).
 
 - Added `file_actions` mode to both Qt and Tk apps. A "file" mode button
   appears first in the mode toolbar with New, Open, Save, and Save As submode
   buttons. File menu items remain for keyboard shortcut access. Files created:
-  [`packages/bkchem-qt.app/bkchem_qt/modes/file_actions_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/file_actions_mode.py),
-  [`packages/bkchem-app/bkchem/modes/file_actions_mode.py`](packages/bkchem-app/bkchem/modes/file_actions_mode.py).
+  `file_actions_mode.py`,
+  `file_actions_mode.py`.
   Files modified:
-  [`packages/bkchem-app/bkchem_data/modes.yaml`](packages/bkchem-app/bkchem_data/modes.yaml),
-  [`packages/bkchem-qt.app/bkchem_qt/main_window.py`](packages/bkchem-qt.app/bkchem_qt/main_window.py).
+  [modes.yaml](../packages/bkchem-app/bkchem_data/modes.yaml),
+  [main_window.py](../packages/bkchem-qt.app/bkchem_qt/main_window.py).
 
 - Added `_on_save_as()` handler to Qt `MainWindow` for Save As file dialog
   that always prompts for a new file path.
@@ -939,46 +2227,46 @@
   `bkchem.biomolecule_loader`, organizes them by category in a row+grid ribbon,
   and places templates on the canvas using the same SMILES-to-mol pipeline as
   the existing template mode. File created:
-  [`packages/bkchem-qt.app/bkchem_qt/modes/biotemplate_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/biotemplate_mode.py).
+  [biotemplate_mode.py](../packages/bkchem-qt.app/bkchem_qt/modes/biotemplate_mode.py).
   Files modified:
-  [`packages/bkchem-qt.app/bkchem_qt/main_window.py`](packages/bkchem-qt.app/bkchem_qt/main_window.py),
-  [`packages/bkchem-qt.app/bkchem_qt/actions/insert_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/insert_actions.py).
+  [main_window.py](../packages/bkchem-qt.app/bkchem_qt/main_window.py),
+  `insert_actions.py`.
 
 - Wired Insert > Biomolecule Template menu action to activate the `biotemplate`
   mode in the Qt app instead of showing a stub message. File modified:
-  [`packages/bkchem-qt.app/bkchem_qt/actions/insert_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/insert_actions.py).
+  `insert_actions.py`.
 
 - Populated dynamic submode data in `TemplateMode._load_templates()` so the
   `SubModeRibbon` renders template choices in a grid layout. Added
   `on_submode_switch()` override to route submode button clicks to
   `set_template()`. File modified:
-  [`packages/bkchem-qt.app/bkchem_qt/modes/template_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/template_mode.py).
+  `template_mode.py`.
 
 - Added mode submode parity tests (`test_mode_submode_parity.py`) verifying
   that template, draw, and biotemplate modes have non-empty submodes and that
   template submode switching updates `_current_template`. File created:
-  [`packages/bkchem-qt.app/tests/test_mode_submode_parity.py`](packages/bkchem-qt.app/tests/test_mode_submode_parity.py).
+  [test_mode_submode_parity.py](../packages/bkchem-qt.app/tests/test_mode_submode_parity.py).
 
 - Added theme chooser integration tests (`test_theme_chooser.py`) verifying
   dialog theme listing, preselection, apply, and cancel flows using
   monkeypatched `choose_theme`. File created:
-  [`packages/bkchem-qt.app/tests/test_theme_chooser.py`](packages/bkchem-qt.app/tests/test_theme_chooser.py).
+  [test_theme_chooser.py](../packages/bkchem-qt.app/tests/test_theme_chooser.py).
 
 - Added theme chooser dialog to Qt app. Options > Theme now opens a list dialog
   (`ThemeChooserDialog`) instead of toggling between dark and light. The dialog
   shows all available themes from the shared YAML themes directory and lets the
   user select one. File created:
-  [`packages/bkchem-qt.app/bkchem_qt/dialogs/theme_chooser_dialog.py`](packages/bkchem-qt.app/bkchem_qt/dialogs/theme_chooser_dialog.py).
+  [theme_chooser_dialog.py](../packages/bkchem-qt.app/bkchem_qt/dialogs/theme_chooser_dialog.py).
   Files modified:
-  [`packages/bkchem-qt.app/bkchem_qt/actions/options_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/options_actions.py),
-  [`packages/bkchem-qt.app/bkchem_qt/main_window.py`](packages/bkchem-qt.app/bkchem_qt/main_window.py),
-  [`packages/bkchem-qt.app/bkchem_qt/themes/theme_manager.py`](packages/bkchem-qt.app/bkchem_qt/themes/theme_manager.py).
+  `options_actions.py`,
+  [main_window.py](../packages/bkchem-qt.app/bkchem_qt/main_window.py),
+  `theme_manager.py`.
 
 - Added `get_theme_names()` to Qt `theme_loader.py` for discovering available
   themes by scanning the shared themes directory for YAML files. Also updated
   `ThemeManager.apply_theme()` to validate theme names against the available
   themes instead of a hardcoded list. File modified:
-  [`packages/bkchem-qt.app/bkchem_qt/themes/theme_loader.py`](packages/bkchem-qt.app/bkchem_qt/themes/theme_loader.py).
+  [theme_loader.py](../packages/bkchem-qt.app/bkchem_qt/themes/theme_loader.py).
 
 - Add `MenuBuilder` and integrate YAML-driven menu construction into
   `MainWindow` (Stream 3 of the parallel implementation plan). The
@@ -993,11 +2281,11 @@
   for existing code references. The grid toggle action is added directly to the
   View menu as a standalone checkable action since it is not in `menus.yaml`.
   Files created:
-  [`packages/bkchem-qt.app/bkchem_qt/actions/menu_builder.py`](packages/bkchem-qt.app/bkchem_qt/actions/menu_builder.py),
-  [`packages/bkchem-qt.app/tests/test_qt_menu_build.py`](packages/bkchem-qt.app/tests/test_qt_menu_build.py),
-  [`packages/bkchem-qt.app/tests/test_qt_menu_cascades.py`](packages/bkchem-qt.app/tests/test_qt_menu_cascades.py).
+  `menu_builder.py`,
+  [test_qt_menu_build.py](../packages/bkchem-qt.app/tests/test_qt_menu_build.py),
+  [test_qt_menu_cascades.py](../packages/bkchem-qt.app/tests/test_qt_menu_cascades.py).
   Files modified:
-  [`packages/bkchem-qt.app/bkchem_qt/main_window.py`](packages/bkchem-qt.app/bkchem_qt/main_window.py).
+  [main_window.py](../packages/bkchem-qt.app/bkchem_qt/main_window.py).
 
 - Rewrite `palettes.py` to be YAML-driven (Stream 8 of the parallel
   implementation plan). Remove all hardcoded color constants (`DARK_BG`,
@@ -1009,12 +2297,12 @@
   on each theme switch. Update `test_qt_gui_smoke.py` dark mode assertions to
   expect `#2b2b2b` (from `dark.yaml`) instead of old `#1e1e2e`.
   Files modified:
-  [`packages/bkchem-qt.app/bkchem_qt/themes/palettes.py`](packages/bkchem-qt.app/bkchem_qt/themes/palettes.py),
-  [`packages/bkchem-qt.app/bkchem_qt/themes/theme_manager.py`](packages/bkchem-qt.app/bkchem_qt/themes/theme_manager.py),
-  [`packages/bkchem-qt.app/tests/test_qt_gui_smoke.py`](packages/bkchem-qt.app/tests/test_qt_gui_smoke.py).
+  [palettes.py](../packages/bkchem-qt.app/bkchem_qt/themes/palettes.py),
+  `theme_manager.py`,
+  [test_qt_gui_smoke.py](../packages/bkchem-qt.app/tests/test_qt_gui_smoke.py).
   Files created:
-  [`packages/bkchem-qt.app/tests/test_qt_theme_yaml_mapping.py`](packages/bkchem-qt.app/tests/test_qt_theme_yaml_mapping.py),
-  [`packages/bkchem-qt.app/tests/test_qt_theme_toggle_runtime.py`](packages/bkchem-qt.app/tests/test_qt_theme_toggle_runtime.py).
+  [test_qt_theme_yaml_mapping.py](../packages/bkchem-qt.app/tests/test_qt_theme_yaml_mapping.py),
+  [test_qt_theme_toggle_runtime.py](../packages/bkchem-qt.app/tests/test_qt_theme_toggle_runtime.py).
 
 - Add Qt `PlatformMenuAdapter` module (Stream 2 of the parallel implementation
   plan). Wraps `QMenuBar`/`QMenu`/`QAction` behind the same interface that the
@@ -1029,7 +2317,7 @@
   `get_action()`, `set_item_state()`, `component()`, and
   `get_menu_component()` methods matching the Tk version's interface.
   File created:
-  [`packages/bkchem-qt.app/bkchem_qt/actions/platform_menu.py`](packages/bkchem-qt.app/bkchem_qt/actions/platform_menu.py).
+  `platform_menu.py`.
 
 - Add chemistry, repair, options, help, and plugins action registrar modules
   for BKChem-Qt (Stream 7 of the parallel implementation plan).
@@ -1046,11 +2334,11 @@
   `enabled_when=None` and `accelerator=None`. Auto-discovered by
   `register_all_actions()`.
   Files created:
-  [`packages/bkchem-qt.app/bkchem_qt/actions/chemistry_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/chemistry_actions.py),
-  [`packages/bkchem-qt.app/bkchem_qt/actions/repair_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/repair_actions.py),
-  [`packages/bkchem-qt.app/bkchem_qt/actions/options_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/options_actions.py),
-  [`packages/bkchem-qt.app/bkchem_qt/actions/help_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/help_actions.py),
-  [`packages/bkchem-qt.app/bkchem_qt/actions/plugins_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/plugins_actions.py).
+  `chemistry_actions.py`,
+  `repair_actions.py`,
+  `options_actions.py`,
+  `help_actions.py`,
+  `plugins_actions.py`.
 
 - Add `register_file_actions()` to the Qt `file_actions.py` (Stream 4 of the
   parallel implementation plan). Registers 9 file menu actions with the Qt
@@ -1062,7 +2350,7 @@
   `register_all_actions()` in the Qt action registry. Also added the `MenuAction`
   import from `bkchem_qt.actions.action_registry`.
   File modified:
-  [`packages/bkchem-qt.app/bkchem_qt/actions/file_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/file_actions.py).
+  `file_actions.py`.
 
 - Add insert, align, and object action registrar modules for BKChem-Qt
   (Stream 6 of the parallel implementation plan). `insert_actions.py` registers
@@ -1073,9 +2361,9 @@
   are stubs displaying status bar messages. All use `enabled_when=None` and
   `accelerator=None`. Auto-discovered by `register_all_actions()`.
   Files created:
-  [`packages/bkchem-qt.app/bkchem_qt/actions/insert_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/insert_actions.py),
-  [`packages/bkchem-qt.app/bkchem_qt/actions/align_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/align_actions.py),
-  [`packages/bkchem-qt.app/bkchem_qt/actions/object_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/object_actions.py).
+  `insert_actions.py`,
+  `align_actions.py`,
+  `object_actions.py`.
 
 - Add edit and view action registrar modules for BKChem-Qt (Stream 5 of the
   parallel implementation plan). `edit_actions.py` registers 7 actions:
@@ -1085,8 +2373,8 @@
   `MenuAction` registrar pattern and are auto-discovered by
   `register_all_actions()` in the action registry.
   Files created:
-  [`packages/bkchem-qt.app/bkchem_qt/actions/edit_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/edit_actions.py),
-  [`packages/bkchem-qt.app/bkchem_qt/actions/view_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/view_actions.py).
+  `edit_actions.py`,
+  `view_actions.py`.
 
 - Port ActionRegistry and MenuAction from Tk to Qt actions package. The
   `action_registry.py` module provides the `MenuAction` dataclass (with
@@ -1098,9 +2386,9 @@
   covering construction, property access, duplicate rejection, and all three
   `is_enabled` predicate modes (None, callable, string attribute).
   File created:
-  [`packages/bkchem-qt.app/bkchem_qt/actions/action_registry.py`](packages/bkchem-qt.app/bkchem_qt/actions/action_registry.py).
+  `action_registry.py`.
   File created:
-  [`packages/bkchem-qt.app/tests/test_qt_menu_contract.py`](packages/bkchem-qt.app/tests/test_qt_menu_contract.py).
+  [test_qt_menu_contract.py](../packages/bkchem-qt.app/tests/test_qt_menu_contract.py).
 
 - Add YAML theme file loader for BKChem-Qt. The new `theme_loader.py` module
   reads paper, grid, chemistry, and GUI colors from the shared YAML theme files
@@ -1112,10 +2400,10 @@
   matching the Tk dark.yaml. Light theme grid colors (`#E8E8E8`, `#BFE5D9`,
   `#CCCCCC`) now come from light.yaml.
   File created:
-  [`packages/bkchem-qt.app/bkchem_qt/themes/theme_loader.py`](packages/bkchem-qt.app/bkchem_qt/themes/theme_loader.py).
+  [theme_loader.py](../packages/bkchem-qt.app/bkchem_qt/themes/theme_loader.py).
   Files modified:
-  [`packages/bkchem-qt.app/bkchem_qt/canvas/scene.py`](packages/bkchem-qt.app/bkchem_qt/canvas/scene.py),
-  [`packages/bkchem-qt.app/bkchem_qt/main_window.py`](packages/bkchem-qt.app/bkchem_qt/main_window.py).
+  [scene.py](../packages/bkchem-qt.app/bkchem_qt/canvas/scene.py),
+  [main_window.py](../packages/bkchem-qt.app/bkchem_qt/main_window.py).
 
 - Add an independent manager review record for the Qt rewrite plan,
   documenting severity-ranked conformance findings, open questions, residual
@@ -1123,7 +2411,7 @@
   directive. The review decision is `Not complete` pending milestone gate
   evidence and parity closure.
   File created:
-  [`docs/active_plans/BKCHEM_TO_QT_PLAN_INDEPENDENT_REVIEW_2026-02-28.md`](docs/active_plans/BKCHEM_TO_QT_PLAN_INDEPENDENT_REVIEW_2026-02-28.md).
+  [BKCHEM_TO_QT_PLAN_INDEPENDENT_REVIEW_2026-02-28.md](archive/BKCHEM_TO_QT_PLAN_INDEPENDENT_REVIEW_2026-02-28.md).
 
 - Add dark mode canvas support to BKChem-Qt. Scene now uses a "white paper on
   dark background" approach: a centered white `QGraphicsRectItem` (2000x1500)
@@ -1136,10 +2424,10 @@
   rendering). Theme changes wire through `MainWindow._on_theme_changed()` to
   update the view background via `ChemView.set_background_color()`.
   Files modified:
-  [`packages/bkchem-qt.app/bkchem_qt/canvas/view.py`](packages/bkchem-qt.app/bkchem_qt/canvas/view.py),
-  [`packages/bkchem-qt.app/bkchem_qt/canvas/scene.py`](packages/bkchem-qt.app/bkchem_qt/canvas/scene.py),
-  [`packages/bkchem-qt.app/bkchem_qt/main_window.py`](packages/bkchem-qt.app/bkchem_qt/main_window.py),
-  [`packages/bkchem-qt.app/bkchem_qt/themes/palettes.py`](packages/bkchem-qt.app/bkchem_qt/themes/palettes.py).
+  [view.py](../packages/bkchem-qt.app/bkchem_qt/canvas/view.py),
+  [scene.py](../packages/bkchem-qt.app/bkchem_qt/canvas/scene.py),
+  [main_window.py](../packages/bkchem-qt.app/bkchem_qt/main_window.py),
+  [palettes.py](../packages/bkchem-qt.app/bkchem_qt/themes/palettes.py).
 - Add Qt GUI smoke test suite with 8 test cases: launch, dark mode, status bar
   coordinates, benzene drawing, zoom controls, cholesterol SMILES import, mode
   cycling, and grid toggle. Uses subprocess isolation pattern (one QApplication
@@ -1147,14 +2435,14 @@
   screenshots saved to `output_smoke/`, and verify pixel colors for dark mode
   and grid rendering.
   File created:
-  [`packages/bkchem-qt.app/tests/test_qt_gui_smoke.py`](packages/bkchem-qt.app/tests/test_qt_gui_smoke.py).
+  [test_qt_gui_smoke.py](../packages/bkchem-qt.app/tests/test_qt_gui_smoke.py).
 
 - Add theme-aware icon loader for BKChem-Qt that loads PNG icons from
   `bkchem_data/pixmaps/` with theme-appropriate directory selection
   (`png/` for light, `png-dark/` for dark), caching, and cache clearing
   on theme switch.
   File created:
-  [`packages/bkchem-qt.app/bkchem_qt/widgets/icon_loader.py`](packages/bkchem-qt.app/bkchem_qt/widgets/icon_loader.py).
+  [icon_loader.py](../packages/bkchem-qt.app/bkchem_qt/widgets/icon_loader.py).
 - Add system theme detection to BKChem-Qt theme manager. Uses
   `styleHints().colorScheme()` (Qt 6.5+) with palette brightness fallback.
   `restore_theme()` checks saved preference first, then detects system
@@ -1187,44 +2475,44 @@
   `BondItem` wraps a bond model and calls `build_bond_ops()`. Both support
   selection highlighting, hover effects, and shape-based hit testing.
   File created:
-  [`packages/bkchem-qt.app/bkchem_qt/canvas/items/render_ops_painter.py`](packages/bkchem-qt.app/bkchem_qt/canvas/items/render_ops_painter.py).
+  [render_ops_painter.py](../packages/bkchem-qt.app/bkchem_qt/canvas/items/render_ops_painter.py).
   File created:
-  [`packages/bkchem-qt.app/bkchem_qt/canvas/items/atom_item.py`](packages/bkchem-qt.app/bkchem_qt/canvas/items/atom_item.py).
+  [atom_item.py](../packages/bkchem-qt.app/bkchem_qt/canvas/items/atom_item.py).
   File created:
-  [`packages/bkchem-qt.app/bkchem_qt/canvas/items/bond_item.py`](packages/bkchem-qt.app/bkchem_qt/canvas/items/bond_item.py).
+  [bond_item.py](../packages/bkchem-qt.app/bkchem_qt/canvas/items/bond_item.py).
 - Add BKChem-Qt Milestone 2 chemistry model wrappers: Qt-side composition
   wrappers around OASA objects with QObject signals, following the
   has-a (composition) pattern from the CDML backend-to-frontend contract.
   File created:
-  [`packages/bkchem-qt.app/bkchem_qt/models/atom_model.py`](packages/bkchem-qt.app/bkchem_qt/models/atom_model.py).
+  [atom_model.py](../packages/bkchem-qt.app/bkchem_qt/models/atom_model.py).
   File created:
-  [`packages/bkchem-qt.app/bkchem_qt/models/bond_model.py`](packages/bkchem-qt.app/bkchem_qt/models/bond_model.py).
+  [bond_model.py](../packages/bkchem-qt.app/bkchem_qt/models/bond_model.py).
   File created:
-  [`packages/bkchem-qt.app/bkchem_qt/models/molecule_model.py`](packages/bkchem-qt.app/bkchem_qt/models/molecule_model.py).
+  [molecule_model.py](../packages/bkchem-qt.app/bkchem_qt/models/molecule_model.py).
   File created:
-  [`packages/bkchem-qt.app/bkchem_qt/models/document.py`](packages/bkchem-qt.app/bkchem_qt/models/document.py).
+  [document.py](../packages/bkchem-qt.app/bkchem_qt/models/document.py).
 - Begin BKChem Qt rewrite Milestone 1: application shell, canvas, themes, and
   packaging. New package at `packages/bkchem-qt.app/` with PySide6 frontend.
   File created:
-  [`packages/bkchem-qt.app/pyproject.toml`](packages/bkchem-qt.app/pyproject.toml).
+  `pyproject.toml`.
 - Add `ChemScene` (QGraphicsScene subclass) with 4000x3000 default scene rect,
   forced white background, toggleable grid overlay, and `snap_to_grid()` helper.
   File created:
-  [`packages/bkchem-qt.app/bkchem_qt/canvas/scene.py`](packages/bkchem-qt.app/bkchem_qt/canvas/scene.py).
+  [scene.py](../packages/bkchem-qt.app/bkchem_qt/canvas/scene.py).
 - Add `ChemView` (QGraphicsView subclass) with cursor-centered mouse-wheel zoom
   (10%-1000%), middle-click pan, Alt+left-click pan for macOS trackpads,
   Ctrl+0 zoom reset, and `zoom_changed`/`mouse_moved` signals.
   File created:
-  [`packages/bkchem-qt.app/bkchem_qt/canvas/view.py`](packages/bkchem-qt.app/bkchem_qt/canvas/view.py).
+  [view.py](../packages/bkchem-qt.app/bkchem_qt/canvas/view.py).
 - Add `Preferences` singleton wrapping `QSettings` for persisting user
   preferences (theme, grid visibility, recent files, zoom level, window
   geometry/state) with key constants and sensible defaults.
   File created:
-  [`packages/bkchem-qt.app/bkchem_qt/config/preferences.py`](packages/bkchem-qt.app/bkchem_qt/config/preferences.py).
+  [preferences.py](../packages/bkchem-qt.app/bkchem_qt/config/preferences.py).
 - Add `StatusBar` (QStatusBar subclass) with permanent coordinate, mode, and
   zoom labels and `update_coords()`, `update_mode()`, `update_zoom()` methods.
   File created:
-  [`packages/bkchem-qt.app/bkchem_qt/widgets/status_bar.py`](packages/bkchem-qt.app/bkchem_qt/widgets/status_bar.py).
+  [status_bar.py](../packages/bkchem-qt.app/bkchem_qt/widgets/status_bar.py).
 - Add `palettes` module with dark/light `QPalette` constructors, color constants
   (`DARK_BG`, `DARK_SURFACE`, `DARK_PRIMARY`, `DARK_SECONDARY`, `DARK_TEXT`,
   `DARK_MUTED`, `CANVAS_BG`, `SUCCESS`, `WARNING`, `ERROR`), and matching QSS
@@ -1232,24 +2520,24 @@
   QToolBar, QStatusBar, QTabWidget, QTabBar, QPushButton, QLabel, QLineEdit
   with hover/selected states.
   File created:
-  [`packages/bkchem-qt.app/bkchem_qt/themes/palettes.py`](packages/bkchem-qt.app/bkchem_qt/themes/palettes.py).
+  [palettes.py](../packages/bkchem-qt.app/bkchem_qt/themes/palettes.py).
 - Add `ThemeManager(QObject)` with `apply_theme()`, `toggle_theme()`,
   `theme_changed` signal, `current_theme` property, and optional preference
   persistence via Preferences. All user-visible strings use `self.tr()`.
   File created:
-  [`packages/bkchem-qt.app/bkchem_qt/themes/theme_manager.py`](packages/bkchem-qt.app/bkchem_qt/themes/theme_manager.py).
+  `theme_manager.py`.
 - Add `MainWindow(QMainWindow)` with menu bar (File, Edit, View, Insert,
   Chemistry, Help), tab-based canvas, toolbar placeholder, and status bar
   wired to view signals. Grid toggle and dark/light theme toggle in View menu.
   File created:
-  [`packages/bkchem-qt.app/bkchem_qt/main_window.py`](packages/bkchem-qt.app/bkchem_qt/main_window.py).
+  [main_window.py](../packages/bkchem-qt.app/bkchem_qt/main_window.py).
 - Add application bootstrap (`app.py`) with QApplication setup, QTranslator
   for Qt built-in strings, ThemeManager with dark default, and geometry restore.
   File created:
-  [`packages/bkchem-qt.app/bkchem_qt/app.py`](packages/bkchem-qt.app/bkchem_qt/app.py).
+  [app.py](../packages/bkchem-qt.app/bkchem_qt/app.py).
 - Add CLI entry point with argparse (`-v`/`--version`, positional `files`).
   File created:
-  [`packages/bkchem-qt.app/bkchem_qt/cli.py`](packages/bkchem-qt.app/bkchem_qt/cli.py).
+  `cli.py`.
 - Symlink `packages/bkchem-qt.app/bkchem_data` to `packages/bkchem-app/bkchem_data`
   for shared icons, templates, themes, and mode definitions.
 - Add BKChem-Qt Milestone 3 interaction modes and undo system. `BaseMode` abstract
@@ -1259,68 +2547,68 @@
   RemoveBond, MoveAtoms (with merge), ChangeProperty. `ModeToolbar` and `EditRibbon`
   widgets for mode selection and bond/element controls.
   Files created:
-  [`bkchem_qt/modes/base_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/base_mode.py),
-  [`bkchem_qt/modes/edit_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/edit_mode.py),
-  [`bkchem_qt/modes/draw_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/draw_mode.py),
-  [`bkchem_qt/modes/mode_manager.py`](packages/bkchem-qt.app/bkchem_qt/modes/mode_manager.py),
-  [`bkchem_qt/undo/commands.py`](packages/bkchem-qt.app/bkchem_qt/undo/commands.py),
-  [`bkchem_qt/widgets/mode_toolbar.py`](packages/bkchem-qt.app/bkchem_qt/widgets/mode_toolbar.py),
-  [`bkchem_qt/widgets/edit_ribbon.py`](packages/bkchem-qt.app/bkchem_qt/widgets/edit_ribbon.py).
+  [base_mode.py](../packages/bkchem-qt.app/bkchem_qt/modes/base_mode.py),
+  `edit_mode.py`,
+  `draw_mode.py`,
+  [mode_manager.py](../packages/bkchem-qt.app/bkchem_qt/modes/mode_manager.py),
+  [commands.py](../packages/bkchem-qt.app/bkchem_qt/undo/commands.py),
+  [mode_toolbar.py](../packages/bkchem-qt.app/bkchem_qt/widgets/mode_toolbar.py),
+  [edit_ribbon.py](../packages/bkchem-qt.app/bkchem_qt/widgets/edit_ribbon.py).
 - Add BKChem-Qt Milestone 3 OASA bridge and file I/O. `oasa_bridge` converts between
   OASA and Qt model objects (composition, not inheritance). `cdml_io` loads/saves CDML
   files. `file_actions` provides open_file dialog with CDML/mol/sdf/smi support.
   `format_bridge` wraps the OASA codec registry for import/export.
   Files created:
-  [`bkchem_qt/bridge/oasa_bridge.py`](packages/bkchem-qt.app/bkchem_qt/bridge/oasa_bridge.py),
-  [`bkchem_qt/io/cdml_io.py`](packages/bkchem-qt.app/bkchem_qt/io/cdml_io.py),
-  [`bkchem_qt/actions/file_actions.py`](packages/bkchem-qt.app/bkchem_qt/actions/file_actions.py),
-  [`bkchem_qt/io/format_bridge.py`](packages/bkchem-qt.app/bkchem_qt/io/format_bridge.py).
+  `oasa_bridge.py`,
+  [cdml_io.py](../packages/bkchem-qt.app/bkchem_qt/io/cdml_io.py),
+  `file_actions.py`,
+  [format_bridge.py](../packages/bkchem-qt.app/bkchem_qt/io/format_bridge.py).
 - Add BKChem-Qt Milestone 4 property dialogs: `AtomDialog` (symbol, charge, valency,
   isotope, multiplicity, font, color), `BondDialog` (order, type, center, widths),
   `ScaleDialog` (X/Y with aspect lock), `TextDialog`, `ArrowDialog`. Plus `ArrowItem`
   (line/spline with arrowheads), `TextItem` (rich text annotation), `TemplateMode`
   (loads from oasa.known_groups), and right-click `context_menu`.
   Files created:
-  [`bkchem_qt/dialogs/atom_dialog.py`](packages/bkchem-qt.app/bkchem_qt/dialogs/atom_dialog.py),
-  [`bkchem_qt/dialogs/bond_dialog.py`](packages/bkchem-qt.app/bkchem_qt/dialogs/bond_dialog.py),
-  [`bkchem_qt/dialogs/scale_dialog.py`](packages/bkchem-qt.app/bkchem_qt/dialogs/scale_dialog.py),
-  [`bkchem_qt/dialogs/text_dialog.py`](packages/bkchem-qt.app/bkchem_qt/dialogs/text_dialog.py),
-  [`bkchem_qt/dialogs/arrow_dialog.py`](packages/bkchem-qt.app/bkchem_qt/dialogs/arrow_dialog.py),
-  [`bkchem_qt/canvas/items/arrow_item.py`](packages/bkchem-qt.app/bkchem_qt/canvas/items/arrow_item.py),
-  [`bkchem_qt/canvas/items/text_item.py`](packages/bkchem-qt.app/bkchem_qt/canvas/items/text_item.py),
-  [`bkchem_qt/modes/template_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/template_mode.py),
-  [`bkchem_qt/actions/context_menu.py`](packages/bkchem-qt.app/bkchem_qt/actions/context_menu.py).
+  [atom_dialog.py](../packages/bkchem-qt.app/bkchem_qt/dialogs/atom_dialog.py),
+  [bond_dialog.py](../packages/bkchem-qt.app/bkchem_qt/dialogs/bond_dialog.py),
+  [scale_dialog.py](../packages/bkchem-qt.app/bkchem_qt/dialogs/scale_dialog.py),
+  [text_dialog.py](../packages/bkchem-qt.app/bkchem_qt/dialogs/text_dialog.py),
+  [arrow_dialog.py](../packages/bkchem-qt.app/bkchem_qt/dialogs/arrow_dialog.py),
+  [arrow_item.py](../packages/bkchem-qt.app/bkchem_qt/canvas/items/arrow_item.py),
+  [text_item.py](../packages/bkchem-qt.app/bkchem_qt/canvas/items/text_item.py),
+  `template_mode.py`,
+  `context_menu.py`.
 - Add BKChem-Qt Milestone 5 export, marks, and additional modes. SVG/PNG/PDF export
   via QSvgGenerator/QImage/QPdfWriter. Mark items (charge, radical, electron pair).
   Graphic shape items (rect, oval, polygon). Rotate, arrow, text, mark, atom, and
   bond-align modes. QThread-based async workers for OASA operations.
   Files created:
-  [`bkchem_qt/io/export.py`](packages/bkchem-qt.app/bkchem_qt/io/export.py),
-  [`bkchem_qt/canvas/items/mark_item.py`](packages/bkchem-qt.app/bkchem_qt/canvas/items/mark_item.py),
-  [`bkchem_qt/canvas/items/graphics_item.py`](packages/bkchem-qt.app/bkchem_qt/canvas/items/graphics_item.py),
-  [`bkchem_qt/modes/rotate_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/rotate_mode.py),
-  [`bkchem_qt/modes/arrow_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/arrow_mode.py),
-  [`bkchem_qt/modes/text_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/text_mode.py),
-  [`bkchem_qt/modes/mark_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/mark_mode.py),
-  [`bkchem_qt/modes/atom_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/atom_mode.py),
-  [`bkchem_qt/modes/bondalign_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/bondalign_mode.py),
-  [`bkchem_qt/bridge/worker.py`](packages/bkchem-qt.app/bkchem_qt/bridge/worker.py).
+  `export.py`,
+  [mark_item.py](../packages/bkchem-qt.app/bkchem_qt/canvas/items/mark_item.py),
+  [graphics_item.py](../packages/bkchem-qt.app/bkchem_qt/canvas/items/graphics_item.py),
+  `rotate_mode.py`,
+  `arrow_mode.py`,
+  `text_mode.py`,
+  `mark_mode.py`,
+  `atom_mode.py`,
+  `bondalign_mode.py`,
+  [worker.py](../packages/bkchem-qt.app/bkchem_qt/bridge/worker.py).
 - Add BKChem-Qt Milestone 6 polish: keybinding manager, preferences dialog (4 tabs:
   Appearance, Drawing, Files, Shortcuts), about dialog, main toolbar with
   File/Edit/View sections, color picker widget, periodic table popup, and stub modes
   for bracket, vector, repair, plus, and misc operations.
   Files created:
-  [`bkchem_qt/config/keybindings.py`](packages/bkchem-qt.app/bkchem_qt/config/keybindings.py),
-  [`bkchem_qt/dialogs/preferences_dialog.py`](packages/bkchem-qt.app/bkchem_qt/dialogs/preferences_dialog.py),
-  [`bkchem_qt/dialogs/about_dialog.py`](packages/bkchem-qt.app/bkchem_qt/dialogs/about_dialog.py),
-  [`bkchem_qt/widgets/toolbar.py`](packages/bkchem-qt.app/bkchem_qt/widgets/toolbar.py),
-  [`bkchem_qt/widgets/color_picker.py`](packages/bkchem-qt.app/bkchem_qt/widgets/color_picker.py),
-  [`bkchem_qt/widgets/periodic_table.py`](packages/bkchem-qt.app/bkchem_qt/widgets/periodic_table.py),
-  [`bkchem_qt/modes/bracket_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/bracket_mode.py),
-  [`bkchem_qt/modes/vector_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/vector_mode.py),
-  [`bkchem_qt/modes/repair_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/repair_mode.py),
-  [`bkchem_qt/modes/plus_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/plus_mode.py),
-  [`bkchem_qt/modes/misc_mode.py`](packages/bkchem-qt.app/bkchem_qt/modes/misc_mode.py).
+  [keybindings.py](../packages/bkchem-qt.app/bkchem_qt/config/keybindings.py),
+  [preferences_dialog.py](../packages/bkchem-qt.app/bkchem_qt/dialogs/preferences_dialog.py),
+  [about_dialog.py](../packages/bkchem-qt.app/bkchem_qt/dialogs/about_dialog.py),
+  [toolbar.py](../packages/bkchem-qt.app/bkchem_qt/widgets/toolbar.py),
+  [color_picker.py](../packages/bkchem-qt.app/bkchem_qt/widgets/color_picker.py),
+  `periodic_table.py`,
+  `bracket_mode.py`,
+  `vector_mode.py`,
+  `repair_mode.py`,
+  `plus_mode.py`,
+  `misc_mode.py`.
 
 ### Behavior or Interface Changes
 
@@ -1338,18 +2626,18 @@
 - Fixed Qt hex grid visual parity with Tk: thinner grid lines (0.375 width
   vs 1.0), smaller dots (1.0 radius vs 1.5), non-cosmetic pen for
   zoom-correct line scaling. File modified:
-  [`packages/bkchem-qt.app/bkchem_qt/canvas/scene.py`](packages/bkchem-qt.app/bkchem_qt/canvas/scene.py).
+  [scene.py](../packages/bkchem-qt.app/bkchem_qt/canvas/scene.py).
 
 - Fix crash on File > New when paper was not rebuilt after `scene.clear()`.
   `_on_new()` now calls `_build_paper()` before `_build_grid()` since
   `clear()` destroys all scene items including the paper rectangle.
   File modified:
-  [`packages/bkchem-qt.app/bkchem_qt/main_window.py`](packages/bkchem-qt.app/bkchem_qt/main_window.py).
+  [main_window.py](../packages/bkchem-qt.app/bkchem_qt/main_window.py).
 - Update smoke tests for YAML theme changes: dark mode test now expects
   dark paper (`#2b2b2b`) instead of white, grid test expects visible-by-default.
   Grid boundary checks skip dot ellipses (only check line items).
   File modified:
-  [`packages/bkchem-qt.app/tests/test_qt_gui_smoke.py`](packages/bkchem-qt.app/tests/test_qt_gui_smoke.py).
+  [test_qt_gui_smoke.py](../packages/bkchem-qt.app/tests/test_qt_gui_smoke.py).
 - Fix dark mode canvas viewport rendering on macOS Qt 6. QSS `background-color`
   on `QGraphicsView` targets the widget frame, not the drawing viewport.
   `setBackgroundBrush()` also fails to render reliably on macOS Qt 6. The fix
@@ -1359,26 +2647,26 @@
   viewport repaint. Removed dead `background-color` rules from QGraphicsView
   QSS in both dark and light palettes (kept `border: none`).
   Files modified:
-  [`packages/bkchem-qt.app/bkchem_qt/canvas/view.py`](packages/bkchem-qt.app/bkchem_qt/canvas/view.py),
-  [`packages/bkchem-qt.app/bkchem_qt/main_window.py`](packages/bkchem-qt.app/bkchem_qt/main_window.py),
-  [`packages/bkchem-qt.app/bkchem_qt/themes/palettes.py`](packages/bkchem-qt.app/bkchem_qt/themes/palettes.py).
+  [view.py](../packages/bkchem-qt.app/bkchem_qt/canvas/view.py),
+  [main_window.py](../packages/bkchem-qt.app/bkchem_qt/main_window.py),
+  [palettes.py](../packages/bkchem-qt.app/bkchem_qt/themes/palettes.py).
 - Upgrade Qt GUI smoke tests from API-only assertions to screenshot-verified
   visual tests. All test runners now call `main_window.show()`, take screenshots
   via `QWidget.grab()` saved to `output_smoke/`, and sample pixel colors to
   verify dark mode viewport background and grid line rendering. Dark mode test
   scrolls to viewport edge to confirm dark margin pixels.
   File modified:
-  [`packages/bkchem-qt.app/tests/test_qt_gui_smoke.py`](packages/bkchem-qt.app/tests/test_qt_gui_smoke.py).
+  [test_qt_gui_smoke.py](../packages/bkchem-qt.app/tests/test_qt_gui_smoke.py).
 - Fixed Qt hex grid visual parity with Tk: thinner grid lines (0.375 vs 1.0),
   smaller dots (1.0 vs 1.5), non-cosmetic pen for zoom-correct scaling.
   File modified:
-  [`packages/bkchem-qt.app/bkchem_qt/canvas/scene.py`](packages/bkchem-qt.app/bkchem_qt/canvas/scene.py).
+  [scene.py](../packages/bkchem-qt.app/bkchem_qt/canvas/scene.py).
 - Fixed `AtomModel` coordinate synchronization bug: x/y/z setters and
   `set_xyz()` updated local `_x/_y/_z` fields but never synced back to the
   underlying `_chem_atom.x/.y/.z`. This caused OASA render ops to see `None`
   coordinates when traversing bond neighbors, crashing template placement and
   any bond rendering that followed atom creation. File modified:
-  [`packages/bkchem-qt.app/bkchem_qt/models/atom_model.py`](packages/bkchem-qt.app/bkchem_qt/models/atom_model.py).
+  [atom_model.py](../packages/bkchem-qt.app/bkchem_qt/models/atom_model.py).
 - Fixed CDML roundtrip test `test_save_cdml_produces_valid_xml`: the test
   asserted `root.tag == "cdml"` but ElementTree returns the namespace-qualified
   tag `"{http://...}cdml"`. Now strips namespace prefix before comparison and
@@ -1386,9 +2674,9 @@
   `test_coordinates_preserved_within_tolerance`: test created 2 disconnected
   atoms that split into separate molecules on reload; now connects them with a
   bond to keep the molecule intact. Files modified:
-  [`packages/bkchem-qt.app/tests/test_cdml_roundtrip.py`](packages/bkchem-qt.app/tests/test_cdml_roundtrip.py).
+  `test_cdml_roundtrip.py`.
 - Added `pytest-qt` to
-  [`pip_requirements-dev.txt`](pip_requirements-dev.txt)
+  [`pip_requirements-dev.txt`](../pip_requirements-dev.txt)
   for Qt widget testing with qtbot fixture.
 
 ### Removals and Deprecations
@@ -1398,7 +2686,7 @@
   already accessible via menu items with keyboard shortcuts and via the
   file_actions mode submodes. The mode toolbar is now the topmost toolbar row.
   File modified:
-  [`packages/bkchem-qt.app/bkchem_qt/main_window.py`](packages/bkchem-qt.app/bkchem_qt/main_window.py).
+  [main_window.py](../packages/bkchem-qt.app/bkchem_qt/main_window.py).
 
 - Fixed initial submode/edit ribbon visibility on startup. Previously the
   submode ribbon and edit ribbon state were not set until the user clicked a
@@ -1423,17 +2711,17 @@
   from subprocess `python -c` patterns to in-process fixture-based tests for
   faster execution and better tracebacks. Test count grew from 51 pass / 3 fail
   to 75 pass / 0 fail. File created:
-  [`packages/bkchem-qt.app/tests/conftest.py`](packages/bkchem-qt.app/tests/conftest.py).
+  `conftest.py`.
   Files modified:
-  [`packages/bkchem-qt.app/tests/test_document_wiring.py`](packages/bkchem-qt.app/tests/test_document_wiring.py),
-  [`packages/bkchem-qt.app/tests/test_toolbar_actions.py`](packages/bkchem-qt.app/tests/test_toolbar_actions.py),
-  [`packages/bkchem-qt.app/tests/test_interactions.py`](packages/bkchem-qt.app/tests/test_interactions.py),
-  [`packages/bkchem-qt.app/tests/test_cdml_roundtrip.py`](packages/bkchem-qt.app/tests/test_cdml_roundtrip.py).
+  [test_document_wiring.py](../packages/bkchem-qt.app/tests/test_document_wiring.py),
+  [test_toolbar_actions.py](../packages/bkchem-qt.app/tests/test_toolbar_actions.py),
+  [test_interactions.py](../packages/bkchem-qt.app/tests/test_interactions.py),
+  `test_cdml_roundtrip.py`.
 - Added grid visual parity test suite for BKChem-Qt. Tests verify grid is
   visible by default, toggles on/off correctly, snap_to_grid returns a
   2-tuple of floats, grid group has child items when visible, and grid
   survives theme changes (dark/light apply_theme rebuilds). File created:
-  [`packages/bkchem-qt.app/tests/test_grid_parity.py`](packages/bkchem-qt.app/tests/test_grid_parity.py).
+  [test_grid_parity.py](../packages/bkchem-qt.app/tests/test_grid_parity.py).
 
 ## 2026-02-26
 
@@ -1442,27 +2730,27 @@
 - Add RDKit-backed file format codecs: Molfile V2000, Molfile V3000, SDF,
   SDF V3000, SMILES, and SMARTS (export-only). All use `rdkit_bridge` for
   OASA-to-RDKit conversion. File changed:
-  [`packages/oasa/oasa/codecs/rdkit_formats.py`](packages/oasa/oasa/codecs/rdkit_formats.py).
+  [rdkit_formats.py](../packages/oasa/oasa/codecs/rdkit_formats.py).
 - Register new codecs in the OASA codec registry with extensions `.sdf`
   and `.sma`, and aliases `v3000`, `mol-v3000`, `sdf-v3000`.
   File changed:
-  [`packages/oasa/oasa/codec_registry.py`](packages/oasa/oasa/codec_registry.py).
+  [codec_registry.py](../packages/oasa/oasa/codec_registry.py).
 - Add GUI menu entries for Molfile V3000, SDF, SDF V3000, and SMARTS formats.
   File changed:
-  [`packages/bkchem-app/bkchem/format_menus.yaml`](packages/bkchem-app/bkchem/format_menus.yaml).
+  [format_menus.yaml](../packages/bkchem-app/bkchem/format_menus.yaml).
 - Open dialog now recognizes chemistry file extensions (`.mol`, `.sdf`, `.smi`,
   `.cml`, `.cdxml`) and routes them through the import pipeline automatically.
   File changed:
-  [`packages/bkchem-app/bkchem/main_lib/main_file_io.py`](packages/bkchem-app/bkchem/main_lib/main_file_io.py).
+  [main_file_io.py](../packages/bkchem-app/bkchem/main_lib/main_file_io.py).
 - After import, a summary popup shows molecule/atom/bond counts.
   File changed:
-  [`packages/bkchem-app/bkchem/main_lib/main_file_io.py`](packages/bkchem-app/bkchem/main_lib/main_file_io.py).
+  [main_file_io.py](../packages/bkchem-app/bkchem/main_lib/main_file_io.py).
 - Add 6x6 NxN cholesterol super roundtrip test covering all read/write codec
   pairs (smiles, molfile, molfile_v3000, sdf, sdf_v3000, inchi). Each pair
   writes cholesterol in format A, reads back, writes in format B, reads back,
   and verifies atom/bond counts survive both hops.
   File changed:
-  [`packages/oasa/tests/test_rdkit_formats.py`](packages/oasa/tests/test_rdkit_formats.py).
+  [test_rdkit_formats.py](../packages/oasa/tests/test_rdkit_formats.py).
 
 ### Behavior or Interface Changes
 
@@ -1471,32 +2759,32 @@
   `rdkit_formats.molfile_*` functions. The legacy `Molfile` class is retained
   but no longer used by the module interface.
   File changed:
-  [`packages/oasa/oasa/molfile_lib.py`](packages/oasa/oasa/molfile_lib.py).
+  [molfile_lib.py](../packages/oasa/oasa/molfile_lib.py).
 - Migrate SMILES read/write to RDKit. The `smiles_lib.py` module-level
   `text_to_mol` and `mol_to_text` now delegate to `rdkit_formats.smiles_*`
   functions. The `calc_coords` and `localize_aromatic_bonds` parameters are
   preserved. The legacy `Smiles` class is retained but no longer used by the
   module interface.
   File changed:
-  [`packages/oasa/oasa/smiles_lib.py`](packages/oasa/oasa/smiles_lib.py).
+  [smiles_lib.py](../packages/oasa/oasa/smiles_lib.py).
 - Migrate InChI reader to RDKit. The `inchi_lib.py` `text_to_mol` now
   delegates to `rdkit_formats.inchi_text_to_mol`. The `include_hydrogens`,
   `mark_aromatic_bonds`, and `calc_coords` parameters are preserved.
   File changed:
-  [`packages/oasa/oasa/inchi_lib.py`](packages/oasa/oasa/inchi_lib.py).
+  [inchi_lib.py](../packages/oasa/oasa/inchi_lib.py).
 - Replace external-binary InChI generation with RDKit-native `MolToInchi` /
   `MolFromInchi` / `InchiToInchiKey`. No external InChI program is needed.
   The `program` parameter is accepted but ignored for backward compatibility.
   File changed:
-  [`packages/oasa/oasa/inchi_lib.py`](packages/oasa/oasa/inchi_lib.py).
+  [inchi_lib.py](../packages/oasa/oasa/inchi_lib.py).
 - Remove `program_path` gui_option from InChI format entry since the external
   binary is no longer used.
   File changed:
-  [`packages/bkchem-app/bkchem/format_menus.yaml`](packages/bkchem-app/bkchem/format_menus.yaml).
+  [format_menus.yaml](../packages/bkchem-app/bkchem/format_menus.yaml).
 - Remove InChI special-case export code from format_loader since InChI now
   uses the standard codec write_file interface.
   File changed:
-  [`packages/bkchem-app/bkchem/format_loader.py`](packages/bkchem-app/bkchem/format_loader.py).
+  [format_loader.py](../packages/bkchem-app/bkchem/format_loader.py).
 
 ### Fixes and Maintenance
 
@@ -1509,19 +2797,19 @@
   function `_rdkit_to_oasa()` now kekulizes the RDKit molecule before conversion
   so aromatic bonds get explicit single/double orders instead of `order=None`.
   File changed:
-  [`packages/oasa/oasa/codecs/rdkit_formats.py`](packages/oasa/oasa/codecs/rdkit_formats.py).
+  [rdkit_formats.py](../packages/oasa/oasa/codecs/rdkit_formats.py).
 - Add defensive fallback in `bond.order` getter: if `_order` is `None` without
   `aromatic` set, return `1` instead of `None`. Prevents `NoneType` comparison
   errors if a bond is ever created in the invalid state `_order=None, aromatic=0`.
   File changed:
-  [`packages/oasa/oasa/bond_lib.py`](packages/oasa/oasa/bond_lib.py).
+  `bond_lib.py`.
 - Fix Import menu being empty: `load_backend_capabilities()` in
   `format_loader.py` crashed with `AttributeError` because it accessed
   `oasa_bridge.oasa.codec_registry` instead of importing `oasa.codec_registry`
   directly. The error was silently caught, resulting in no Import/Export menu
   items.
   File changed:
-  [`packages/bkchem-app/bkchem/format_loader.py`](packages/bkchem-app/bkchem/format_loader.py).
+  [format_loader.py](../packages/bkchem-app/bkchem/format_loader.py).
 - Fix opening .mol files doing nothing: the extension routing in `load_CDML()`
   called `format_import("molfile", ...)` but `format_entries` was empty due to
   the above bug. Now that the registry loads correctly, .mol/.sdf/.smi files
@@ -1531,7 +2819,7 @@
   error, users now see a message explaining that BKChem does not support
   macromolecule template blocks and suggesting to export with residues expanded.
   File changed:
-  [`packages/oasa/oasa/codecs/rdkit_formats.py`](packages/oasa/oasa/codecs/rdkit_formats.py).
+  [rdkit_formats.py](../packages/oasa/oasa/codecs/rdkit_formats.py).
 
 ### Decisions and Failures
 
@@ -1563,23 +2851,23 @@
   Packages with C extensions or deep submodule trees (rdkit, rustworkx, cairo)
   are listed in `COLLECT_ALL_PACKAGES` and get `--collect-all` in addition to
   `--hidden-import`.
-  File changed: [`devel/build_macos_dmg.py`](devel/build_macos_dmg.py).
+  File changed: since-retired `build_macos_dmg.py`.
 
 ### Behavior or Interface Changes
 
 - Set version to `26.02a1` (alpha 1) across all version sources: `VERSION`,
   `packages/oasa/pyproject.toml`, and `bkchem_config.py` fallback.
-  Files changed: [`VERSION`](VERSION),
-  [`packages/oasa/pyproject.toml`](packages/oasa/pyproject.toml),
-  [`packages/bkchem-app/bkchem/bkchem_config.py`](packages/bkchem-app/bkchem/bkchem_config.py).
+  Files changed: [`VERSION`](../VERSION),
+  `pyproject.toml`,
+  [bkchem_config.py](../packages/bkchem-app/bkchem/bkchem_config.py).
 
 - Add `dependencies` block to bkchem-app `pyproject.toml` matching
   `pip_requirements.txt` (defusedxml, pycairo, pyyaml, rdkit, rustworkx).
   File changed:
-  [`packages/bkchem-app/pyproject.toml`](packages/bkchem-app/pyproject.toml).
+  `pyproject.toml`.
 - Add missing `rustworkx` dependency to oasa `pyproject.toml`.
   File changed:
-  [`packages/oasa/pyproject.toml`](packages/oasa/pyproject.toml).
+  `pyproject.toml`.
 
 ### Fixes and Maintenance
 
@@ -1590,17 +2878,17 @@
   `PACKAGE_PYINSTALLER_FLAGS` dict specifies only the binaries and imports
   actually needed. tkinter retains `--collect-all` since it needs Tcl/Tk runtime
   data directories.
-  File changed: [`devel/build_macos_dmg.py`](devel/build_macos_dmg.py).
+  File changed: since-retired `build_macos_dmg.py`.
 
 - Fix BKChem.app crash on launch due to missing tkinter/Tcl/Tk. Added
   `--hidden-import=tkinter`, `--hidden-import=_tkinter`, and
   `--collect-all=tkinter` to the PyInstaller command. PyInstaller could not
   auto-detect tkinter because the bootstrap script reaches it only at runtime.
-  File changed: [`devel/build_macos_dmg.py`](devel/build_macos_dmg.py).
+  File changed: since-retired `build_macos_dmg.py`.
 - Fix macOS DMG build script paths. The script referenced `packages/bkchem/`
   but the actual package directory is `packages/bkchem-app/`. Fixed all four
   path references (SVG icon, ICNS icon, bkchem package, bkchem data, addons).
-  File changed: [`devel/build_macos_dmg.py`](devel/build_macos_dmg.py).
+  File changed: since-retired `build_macos_dmg.py`.
 
 ### Removals and Deprecations
 
@@ -1608,32 +2896,32 @@
   pip requirements. Pmw was fully replaced with ttk in the codebase; these
   were leftover references in non-Python files.
   Files changed:
-  [`devel/build_macos_dmg.py`](devel/build_macos_dmg.py),
-  [`pip_requirements.txt`](pip_requirements.txt),
-  [`docs/INSTALL.md`](docs/INSTALL.md),
-  [`docs/TKINTER_COUPLING.md`](docs/TKINTER_COUPLING.md),
-  [`docs/TRANSFORMATION_OPERATIONS.md`](docs/TRANSFORMATION_OPERATIONS.md),
+  since-retired `build_macos_dmg.py`,
+  `pip_requirements.txt`,
+  [INSTALL.md](INSTALL.md),
+  [TKINTER_COUPLING.md](TKINTER_COUPLING.md),
+  [TRANSFORMATION_OPERATIONS.md](TRANSFORMATION_OPERATIONS.md),
   all `.po`/`.pot` locale files under
-  [`packages/bkchem-app/bkchem_data/locale/`](packages/bkchem-app/bkchem_data/locale/).
+  `locale`.
 
 ## 2026-02-21
 - Fix unsaved-changes dialog grammar. The message "what should I do?" did not
   match the Yes/No/Cancel buttons. Changed to "Save before closing?" so the
   question has a clear yes/no answer.
-  File changed: [`main_tabs.py`](packages/bkchem-app/bkchem/main_lib/main_tabs.py).
+  File changed: [`main_tabs.py`](../packages/bkchem-app/bkchem/main_lib/main_tabs.py).
 - Fix hex grid overlay colors not refreshing on theme change. The
   `_apply_paper_theme()` function referenced `paper._hex_grid` but the actual
   attribute is `paper._hex_grid_overlay`. Grid now redraws with correct theme
   colors immediately on theme switch.
-  File changed: [`theme_manager.py`](packages/bkchem-app/bkchem/theme_manager.py).
+  File changed: `theme_manager.py`.
 - Convert biomolecule template grid buttons from plain `tkinter.Button` to
   `ttk.Button` with `Grid.TButton` / `Selected.Grid.TButton` styles. This fixes
   rounded-corner macOS native buttons looking out of place alongside the themed
   rectangular ttk buttons. Hover effects are now handled by ttk style maps.
   Remove unused `_on_sub_enter`/`_on_sub_leave` hover helpers.
   Files changed:
-  [`main_modes.py`](packages/bkchem-app/bkchem/main_lib/main_modes.py),
-  [`theme_manager.py`](packages/bkchem-app/bkchem/theme_manager.py).
+  [`main_modes.py`](../packages/bkchem-app/bkchem/main_lib/main_modes.py),
+  `theme_manager.py`.
 - Fix dark theme not applying to status bar and zoom controls at startup.
   Add `foreground` to both startup and runtime `tk_setPalette` calls.
   Call `apply_gui_theme()` at startup after `init_status_bar()` so full theme
@@ -1641,8 +2929,8 @@
   the user changes themes. Add explicit status bar (row 7) recoloring in
   `apply_gui_theme()`.
   Files changed:
-  [`main.py`](packages/bkchem-app/bkchem/main.py),
-  [`theme_manager.py`](packages/bkchem-app/bkchem/theme_manager.py).
+  [`main.py`](../packages/bkchem-app/bkchem/main.py),
+  `theme_manager.py`.
 - Complete Pmw removal (M10/M11). Replace `Pmw.MainMenuBar`/`Pmw.MenuBar` with
   native `tkinter.Menu` in `PlatformMenuAdapter`. Replace `Pmw.Balloon` for
   menu balloon with `BkBalloon`. Remove `Pmw.initialise()` call. Remove
@@ -1651,13 +2939,13 @@
   Update about text from "Pmw" to "tkinter". Rewrite
   `test_platform_menu.py` for native tkinter.Menu API.
   Files changed:
-  [`main.py`](packages/bkchem-app/bkchem/main.py),
-  [`platform_menu.py`](packages/bkchem-app/bkchem/platform_menu.py),
-  [`bkchem_app.py`](packages/bkchem-app/bkchem/bkchem_app.py),
-  [`import_checker.py`](packages/bkchem-app/bkchem/import_checker.py),
-  [`messages.py`](packages/bkchem-app/bkchem/messages.py),
-  [`menu_builder.py`](packages/bkchem-app/bkchem/menu_builder.py),
-  [`test_platform_menu.py`](packages/bkchem-app/tests/test_platform_menu.py).
+  [`main.py`](../packages/bkchem-app/bkchem/main.py),
+  `platform_menu.py`,
+  [`bkchem_app.py`](../packages/bkchem-app/bkchem/bkchem_app.py),
+  [`import_checker.py`](../packages/bkchem-app/bkchem/import_checker.py),
+  [`messages.py`](../packages/bkchem-app/bkchem/messages.py),
+  `menu_builder.py`,
+  [`test_platform_menu.py`](../packages/bkchem-app/tests/test_platform_menu.py).
 - Migrate `widgets.py` from Pmw (M7). Replace `FontSizeChooser(Pmw.Counter)` ->
   `BkCounter`, `FontFamilyChooser(Pmw.ScrolledListBox)` -> `BkScrolledListBox`,
   `WidthCounter`/`LengthCounter`/`RatioCounter(Pmw.Counter)` -> `BkCounter`,
@@ -1665,7 +2953,7 @@
   `GraphicalAngleChooser` `Pmw.Counter` -> `BkCounter`,
   `ValueWithUnitParent` `Pmw.OptionMenu` -> `BkOptionMenu`,
   `Pmw.OK/ERROR/PARTIAL` -> local constants. Removed `import Pmw`.
-  File changed: [`widgets.py`](packages/bkchem-app/bkchem/widgets.py).
+  File changed: [`widgets.py`](../packages/bkchem-app/bkchem/widgets.py).
 - Migrate `interactors.py`, `main_chemistry_io.py`, `paper.py` from Pmw (M8).
   Replace 5 `Pmw.PromptDialog` -> `BkPromptDialog`, 1 `Pmw.Dialog` -> `BkDialog`,
   1 `Pmw.TextDialog` -> `BkTextDialog` in interactors.py.
@@ -1673,13 +2961,13 @@
   `BkTextDialog` in main_chemistry_io.py.
   Replace 2 `Pmw.TextDialog` -> `BkTextDialog` in paper.py.
   Files changed:
-  [`interactors.py`](packages/bkchem-app/bkchem/interactors.py),
-  [`main_chemistry_io.py`](packages/bkchem-app/bkchem/main_lib/main_chemistry_io.py),
-  [`paper.py`](packages/bkchem-app/bkchem/paper.py).
+  [`interactors.py`](../packages/bkchem-app/bkchem/interactors.py),
+  [`main_chemistry_io.py`](../packages/bkchem-app/bkchem/main_lib/main_chemistry_io.py),
+  [`paper.py`](../packages/bkchem-app/bkchem/paper.py).
 - Migrate `external_data.py` from Pmw (M9). Replace
   `ExternalDataList(Pmw.OptionMenu)` -> `BkOptionMenu`,
   `ExternalDataListSelection(Pmw.RadioSelect)` -> `BkRadioSelect`.
-  File changed: [`external_data.py`](packages/bkchem-app/bkchem/external_data.py).
+  File changed: [`external_data.py`](../packages/bkchem-app/bkchem/external_data.py).
 - Migrate `dialogs.py` from Pmw to native tkinter/ttk (M6). Replaced all 40
   Pmw usages: 7 `Pmw.Dialog` -> `BkDialog`, 3 `Pmw.Dialog` base classes ->
   `BkDialog`, 3 `Pmw.NoteBook` -> `ttk.Notebook`, 5 `Pmw.Counter` ->
@@ -1689,12 +2977,12 @@
   Added `index()`, integer `invoke()`, and `configure(Button_state=...)`
   methods to `BkRadioSelect` for Pmw API compatibility.
   Files changed:
-  [`dialogs.py`](packages/bkchem-app/bkchem/dialogs.py),
-  [`bk_widgets.py`](packages/bkchem-app/bkchem/bk_widgets.py).
+  [`dialogs.py`](../packages/bkchem-app/bkchem/dialogs.py),
+  [`bk_widgets.py`](../packages/bkchem-app/bkchem/bk_widgets.py).
 - Fix `UnboundLocalError` for `tab_bg` in `configure_ttk_styles()` by moving
   variable definitions before their first use in zoom/scrollbar styles.
   File changed:
-  [`theme_manager.py`](packages/bkchem-app/bkchem/theme_manager.py).
+  `theme_manager.py`.
 - Replace `Pmw.NoteBook` with `ttk.Notebook` for document tabs. Notebook tabs
   now use ttk style maps (`TNotebook.Tab`) for active/inactive coloring instead
   of per-tab Pmw configure calls. Added `<<NotebookTabChanged>>` binding with
@@ -1703,48 +2991,48 @@
   `ttk.Label`/`ttk.Frame`. Tab rename API in file I/O updated from
   `notebook.tab(name).configure()` to `notebook.tab(frame, text=...)`.
   Files changed:
-  [`main.py`](packages/bkchem-app/bkchem/main.py),
-  [`main_tabs.py`](packages/bkchem-app/bkchem/main_lib/main_tabs.py),
-  [`main_file_io.py`](packages/bkchem-app/bkchem/main_lib/main_file_io.py),
-  [`theme_manager.py`](packages/bkchem-app/bkchem/theme_manager.py).
+  [`main.py`](../packages/bkchem-app/bkchem/main.py),
+  [`main_tabs.py`](../packages/bkchem-app/bkchem/main_lib/main_tabs.py),
+  [`main_file_io.py`](../packages/bkchem-app/bkchem/main_lib/main_file_io.py),
+  `theme_manager.py`.
 - Replace `Pmw.Balloon` with `BkBalloon` for toolbar tooltips. Menu balloon
   stays `Pmw.Balloon` until menu system migration.
-  File changed: [`main.py`](packages/bkchem-app/bkchem/main.py).
+  File changed: [`main.py`](../packages/bkchem-app/bkchem/main.py).
 - Replace `Pmw.MessageDialog` in `about()` with `tkinter.messagebox.showinfo()`.
   Replace `Pmw.MessageDialog` in `close_paper()` with
   `tkinter.messagebox._show()` using YESNOCANCEL for save/close/cancel.
   Files changed:
-  [`main.py`](packages/bkchem-app/bkchem/main.py),
-  [`main_tabs.py`](packages/bkchem-app/bkchem/main_lib/main_tabs.py).
+  [`main.py`](../packages/bkchem-app/bkchem/main.py),
+  [`main_tabs.py`](../packages/bkchem-app/bkchem/main_lib/main_tabs.py).
 - Replace `Pmw.OptionMenu` fallback in submode dropdown with `ttk.Combobox`
   (readonly). File changed:
-  [`main_modes.py`](packages/bkchem-app/bkchem/main_lib/main_modes.py).
+  [`main_modes.py`](../packages/bkchem-app/bkchem/main_lib/main_modes.py).
 - Fix dark-theme bond rendering: wrap all render-op colors through
   `theme_manager.map_chemistry_color()` in `_render_ops_to_tk_canvas()`.
   Previously `op.color` from oasa was truthy (`#000`), bypassing the theme
   mapping fallback. Now all LineOp, PolygonOp, CircleOp, and PathOp colors
   are mapped. File changed:
-  [`bond_render_ops.py`](packages/bkchem-app/bkchem/bond_render_ops.py).
+  [`bond_render_ops.py`](../packages/bkchem-app/bkchem/bond_render_ops.py).
 - Fix dark-theme arrow and vector graphics rendering: wrap `self.line_color`
   and `self.area_color` in `theme_manager.map_chemistry_color()` for all
   canvas create/itemconfig calls in arrow and graphics draw/redraw methods.
   Files changed:
-  [`arrow_lib.py`](packages/bkchem-app/bkchem/arrow_lib.py),
-  [`graphics.py`](packages/bkchem-app/bkchem/graphics.py).
-- Add [`bk_dialogs.py`](packages/bkchem-app/bkchem/bk_dialogs.py) with pure
+  [`arrow_lib.py`](../packages/bkchem-app/bkchem/arrow_lib.py),
+  [`graphics.py`](../packages/bkchem-app/bkchem/graphics.py).
+- Add [`bk_dialogs.py`](../packages/bkchem-app/bkchem/bk_dialogs.py) with pure
   tkinter/ttk drop-in replacements for Pmw dialog and input widgets: `BkDialog`
   (replaces `Pmw.Dialog`), `BkPromptDialog` (replaces `Pmw.PromptDialog`),
   `BkTextDialog` (replaces `Pmw.TextDialog`), `BkCounter` (replaces
   `Pmw.Counter`), and `BkScrolledListBox` (replaces `Pmw.ScrolledListBox`).
   Also exports Pmw-compatible validation constants `OK`, `ERROR`, `PARTIAL`.
-- Add [`bk_widgets.py`](packages/bkchem-app/bkchem/bk_widgets.py) with drop-in
+- Add [`bk_widgets.py`](../packages/bkchem-app/bkchem/bk_widgets.py) with drop-in
   replacement wrappers for Pmw widget classes: `BkOptionMenu` (replaces
   `Pmw.OptionMenu` with ttk.Combobox), `BkRadioSelect` (replaces
   `Pmw.RadioSelect` with native tkinter Radiobutton/Checkbutton), and `BkGroup`
   (replaces `Pmw.Group` with ttk.LabelFrame). Also defines `BK_OK`, `BK_ERROR`,
   `BK_PARTIAL` constants replacing `Pmw.OK`/`Pmw.ERROR`/`Pmw.PARTIAL`.
 - Add `BkBalloon` tooltip class in
-  [`bk_tooltip.py`](packages/bkchem-app/bkchem/bk_tooltip.py) as a lightweight
+  [`bk_tooltip.py`](../packages/bkchem-app/bkchem/bk_tooltip.py) as a lightweight
   replacement for `Pmw.Balloon`. Uses a borderless `Toplevel` with 500ms hover
   delay, light-yellow background, and optional status-bar callback. No Pmw
   dependency required.
@@ -1756,58 +3044,58 @@
   Extracted shared row-building logic into `_build_submode_row()` method,
   reused by both `change_mode()` and `refresh_submode_buttons()`.
   Files changed:
-  [`main_modes.py`](packages/bkchem-app/bkchem/main_lib/main_modes.py),
-  [`theme_manager.py`](packages/bkchem-app/bkchem/theme_manager.py).
+  [`main_modes.py`](../packages/bkchem-app/bkchem/main_lib/main_modes.py),
+  `theme_manager.py`.
 - Add 1px separator line below submode ribbon, between ribbon and canvas area.
   Uses theme-aware separator color. Grid layout shifted: edit pool now row 5,
   notebook row 6, status bar row 7. Files changed:
-  [`main.py`](packages/bkchem-app/bkchem/main.py),
-  [`main_modes.py`](packages/bkchem-app/bkchem/main_lib/main_modes.py).
+  [`main.py`](../packages/bkchem-app/bkchem/main.py),
+  [`main_modes.py`](../packages/bkchem-app/bkchem/main_lib/main_modes.py).
 - Increase toolbar mode button horizontal padding from `padx=1` to `padx=2`
   for better visual breathing room between icons. File changed:
-  [`main.py`](packages/bkchem-app/bkchem/main.py).
+  [`main.py`](../packages/bkchem-app/bkchem/main.py).
 - Reserve fixed minimum height (28px) for edit pool row via
   `grid_rowconfigure(minsize=28)` so showing/hiding the Entry widget when
   switching modes does not cause the canvas to jump vertically. File changed:
-  [`main.py`](packages/bkchem-app/bkchem/main.py).
+  [`main.py`](../packages/bkchem-app/bkchem/main.py).
 - Update GUI UX review document to reflect all completed items: separator
   lines, button padding, edit pool layout fix, theme system, ttk migration,
   status bar enhancements, keyboard shortcuts. File changed:
-  [`GUI_UX_REVIEW.md`](docs/archive/GUI_UX_REVIEW.md).
+  [`GUI_UX_REVIEW.md`](archive/GUI_UX_REVIEW.md).
 - Reorganize pixmaps directory: move 92 PNG icons into `pixmaps/png/`
   subdirectory and remove 97 legacy GIF icons. Root pixmaps folder now
   contains only `png/`, `src/`, and `icon.ico`. Files changed:
-  [`pixmaps.py`](packages/bkchem-app/bkchem/pixmaps.py),
-  [`os_support.py`](packages/bkchem-app/bkchem/os_support.py).
+  [`pixmaps.py`](../packages/bkchem-app/bkchem/pixmaps.py),
+  [`os_support.py`](../packages/bkchem-app/bkchem/os_support.py).
 - Add theme-aware toolbar icon recoloring. When the active theme has a
   dark toolbar (luminance < 0.5), icons are automatically recolored at
   load time using Pillow luminance inversion (HLS lightness flip). Icons
   reload on theme switch so dark-on-transparent strokes become
   light-on-transparent. No duplicate PNG files needed. Files changed:
-  [`pixmaps.py`](packages/bkchem-app/bkchem/pixmaps.py),
-  [`theme_manager.py`](packages/bkchem-app/bkchem/theme_manager.py).
+  [`pixmaps.py`](../packages/bkchem-app/bkchem/pixmaps.py),
+  `theme_manager.py`.
 - Update SVG-to-PNG converter to output into `pixmaps/png/` subdirectory.
   File changed:
-  [`convert_svg_icons.py`](tools/convert_svg_icons.py).
+  [`convert_svg_icons.py`](../tools/convert_svg_icons.py).
 - Replace toolbar `Button` widgets with `Label` widgets to fix macOS Aqua
   Tk 9 ignoring `background` color on buttons with images. Labels correctly
   honor background color, making dark theme toolbar icons render without
   white squares. Click handling is via `<Button-1>` bindings on Labels.
   Undo/redo also converted to Labels. Removed `Pmw.RadioSelect` from
   toolbar construction. Files changed:
-  [`main.py`](packages/bkchem-app/bkchem/main.py),
-  [`main_modes.py`](packages/bkchem-app/bkchem/main_lib/main_modes.py),
-  [`theme_manager.py`](packages/bkchem-app/bkchem/theme_manager.py),
-  [`test_gui_modes.py`](packages/bkchem-app/tests/test_gui_modes.py).
+  [`main.py`](../packages/bkchem-app/bkchem/main.py),
+  [`main_modes.py`](../packages/bkchem-app/bkchem/main_lib/main_modes.py),
+  `theme_manager.py`,
+  [`test_gui_modes.py`](../packages/bkchem-app/tests/test_gui_modes.py).
 - Fix TclError on theme switch caused by garbage-collected PhotoImage
   references. Old images are now kept alive until new themed images replace
   them on toolbar buttons. Submode ribbon is rebuilt on theme switch to
   avoid stale image references on hover. File changed:
-  [`theme_manager.py`](packages/bkchem-app/bkchem/theme_manager.py).
+  `theme_manager.py`.
 - Add GUI theme switch smoke test that exercises light-to-dark-to-light
   transitions, validates toolbar button images survive the switch, and
   includes a rapid toggle stress test. File added:
-  [`test_gui_theme_change.py`](packages/bkchem-app/tests/test_gui_theme_change.py).
+  [`test_gui_theme_change.py`](../packages/bkchem-app/tests/test_gui_theme_change.py).
 - Replace Emacs-style multi-key sequences with standard single-modifier
   keyboard shortcuts. File operations (New, Open, Save, Quit) now use Ctrl+N,
   Ctrl+O, Ctrl+S, Ctrl+Q cross-platform. macOS adds Cmd equivalents (Cmd+N,
@@ -1815,11 +3103,11 @@
   Ctrl+C/V (macOS Cmd+C/V/X). Removed all `C-x C-*`, `C-a C-*`, `C-d C-*`,
   `C-o C-*` Emacs chord sequences and legacy `A-w`, `M-w`, `C-w`, `C-y`
   clipboard bindings. Files changed:
-  [`modes_lib.py`](packages/bkchem-app/bkchem/modes/modes_lib.py),
-  [`edit_mode.py`](packages/bkchem-app/bkchem/modes/edit_mode.py).
+  [`modes_lib.py`](../packages/bkchem-app/bkchem/modes/modes_lib.py),
+  `edit_mode.py`.
 - Add platform-aware accelerator display in menus. New `format_accelerator()`
   function in
-  [`platform_menu.py`](packages/bkchem-app/bkchem/platform_menu.py)
+  `platform_menu.py`
   converts internal key notation to Unicode modifier symbols on macOS and
   `Ctrl+Key` text on Linux/Windows. Menu accelerator columns now show
   platform-native notation instead of Emacs-style strings.
@@ -1829,24 +3117,24 @@
   Copy as SVG. Chemistry menu: Read -> Import, Generate -> Export for SMILES
   and InChI operations. Updated accelerator strings to match new single-key
   shortcuts in both the legacy menu template in
-  [`main.py`](packages/bkchem-app/bkchem/main.py) and the action registry
+  [`main.py`](../packages/bkchem-app/bkchem/main.py) and the action registry
   files:
-  [`file_actions.py`](packages/bkchem-app/bkchem/actions/file_actions.py),
-  [`edit_actions.py`](packages/bkchem-app/bkchem/actions/edit_actions.py),
-  [`chemistry_actions.py`](packages/bkchem-app/bkchem/actions/chemistry_actions.py).
+  `file_actions.py`,
+  `edit_actions.py`,
+  `chemistry_actions.py`.
   Also updated
-  [`test_file_actions.py`](packages/bkchem-app/tests/test_file_actions.py)
+  [`test_file_actions.py`](../packages/bkchem-app/tests/test_file_actions.py)
   to match new label_key values.
 - Add Help > Keyboard Shortcuts dialog showing all shortcuts with
   platform-native modifier notation. Files changed:
-  [`dialogs.py`](packages/bkchem-app/bkchem/dialogs.py),
-  [`help_actions.py`](packages/bkchem-app/bkchem/actions/help_actions.py),
-  [`menus.yaml`](packages/bkchem-app/bkchem_data/menus.yaml).
+  [`dialogs.py`](../packages/bkchem-app/bkchem/dialogs.py),
+  `help_actions.py`,
+  [`menus.yaml`](../packages/bkchem-app/bkchem_data/menus.yaml).
 - Update i18n translation files (`.pot` template and all 11 `.po` locale files)
   with new msgid values matching the updated label and help text strings.
 - Update About dialog with current maintainer info (Neil R. Voss) and social
   links, replacing the previous fork maintainer credit. File changed:
-  [`messages.py`](packages/bkchem-app/bkchem/messages.py).
+  [`messages.py`](../packages/bkchem-app/bkchem/messages.py).
 - Reduce paper sizes from 33 entries to 11 common sizes: A-series (A0-A5) for
   international users, plus US sizes (Letter, Legal, ANSI B, ANSI C, ANSI D).
   Default paper size changed from A4 to Letter, default orientation changed
@@ -1855,132 +3143,132 @@
   now use `[longer_side, shorter_side]` format. Fix hex grid overlay not
   redrawing when paper size or orientation changes via Document Properties
   dialog. Files changed:
-  [`data.py`](packages/bkchem-app/bkchem/data.py),
-  [`classes.py`](packages/bkchem-app/bkchem/classes.py),
-  [`temp_manager.py`](packages/bkchem-app/bkchem/temp_manager.py),
-  [`paper_properties.py`](packages/bkchem-app/bkchem/paper_lib/paper_properties.py).
+  [`data.py`](../packages/bkchem-app/bkchem/data.py),
+  [`classes.py`](../packages/bkchem-app/bkchem/classes.py),
+  [`temp_manager.py`](../packages/bkchem-app/bkchem/temp_manager.py),
+  [`paper_properties.py`](../packages/bkchem-app/bkchem/paper_lib/paper_properties.py).
 - Add YAML-based light/dark theme system. Each theme is a separate file in
-  [`packages/bkchem-app/bkchem_data/themes/`](packages/bkchem-app/bkchem_data/themes/)
+  `themes`
   (e.g. `light.yaml`, `dark.yaml`) for easy install, removal, and customization.
   Themes are managed by new module
-  [`packages/bkchem-app/bkchem/theme_manager.py`](packages/bkchem-app/bkchem/theme_manager.py).
+  `theme_manager.py`.
   All GUI chrome colors (toolbar, buttons, tabs, status bar, edit pool, canvas
   surround) are now theme-driven. Chemistry content with default colors
   (bonds, atom labels) follows the active theme via `map_chemistry_color()`,
   while explicitly colored objects stay unchanged. Paper background and hex grid
   overlay also respect the theme. Theme selector available under Options > Theme;
   preference persists across restarts. Files changed:
-  [`bkchem_config.py`](packages/bkchem-app/bkchem/bkchem_config.py),
-  [`main.py`](packages/bkchem-app/bkchem/main.py),
-  [`main_modes.py`](packages/bkchem-app/bkchem/main_lib/main_modes.py),
-  [`main_tabs.py`](packages/bkchem-app/bkchem/main_lib/main_tabs.py),
-  [`edit_pool.py`](packages/bkchem-app/bkchem/edit_pool.py),
-  [`options_actions.py`](packages/bkchem-app/bkchem/actions/options_actions.py),
-  [`dialogs.py`](packages/bkchem-app/bkchem/dialogs.py),
-  [`menus.yaml`](packages/bkchem-app/bkchem_data/menus.yaml),
-  [`bond_display.py`](packages/bkchem-app/bkchem/bond_display.py),
-  [`bond_render_ops.py`](packages/bkchem-app/bkchem/bond_render_ops.py),
-  [`special_parents.py`](packages/bkchem-app/bkchem/special_parents.py),
-  [`paper_properties.py`](packages/bkchem-app/bkchem/paper_lib/paper_properties.py),
-  [`grid_overlay.py`](packages/bkchem-app/bkchem/grid_overlay.py).
+  [`bkchem_config.py`](../packages/bkchem-app/bkchem/bkchem_config.py),
+  [`main.py`](../packages/bkchem-app/bkchem/main.py),
+  [`main_modes.py`](../packages/bkchem-app/bkchem/main_lib/main_modes.py),
+  [`main_tabs.py`](../packages/bkchem-app/bkchem/main_lib/main_tabs.py),
+  [`edit_pool.py`](../packages/bkchem-app/bkchem/edit_pool.py),
+  `options_actions.py`,
+  [`dialogs.py`](../packages/bkchem-app/bkchem/dialogs.py),
+  [`menus.yaml`](../packages/bkchem-app/bkchem_data/menus.yaml),
+  [`bond_display.py`](../packages/bkchem-app/bkchem/bond_display.py),
+  [`bond_render_ops.py`](../packages/bkchem-app/bkchem/bond_render_ops.py),
+  [`special_parents.py`](../packages/bkchem-app/bkchem/special_parents.py),
+  [`paper_properties.py`](../packages/bkchem-app/bkchem/paper_lib/paper_properties.py),
+  [`grid_overlay.py`](../packages/bkchem-app/bkchem/grid_overlay.py).
 - Add mode name and zoom percentage labels to the status bar. The active mode
   name updates on mode switch; zoom percentage updates on zoom changes, mirroring
   the per-tab zoom label. Changes in
-  [`packages/bkchem-app/bkchem/main.py`](packages/bkchem-app/bkchem/main.py),
-  [`packages/bkchem-app/bkchem/main_lib/main_modes.py`](packages/bkchem-app/bkchem/main_lib/main_modes.py),
+  [main.py](../packages/bkchem-app/bkchem/main.py),
+  [main_modes.py](../packages/bkchem-app/bkchem/main_lib/main_modes.py),
   and
-  [`packages/bkchem-app/bkchem/main_lib/main_tabs.py`](packages/bkchem-app/bkchem/main_lib/main_tabs.py).
+  [main_tabs.py](../packages/bkchem-app/bkchem/main_lib/main_tabs.py).
 - Add 1px horizontal separator line between the toolbar and submode ribbon for
   visual hierarchy. Toolbar background darkened to `toolbar_color` (from
   `background_color`) to distinguish it from the canvas surround. Toolbar
   buttons and undo/redo buttons updated to match the new background. Changes in
-  [`packages/bkchem-app/bkchem/main.py`](packages/bkchem-app/bkchem/main.py).
+  [main.py](../packages/bkchem-app/bkchem/main.py).
 - Add hover highlight effects to submode ribbon buttons (both row-layout and
   grid-layout). Hovering shows `hover_color` background; active/selected buttons
   retain their selection styling. Changes in
-  [`packages/bkchem-app/bkchem/main_lib/main_modes.py`](packages/bkchem-app/bkchem/main_lib/main_modes.py).
+  [main_modes.py](../packages/bkchem-app/bkchem/main_lib/main_modes.py).
 - Add `padx=1, pady=1` breathing room to toolbar mode buttons via
   `Pmw.RadioSelect` padding. Edit pool row follows standard ribbon show/hide
   (no reserved whitespace). Changes in
-  [`packages/bkchem-app/bkchem/main.py`](packages/bkchem-app/bkchem/main.py).
+  [main.py](../packages/bkchem-app/bkchem/main.py).
 - Consolidate UI color constants (`toolbar_color`, `separator_color`,
   `hover_color`, `active_mode_color`) into
-  [`packages/bkchem-app/bkchem/bkchem_config.py`](packages/bkchem-app/bkchem/bkchem_config.py)
+  [bkchem_config.py](../packages/bkchem-app/bkchem/bkchem_config.py)
   instead of scattering inline hex values across `main.py` and `main_modes.py`.
 - Add toolbar group separators between logical mode groups (general, templates,
   chemistry, annotation, geometry, graphics, maintenance). Separator positions
   are data-driven via `---` entries in
-  [`packages/bkchem-app/bkchem_data/modes.yaml`](packages/bkchem-app/bkchem_data/modes.yaml)
+  [modes.yaml](../packages/bkchem-app/bkchem_data/modes.yaml)
   and parsed by `get_toolbar_separator_positions()` in
-  [`packages/bkchem-app/bkchem/modes/config.py`](packages/bkchem-app/bkchem/modes/config.py).
+  `config.py`.
 - Add hover highlight effects to toolbar mode buttons (`<Enter>`/`<Leave>`
   bindings lighten to `#d8d8d8`). Active mode uses light blue fill (`#cde4f7`)
   with groove relief instead of plain sunken relief. Changes in
-  [`packages/bkchem-app/bkchem/main.py`](packages/bkchem-app/bkchem/main.py)
+  [main.py](../packages/bkchem-app/bkchem/main.py)
   and
-  [`packages/bkchem-app/bkchem/main_lib/main_modes.py`](packages/bkchem-app/bkchem/main_lib/main_modes.py).
+  [main_modes.py](../packages/bkchem-app/bkchem/main_lib/main_modes.py).
 - Add low-hanging fruit modernization section to
-  [`docs/GUI_UX_REVIEW.md`](docs/GUI_UX_REVIEW.md) documenting implemented and
+  [GUI_UX_REVIEW.md](archive/GUI_UX_REVIEW.md) documenting implemented and
   future Tkinter button improvements.
 - Add undo/redo toolbar buttons to the mode button bar with icon support and
   Pmw.Balloon tooltips in
-  [`packages/bkchem-app/bkchem/main.py`](packages/bkchem-app/bkchem/main.py).
+  [main.py](../packages/bkchem-app/bkchem/main.py).
 - Add macOS Command key (Cmd) equivalents for common keyboard shortcuts:
   Cmd+Z undo, Cmd+Shift+Z redo, Cmd+S save, Cmd+Shift+A select all in
-  [`packages/bkchem-app/bkchem/modes/modes_lib.py`](packages/bkchem-app/bkchem/modes/modes_lib.py).
+  [modes_lib.py](../packages/bkchem-app/bkchem/modes/modes_lib.py).
   Add Cmd+plus/minus/0 zoom and Cmd+G hex grid toggle in
-  [`packages/bkchem-app/bkchem/paper_lib/paper_events.py`](packages/bkchem-app/bkchem/paper_lib/paper_events.py).
-- Add [`tools/convert_svg_icons.py`](tools/convert_svg_icons.py) script to
+  [paper_events.py](../packages/bkchem-app/bkchem/paper_lib/paper_events.py).
+- Add [convert_svg_icons.py](../tools/convert_svg_icons.py) script to
   convert SVG icon sources to PNG. Defaults to 32x32; accepts `-s` for custom
   size, `-n` for dry run, `-v` for verbose output.
 - Add 5 new SVG icon sources (undo, redo, repair, biotemplate, rplus) in
-  [`packages/bkchem-app/bkchem_data/pixmaps/src/`](packages/bkchem-app/bkchem_data/pixmaps/src/)
+  `src`
   and regenerate all 92 SVG-to-PNG icons at 32x32 with 32-bit RGBA color in
-  [`packages/bkchem-app/bkchem_data/pixmaps/`](packages/bkchem-app/bkchem_data/pixmaps/).
+  `pixmaps`.
   The `pixmaps.py` loader already prefers PNG over GIF so icons upgrade
   automatically.
-- Add [`docs/GUI_UX_REVIEW.md`](docs/GUI_UX_REVIEW.md) with a comprehensive
+- Add [GUI_UX_REVIEW.md](archive/GUI_UX_REVIEW.md) with a comprehensive
   visual quality and usability audit of the v26.02 GUI, including severity
   ratings and prioritized recommendations.
 - Rotate hex grid from flat-top to pointy-top orientation so bond directions
   align with organic chemistry convention (30, 90, 150, 210, 270, 330 degrees).
   - Basis vectors rotated from (0, 60) degrees to (30, 90) degrees in
-    [`packages/oasa/oasa/hex_grid.py`](packages/oasa/oasa/hex_grid.py).
+    [hex_grid.py](../packages/oasa/oasa/hex_grid.py).
   - Add `generate_hex_honeycomb_edges()` to produce honeycomb line segments.
-  - [`packages/bkchem-app/bkchem/grid_overlay.py`](packages/bkchem-app/bkchem/grid_overlay.py)
+  - [grid_overlay.py](../packages/bkchem-app/bkchem/grid_overlay.py)
     now draws faint honeycomb lines behind grid dots.
   - Update all hex grid tests for new pointy-top geometry and add honeycomb
     edge tests.
 - Make hex grid overlay less visually prominent: lighten honeycomb lines from
   `#DDDDDD`/0.5 to `#E8E8E8`/0.375 and dots from `#AADDCC` to `#BFE5D9` in
-  [`packages/bkchem-app/bkchem/grid_overlay.py`](packages/bkchem-app/bkchem/grid_overlay.py).
+  [grid_overlay.py](../packages/bkchem-app/bkchem/grid_overlay.py).
   Increase default bond line_width from `1px` to `1.5px` in
-  [`packages/bkchem-app/bkchem/classes.py`](packages/bkchem-app/bkchem/classes.py).
+  [classes.py](../packages/bkchem-app/bkchem/classes.py).
 - Clip honeycomb edges to the paper: require both endpoints inside the bounding
   box instead of just one, so lines no longer bleed onto the gray canvas area.
 - Fix snap-to-hex-grid alignment: after snapping atoms to the best-fit grid
   origin, translate the molecule so snapped coordinates align with the displayed
   (0,0) grid. Previously, snapped atoms landed on an offset grid invisible to
   the user.  Fixed in
-  [`packages/oasa/oasa/repair_ops.py`](packages/oasa/oasa/repair_ops.py) and
-  [`tools/snap_cdml_to_hex_grid.py`](tools/snap_cdml_to_hex_grid.py).
+  `repair_ops.py` and
+  [snap_cdml_to_hex_grid.py](../tools/snap_cdml_to_hex_grid.py).
 - Fix hex grid disappearing on the paper: replace `tag_lower("hex_grid")` with
   `tag_raise("hex_grid", background)` in
-  [`packages/bkchem-app/bkchem/grid_overlay.py`](packages/bkchem-app/bkchem/grid_overlay.py)
+  [grid_overlay.py](../packages/bkchem-app/bkchem/grid_overlay.py)
   so the grid draws above the white paper rectangle instead of below it.
-- Add [`docs/GUI_MODULE_USAGE_AUDIT.md`](docs/GUI_MODULE_USAGE_AUDIT.md) with a
+- Add `GUI_MODULE_USAGE_AUDIT.md` with a
   per-file audit of 47 `packages/bkchem-app/bkchem/*.py` GUI modules, including
   purpose summaries, importer evidence, and GUI active-use status.
 - Audit result: 46 of 47 listed modules are in active GUI/runtime use; only
-  [`packages/bkchem-app/bkchem/debug.py`](packages/bkchem-app/bkchem/debug.py)
+  [debug.py](../packages/bkchem-app/bkchem/debug.py)
   appears unused (no imports found in package code or tests).
 
 ## 2026-02-20
 - Replace custom coordinate generation pipeline with RDKit.
   - RDKit is now a required dependency for OASA (added to
-    [`packages/oasa/pyproject.toml`](packages/oasa/pyproject.toml)).
+    `pyproject.toml`).
   - New thin wrapper
-    [`packages/oasa/oasa/coords_generator.py`](packages/oasa/oasa/coords_generator.py)
+    [coords_generator.py](../packages/oasa/oasa/coords_generator.py)
     delegates to `rdkit_bridge.calculate_coords_rdkit()` with full
     `bond_length` and `force` parameter support.
   - Delete the custom four-phase pipeline (`coords_gen/` package: ring
@@ -1995,39 +3283,39 @@
   - Adapt `test_coords_generator2.py` to test the RDKit-backed generator
     (44 tests, all passing).
   - Rewrite
-    [`docs/OASA_MOLECULE_COORDINATE_GENERATION_METHODS.md`](docs/OASA_MOLECULE_COORDINATE_GENERATION_METHODS.md)
+    [OASA_MOLECULE_COORDINATE_GENERATION_METHODS.md](OASA_MOLECULE_COORDINATE_GENERATION_METHODS.md)
     to document the RDKit delegation architecture.
 - Fix `tools/selftest_sheet.py` imports for renamed modules (`atom_lib`,
   `bond_lib`, `molecule_lib`) and capitalized class names (`Atom`, `Bond`,
   `Molecule`).
 - Add 2D spatial index (KD-tree) for OASA coordinate generation.
   - New file
-    [`packages/oasa/oasa/graph/spatial_index.py`](packages/oasa/oasa/graph/spatial_index.py):
+    `spatial_index.py`:
     pure-Python KD-tree with `query_radius()` and `query_pairs()` for fast
     radius-based neighbor lookups. Includes brute-force fallback helpers for
     small molecules (< 20 atoms).
   - Integrate into Phase 3 collision detection in
-    [`packages/oasa/oasa/coords_gen/phase3_collisions.py`](packages/oasa/oasa/coords_gen/phase3_collisions.py):
+    `phase3_collisions.py`:
     `_detect_collisions()` and `_count_collisions_for_atoms()` now use the
     spatial index for molecules with 20+ atoms, reducing all-pairs O(n^2)
     scans to O(n log n + nm).
   - Integrate into Phase 4 force-field repulsion in
-    [`packages/oasa/oasa/coords_gen/phase4_refinement.py`](packages/oasa/oasa/coords_gen/phase4_refinement.py):
+    `phase4_refinement.py`:
     `_apply_repulsion()` uses the spatial index to find candidate pairs
     within the repulsion cutoff. Index rebuilt every 10 iterations.
   - New test suite
-    [`packages/oasa/tests/test_spatial_index.py`](packages/oasa/tests/test_spatial_index.py)
+    `test_spatial_index.py`
     (29 tests): brute-force oracle validation, boundary cases, degenerate
     geometries, random point cloud property tests, and scipy cross-checks.
   - New benchmark script
-    [`tools/benchmark_spatial_index.py`](tools/benchmark_spatial_index.py):
+    `benchmark_spatial_index.py`:
     shows 2-5x speedup for standalone radius queries at 200-1000 points.
 - Graph library cleanup: 5 targeted fixes.
   - Remove unused incremental mirror methods (`add_node`, `remove_node`,
     `add_edge`, `remove_edge`) from `RxBackend` in
-    [`packages/oasa/oasa/graph/rx_backend.py`](packages/oasa/oasa/graph/rx_backend.py)
+    [rx_backend.py](../packages/oasa/oasa/graph/rx_backend.py)
     and their tests in
-    [`packages/oasa/tests/test_rx_backend.py`](packages/oasa/tests/test_rx_backend.py).
+    [test_rx_backend.py](../packages/oasa/tests/test_rx_backend.py).
   - Add empty graph guard to `cycle_basis()` to prevent crash on node 0 lookup.
   - Replace fragile `hasattr(item, '_neighbors')` duck typing with
     `isinstance(item, Vertex)` in `find_path_between`.
@@ -2041,36 +3329,36 @@
   placing them at the origin; Phase 2 triggers their placement when chain
   expansion reaches a neighboring atom. Follows the RDKit `mergeNoCommon()`
   pattern from `EmbeddedFrag::expandEfrag()`. Modified
-  [`packages/oasa/oasa/coords_gen/phase1_rings.py`](packages/oasa/oasa/coords_gen/phase1_rings.py),
-  [`packages/oasa/oasa/coords_gen/phase2_chains.py`](packages/oasa/oasa/coords_gen/phase2_chains.py),
-  and [`packages/oasa/oasa/coords_gen/calculate.py`](packages/oasa/oasa/coords_gen/calculate.py).
+  `phase1_rings.py`,
+  `phase2_chains.py`,
+  and `calculate.py`.
   Added sucrose and raffinose tests in
-  [`packages/oasa/tests/test_coords_generator2.py`](packages/oasa/tests/test_coords_generator2.py).
+  [test_coords_generator2.py](../packages/oasa/tests/test_coords_generator2.py).
 - Update
-  [`docs/OASA_MOLECULE_COORDINATE_GENERATION_METHODS.md`](docs/OASA_MOLECULE_COORDINATE_GENERATION_METHODS.md):
+  [OASA_MOLECULE_COORDINATE_GENERATION_METHODS.md](OASA_MOLECULE_COORDINATE_GENERATION_METHODS.md):
   fix stale file references so all "Our implementation" sections and the file
   map point to the refactored phase modules (`phase1_rings.py`,
   `phase2_chains.py`, `phase3_collisions.py`, `phase4_refinement.py`) instead
   of the legacy `coords_generator2.py`. Strengthen contract language clarifying
   OASA implements RDKit's gold standard algorithms directly in Python.
 - Enable `useRingTemplates=True` in
-  [`tools/coords_comparison.py`](tools/coords_comparison.py) so the RDKit
+  `coords_comparison.py` so the RDKit
   comparison column uses the gold standard template path for cage molecules.
 - Add Weisfeiler-Leman color pruning to graph isomorphism in
-  [`packages/oasa/oasa/coords_gen/ring_templates.py`](packages/oasa/oasa/coords_gen/ring_templates.py).
+  `ring_templates.py`.
   The `_find_isomorphism` backtracker now pre-computes WL node colors and
   only considers structurally compatible candidates, reducing template
   matching from 38.6s (5 timeouts) to 3.9s (0 timeouts) on 75 templates.
 - Fix cubane test expected angles in
-  [`packages/oasa/tests/test_cubane_coordinates.py`](packages/oasa/tests/test_cubane_coordinates.py):
+  `test_cubane_coordinates.py`:
   restore `EXPECTED_ANGLES` to `{0.0, 48.0, 90.0}`. The TemplateSmiles.h
   coordinates are perspective 3D projections matching PubChem's cubane
   depiction; the 48-degree angles are diagonal cross-braces connecting
   front and back rectangles of the perspective cube.
 - Replace YAML template storage with direct `.smi` loading in
-  [`packages/oasa/oasa/coords_gen/ring_templates.py`](packages/oasa/oasa/coords_gen/ring_templates.py).
+  `ring_templates.py`.
   Templates are now read from
-  [`packages/oasa/oasa/coords_gen/templates.smi`](packages/oasa/oasa/coords_gen/templates.smi)
+  `templates.smi`
   (one CXSMILES per line), the upstream format from
   [rdkit/molecular_templates](https://github.com/rdkit/molecular_templates).
   Drops the `yaml` dependency and removes
@@ -2201,7 +3489,7 @@
   N-gon), and overlap count (non-bonded pairs closer than 0.4x mean bond
   length). Output now includes a color-coded summary table above the SVG
   gallery with green/red cells based on quality thresholds.
-- Add [docs/OASA_MOLECULE_COORDINATE_GENERATION_METHODS.md](OASA_MOLECULE_COORDINATE_GENERATION_METHODS.md)
+- Add [OASA_MOLECULE_COORDINATE_GENERATION_METHODS.md](OASA_MOLECULE_COORDINATE_GENERATION_METHODS.md)
   documenting the four-phase 2D coordinate generation pipeline: ring system
   placement (SSSR, BFS fusion, template lookup), chain placement (BFS outward,
   zigzag, stereo), collision resolution (flip subtrees, nudge), and force-field
@@ -2301,81 +3589,81 @@
   `oasa.Molecule`, `oasa.QueryAtom`, `oasa.ChemVertex`) with direct submodule
   imports (`oasa.atom_lib.Atom`, `oasa.bond_lib.Bond`, etc.) across 24 files.
   Add explicit `import oasa.codec_registry` to
-  [test_codec_registry.py](packages/oasa/tests/test_codec_registry.py) to fix
+  [test_codec_registry.py](../packages/oasa/tests/test_codec_registry.py) to fix
   missing module attribute after `oasa/__init__.py` re-export removal.
 - Strip `actions/__init__.py` to docstring only per PYTHON_STYLE.md policy.
   Move `MenuAction`, `ActionRegistry`, and `register_all_actions()` into new
-  [actions/action_registry.py](packages/bkchem-app/bkchem/actions/action_registry.py).
+  `action_registry.py`.
   Update 10 production action modules and 4 test files to import from
   `bkchem.actions.action_registry` directly.
 - Strip `modes/__init__.py` to license header + docstring per PYTHON_STYLE.md
   policy. Move discovery logic and `build_all_modes()` into new
-  [modes/mode_loader.py](packages/bkchem-app/bkchem/modes/mode_loader.py).
+  [mode_loader.py](../packages/bkchem-app/bkchem/modes/mode_loader.py).
   Update consumers in `main.py`, `main_lib/main_modes.py`, and `edit_pool.py`
   to import from `bkchem.modes.mode_loader` and `bkchem.modes.config` directly.
 - Strip `haworth/__init__.py` to license header + docstring only (no re-exports).
   Update 6 consumer files to import from `oasa.haworth.layout` directly instead
   of relying on package-level re-exports.
 - Add `## __init__.py FILES` section to
-  [docs/PYTHON_STYLE.md](docs/PYTHON_STYLE.md) codifying rules for minimal
+  `PYTHON_STYLE.md` codifying rules for minimal
   `__init__.py` files: no implementation code, no re-export facades, no curated
   lists, no class maps, no registrar logic, no global variables, no
   `__version__` assignments, no inline lazy loaders, and no re-exports for
   type-checker convenience.
 - Extract Haworth layout algorithms from
-  [haworth/\_\_init\_\_.py](packages/oasa/oasa/haworth/__init__.py) into new
-  [haworth/layout.py](packages/oasa/oasa/haworth/layout.py). Reduces
+  `__init__.py` into new
+  [layout.py](../packages/oasa/oasa/haworth/layout.py). Reduces
   `__init__.py` from 525 lines to a ~30-line re-export facade. Updated sibling
   imports in `renderer.py` and `renderer_config.py` to import from
   `oasa.haworth.layout` directly.
 - Reduce hardcoded names in `__init__.py` files with auto-discovery. Saved
   ~15.5 KB total across 4 files (42,784 -> 27,214 bytes). Changes:
-  - Gut [render_lib/\_\_init\_\_.py](packages/oasa/oasa/render_lib/__init__.py)
+  - Gut `__init__.py`
     302-line re-export facade (zero consumers) down to a docstring (13,195 ->
     1,107 bytes).
   - Replace hardcoded `_module_registrars` list in
-    [actions/\_\_init\_\_.py](packages/bkchem-app/bkchem/actions/__init__.py) with
+    `__init__.py` with
     `pathlib.Path.glob("*_actions.py")` auto-discovery (4,642 -> 4,099 bytes).
   - Replace 43 hardcoded imports and dead `_EXPORTED_MODULES` / `allNames` lists
-    in [oasa/\_\_init\_\_.py](packages/oasa/oasa/__init__.py) with
+    in `__init__.py` with
     `pkgutil.iter_modules()` auto-discovery (5,114 -> 2,786 bytes).
   - Replace 17 hardcoded mode imports and 16-entry `_MODE_CLASS_MAP` dict in
-    [modes/\_\_init\_\_.py](packages/bkchem-app/bkchem/modes/__init__.py) with
+    `__init__.py` with
     `pathlib.Path.glob("*_mode.py")` auto-discovery (3,175 -> 2,564 bytes).
 - Fix pyflakes failures in
-  [oasa/\_\_init\_\_.py](packages/oasa/oasa/__init__.py) (add `render_lib` to
+  `__init__.py` (add `render_lib` to
   export lists) and
-  [modes/\_\_init\_\_.py](packages/bkchem-app/bkchem/modes/__init__.py) (remove
+  `__init__.py` (remove
   6 unused re-exports: `event_to_key`, `mode`, `simple_mode`, `basic_mode`,
   `biomolecule_template_mode`, `user_template_mode`, `bond_align_mode`; add
   `__all__` for the 3 intentional config re-exports).
 - Delete `inchi_key.py` from OASA. The 1,348-line hand-rolled InChIKey generator
   (with ~1,100 lines of hardcoded lookup table) is dead weight because the
   external InChI program already returns the key. Simplified the fallback in
-  [inchi_lib.py](packages/oasa/oasa/inchi_lib.py) to raise or ignore on missing
+  [inchi_lib.py](../packages/oasa/oasa/inchi_lib.py) to raise or ignore on missing
   key. Removed `INCHI_KEY_AVAILABLE` flag from
-  [\_\_init\_\_.py](packages/oasa/oasa/__init__.py).
+  `__init__.py`.
 - Delete `render_geometry.py` backward-compat shim and update all 19 consumer
   files to import directly from `oasa.render_lib` sub-modules. Remove
-  `render_geometry` from [\_\_init\_\_.py](packages/oasa/oasa/__init__.py)
+  `render_geometry` from `__init__.py`
   exports. All `render_geometry.X` / `_render_geometry.X` / `_rg.X` call sites
   replaced with bare names. Consumer files updated: 5 OASA runtime
-  ([render_out.py](packages/oasa/oasa/render_out.py),
-  [svg_out.py](packages/oasa/oasa/svg_out.py),
-  [cairo_out.py](packages/oasa/oasa/cairo_out.py),
-  [renderer.py](packages/oasa/oasa/haworth/renderer.py),
-  [renderer_layout.py](packages/oasa/oasa/haworth/renderer_layout.py)),
-  2 BKChem ([bond_drawing.py](packages/bkchem-app/bkchem/bond_drawing.py),
-  [bond_render_ops.py](packages/bkchem-app/bkchem/bond_render_ops.py)),
+  ([render_out.py](../packages/oasa/oasa/render_out.py),
+  [svg_out.py](../packages/oasa/oasa/svg_out.py),
+  [cairo_out.py](../packages/oasa/oasa/cairo_out.py),
+  [renderer.py](../packages/oasa/oasa/haworth/renderer.py),
+  [renderer_layout.py](../packages/oasa/oasa/haworth/renderer_layout.py)),
+  2 BKChem ([bond_drawing.py](../packages/bkchem-app/bkchem/bond_drawing.py),
+  [bond_render_ops.py](../packages/bkchem-app/bkchem/bond_render_ops.py)),
   10 test files, 2 tool files
-  ([calibrate_glyph_model.py](tools/calibrate_glyph_model.py),
-  [selftest_sheet.py](tools/selftest_sheet.py)).
+  ([calibrate_glyph_model.py](../tools/calibrate_glyph_model.py),
+  [selftest_sheet.py](../tools/selftest_sheet.py)).
 - Remove 5 dead methods: `print_all_coords()`, `_open_debug_console()`,
   `flush_first_selected_mol_to_graph_file()` from
-  [paper.py](packages/bkchem-app/bkchem/paper.py), and `_update_geometry()`,
-  `clean()` from [main.py](packages/bkchem-app/bkchem/main.py).
-- Refactor [main.py](packages/bkchem-app/bkchem/main.py) to use mixin classes
-  from [main_lib/](packages/bkchem-app/bkchem/main_lib/). The `BKChem` class now
+  [paper.py](../packages/bkchem-app/bkchem/paper.py), and `_update_geometry()`,
+  `clean()` from [main.py](../packages/bkchem-app/bkchem/main.py).
+- Refactor [main.py](../packages/bkchem-app/bkchem/main.py) to use mixin classes
+  from `main_lib`. The `BKChem` class now
   inherits from four mixins (MainTabsMixin, MainModesMixin,
   MainChemistryIOMixin, MainFileIOMixin) plus Tk. File I/O methods (save_CDML,
   load_CDML, format_import/export, etc.), chemistry I/O methods (read_smiles,
@@ -2386,8 +3674,8 @@
   by the mixins. Unused imports removed (export, oasa_bridge, safe_xml,
   filedialog, tkinter.messagebox, data, chem_paper, Button, Scrollbar,
   HORIZONTAL, VERTICAL). No behavioral changes.
-- Refactor [paper.py](packages/bkchem-app/bkchem/paper.py) to use mixin classes
-  from [paper_lib/](packages/bkchem-app/bkchem/paper_lib/). The `chem_paper`
+- Refactor [paper.py](../packages/bkchem-app/bkchem/paper.py) to use mixin classes
+  from `paper_lib`. The `chem_paper`
   class now inherits from nine mixins (PaperLayoutMixin, PaperPropertiesMixin,
   PaperCDMLMixin, PaperFactoriesMixin, PaperEventsMixin, PaperIdManagerMixin,
   PaperSelectionMixin, PaperTransformsMixin, PaperZoomMixin) plus Canvas.
@@ -2396,46 +3684,46 @@
   the mixins. Only core methods (init, clipboard, undo/redo, hex grid, display
   info, chemistry check) remain in paper.py. Unused imports removed. No
   behavioral changes.
-- Fix [test_menu_yaml.py](packages/bkchem-app/tests/test_menu_yaml.py) to account
+- Fix [test_menu_yaml.py](../packages/bkchem-app/tests/test_menu_yaml.py) to account
   for the new repair menu: update expected menu count (9 to 10), menu order,
   action count (55 to 61), and separator count (19 to 21).
 - Add GUI test for hex grid overlay and snap system in
-  [test_bkchem_gui_hex_grid.py](packages/bkchem-app/tests/test_bkchem_gui_hex_grid.py).
+  [test_bkchem_gui_hex_grid.py](../packages/bkchem-app/tests/test_bkchem_gui_hex_grid.py).
   Three subprocess-based tests cover show/hide/toggle + snap toggle, the 50%
   zoom threshold that clears and redraws dots, and the MAX_GRID_POINTS cutoff
   in `generate_hex_grid_points()`.
 - Add repair mode as a toolbar mode for click-to-repair geometry operations on
   individual molecules. New file
-  [repair_mode.py](packages/bkchem-app/bkchem/modes/repair_mode.py) follows the
+  `repair_mode.py` follows the
   misc_mode pattern. Submodes: Normalize Lengths, Normalize Angles, Normalize
   Rings, Straighten Bonds, Snap to Hex Grid, Clean Geometry. Registered in
-  [modes/\_\_init\_\_.py](packages/bkchem-app/bkchem/modes/__init__.py) and
-  [modes.yaml](packages/bkchem-app/bkchem_data/modes.yaml). Added toolbar icon
-  [repair.gif](packages/bkchem-app/bkchem_data/pixmaps/repair.gif). Existing
+  `__init__.py` and
+  [modes.yaml](../packages/bkchem-app/bkchem_data/modes.yaml). Added toolbar icon
+  `repair.gif`. Existing
   Repair menu actions remain unchanged for batch operations.
-- Split monolithic [modes.py](packages/bkchem-app/bkchem/modes_old.py) (2,440
+- Split monolithic `modes_old.py` (2,440
   lines, 18 classes) into a `modes/` package with 15 files. Each mode class
   gets its own file; shared base classes live in
-  [modes_lib.py](packages/bkchem-app/bkchem/modes/modes_lib.py), YAML config
-  loaders in [config.py](packages/bkchem-app/bkchem/modes/config.py), and
+  [modes_lib.py](../packages/bkchem-app/bkchem/modes/modes_lib.py), YAML config
+  loaders in `config.py`, and
   the public API re-exported from
-  [\_\_init\_\_.py](packages/bkchem-app/bkchem/modes/__init__.py). Pure file
+  `__init__.py`. Pure file
   reorganization with no behavioral changes. Backward-compatible aliases
   preserved.
 - Fix flaky GUI event test in
-  [test_bkchem_gui_events.py](packages/bkchem-app/tests/test_bkchem_gui_events.py):
+  `test_bkchem_gui_events.py`:
   disable hex grid snap during event simulation so atom canvas positions are
   predictable for synthetic click coordinates.
 - Optimize hex grid at low zoom: add MAX_GRID_POINTS=5000 cutoff in
-  [hex_grid.py](packages/oasa/oasa/hex_grid.py) `generate_hex_grid_points()`
+  [hex_grid.py](../packages/oasa/oasa/hex_grid.py) `generate_hex_grid_points()`
   that returns None when the estimated point count is too large.
-  [grid_overlay.py](packages/bkchem-app/bkchem/grid_overlay.py) skips drawing
+  [grid_overlay.py](../packages/bkchem-app/bkchem/grid_overlay.py) skips drawing
   when None is returned. Also disable hex grid overlay redraw in
-  [paper.py](packages/bkchem-app/bkchem/paper.py) `scale_all()` when scale is
+  [paper.py](../packages/bkchem-app/bkchem/paper.py) `scale_all()` when scale is
   below 50%, clearing dots instead. Both guards prevent the slowdown from
   creating thousands of canvas ovals at low zoom levels.
 - Reorder zoom diagnostic test steps in
-  [test_bkchem_gui_zoom.py](packages/bkchem-app/tests/test_bkchem_gui_zoom.py):
+  `test_bkchem_gui_zoom.py`:
   start with zoom_out/reset/zoom_in before zoom_to_fit and zoom_to_content,
   add zoom_to_content recovery between min/max clamp tests. Add
   zoom_to_content at start of model_coords and roundtrip tests so content is
@@ -2443,37 +3731,37 @@
 - Move repair geometry algorithms to OASA per backend-to-frontend contract.
   Pure graph-geometry operations (bond length normalization, angle snapping,
   ring reshaping, bond straightening, hex grid snapping) now live in
-  [packages/oasa/oasa/repair_ops.py](packages/oasa/oasa/repair_ops.py).
-  BKChem [repair_ops.py](packages/bkchem-app/bkchem/repair_ops.py) is now
+  `repair_ops.py`.
+  BKChem `repair_ops.py` is now
   thin wrappers handling only selection, unit conversion, redraw, and undo.
   Registered `repair_ops` in
-  [oasa/\_\_init\_\_.py](packages/oasa/oasa/__init__.py).
+  `__init__.py`.
 - Add new top-level "Repair" menu with six geometry-fixing tools:
   normalize bond lengths (BFS-based), snap to hex grid (via
   `oasa.hex_grid`), normalize bond angles (60-degree snapping),
   normalize ring structures (regular polygon reshaping), straighten
   bonds (30-degree terminal snapping), and clean up geometry
   (coordinate regeneration). New files:
-  [repair_ops.py](packages/bkchem-app/bkchem/repair_ops.py),
-  [repair_actions.py](packages/bkchem-app/bkchem/actions/repair_actions.py).
-  Modified: [menus.yaml](packages/bkchem-app/bkchem_data/menus.yaml),
-  [actions/\_\_init\_\_.py](packages/bkchem-app/bkchem/actions/__init__.py).
+  `repair_ops.py`,
+  `repair_actions.py`.
+  Modified: [menus.yaml](../packages/bkchem-app/bkchem_data/menus.yaml),
+  `__init__.py`.
 - Remove 10 dead methods from
-  [graph_lib.py](packages/oasa/oasa/graph/graph_lib.py) (720 to 630 lines):
+  [graph_lib.py](../packages/oasa/oasa/graph/graph_lib.py) (720 to 630 lines):
   connect_a_graph, is_cycle, is_euler, get_size_of_pieces_after_edge_removal,
   get_neighbors, get_neighbors_indexes, get_degrees, dump_simple_text_file,
   read_simple_text_file, _read_file.
 - Remove dead `_read_file` method and dead `main()` demo block from
-  [molecule_lib.py](packages/oasa/oasa/molecule_lib.py) (1033 to 989 lines).
+  `molecule_lib.py` (1033 to 989 lines).
 - Remove dead code from graph package satellite files:
-  [digraph_lib.py](packages/oasa/oasa/graph/digraph_lib.py) (149 to 104 lines):
+  [digraph_lib.py](../packages/oasa/oasa/graph/digraph_lib.py) (149 to 104 lines):
   get_diameter, get_random_longest_path_numbered, get_graphviz_text_dump.
-  [diedge_lib.py](packages/oasa/oasa/graph/diedge_lib.py) (59 to 43 lines):
+  [diedge_lib.py](../packages/oasa/oasa/graph/diedge_lib.py) (59 to 43 lines):
   neighbor_edges, get_neighbor_edges2.
-  Delete [basic.py](packages/oasa/oasa/graph/basic.py) entirely (42 lines,
+  Delete `basic.py` entirely (42 lines,
   attribute_flexible_class had zero subclasses or callers).
 - Phase C: Swap 2 more algorithms to rustworkx and remove 609 lines of dead
-  code from [graph_lib.py](packages/oasa/oasa/graph/graph_lib.py) (1329 to 720
+  code from [graph_lib.py](../packages/oasa/oasa/graph/graph_lib.py) (1329 to 720
   lines, 46% reduction).
   - Swap `get_maximum_matching` to `rustworkx.max_weight_matching()`: removes 80
     lines of pure-Python Edmonds blossom algorithm (get_initial_matching,
@@ -2493,17 +3781,17 @@
     class.
   - Remove all commented-out code blocks and dead threading import.
 - Add `max_matching()` and `cycle_basis_edges()` delegates to `RxBackend`
-  ([rx_backend.py](packages/oasa/oasa/graph/rx_backend.py)). Total adapter
+  ([rx_backend.py](../packages/oasa/oasa/graph/rx_backend.py)). Total adapter
   methods: 11 algorithm delegates plus mirror ops and index helpers.
 - Phase B: Remove 188 lines of legacy algorithm code from
-  [graph_lib.py](packages/oasa/oasa/graph/graph_lib.py): 8 `_*_legacy` methods,
+  [graph_lib.py](../packages/oasa/oasa/graph/graph_lib.py): 8 `_*_legacy` methods,
   `_gen_diameter_progress`, `_get_width_from_vertex`, private
   `_mark_vertices_with_distance_from` BFS helper, and dead commented-out
   multi-thread diameter code. File reduced from 1517 to 1329 lines. All 867
   OASA tests and 340/341 BKChem tests pass.
 - Integrate rustworkx backend into `Graph.__init__` and swap 8 graph algorithms
   to use `RxBackend` delegates in
-  [graph_lib.py](packages/oasa/oasa/graph/graph_lib.py):
+  [graph_lib.py](../packages/oasa/oasa/graph/graph_lib.py):
   `get_smallest_independent_cycles` (cycle_basis 167x faster), `get_diameter`
   (13x), `is_connected` (11x), `get_connected_components` (4x),
   `find_path_between` (3.2x + correctness fix), `path_exists` (4x),
@@ -2511,10 +3799,10 @@
   and `mark_vertices_with_distance_from` (1.5x). All mutations call
   `_flush_cache` which marks the backend dirty for lazy rebuild.
 - Fix start==end edge case in `RxBackend.find_path_between()` in
-  [rx_backend.py](packages/oasa/oasa/graph/rx_backend.py): return `[start]`
+  [rx_backend.py](../packages/oasa/oasa/graph/rx_backend.py): return `[start]`
   when source and target are the same vertex (dijkstra omits this from results).
 - Add `RxBackend` adapter class
-  ([rx_backend.py](packages/oasa/oasa/graph/rx_backend.py))
+  ([rx_backend.py](../packages/oasa/oasa/graph/rx_backend.py))
   that mediates all rustworkx usage for OASA graph operations. Maintains
   identity maps between OASA Vertex/Edge objects and rustworkx indices.
   Provides 9 algorithm delegates (connected components, connectivity,
@@ -2523,38 +3811,38 @@
   Includes workaround for rustworkx 0.17.1 `bridges()` bug that misses
   DFS root edges.
 - Add 48 unit tests for RxBackend
-  ([test_rx_backend.py](packages/oasa/tests/test_rx_backend.py))
+  ([test_rx_backend.py](../packages/oasa/tests/test_rx_backend.py))
   covering init, mirror ops, rebuild, lazy sync, all algorithm delegates,
   invalidation, and index conversion helpers.
 - Fix `Digraph.create_edge()` to return `Diedge()` instead of inherited `Edge()`,
   matching the class's `edge_class = Diedge` declaration
-  ([digraph_lib.py](packages/oasa/oasa/graph/digraph_lib.py))
+  ([digraph_lib.py](../packages/oasa/oasa/graph/digraph_lib.py))
 - Remove debug `print()` statements from `Digraph.get_diameter()`
-  ([digraph_lib.py](packages/oasa/oasa/graph/digraph_lib.py))
+  ([digraph_lib.py](../packages/oasa/oasa/graph/digraph_lib.py))
 - Fix `make_bridged_bicyclic()` test fixture: norbornane has 0 bridges (every edge
   is in a cycle), changed `has_bridges` from True to False
-  ([graph_test_fixtures.py](packages/oasa/tests/graph_test_fixtures.py))
+  ([graph_test_fixtures.py](../packages/oasa/tests/graph_test_fixtures.py))
 - Add graph algorithm parity test suite
-  [packages/oasa/tests/test_graph_parity.py](packages/oasa/tests/test_graph_parity.py)
+  [test_graph_parity.py](../packages/oasa/tests/test_graph_parity.py)
   with 8 test classes (95 tests) comparing OASA vs rustworkx across all 10
   fixture molecules. Covers connected components, connectivity, path existence,
   diameter, cycle basis, BFS distance, bridges, and pathfinding. Documents
   rustworkx `bridges()` off-by-one bug (misses DFS root edge).
 - Add deterministic benchmark script
-  [packages/oasa/tests/benchmark_graph_algorithms.py](packages/oasa/tests/benchmark_graph_algorithms.py)
+  [benchmark_graph_algorithms.py](../packages/oasa/tests/benchmark_graph_algorithms.py)
   comparing OASA graph algorithms vs rustworkx on benzene, naphthalene, and
   cholesterol (6-38 atoms). Tests 7 algorithm pairs with parity verification.
   Key results at N=500: cycle_basis 197-244x, diameter 7-56x, is_connected
   11-18x, connected_components 7-12x. All parity checks pass. Also benchmarks
   3 rustworkx-only algorithms (bridges, articulation_points, max_weight_matching).
 - Add OASA graph semantics contract matrix
-  [docs/active_plans/GRAPH_SEMANTICS_MATRIX.md](docs/active_plans/GRAPH_SEMANTICS_MATRIX.md)
+  [GRAPH_SEMANTICS_MATRIX.md](archive/GRAPH_SEMANTICS_MATRIX.md)
   documenting every public method in Graph, Digraph, Vertex, Edge, and Diedge
   classes. Covers input/output types, side effects, cache flush behavior,
   `properties_` mutations, temporary disconnect usage, and confirmed rustworkx
   API mappings. Phase 0 deliverable for the rustworkx backend integration.
 - Add graph test fixture module
-  [packages/oasa/tests/graph_test_fixtures.py](packages/oasa/tests/graph_test_fixtures.py)
+  [graph_test_fixtures.py](../packages/oasa/tests/graph_test_fixtures.py)
   with 10 molecule fixtures (benzene, cholesterol, naphthalene, steroid skeleton,
   caffeine, hexane, single atom, disconnected, cyclopentane, bridged bicyclic) built
   in both OASA and rustworkx.PyGraph formats. Includes `build_rx_from_oasa()` helper
@@ -2563,17 +3851,17 @@
   cholesterol (28 atoms, 31 bonds) shows 8-215x speedups: cycle detection 215x,
   diameter 49x, connectivity 13x, pathfinding 11x. All parity checks pass.
   Feasibility decision: GO. Update
-  [docs/active_plans/RUSTWORKX_GRAPH_THEORY_BACKEND.md](docs/active_plans/RUSTWORKX_GRAPH_THEORY_BACKEND.md)
+  [RUSTWORKX_GRAPH_THEORY_BACKEND.md](archive/RUSTWORKX_GRAPH_THEORY_BACKEND.md)
   with benchmark results, confirmed rustworkx 0.17.1 API mapping, prioritized
   algorithm swap order, bridges/articulation_points as bonus algorithms, and
   resolved performance risk.
 - Expand
-  [docs/active_plans/RUSTWORKX_GRAPH_THEORY_BACKEND.md](docs/active_plans/RUSTWORKX_GRAPH_THEORY_BACKEND.md)
+  [RUSTWORKX_GRAPH_THEORY_BACKEND.md](archive/RUSTWORKX_GRAPH_THEORY_BACKEND.md)
   with a dedicated parallel execution section: independent stream breakdown,
   ownership boundaries, serialized algorithm-swap lane, and explicit
   pass/fail checkpoints (P1-P3) for concurrent planning and test work.
 - Add new active implementation plan
-  [docs/active_plans/RUSTWORKX_GRAPH_THEORY_BACKEND.md](docs/active_plans/RUSTWORKX_GRAPH_THEORY_BACKEND.md)
+  [RUSTWORKX_GRAPH_THEORY_BACKEND.md](archive/RUSTWORKX_GRAPH_THEORY_BACKEND.md)
   defining a feature-flagged rustworkx backend strategy for OASA graph
   algorithms. Plan includes architecture boundaries, phased rollout, parity
   gates, rebuild/invalidation invariants for temporary disconnect workflows,
@@ -2630,7 +3918,7 @@
     on vertex types. Updated `atom_lib.py`, `group_lib.py`, `queryatom_lib.py`,
     and `textatom_lib.py` to track and re-emit unknown CDML attributes on
     save, matching the existing bond behavior in `cdml_bond_io.py`.
-- Add [docs/GPL_FILE_PURPOSES.md](docs/GPL_FILE_PURPOSES.md), documenting the
+- Add [GPL_FILE_PURPOSES.md](GPL_FILE_PURPOSES.md), documenting the
   mixed-file inventory reported by `tools/assess_gpl_coverage.py` and explicitly
   listing the 7 current pure GPLv2 files with short purpose notes.
 
@@ -2679,7 +3967,7 @@
   class assignment. 727 OASA tests pass, 326 BKChem non-GUI tests pass.
 - BKChem GUI quick fix: force a full paper refresh after bond/molecule
   transformation actions in
-  [packages/bkchem-app/bkchem/modes.py](packages/bkchem-app/bkchem/modes.py)
+  `modes.py`
   (`bondalign_mode.mouse_down`). After applying the transform, call
   `paper.redraw_all()` and `paper.update_idletasks()` before undo/binding
   housekeeping so transformed structures render immediately.
@@ -2723,39 +4011,39 @@
   and `coords_generator2.py`.
 - Biomolecule templates now generated on demand from SMILES instead of
   pre-built CDML files. Single source of truth is
-  [packages/oasa/oasa_data/biomolecule_smiles.yaml](packages/oasa/oasa_data/biomolecule_smiles.yaml)
+  [biomolecule_smiles.yaml](../packages/oasa/oasa_data/biomolecule_smiles.yaml)
   with all 20 standard amino acids plus carbs, lipids, nucleic acids, and
   steroids. New loader module
-  [packages/bkchem-app/bkchem/biomolecule_loader.py](packages/bkchem-app/bkchem/biomolecule_loader.py)
+  [biomolecule_loader.py](../packages/bkchem-app/bkchem/biomolecule_loader.py)
   reads the YAML. Template manager
-  [packages/bkchem-app/bkchem/temp_manager.py](packages/bkchem-app/bkchem/temp_manager.py)
+  [temp_manager.py](../packages/bkchem-app/bkchem/temp_manager.py)
   gains lazy `register_smiles_template()` that parses SMILES on first use.
   Biomolecule template submodes render as a button grid with 3-letter codes
   and full-name tooltips. Removed `template_catalog.py`,
   `generate_biomolecule_templates.py`, and their tests.
 - Fix hex grid overlay not visible at zoom levels other than 100%. Use
   `canvasx()`/`canvasy()` for the far edge in canvas coordinates in
-  [packages/bkchem-app/bkchem/grid_overlay.py](packages/bkchem-app/bkchem/grid_overlay.py).
+  [grid_overlay.py](../packages/bkchem-app/bkchem/grid_overlay.py).
 - Add hexagonal grid snap feature. New OASA module
-  [packages/oasa/oasa/hex_grid.py](packages/oasa/oasa/hex_grid.py) provides
+  [hex_grid.py](../packages/oasa/oasa/hex_grid.py) provides
   pure geometry functions for flat-top hex grid: snap, index, generate, and
   molecule-level operations. New BKChem overlay
-  [packages/bkchem-app/bkchem/grid_overlay.py](packages/bkchem-app/bkchem/grid_overlay.py)
+  [grid_overlay.py](../packages/bkchem-app/bkchem/grid_overlay.py)
   draws hex grid dots on the canvas. Toggle via View menu or Ctrl+G.
   Grid-aware snap hooks in
-  [packages/bkchem-app/bkchem/modes.py](packages/bkchem-app/bkchem/modes.py).
+  `modes.py`.
   Standalone CLI tool
-  [tools/snap_cdml_to_hex_grid.py](tools/snap_cdml_to_hex_grid.py) for batch-snapping
+  [snap_cdml_to_hex_grid.py](../tools/snap_cdml_to_hex_grid.py) for batch-snapping
   CDML atom coordinates to the hex grid.
 - Register `hex_grid` module in
-  [packages/oasa/oasa/__init__.py](packages/oasa/oasa/__init__.py).
+  `__init__.py`.
 - Fix zoom-to-content and export cropping broken when hex grid is visible.
   Exclude `"hex_grid"` tagged canvas items from `_content_bbox()` and
   `get_cropping_bbox()` in
-  [packages/bkchem-app/bkchem/paper.py](packages/bkchem-app/bkchem/paper.py).
+  [paper.py](../packages/bkchem-app/bkchem/paper.py).
   Clear grid dots before `update_scrollregion()` in `scale_all()` so they do
   not inflate `bbox(ALL)`, then redraw after.
-- Fix repo environment bootstrap in [source_me.sh](source_me.sh): only source
+- Fix repo environment bootstrap in [source_me.sh](../source_me.sh): only source
   `~/.bashrc` when `BASHRC_COMMON_LOADED` is not already set (avoids the
   top-level `return 0` guard short-circuiting setup), and compose `PYTHONPATH`
   as repo package roots plus any existing value (`${PYTHONPATH:+...}`) to avoid
@@ -2763,129 +4051,129 @@
 - Add CPK element coloring to SMILES/peptide/InChI imports. Non-carbon
   heteroatoms (O red, N blue, S yellow, etc.) now render in their conventional
   CPK colors. CDML path: `CPK_COLORS` dict and `<font color>` emission in
-  [packages/oasa/oasa/cdml_writer.py](packages/oasa/oasa/cdml_writer.py).
+  [cdml_writer.py](../packages/oasa/oasa/cdml_writer.py).
   InChI bridge path: direct `line_color` assignment in
-  [packages/bkchem-app/bkchem/oasa_bridge.py](packages/bkchem-app/bkchem/oasa_bridge.py).
+  `oasa_bridge.py`.
   Add offline-change ownership principle to
-  [docs/CDML_BACKEND_TO_FRONTEND_CONTRACT.md](docs/CDML_BACKEND_TO_FRONTEND_CONTRACT.md).
+  [CDML_BACKEND_TO_FRONTEND_CONTRACT.md](CDML_BACKEND_TO_FRONTEND_CONTRACT.md).
 - Fix SMILES/peptide import crash caused by CPK `<font>` element missing `size`
   attribute: add `DEFAULT_FONT_SIZE` (12) and `DEFAULT_FONT_FAMILY` (helvetica)
   constants to
-  [packages/oasa/oasa/cdml_writer.py](packages/oasa/oasa/cdml_writer.py) and
+  [cdml_writer.py](../packages/oasa/oasa/cdml_writer.py) and
   emit them on the CPK `<font>` element. Also guard `font_size` and
   `font_family` reads in
-  [packages/bkchem-app/bkchem/atom.py](packages/bkchem-app/bkchem/atom.py)
+  `atom.py`
   `read_package()` against empty attribute strings.
 - Fix peptide importer crash: add `remove_zero_order_bonds()` delegation to
   BKChem `molecule` in
-  [packages/bkchem-app/bkchem/molecule.py](packages/bkchem-app/bkchem/molecule.py).
+  `molecule.py`.
   The SMILES codec returns a BKChem molecule (via `Config.molecule_class`), and
   `oasa_bridge.smiles_to_cdml_elements()` calls `mol.remove_zero_order_bonds()`
   which was missing from the composition delegations.
 - Refactor section 3.1 of
-  [docs/CDML_BACKEND_TO_FRONTEND_CONTRACT.md](docs/CDML_BACKEND_TO_FRONTEND_CONTRACT.md)
+  [CDML_BACKEND_TO_FRONTEND_CONTRACT.md](CDML_BACKEND_TO_FRONTEND_CONTRACT.md)
   to list delegation categories with examples instead of enumerating every
   individual OASA method. Adds guidance that new OASA methods used by callers
   require a matching BKChem delegation.
 - Restrict edit pool ribbon buttons to text-entry modes only (`edit`/`text`/`atom`).
   Add `show_edit_pool` YAML flag in
-  [packages/bkchem-app/bkchem_data/modes.yaml](packages/bkchem-app/bkchem_data/modes.yaml)
+  [modes.yaml](../packages/bkchem-app/bkchem_data/modes.yaml)
   and load it in `mode.__init__` in
-  [packages/bkchem-app/bkchem/modes.py](packages/bkchem-app/bkchem/modes.py).
+  `modes.py`.
   Replace `isinstance(m, edit_mode)` check in
-  [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py)
+  [main.py](../packages/bkchem-app/bkchem/main.py)
   `change_mode()` with the YAML-driven flag. Other modes (draw, arrow, template,
   rotate, etc.) no longer show text input buttons they cannot use.
 - Move edit pool button definitions from hardcoded Python to YAML config in
-  [packages/bkchem-app/bkchem_data/modes.yaml](packages/bkchem-app/bkchem_data/modes.yaml):
+  [modes.yaml](../packages/bkchem-app/bkchem_data/modes.yaml):
   add `edit_pool_buttons` top-level section with 3 groups (Text Input, Font Style,
   Special). Refactor `create_buttons()` in
-  [packages/bkchem-app/bkchem/edit_pool.py](packages/bkchem-app/bkchem/edit_pool.py)
+  [edit_pool.py](../packages/bkchem-app/bkchem/edit_pool.py)
   to read YAML config via `COMMAND_MAP` dispatch table. Add `get_edit_pool_config()`
-  loader in [packages/bkchem-app/bkchem/modes.py](packages/bkchem-app/bkchem/modes.py).
+  loader in `modes.py`.
   Remove `font_decorations` class attributes, `buttons` constructor parameter, and
   `_button_config` from `editPool`.
 - Move edit pool buttons into the submode ribbon in
-  [packages/bkchem-app/bkchem/edit_pool.py](packages/bkchem-app/bkchem/edit_pool.py)
+  [edit_pool.py](../packages/bkchem-app/bkchem/edit_pool.py)
   and
-  [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py):
+  [main.py](../packages/bkchem-app/bkchem/main.py):
   split button creation from Entry widget into `create_buttons()`/`destroy_buttons()`
   methods. Buttons now appear in the ribbon (row 2) only when an `edit_mode`-derived
   mode is active, freeing vertical space. Entry bar is hidden in base edit mode.
   Fix `grab_set()`/`grab_release()` to use `winfo_toplevel()` so buttons outside
   the editPool Frame still receive clicks.
 - Remove spurious "how did we get here?!?" UserWarning from `event_to_key()` in
-  [packages/bkchem-app/bkchem/modes.py](packages/bkchem-app/bkchem/modes.py):
+  `modes.py`:
   empty key is normal for modifier-only or dead-key events on macOS, return
   empty string silently instead of warning.
 - Add YAML mode `label` and updated `name` strings to gettext catalog
-  [packages/bkchem-app/bkchem_data/locale/pot/BKChem.pot](packages/bkchem-app/bkchem_data/locale/pot/BKChem.pot):
+  [BKChem.pot](../packages/bkchem-app/bkchem_data/locale/pot/BKChem.pot):
   add 9 new msgid entries (bio, user, transform, vector, misc, biomolecule
   templates, user templates, brackets, miscellaneous). Run `update_l10ns.sh`
   to merge into all 11 language `.po` files with fuzzy-matched translations.
 - Add ribbon-style group labels and vertical separators between submode
   button groups in
-  [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py):
+  [main.py](../packages/bkchem-app/bkchem/main.py):
   `change_mode()` reads `group_labels` from YAML config and renders compact
   labels and thin separator lines between RadioSelect button rows. Adds
   `_sub_extra_widgets` list for cleanup on mode switch. Tooltips now prefer
   YAML `tooltip_map` values over plain display names.
 - Fix GUI event test canvas coordinate handling in
-  [packages/bkchem-app/tests/test_bkchem_gui_events.py](packages/bkchem-app/tests/test_bkchem_gui_events.py):
+  `test_bkchem_gui_events.py`:
   add `_canvas_to_widget()` helper to convert canvas coordinates to widget
   coordinates for `event_generate`. The ribbon widget additions shifted the
   canvas viewport offset, causing `canvasx(0)` to be non-zero.
 - Fix IndexError when switching to template mode with no templates: skip
   creating empty submode groups in `_build_flat_submodes()` in
-  [packages/bkchem-app/bkchem/modes.py](packages/bkchem-app/bkchem/modes.py).
+  `modes.py`.
 - Fix AttributeError in
-  [packages/bkchem-app/bkchem/queryatom.py](packages/bkchem-app/bkchem/queryatom.py):
+  `queryatom.py`:
   `charge` setter tried to sync `_chem_query_atom` before it was initialized
   during `__init__`. Add `hasattr` guard.
 
 ## 2026-02-18
 - Extract toolbar mode/submode config from Python to YAML: create
-  [packages/bkchem-app/bkchem_data/modes.yaml](packages/bkchem-app/bkchem_data/modes.yaml)
+  [modes.yaml](../packages/bkchem-app/bkchem_data/modes.yaml)
   defining all 15 modes with submodes, icon mappings, group labels, tooltips,
   and toolbar ordering. Add YAML loader, `get_toolbar_order()`,
   `build_all_modes()` to
-  [packages/bkchem-app/bkchem/modes.py](packages/bkchem-app/bkchem/modes.py).
+  `modes.py`.
   Base `mode.__init__` auto-loads config from YAML using class name as key,
   eliminating hardcoded submodes/names/defaults from 13 mode class `__init__`
   methods. Unify `biomolecule_template_mode` and `user_template_mode` into
   `template_mode` parameterized by `template_source` and `use_categories` YAML
   fields. Add `icon_map` for YAML-driven icon name cascade (key -> icon
   override). Replace manual mode dict and `modes_sort` list in
-  [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py)
+  [main.py](../packages/bkchem-app/bkchem/main.py)
   with `build_all_modes()` and `get_toolbar_order()`. Remove dead
   `name_recode_map` dict from
-  [packages/bkchem-app/bkchem/pixmaps.py](packages/bkchem-app/bkchem/pixmaps.py).
+  [pixmaps.py](../packages/bkchem-app/bkchem/pixmaps.py).
   Rename `bond_align_mode` to `bondalign_mode`, `biomolecule_template_mode` to
   `biotemplate_mode`, `user_template_mode` to `usertemplate_mode` (old names
   kept as backwards-compatible aliases).
 - Move peptide chemistry to OASA: `git mv` `peptide_utils.py` from
   `packages/bkchem-app/bkchem/` to
-  [packages/oasa/oasa/peptide_utils.py](packages/oasa/oasa/peptide_utils.py).
+  [peptide_utils.py](../packages/oasa/oasa/peptide_utils.py).
   Remove fragile R-group placeholder substitution, build SMILES directly with
   side chains inline. Add `peptide_to_cdml_elements()` bridge function in
-  [packages/bkchem-app/bkchem/oasa_bridge.py](packages/bkchem-app/bkchem/oasa_bridge.py).
+  `oasa_bridge.py`.
   BKChem GUI no longer knows about peptide chemistry, only prompts for input
   and renders the returned CDML.
 - Add `.lower()` normalization in icon lookup in
-  [packages/bkchem-app/bkchem/pixmaps.py](packages/bkchem-app/bkchem/pixmaps.py):
+  [pixmaps.py](../packages/bkchem-app/bkchem/pixmaps.py):
   eliminates all `name_recode_map` entries. Rename `wavyline.gif` to `wavy.gif`
   and update `misc_mode` submode key from `wavyline` to `wavy` in
-  [packages/bkchem-app/bkchem/modes.py](packages/bkchem-app/bkchem/modes.py).
+  `modes.py`.
 - Add thick colored border on the selected mode button in
-  [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py):
+  [main.py](../packages/bkchem-app/bkchem/main.py):
   active mode shows sunken relief with blue highlight, unselected modes are flat.
 - Rename icon files to match tool names: `hatch.gif` -> `hashed.gif`,
   `fixed_length.gif` -> `fixed.gif`, `2D.gif` -> `2d.gif`, `3D.gif` -> `3d.gif`,
   plus corresponding SVG sources. Shrink `name_recode_map` in
-  [packages/bkchem-app/bkchem/pixmaps.py](packages/bkchem-app/bkchem/pixmaps.py)
+  [pixmaps.py](../packages/bkchem-app/bkchem/pixmaps.py)
   from 5 entries to 3 (keep `wavy`->`wavyline`, `2D`->`2d`, `3D`->`3d`).
 - Toolbar icon system overhaul (Phase 1 + 2) in
-  [packages/bkchem-app/bkchem/pixmaps.py](packages/bkchem-app/bkchem/pixmaps.py):
+  [pixmaps.py](../packages/bkchem-app/bkchem/pixmaps.py):
   expand `name_recode_map` with `hashed->hatch` (fixes missing hatch bond icon
   in draw mode), `2D->2d`, and `3D->3d` (prepare for lowercase PNG filenames).
   Update `__getitem__` and `__contains__` to try `.png` first with `.gif`
@@ -2893,33 +4181,33 @@
   Replace bare `except` clauses with explicit `KeyError`. Convert indentation
   from spaces to tabs per repo style.
 - Fix menu font on macOS: change platform detection in `init_basics()` in
-  [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py) from
+  [main.py](../packages/bkchem-app/bkchem/main.py) from
   `os.name == 'posix'` to `sys.platform == 'linux'` so macOS no longer receives
   an X11 XLFD font string that Aqua Tk cannot interpret. macOS now uses the
   native system font (San Francisco / Lucida Grande) via `TkDefaultFont`.
 - Rename `packages/bkchem` to `packages/bkchem-app` to eliminate the dual
   sys.path problem where both the package dir and inner module dir were on
   PYTHONPATH causing duplicate module objects. Updated PYTHONPATH in
-  [source_me.sh](source_me.sh) and [launch_bkchem_gui.sh](launch_bkchem_gui.sh),
+  [source_me.sh](../source_me.sh) and `launch_bkchem_gui.sh`,
   fixed path references in
-  [packages/bkchem-app/tests/conftest.py](packages/bkchem-app/tests/conftest.py),
+  `conftest.py`,
   and converted bare imports to package-relative imports in GUI test files.
   Removed the `sys.modules` aliasing hack and inner `bkchem_module_dir` path
   from all `_ensure_sys_path()` and `_ensure_preferences()` helpers.
 - Fix GUI subprocess tests broken by import conversion (commit `25120d6`):
   unify bare and package-relative `singleton_store` modules via
   `sys.modules` aliasing in `_ensure_preferences()` for
-  [packages/bkchem-app/tests/test_bkchem_gui_zoom.py](packages/bkchem-app/tests/test_bkchem_gui_zoom.py),
-  [packages/bkchem-app/tests/test_bkchem_gui_benzene.py](packages/bkchem-app/tests/test_bkchem_gui_benzene.py),
-  [packages/bkchem-app/tests/test_bkchem_gui_events.py](packages/bkchem-app/tests/test_bkchem_gui_events.py).
+  `test_bkchem_gui_zoom.py`,
+  [test_bkchem_gui_benzene.py](../packages/bkchem-app/tests/test_bkchem_gui_benzene.py),
+  `test_bkchem_gui_events.py`.
 - Fix `meta__undo_copy` and `meta__undo_children_to_record` in
-  [packages/bkchem-app/bkchem/molecule.py](packages/bkchem-app/bkchem/molecule.py):
+  `molecule.py`:
   rename `'atoms'`/`'bonds'` to `'vertices'`/`'edges'` to match actual
   instance attributes after composition refactor (`atoms`/`bonds` are now
   `@property` aliases and not in `__dict__`).
 - Call `bkchem.chem_compat.register_bkchem_classes()` in both `initialize()`
   and `initialize_batch()` in
-  [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py) so
+  [main.py](../packages/bkchem-app/bkchem/main.py) so
   `is_chemistry_vertex`/`is_chemistry_edge`/`is_chemistry_graph` ABC checks
   work at runtime. Registration was defined but never called.
   All 5 GUI subprocess tests now pass.
@@ -2934,12 +4222,12 @@
   `test_bkchem_gui_zoom.py`, `test_codec_registry_bkchem_plugins.py`,
   `test_smiles_cdml_import.py`.
 - Fix `import oasa` unused import in
-  [packages/bkchem-app/bkchem/modes.py](packages/bkchem-app/bkchem/modes.py)
+  `modes.py`
   after isinstance migration.
 - Fix atom composition test fixture dual-module singleton collision in
-  [packages/bkchem-app/tests/test_atom_composition_parity.py](packages/bkchem-app/tests/test_atom_composition_parity.py).
+  [test_atom_composition_parity.py](../packages/bkchem-app/tests/test_atom_composition_parity.py).
 - Wave 3 C7+C8: remove `oasa.molecule` from class bases of
-  [packages/bkchem-app/bkchem/molecule.py](packages/bkchem-app/bkchem/molecule.py);
+  `molecule.py`;
   added `_chem_mol` composition layer wrapping `oasa.molecule()` for all graph
   algorithms; `vertices`/`edges`/`disconnected_edges` are shared references to
   `_chem_mol` collections; added `atoms`/`bonds` property aliases; delegated
@@ -2948,324 +4236,324 @@
   `stereochemistry` list and stereochemistry methods locally; this is the last
   BKChem class to be decoupled from OASA inheritance.
 - Wave 3 C4: remove `oasa.chem_vertex` from `drawable_chem_vertex` class bases
-  in [packages/bkchem-app/bkchem/special_parents.py](packages/bkchem-app/bkchem/special_parents.py);
+  in [special_parents.py](../packages/bkchem-app/bkchem/special_parents.py);
   replaced with `GraphVertexMixin` for graph connectivity; added chemistry
   properties (`charge`, `valency`, `occupied_valency`, `free_valency`,
   `free_sites`, `multiplicity`, `weight`, `coords`) and methods
   (`has_aromatic_bonds`, `bond_order_changed`, `get_hydrogen_count`, `matches`)
   directly into `drawable_chem_vertex`.
 - Wave 3 C3: remove `oasa.query_atom` from class bases of
-  [packages/bkchem-app/bkchem/queryatom.py](packages/bkchem-app/bkchem/queryatom.py);
+  `queryatom.py`;
   `symbol` property now reads/writes through `_chem_query_atom` composition
   attribute; `__init__` passes coords to composed `_chem_query_atom`; added
   `matches()` method delegating to `_chem_query_atom.matches()`; cleaned up
   trailing comma in class definition.
 - Wave 3 C1: remove `oasa.bond` from class bases of
-  [packages/bkchem-app/bkchem/bond.py](packages/bkchem-app/bkchem/bond.py); all
+  `bond.py`; all
   chemistry properties (`order`, `type`, `aromatic`, `stereochemistry`) now
   delegate solely through `_chem_bond` composition attribute; added standalone
   `_bond_vertices` list, `vertices` property, `get_vertices()`/`set_vertices()`
   methods, and `properties_`/`disconnected` attributes formerly inherited from
   `oasa.edge`.
 - Wave 3 C2: remove `oasa.atom` from class bases of
-  [packages/bkchem-app/bkchem/atom.py](packages/bkchem-app/bkchem/atom.py); all
+  `atom.py`; all
   chemistry properties (`symbol`, `isotope`, `multiplicity`, `occupied_valency`,
   `electronegativity`, `oxidation_number`, etc.) now delegate through `_chem_atom`
   composition attribute; removed `xfail` markers from 7 composition parity tests.
 - Wave 3 C6: replace 4 `isinstance(x, oasa.*)` checks in
-  [packages/bkchem-app/bkchem/paper.py](packages/bkchem-app/bkchem/paper.py) with
+  [paper.py](../packages/bkchem-app/bkchem/paper.py) with
   `bkchem.chem_compat` helpers (`is_chemistry_vertex`, `is_chemistry_edge`,
   `is_chemistry_graph`); verified `interactors.py` has 0 isinstance oasa checks.
 - Wave 2 shadow layer: add `_chem_bond` composition attribute to
-  [packages/bkchem-app/bkchem/bond.py](packages/bkchem-app/bkchem/bond.py) with
+  `bond.py` with
   `_bond_vertices` shadow list; redirect `order`, `type`, `aromatic`,
   `stereochemistry` properties through `_chem_bond`; redirect
   `atom1`/`atom2`/`atoms` through `_bond_vertices`.
 - Wave 2 shadow layer: add `_chem_atom` composition attribute to
-  [packages/bkchem-app/bkchem/atom.py](packages/bkchem-app/bkchem/atom.py); sync
+  `atom.py`; sync
   `symbol`, `isotope`, `charge`, `valency`, `multiplicity` through `_chem_atom`.
 - Wave 2 shadow layer: add `_chem_query_atom` composition attribute to
-  [packages/bkchem-app/bkchem/queryatom.py](packages/bkchem-app/bkchem/queryatom.py);
+  `queryatom.py`;
   sync `symbol` and `charge` through `_chem_query_atom`.
 - Wave 2: update
-  [packages/bkchem-app/bkchem/bond_cdml.py](packages/bkchem-app/bkchem/bond_cdml.py)
+  [bond_cdml.py](../packages/bkchem-app/bkchem/bond_cdml.py)
   to read/write `type` and `order` via `_chem_bond` in `read_package` and
   `get_package`.
 - Wave 2: create
-  [packages/bkchem-app/bkchem/graph_vertex_mixin.py](packages/bkchem-app/bkchem/graph_vertex_mixin.py)
+  [graph_vertex_mixin.py](../packages/bkchem-app/bkchem/graph_vertex_mixin.py)
   replicating `oasa.graph.vertex` interface as a BKChem mixin for Wave 3 MRO
   removal.
 - Wave 2: add composition-aware docstrings and comments to
-  [packages/bkchem-app/bkchem/oasa_bridge.py](packages/bkchem-app/bkchem/oasa_bridge.py)
+  `oasa_bridge.py`
   documenting which property accesses delegate to `_chem_atom`/`_chem_bond`.
 - Wave 2: audit `bond_display.py`, `bond_drawing.py`, `bond_type_control.py`,
   `bond_render_ops.py` -- no code changes needed, all chemistry reads use
   property accessors that delegate through `_chem_bond` automatically.
 - Wave 1 post-review cleanup: fix `from` imports in
-  [packages/bkchem-app/tests/test_molecule_composition_parity.py](packages/bkchem-app/tests/test_molecule_composition_parity.py)
+  [test_molecule_composition_parity.py](../packages/bkchem-app/tests/test_molecule_composition_parity.py)
   to use `import oasa` style, fix isinstance audit count (20 in modes.py, 30
   total), remove unused imports across all test files.
 - Add chemistry Protocol classes
-  [packages/bkchem-app/bkchem/chem_protocols.py](packages/bkchem-app/bkchem/chem_protocols.py)
+  [chem_protocols.py](../packages/bkchem-app/bkchem/chem_protocols.py)
   defining `ChemVertexProtocol`, `ChemEdgeProtocol`, and `ChemGraphProtocol` with
   `runtime_checkable=True` matching exact OASA method signatures for the composition
   refactor.
 - Add ABC compatibility registration module
-  [packages/bkchem-app/bkchem/chem_compat.py](packages/bkchem-app/bkchem/chem_compat.py)
+  [chem_compat.py](../packages/bkchem-app/bkchem/chem_compat.py)
   with `register_bkchem_classes()` and helper functions `is_chemistry_vertex()`,
   `is_chemistry_edge()`, `is_chemistry_graph()` for isinstance checks after MRO
   removal.
 - Add bond composition parity test harness
-  [packages/bkchem-app/tests/test_bond_composition_parity.py](packages/bkchem-app/tests/test_bond_composition_parity.py)
+  [test_bond_composition_parity.py](../packages/bkchem-app/tests/test_bond_composition_parity.py)
   with 90 passing tests covering all 9 bond types, 4 bond orders, atom1/atom2
   access, `_vertices` patterns, display properties, and 6 xfail composition stubs.
 - Add atom composition parity test harness
-  [packages/bkchem-app/tests/test_atom_composition_parity.py](packages/bkchem-app/tests/test_atom_composition_parity.py)
+  [test_atom_composition_parity.py](../packages/bkchem-app/tests/test_atom_composition_parity.py)
   with 52 passing tests and 7 xfail composition stubs covering chemistry
   properties, symbol setter side effects, coordinate conversion via
   Screen.any_to_px, graph connectivity, display properties, charge override
   delegation, OASA baseline, and composition delegation placeholders.
 - Add molecule composition parity test harness
-  [packages/bkchem-app/tests/test_molecule_composition_parity.py](packages/bkchem-app/tests/test_molecule_composition_parity.py)
+  [test_molecule_composition_parity.py](../packages/bkchem-app/tests/test_molecule_composition_parity.py)
   with 40 passing tests and 7 xfail composition stubs covering atom/bond aliases,
   graph mutation, connectivity, factory methods, ring perception (benzene and
   naphthalene), deep copy, and stereochemistry list management.
 - Add CDML round-trip parity tests
-  [packages/bkchem-app/tests/test_cdml_roundtrip_parity.py](packages/bkchem-app/tests/test_cdml_roundtrip_parity.py)
+  [test_cdml_roundtrip_parity.py](../packages/bkchem-app/tests/test_cdml_roundtrip_parity.py)
   with 44 passing tests covering bond type/order round-trip for all 9 types x 3
   orders, unknown attribute preservation, coordinate unit conversion, bond_width
   sign, center/auto_sign, wavy_style, line_color, equithick, double_length_ratio,
   simple_double, and wedge_width serialization round-trips.
-- Add isinstance audit [docs/ISINSTANCE_AUDIT.md](docs/ISINSTANCE_AUDIT.md)
+- Add isinstance audit [ISINSTANCE_AUDIT.md](ISINSTANCE_AUDIT.md)
   documenting all 30 `isinstance(x, oasa.*)` checks across 4 files with
   replacement strategies for the composition refactor.
 - Add internal access audit
-  [docs/INTERNAL_ACCESS_AUDIT.md](docs/INTERNAL_ACCESS_AUDIT.md)
+  [INTERNAL_ACCESS_AUDIT.md](INTERNAL_ACCESS_AUDIT.md)
   documenting all 11 `._vertices`, `._neighbors`, and `.properties_` accesses
   in BKChem code that reach into OASA internals, with fix strategies and risk
   assessment for the composition refactor.
 - Add OASA/BKChem boundary contract document
-  [docs/CDML_BACKEND_TO_FRONTEND_CONTRACT.md](CDML_BACKEND_TO_FRONTEND_CONTRACT.md)
+  [CDML_BACKEND_TO_FRONTEND_CONTRACT.md](CDML_BACKEND_TO_FRONTEND_CONTRACT.md)
   defining atom, bond, molecule, CDML serialization, and bridge layer contracts.
 - Add composition refactor plan
-  [docs/active_plans/COMPOSITION_REFACTOR_PLAN.md](active_plans/COMPOSITION_REFACTOR_PLAN.md)
+  [COMPOSITION_REFACTOR_PLAN.md](archive/COMPOSITION_REFACTOR_PLAN.md)
   with three-wave approach: foundation infrastructure, shadow layer, MRO removal.
 - Convert bare local imports to package-relative imports in 16 bkchem
   utility/support files:
-  [pixmaps.py](packages/bkchem-app/bkchem/pixmaps.py) (1 import),
-  [marks.py](packages/bkchem-app/bkchem/marks.py) (4 imports),
-  [classes.py](packages/bkchem-app/bkchem/classes.py) (7 imports),
-  [graphics.py](packages/bkchem-app/bkchem/graphics.py) (7 imports),
-  [helper_graphics.py](packages/bkchem-app/bkchem/helper_graphics.py) (1 import),
-  [arrow.py](packages/bkchem-app/bkchem/arrow.py) (7 imports),
-  [undo.py](packages/bkchem-app/bkchem/undo.py) (1 import),
-  [debug.py](packages/bkchem-app/bkchem/debug.py) (1 import),
-  [logger.py](packages/bkchem-app/bkchem/logger.py) (1 import),
-  [validator.py](packages/bkchem-app/bkchem/validator.py) (4 imports),
-  [external_data.py](packages/bkchem-app/bkchem/external_data.py) (10 imports),
-  [plugin_support.py](packages/bkchem-app/bkchem/plugin_support.py) (4 imports),
-  [template_catalog.py](packages/bkchem-app/bkchem/template_catalog.py) (1 import),
-  [format_loader.py](packages/bkchem-app/bkchem/format_loader.py) (2 imports),
-  [checks.py](packages/bkchem-app/bkchem/checks.py) (1 import),
-  [plugins/__init__.py](packages/bkchem-app/bkchem/plugins/__init__.py) (1 import),
-  [plugins/gtml.py](packages/bkchem-app/bkchem/plugins/gtml.py) (7 imports).
+  [pixmaps.py](../packages/bkchem-app/bkchem/pixmaps.py) (1 import),
+  [marks.py](../packages/bkchem-app/bkchem/marks.py) (4 imports),
+  [classes.py](../packages/bkchem-app/bkchem/classes.py) (7 imports),
+  [graphics.py](../packages/bkchem-app/bkchem/graphics.py) (7 imports),
+  [helper_graphics.py](../packages/bkchem-app/bkchem/helper_graphics.py) (1 import),
+  `arrow.py` (7 imports),
+  [undo.py](../packages/bkchem-app/bkchem/undo.py) (1 import),
+  [debug.py](../packages/bkchem-app/bkchem/debug.py) (1 import),
+  [logger.py](../packages/bkchem-app/bkchem/logger.py) (1 import),
+  [validator.py](../packages/bkchem-app/bkchem/validator.py) (4 imports),
+  [external_data.py](../packages/bkchem-app/bkchem/external_data.py) (10 imports),
+  `plugin_support.py` (4 imports),
+  `template_catalog.py` (1 import),
+  [format_loader.py](../packages/bkchem-app/bkchem/format_loader.py) (2 imports),
+  [checks.py](../packages/bkchem-app/bkchem/checks.py) (1 import),
+  `__init__.py` (1 import),
+  `gtml.py` (7 imports).
 - Convert bare local imports to package-relative imports in four bkchem
   application files:
-  [main.py](packages/bkchem-app/bkchem/main.py) (24 imports),
-  [paper.py](packages/bkchem-app/bkchem/paper.py) (28 imports),
-  [bkchem_app.py](packages/bkchem-app/bkchem/bkchem_app.py) (8 imports),
-  [splash.py](packages/bkchem-app/bkchem/splash.py) (2 imports).
-  [cli.py](packages/bkchem-app/bkchem/cli.py) had no bare local imports (uses
+  [main.py](../packages/bkchem-app/bkchem/main.py) (24 imports),
+  [paper.py](../packages/bkchem-app/bkchem/paper.py) (28 imports),
+  [bkchem_app.py](../packages/bkchem-app/bkchem/bkchem_app.py) (8 imports),
+  [splash.py](../packages/bkchem-app/bkchem/splash.py) (2 imports).
+  `cli.py` had no bare local imports (uses
   `runpy.run_module` which is not a bare import).
 - Convert bare local imports to package-relative imports in six UI/interaction
   bkchem files:
-  [dialogs.py](packages/bkchem-app/bkchem/dialogs.py) (6 imports),
-  [widgets.py](packages/bkchem-app/bkchem/widgets.py) (5 imports),
-  [interactors.py](packages/bkchem-app/bkchem/interactors.py) (9 imports),
-  [edit_pool.py](packages/bkchem-app/bkchem/edit_pool.py) (5 imports),
-  [modes.py](packages/bkchem-app/bkchem/modes.py) (18 imports),
-  [context_menu.py](packages/bkchem-app/bkchem/context_menu.py) (7 imports).
+  [dialogs.py](../packages/bkchem-app/bkchem/dialogs.py) (6 imports),
+  [widgets.py](../packages/bkchem-app/bkchem/widgets.py) (5 imports),
+  [interactors.py](../packages/bkchem-app/bkchem/interactors.py) (9 imports),
+  [edit_pool.py](../packages/bkchem-app/bkchem/edit_pool.py) (5 imports),
+  `modes.py` (18 imports),
+  `context_menu.py` (7 imports).
 - Convert bare local imports to package-relative imports in six bkchem files:
-  [molecule.py](packages/bkchem-app/bkchem/molecule.py) (13 imports),
-  [reaction.py](packages/bkchem-app/bkchem/reaction.py) (2 imports),
-  [oasa_bridge.py](packages/bkchem-app/bkchem/oasa_bridge.py) (4 imports),
-  [export.py](packages/bkchem-app/bkchem/export.py) (2 imports),
-  [CDML_versions.py](packages/bkchem-app/bkchem/CDML_versions.py) (2 imports).
-  [peptide_utils.py](packages/bkchem-app/bkchem/peptide_utils.py) had no local imports.
+  `molecule.py` (13 imports),
+  `reaction.py` (2 imports),
+  `oasa_bridge.py` (4 imports),
+  `export.py` (2 imports),
+  [CDML_versions.py](../packages/bkchem-app/bkchem/CDML_versions.py) (2 imports).
+  [peptide_utils.py](../packages/oasa/oasa/peptide_utils.py) had no local imports.
 - Convert bare local imports to package-relative imports in four bkchem
   vertex files:
-  [packages/bkchem-app/bkchem/atom.py](packages/bkchem-app/bkchem/atom.py),
-  [packages/bkchem-app/bkchem/group.py](packages/bkchem-app/bkchem/group.py),
-  [packages/bkchem-app/bkchem/textatom.py](packages/bkchem-app/bkchem/textatom.py),
-  [packages/bkchem-app/bkchem/queryatom.py](packages/bkchem-app/bkchem/queryatom.py).
+  `atom.py`,
+  `group.py`,
+  `textatom.py`,
+  `queryatom.py`.
   Changed `import data/marks/dom_extensions/groups_table` to
   `from . import ...` and `from singleton_store/special_parents import ...`
   to `from .singleton_store/special_parents import ...`.
-  [packages/bkchem-app/bkchem/groups_table.py](packages/bkchem-app/bkchem/groups_table.py)
+  `groups_table.py`
   has no imports and required no changes.
 - Convert bare local import to package-relative import in
-  [packages/bkchem-app/bkchem/dom_extensions.py](packages/bkchem-app/bkchem/dom_extensions.py):
+  `dom_extensions.py`:
   `import safe_xml` changed to `from . import safe_xml`.
 - Replace local `get_repo_root()` / `_get_repo_root()` definitions in 14
   `tools/*.py` files with `import git_file_utils` from
-  [tests/git_file_utils.py](tests/git_file_utils.py). Removes duplicated
+  `git_file_utils.py`. Removes duplicated
   subprocess calls and centralizes repo root detection. Affected files:
-  [tools/neurotiker_furanose_geometry.py](tools/neurotiker_furanose_geometry.py),
-  [tools/measure_glyph_bond_alignment.py](tools/measure_glyph_bond_alignment.py),
-  [tools/haworth_visual_check_pdf.py](tools/haworth_visual_check_pdf.py),
-  [tools/measure_cairo_pdf_parity.py](tools/measure_cairo_pdf_parity.py),
-  [tools/rdkit_sugar_comparison.py](tools/rdkit_sugar_comparison.py),
-  [tools/archive_matrix_summary.py](tools/archive_matrix_summary.py),
-  [tools/check_translation.py](tools/check_translation.py),
-  [tools/render_reference_outputs.py](tools/render_reference_outputs.py),
-  [tools/coords_comparison.py](tools/coords_comparison.py),
-  [tools/selftest_sheet.py](tools/selftest_sheet.py),
-  [tools/sugar_codes_summary.py](tools/sugar_codes_summary.py),
-  [tools/alignment_summary.py](tools/alignment_summary.py),
-  [tools/gap_perp_gate.py](tools/gap_perp_gate.py),
-  [tools/render_beta_sheets.py](tools/render_beta_sheets.py).
+  [neurotiker_furanose_geometry.py](../tools/neurotiker_furanose_geometry.py),
+  [measure_glyph_bond_alignment.py](../tools/measure_glyph_bond_alignment.py),
+  [haworth_visual_check_pdf.py](../tools/haworth_visual_check_pdf.py),
+  [measure_cairo_pdf_parity.py](../tools/measure_cairo_pdf_parity.py),
+  [rdkit_sugar_comparison.py](../tools/rdkit_sugar_comparison.py),
+  [archive_matrix_summary.py](../tools/archive_matrix_summary.py),
+  [check_translation.py](../tools/check_translation.py),
+  [render_reference_outputs.py](../tools/render_reference_outputs.py),
+  `coords_comparison.py`,
+  [selftest_sheet.py](../tools/selftest_sheet.py),
+  [sugar_codes_summary.py](../tools/sugar_codes_summary.py),
+  [alignment_summary.py](../tools/alignment_summary.py),
+  [gap_perp_gate.py](../tools/gap_perp_gate.py),
+  [render_beta_sheets.py](../tools/render_beta_sheets.py).
   Also removed now-unused `import subprocess` from files that no longer need it.
 - Fix import references in 25 OASA test files under
-  [packages/oasa/tests/](packages/oasa/tests/) after move from repo root
+  `tests` after move from repo root
   `tests/` directory: remove `conftest.add_oasa_to_sys_path()` calls (now
   handled automatically by the new conftest.py), remove `sys.modules["oasa"]`
   cleanup lines, replace `conftest.tests_path(` with
   `conftest.repo_tests_path(`, and remove now-unused `import conftest`,
   `import sys` lines where appropriate.
 - Add Align menu action registrations in
-  [packages/bkchem-app/bkchem/actions/align_actions.py](packages/bkchem-app/bkchem/actions/align_actions.py):
+  `align_actions.py`:
   registers 6 Align menu actions (top, bottom, left, right, center_h,
   center_v) with enabled_when='two_or_more_selected'.
 - Add Insert menu action registrations in
-  [packages/bkchem-app/bkchem/actions/insert_actions.py](packages/bkchem-app/bkchem/actions/insert_actions.py):
+  `insert_actions.py`:
   registers 1 Insert menu action (biomolecule_template).
 - Add Options menu action registrations in
-  [packages/bkchem-app/bkchem/actions/options_actions.py](packages/bkchem-app/bkchem/actions/options_actions.py):
+  `options_actions.py`:
   registers 5 Options menu actions (standard, language, logging,
   inchi_path, preferences) with try/except for interactors and Store.
 - Add Help menu action registrations in
-  [packages/bkchem-app/bkchem/actions/help_actions.py](packages/bkchem-app/bkchem/actions/help_actions.py):
+  `help_actions.py`:
   registers 1 Help menu action (about).
 - Add Plugins menu action registrations in
-  [packages/bkchem-app/bkchem/actions/plugins_actions.py](packages/bkchem-app/bkchem/actions/plugins_actions.py):
+  `plugins_actions.py`:
   no-op register function for the currently empty Plugins menu.
 - Add tests for remaining menu actions in
-  [packages/bkchem-app/tests/test_remaining_actions.py](packages/bkchem-app/tests/test_remaining_actions.py):
+  `test_remaining_actions.py`:
   9 tests covering action counts, IDs, enabled_when, and label keys for
   align, insert, options, help, and plugins menus.
 - Add menu builder in
-  [packages/bkchem-app/bkchem/menu_builder.py](packages/bkchem-app/bkchem/menu_builder.py):
+  `menu_builder.py`:
   MenuBuilder class that reads YAML menu structure, resolves actions from
   ActionRegistry, and calls PlatformMenuAdapter to construct menus. Supports
   dynamic state updates via enabled_when predicates and plugin slot injection
   for exporter/importer cascades.
 - Add menu builder tests in
-  [packages/bkchem-app/tests/test_menu_builder.py](packages/bkchem-app/tests/test_menu_builder.py):
+  [test_menu_builder.py](../packages/bkchem-app/tests/test_menu_builder.py):
   11 tests covering menu creation, command placement, separators, cascades,
   missing action handling, state updates (callable and string predicates),
   plugin slot discovery, and plugin slot injection.
 - Add Chemistry menu action registrations in
-  [packages/bkchem-app/bkchem/actions/chemistry_actions.py](packages/bkchem-app/bkchem/actions/chemistry_actions.py):
+  `chemistry_actions.py`:
   registers 14 Chemistry menu actions (info, check, expand-groups,
   oxidation-number, read-smiles, read-inchi, read-peptide, gen-smiles,
   gen-inchi, set-name, set-id, create-fragment, view-fragments,
   convert-to-linear) with the ActionRegistry.
 - Add View menu action registrations in
-  [packages/bkchem-app/bkchem/actions/view_actions.py](packages/bkchem-app/bkchem/actions/view_actions.py):
+  `view_actions.py`:
   registers 5 View menu actions (zoom-in, zoom-out, zoom-reset,
   zoom-to-fit, zoom-to-content) with the ActionRegistry.
 - Add tests for chemistry and view actions in
-  [packages/bkchem-app/tests/test_chemistry_view_actions.py](packages/bkchem-app/tests/test_chemistry_view_actions.py):
+  [test_chemistry_view_actions.py](../packages/bkchem-app/tests/test_chemistry_view_actions.py):
   6 tests covering action counts, IDs, and enabled_when type correctness.
 - Fix pyproject.toml multiline inline table that blocked pytest 9.0.2 TOML
   parsing for all tests under packages/bkchem-app/.
 - Add platform menu adapter in
-  [packages/bkchem-app/bkchem/platform_menu.py](packages/bkchem-app/bkchem/platform_menu.py):
+  `platform_menu.py`:
   wraps Pmw.MainMenuBar (macOS) and Pmw.MenuBar (Linux/Windows) behind a uniform
   PlatformMenuAdapter class with methods for add_menu, add_command, add_separator,
   add_cascade, add_command_to_cascade, get_menu_component, and set_item_state.
 - Add platform menu adapter tests in
-  [packages/bkchem-app/tests/test_platform_menu.py](packages/bkchem-app/tests/test_platform_menu.py):
+  [test_platform_menu.py](../packages/bkchem-app/tests/test_platform_menu.py):
   10 tests covering macOS vs Linux menubar selection, menu/command/separator/cascade
   addition, side-argument suppression on macOS, and enable/disable state changes.
 - Add YAML menu structure file
-  [packages/bkchem-app/bkchem_data/menus.yaml](packages/bkchem-app/bkchem_data/menus.yaml):
+  [menus.yaml](../packages/bkchem-app/bkchem_data/menus.yaml):
   defines the complete menu hierarchy (10 menus, 55 actions, 19 separators,
   3 cascades) with order, side placement, and cascade definitions. Action details
   remain in the ActionRegistry.
 - Add menu YAML tests in
-  [packages/bkchem-app/tests/test_menu_yaml.py](packages/bkchem-app/tests/test_menu_yaml.py):
+  [test_menu_yaml.py](../packages/bkchem-app/tests/test_menu_yaml.py):
   13 tests covering YAML parsing, menu count/order, side assignments, item type
   validation, action ID format, duplicate detection, cascade resolution, and
   per-menu item counts.
 - Add Edit menu action registrations in
-  [packages/bkchem-app/bkchem/actions/edit_actions.py](packages/bkchem-app/bkchem/actions/edit_actions.py):
+  `edit_actions.py`:
   registers 7 Edit menu actions (undo, redo, cut, copy, paste, selected-to-SVG,
   select-all) with the ActionRegistry.
 - Add Object menu action registrations in
-  [packages/bkchem-app/bkchem/actions/object_actions.py](packages/bkchem-app/bkchem/actions/object_actions.py):
+  `object_actions.py`:
   registers 7 Object menu actions (scale, bring-to-front, send-back,
   swap-on-stack, vertical-mirror, horizontal-mirror, configure) with the
   ActionRegistry.
 - Add tests for edit and object actions in
-  [packages/bkchem-app/tests/test_edit_object_actions.py](packages/bkchem-app/tests/test_edit_object_actions.py):
+  [test_edit_object_actions.py](../packages/bkchem-app/tests/test_edit_object_actions.py):
   6 tests covering action counts, IDs, and enabled_when type correctness.
 - Add File menu action registrations in
-  [packages/bkchem-app/bkchem/actions/file_actions.py](packages/bkchem-app/bkchem/actions/file_actions.py):
+  `file_actions.py`:
   registers 9 File menu actions (new, save, save-as, save-as-template, load,
   load-same-tab, properties, close-tab, exit) with the ActionRegistry. Includes
   tests in
-  [packages/bkchem-app/tests/test_file_actions.py](packages/bkchem-app/tests/test_file_actions.py).
+  [test_file_actions.py](../packages/bkchem-app/tests/test_file_actions.py).
 - Add ActionRegistry core package in
-  [packages/bkchem-app/bkchem/actions/__init__.py](packages/bkchem-app/bkchem/actions/__init__.py):
+  `__init__.py`:
   provides `MenuAction` dataclass and `ActionRegistry` class as the shared contract
   for the modular menu refactor. Includes `register_all_actions()` with graceful
   import guards for per-menu modules not yet written.
 - Add Phase 0 menu template extract
-  [docs/active_plans/MENU_TEMPLATE_EXTRACT.md](docs/active_plans/MENU_TEMPLATE_EXTRACT.md):
+  [MENU_TEMPLATE_EXTRACT.md](archive/MENU_TEMPLATE_EXTRACT.md):
   catalogs all 87 `menu_template` tuples (10 menus, 55 commands, 19 separators,
   3 cascades) with proposed action IDs, handler expressions, state variables,
   and summary counts. Source-of-truth reference for all 8 parallel coders.
 - Add menu refactor execution plan
-  [docs/active_plans/MENU_REFACTOR_EXECUTION_PLAN.md](docs/active_plans/MENU_REFACTOR_EXECUTION_PLAN.md):
+  [MENU_REFACTOR_EXECUTION_PLAN.md](archive/MENU_REFACTOR_EXECUTION_PLAN.md):
   breaks the YAML + action registry menu refactor into 4 parallel-safe streams
   with file ownership boundaries, dependency graph, and measurable done checks.
   Scopes out format-handler migration, renderer unification, and Tool framework
   as separate projects.
 - Add "Read Peptide Sequence" menu item under Chemistry in
-  [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py):
+  [main.py](../packages/bkchem-app/bkchem/main.py):
   prompts for a single-letter amino acid sequence (e.g. ANKLE), converts it
   to IsoSMILES via new
-  [packages/bkchem-app/bkchem/peptide_utils.py](packages/bkchem-app/bkchem/peptide_utils.py),
+  [peptide_utils.py](../packages/oasa/oasa/peptide_utils.py),
   and renders the polypeptide structure through the existing SMILES-to-CDML
   pipeline.
 
 ## 2026-02-17
 - Route all complex substituents through `coords_generator2` in
-  [packages/oasa/oasa/haworth/fragment_layout.py](packages/oasa/oasa/haworth/fragment_layout.py):
+  [fragment_layout.py](../packages/oasa/oasa/haworth/fragment_layout.py):
   remove `_two_carbon_tail_fragment()` special case and `branch_length` parameter.
   CH(OH)CH2OH and CHAIN<N> now use the same 120-degree lattice-aligned molecular
   geometry path. Down-direction two-carbon tails produce symmetric 30/150 degree
   branch angles instead of side-dependent orientation.
 - Route CHAIN<N> labels through `_add_fragment_ops()` in
-  [packages/oasa/oasa/haworth/renderer.py](packages/oasa/oasa/haworth/renderer.py):
+  [renderer.py](../packages/oasa/oasa/haworth/renderer.py):
   CHAIN3+ labels now use `coords_generator2` zigzag geometry with proper OH
   branches at each junction, replacing the collinear `_add_chain_ops()` path.
   Add `_fragment_chain_numbers()` for sequential chain segment op_id naming
   (chain1, chain1_oh, chain2, chain2_oh, chain3).
 - Add fragment-based substituent layout module
-  [packages/oasa/oasa/haworth/fragment_layout.py](packages/oasa/oasa/haworth/fragment_layout.py):
+  [fragment_layout.py](../packages/oasa/oasa/haworth/fragment_layout.py):
   uses `coords_generator2` to identify display groups from SMILES fragments, and
   provides `FragmentAtom` dataclass and `layout_fragment()` for computing
   positioned atom groups for complex substituents (CH(OH)CH2OH, CHAIN<N>).
 - Add unified `_add_fragment_ops()` renderer path in
-  [packages/oasa/oasa/haworth/renderer.py](packages/oasa/oasa/haworth/renderer.py):
+  [renderer.py](../packages/oasa/oasa/haworth/renderer.py):
   replaces `_add_furanose_two_carbon_tail_ops()` for branched CH(OH)CH2OH tails
   using the new fragment layout infrastructure. Produces backwards-compatible
   op_ids and rendering (connectors, text labels, hashed bonds). Legacy
   `_add_chain_ops` retained for sequential CHAIN<N> rendering.
 - Add 25 unit tests in
-  [tests/test_haworth_fragment_layout.py](tests/test_haworth_fragment_layout.py)
+  `test_haworth_fragment_layout.py`
   covering SMILES lookup, fragment grouping, two-carbon tail geometry (branch
   angles, bond styles, parent indices), and CHAIN<N> group identification.
 - Switch chain-like labels (CH2OH, CHOH, CH3, HOH2C, etc.) to full-box bond
@@ -3276,64 +4564,64 @@
   two-carbon tail ops and multi-segment chain ops keep explicit `attach_box`
   targeting.
 - Fix IndexError crash when rotating molecules with double bonds in
-  [packages/bkchem-app/bkchem/bond_display.py](packages/bkchem-app/bkchem/bond_display.py):
+  [bond_display.py](../packages/bkchem-app/bkchem/bond_display.py):
   guard `self.second[0]` access in `transform()` since the render-ops draw path
   never populates `self.second` for double bonds.
 - Route BKChem SMILES import through CDML: replace direct
   `oasa_mol_to_bkchem_mol` bridge with `smiles_to_cdml_elements()` in
-  [packages/bkchem-app/bkchem/oasa_bridge.py](packages/bkchem-app/bkchem/oasa_bridge.py),
+  `oasa_bridge.py`,
   update `read_smiles()` dialog in
-  [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py) to use
+  [main.py](../packages/bkchem-app/bkchem/main.py) to use
   `paper.add_object_from_package()`, and remove old `read_smiles` bridge
   function. Updated dialog text to indicate IsoSMILES support.
 - Add pytest test suite
-  [tests/test_smiles_cdml_import.py](tests/test_smiles_cdml_import.py) for the
+  `test_smiles_cdml_import.py` for the
   `smiles_to_cdml_elements()` function in `oasa_bridge.py` (7 tests covering
   ethanol, benzene, coordinate units, bond length, disconnected SMILES, empty
   input, and atom names).
 - Fix disconnected SMILES handling in `smiles_to_cdml_elements()` in
-  [packages/bkchem-app/bkchem/oasa_bridge.py](packages/bkchem-app/bkchem/oasa_bridge.py):
+  `oasa_bridge.py`:
   add `mol.remove_zero_order_bonds()` call so dot-separated SMILES like "CC.OO"
   are correctly split into separate CDML molecule elements.
 - Add SMILES/IsoSMILES CDML import plan
-  [docs/active_plans/SMILES_CDML_IMPORT_PLAN.md](docs/active_plans/SMILES_CDML_IMPORT_PLAN.md)
+  [SMILES_CDML_IMPORT_PLAN.md](archive/SMILES_CDML_IMPORT_PLAN.md)
   to route SMILES import through the canonical CDML serialization path instead
   of the direct `oasa_mol_to_bkchem_mol` bridge.
 - Add three-layer 2D coordinate generator
-  [packages/oasa/oasa/coords_generator2.py](packages/oasa/oasa/coords_generator2.py)
+  `coords_generator2.py`
   that produces RDKit-quality 2D layouts without the RDKit dependency.
   Implements ring system assembly (fused, spiro, bridged), BFS chain/substituent
   placement, collision detection with flip/nudge resolution, and force-field
   refinement (bond stretch + angle bend + non-bonded repulsion).
 - Add coordinate generator tests
-  [tests/test_coords_generator2.py](tests/test_coords_generator2.py) covering
+  [test_coords_generator2.py](../packages/oasa/tests/test_coords_generator2.py) covering
   single atoms, chains, benzene, naphthalene, spiro, steroid skeleton, triple
   bonds, branching, and force parameter behavior (23 tests).
 - Add visual comparison tool
-  [tools/coords_comparison.py](tools/coords_comparison.py) that renders
+  `coords_comparison.py` that renders
   side-by-side HTML galleries of old vs new vs RDKit 2D coordinate layouts
   for 24 test molecules.
-- Update [packages/bkchem-app/bkchem/oasa_bridge.py](packages/bkchem-app/bkchem/oasa_bridge.py)
+- Update `oasa_bridge.py`
   to prefer `coords_generator2` over legacy `coords_generator` when RDKit is not
   available, with graceful fallback to the old generator.
 - Add RDKit bridge module
-  [packages/oasa/oasa/rdkit_bridge.py](packages/oasa/oasa/rdkit_bridge.py) for
+  [rdkit_bridge.py](../packages/oasa/oasa/rdkit_bridge.py) for
   converting between OASA and RDKit molecule representations and generating 2D
   coordinates via `AllChem.Compute2DCoords`.  Provides `oasa_to_rdkit_mol`,
   `rdkit_to_oasa_mol`, and `calculate_coords_rdkit` functions following the same
   pattern as the existing `pybel_bridge.py`.
 - Add RDKit sugar comparison gallery tool
-  [tools/rdkit_sugar_comparison.py](tools/rdkit_sugar_comparison.py) that
+  [rdkit_sugar_comparison.py](../tools/rdkit_sugar_comparison.py) that
   renders side-by-side Haworth projection SVGs and RDKit 2D depiction SVGs for
   all sugar codes.  Outputs `output_smoke/rdkit_comparison_pyranose.html` and
   `output_smoke/rdkit_comparison_furanose.html` with comparison pairs.
 - Wire RDKit coordinate generation into bkchem SMILES import pipeline.
-  [packages/bkchem-app/bkchem/oasa_bridge.py](packages/bkchem-app/bkchem/oasa_bridge.py)
+  `oasa_bridge.py`
   now uses `rdkit_bridge.calculate_coords_rdkit` when RDKit is available,
   falling back to OASA's native `coords_generator` when it is not.
-- Add `rdkit` to [pip_requirements.txt](pip_requirements.txt).
+- Add `rdkit` to `pip_requirements.txt`.
 - Add 3-KETO ring rules to Haworth spec
-  ([packages/oasa/oasa/haworth/spec.py](packages/oasa/oasa/haworth/spec.py)):
+  ([spec.py](../packages/oasa/oasa/haworth/spec.py)):
   furanose (anomeric=3, closure=6, min_carbons=6) and pyranose (anomeric=3,
   closure=7, min_carbons=7).  Handle 3-KETO anomeric substituent with
   CH(OH)CH2OH pre-anomeric chain.  Enables rendering of 3-ketohexoses.
@@ -3343,9 +4631,9 @@
   does not overlap ring bonds.  Connector attach-atom policy updated to target
   the trailing carbon in reversed text.
 - Add sugar codes HTML gallery script
-  [tools/sugar_codes_summary.py](tools/sugar_codes_summary.py) that reads all
+  [sugar_codes_summary.py](../tools/sugar_codes_summary.py) that reads all
   106 sugar codes from
-  [packages/oasa/oasa_data/sugar_codes.yaml](packages/oasa/oasa_data/sugar_codes.yaml),
+  [sugar_codes.yaml](../packages/oasa/oasa_data/sugar_codes.yaml),
   renders each valid ring/anomeric combination as a Haworth projection SVG
   file, and writes two separate HTML gallery pages:
   `output_smoke/sugar_codes_pyranose.html` and
@@ -3358,22 +4646,21 @@
   [ring type] ring forms".
 
 ## 2026-02-15
-- Add macOS DMG build script
-  [devel/build_macos_dmg.py](devel/build_macos_dmg.py) that produces a
-  self-contained `BKChem.app` bundle via PyInstaller and wraps it in a
+- Add the now-retired macOS DMG build script `build_macos_dmg.py`, which then
+  produced a self-contained `BKChem.app` bundle via PyInstaller and wraps it in a
   `BKChem-VERSION.dmg` disk image.  Generates `.icns` icon from
   `bkchem.svg` via `rsvg-convert` + `iconutil`.  Bundles embedded Python
   3.12, Tcl/Tk, pycairo, Pmw, oasa, bkchem_data, oasa_data, and addons.
   Patches `Info.plist` with version, bundle ID, Retina support, and
   `.cdml` file association.  Post-build verification checks executable,
   data dirs, Tcl/Tk, and libcairo presence.  Add `pyinstaller` to
-  [pip_requirements-dev.txt](pip_requirements-dev.txt) and `librsvg` to
-  [Brewfile](Brewfile).  Update
-  [docs/active_plans/RELEASE_DISTRIBUTION.md](docs/active_plans/RELEASE_DISTRIBUTION.md)
+  [pip_requirements-dev.txt](../pip_requirements-dev.txt) and `librsvg` to
+  [Brewfile](../Brewfile).  Update
+  [RELEASE_DISTRIBUTION.md](active_plans/RELEASE_DISTRIBUTION.md)
   to reference the new script.
 - Fix bond line overlapping C glyph in HOH2C connector on two-carbon down
   tails.  Two changes in
-  [packages/oasa/oasa/render_geometry.py](packages/oasa/oasa/render_geometry.py):
+  `render_geometry.py`:
   (1) make `_retreat_to_target_gap()` iterative (up to 4 iterations) so
   diagonal approach angles converge to the correct gap instead of
   under-retreating on a single pass; (2) add a second retreat pass against
@@ -3381,37 +4668,37 @@
   `ATTACH_GAP_TARGET` as the minimum gap, so the bond clears non-attach
   characters (like the subscript "2") that are closer than the target atom.
   Add diagonal convergence test in
-  [tests/test_render_geometry.py](tests/test_render_geometry.py).  Update
+  [test_render_geometry.py](../packages/oasa/tests/test_render_geometry.py).  Update
   attach-element epsilon in
-  [tests/test_haworth_renderer.py](tests/test_haworth_renderer.py) to
+  `test_haworth_renderer.py` to
   accommodate the additional full-label retreat.
 - Fix key letter selection in glyph bond alignment measurement.  The character
   selection heuristic used canonical text ("CH2OH") instead of displayed text
   ("HOH2C") and did not skip terminal H in multi-character labels, causing the
   measurement tool to pick "H" at the far left of "HOH2C" instead of "C" at
   the bond endpoint on the right.  Add `_select_key_letter()` helper in
-  [tools/measurelib/analysis.py](tools/measurelib/analysis.py) that searches
+  [analysis.py](../tools/measurelib/analysis.py) that searches
   inward from the specified end, skipping H for multi-character labels.  Switch
   alpha_chars extraction from canonical to displayed text via
   `label_geometry_text()`.  Add cross-reference comment in
-  [tools/measurelib/glyph_model.py](tools/measurelib/glyph_model.py) linking
+  `glyph_model.py` linking
   `is_measurement_label()` to the key letter heuristic.  Update and add tests
   in
-  [tests/test_measure_glyph_bond_alignment.py](tests/test_measure_glyph_bond_alignment.py).
+  `test_measure_glyph_bond_alignment.py`.
 - Fix hatch strokes touching glyph letters by using `epsilon=0.0` for hatch
   filtering in `validate_attachment_paint()`.  The previous `STRICT_OVERLAP_EPSILON`
   (0.5) shrank the forbidden box, allowing hatches up to 0.5 px inside the glyph
   boundary.  Solid connectors avoid this via an additional retreat step that
   hatches lack, so hatches need exact boundary enforcement.  Fix in
   `_append_branch_connector_ops()` in
-  [packages/oasa/oasa/haworth/renderer.py](packages/oasa/oasa/haworth/renderer.py).
+  [renderer.py](../packages/oasa/oasa/haworth/renderer.py).
 - Trim hatched bond carrier line endpoint to last surviving hatch stroke in
   Haworth renderer.  When forbidden-region filtering removes hatch strokes
   near a label, the invisible carrier line no longer extends past the last
   visible stroke into the glyph boundary.  Prevents false-negative gap
   measurements from the carrier endpoint reaching into label space.  Fix in
   `_append_branch_connector_ops()` in
-  [packages/oasa/oasa/haworth/renderer.py](packages/oasa/oasa/haworth/renderer.py).
+  [renderer.py](../packages/oasa/oasa/haworth/renderer.py).
 - Implement Phase 6: expand sugar_code_to_smiles() from 2-entry bootstrap to
   generalized algorithmic Fischer-to-SMILES builder.  Supports all ~148 sugar
   codes in sugar_codes.yaml across pyranose/furanose ring forms and alpha/beta
@@ -3420,21 +4707,21 @@
   Haworth spec up/down labels.  Handles aldoses and ketoses including tetroses
   through heptoses with 1-3 carbon exocyclic chains, plus modified sugars
   (deoxy, amino, N-acetyl, fluoro, phosphate, carboxyl) in
-  [packages/oasa/oasa/sugar_code_smiles.py](packages/oasa/oasa/sugar_code_smiles.py).
+  [sugar_code_smiles.py](../packages/oasa/oasa/sugar_code_smiles.py).
   Tests expanded from 6 to 446 in
-  [tests/test_sugar_code_smiles.py](tests/test_sugar_code_smiles.py).
+  [test_sugar_code_smiles.py](../packages/oasa/tests/test_sugar_code_smiles.py).
 - Implement Phase 7: create smiles_to_sugar_code() reverse converter with
   two-tier approach.  Tier 1 builds a lookup table at module load from all
   sugar_codes.yaml entries via Phase 6 sugar_code_to_smiles().  Tier 2 parses
   the SMILES into a molecule, finds sugar-like rings, and tries candidate
   matches.  New module
-  [packages/oasa/oasa/smiles_to_sugar_code.py](packages/oasa/oasa/smiles_to_sugar_code.py)
+  [smiles_to_sugar_code.py](../packages/oasa/oasa/smiles_to_sugar_code.py)
   with SugarCodeResult dataclass and SugarCodeError exception.  All standard
   sugar codes round-trip perfectly (sugar code -> SMILES -> sugar code).
   447 tests in
-  [tests/test_smiles_to_sugar_code.py](tests/test_smiles_to_sugar_code.py).
+  `test_smiles_to_sugar_code.py`.
   Registered in
-  [packages/oasa/oasa/__init__.py](packages/oasa/oasa/__init__.py).
+  `__init__.py`.
 - Widen HOH2C solid connector gap using standard OASA geometry.  The CH2OH arm
   in `_add_furanose_two_carbon_tail_ops()` used a custom
   `_align_text_origin_to_endpoint_target_centroid()` step and
@@ -3444,14 +4731,14 @@
   (`connector_width * 0.5`) to `target_gap` so the visual gap after the round
   cap extends is at least `ATTACH_GAP_TARGET`.  Affects furanose sugars with
   two-carbon tails in
-  [packages/oasa/oasa/haworth/renderer.py](packages/oasa/oasa/haworth/renderer.py).
+  [renderer.py](../packages/oasa/oasa/haworth/renderer.py).
 - Extend down-direction furanose two-carbon tail connectors to match up-direction
   lengths.  Down-direction tails (e.g., ARRLDM furanose beta, ALRLDM furanose
   alpha) had very short HO and HOH2C branch arms because no oxygen clearance
   extension was applied for `direction == "down"`.  Add the same minimum
   effective_length formula used by up-direction tails inside the two-carbon-tail
   block in
-  [packages/oasa/oasa/haworth/renderer.py](packages/oasa/oasa/haworth/renderer.py),
+  [renderer.py](../packages/oasa/oasa/haworth/renderer.py),
   giving symmetric trunk lengths for both directions.
 - Fix hatched connector overlap with CH2OH text in furanose two-carbon tails.
   Hatch strokes near the label end were incorrectly allowed through the
@@ -3459,34 +4746,34 @@
   for the invisible carrier line) overrode the text bounding-box exclusion.
   Remove `allowed_regions` from hatch stroke legality checks in
   `_append_branch_connector_ops()` in
-  [packages/oasa/oasa/haworth/renderer.py](packages/oasa/oasa/haworth/renderer.py)
+  [renderer.py](../packages/oasa/oasa/haworth/renderer.py)
   so individual hatch marks always stop before the label text.  Affects
   furanose sugars with hatched CH2OH branch (up direction: ALLRDM, ALRRDM,
   ARLRDM, etc.) and hatched HO branch (down direction: ARRLDM, etc.).
 - Close and archive Haworth schematic renderer implementation plan (attempt 2).
   Core phases 1-5c complete. Deferred SMILES conversion phases (6, 7) and
-  stretch goals (6b) to [docs/TODO_CODE.md](docs/TODO_CODE.md). Move plan to
-  [docs/archive/HAWORTH_IMPLEMENTATION_PLAN_attempt2.md](docs/archive/HAWORTH_IMPLEMENTATION_PLAN_attempt2.md).
-  Fix stale [docs/ROADMAP.md](docs/ROADMAP.md) references to archived plans.
+  stretch goals (6b) to [TODO_CODE.md](TODO_CODE.md). Move plan to
+  [HAWORTH_IMPLEMENTATION_PLAN_attempt2.md](archive/HAWORTH_IMPLEMENTATION_PLAN_attempt2.md).
+  Fix stale [ROADMAP.md](ROADMAP.md) references to archived plans.
 - Add ring oxygen gap measurement via virtual connector lines.  Haworth sugar
   SVGs render ring edges as filled `<polygon>` elements, not `<line>` elements,
   so the ring oxygen "O" label had no nearby line endpoint and got
   `no_connector` in measurements.  Store polygon vertex coordinates in ring
   primitives (`"points"` key) in
-  [tools/measurelib/svg_parse.py](tools/measurelib/svg_parse.py).  New
+  [svg_parse.py](../tools/measurelib/svg_parse.py).  New
   `oxygen_virtual_connector_lines()` in
-  [tools/measurelib/haworth_ring.py](tools/measurelib/haworth_ring.py) finds the
+  [haworth_ring.py](../tools/measurelib/haworth_ring.py) finds the
   two ring polygon edges closest to the O label and synthesizes virtual line
   dicts from their center axes.  Integrate virtual lines into the analysis
   pipeline in
-  [tools/measurelib/analysis.py](tools/measurelib/analysis.py): append to
+  [analysis.py](../tools/measurelib/analysis.py): append to
   `lines` list, include in connector candidates, exclude from width pool, bond
   length statistics, and checked bond indexes.  Include virtual lines in
   diagnostic perpendicular markers.
 - Replace CH2OH fan-out solver with standard OASA connector path in Haworth
   furanose two-carbon tail renderer.  Delete `_chain2_label_offset_candidates()`
   and `_solve_chain2_label_with_resolver()` (53-candidate fan-out solver) from
-  [packages/oasa/oasa/haworth/renderer.py](packages/oasa/oasa/haworth/renderer.py).
+  [renderer.py](../packages/oasa/oasa/haworth/renderer.py).
   Use same standard 3-step connector path as the HO arm and all simple OH
   connectors: `_align_text_origin_to_endpoint_target_centroid()` +
   `label_target_from_text_origin()` +
@@ -3496,9 +4783,9 @@
   units vs HO arm ~17.0 units (67% mismatch); hatched connector overlapped
   CH2OH glyph in up case.  After: both arms use the same geometry-derived
   length with standard gaps.  Mark H-024 and H-025 as removed in
-  [docs/HAWORTH_OVERRIDES.md](docs/HAWORTH_OVERRIDES.md).  Update
+  [HAWORTH_OVERRIDES.md](HAWORTH_OVERRIDES.md).  Update
   `direction_policy` in
-  [tests/test_haworth_renderer.py](tests/test_haworth_renderer.py) to match.
+  `test_haworth_renderer.py` to match.
 - Fix two-carbon tail bond lengths in Haworth furanose renderer.  Unify
   `min_standoff_factor` from direction-asymmetric values (`up=1.75`,
   `down=1.35`) to a single `1.35` floor so standard `segment_length` wins.
@@ -3508,28 +4795,28 @@
   ~20.3 units with text overlap, HO bond ~12.8 units with sub-minimum gap.
   After: both arms ~16 units with 1.3-1.7 gaps matching standard connectors.
   Changes in
-  [packages/oasa/oasa/haworth/renderer.py](packages/oasa/oasa/haworth/renderer.py).
+  [renderer.py](../packages/oasa/oasa/haworth/renderer.py).
   Update H-025 status in
-  [docs/HAWORTH_OVERRIDES.md](docs/HAWORTH_OVERRIDES.md).
+  [HAWORTH_OVERRIDES.md](HAWORTH_OVERRIDES.md).
   Relax hashed connector nearest-hatch threshold from 15% to 18% of connector
   length in
-  [tests/test_haworth_renderer.py](tests/test_haworth_renderer.py) to
+  `test_haworth_renderer.py` to
   accommodate shorter normalized connectors.  Remove 3 `xfail` markers from
   ALLLDM pyranose beta upward hydroxyl connector tests that now pass with
   unified standoff.
 - Fix regression expectations in
-  [tests/test_attach_targets.py](tests/test_attach_targets.py) for
+  [test_attach_targets.py](../packages/oasa/tests/test_attach_targets.py) for
   `label_target()` box geometry after calibrated text top/bottom offsets in
-  [packages/oasa/oasa/render_geometry.py](packages/oasa/oasa/render_geometry.py).
+  `render_geometry.py`.
   Update legacy-value fixtures for `O`, `OH`, and `NH3+` to current
   deterministic coordinates.
 - Speed up
-  [tests/test_beta_sheet_measurement.py](tests/test_beta_sheet_measurement.py)
+  `test_beta_sheet_measurement.py`
   by memoizing the expensive render-and-measure result so the suite computes
   it once per test session instead of once per test function.
 - Draw perpendicular cross-lines at all bond endpoints in diagnostic SVG
   overlay.  New `_draw_bond_perpendicular_markers()` helper in
-  [tools/measurelib/diagnostic_svg.py](tools/measurelib/diagnostic_svg.py)
+  [diagnostic_svg.py](../tools/measurelib/diagnostic_svg.py)
   draws short perpendicular lines at both ends of every checked bond line:
   magenta `#ff00ff` for endpoints used for gap measurement, dark blue
   `#00008b` for other endpoints.  Include Haworth base ring bonds and
@@ -3543,34 +4830,34 @@
   point marker from circle to ellipse (rx=1.5, ry=0.8).  Legend updated with
   perpendicular line swatches for "Connector endpoint" and "Other endpoint".
   Tests in
-  [tests/test_measurelib_diagnostic_svg.py](tests/test_measurelib_diagnostic_svg.py)
+  `test_measurelib_diagnostic_svg.py`
   cover perpendicular marker presence, backward compatibility, and hull
   contact ellipse.
 - Render charge marks as circled symbols in OASA SVG output instead of
   appending +/- as inline text.  Store mark data in vertex `properties_` in
-  [tools/render_beta_sheets.py](tools/render_beta_sheets.py), suppress charge
+  [render_beta_sheets.py](../tools/render_beta_sheets.py), suppress charge
   text suffix in `vertex_label_text()` when marks are present, and generate
   `CircleOp`/`LineOp` for circled plus (blue) and minus (red) marks in
   `build_vertex_ops()` in
-  [packages/oasa/oasa/render_geometry.py](packages/oasa/oasa/render_geometry.py).
+  `render_geometry.py`.
   Update bond count expectations in
-  [tests/test_beta_sheet_measurement.py](tests/test_beta_sheet_measurement.py)
+  `test_beta_sheet_measurement.py`
   to account for the 6 new mark lines.
 - Fix furanose beta MR OH / ML CH2OH text collision in
-  [packages/oasa/oasa/haworth/renderer.py](packages/oasa/oasa/haworth/renderer.py).
+  [renderer.py](../packages/oasa/oasa/haworth/renderer.py).
   When MR carries a simple hydroxyl and ML carries a chain-like tail
   (e.g. ALRRDM furanose beta), skip the oxygen clearance override entirely so
   the MR OH bond stays at the default 13.5 length instead of being pushed up
   to 18.49 where it collides with the CH2OH text.  Remove unused constant
   `FURANOSE_TOP_RIGHT_HYDROXYL_EXTRA_CLEARANCE_FACTOR` from
-  [packages/oasa/oasa/haworth/renderer_config.py](packages/oasa/oasa/haworth/renderer_config.py).
+  [renderer_config.py](../packages/oasa/oasa/haworth/renderer_config.py).
 - Rebalance furanose "up" two-carbon tail branch length factors in
-  [packages/oasa/oasa/haworth/renderer.py](packages/oasa/oasa/haworth/renderer.py).
+  [renderer.py](../packages/oasa/oasa/haworth/renderer.py).
   `ho_length_factor` changed from 0.72 to 0.90, `ch2_length_factor` from 1.08
   to 0.95 in `_furanose_two_carbon_tail_profile()`.  This reduces the HO vs
   CH2OH branch length ratio from ~2.5:1 to ~1.3:1.
 - Use round linecaps for all Haworth bond lines in
-  [packages/oasa/oasa/haworth/renderer.py](packages/oasa/oasa/haworth/renderer.py).
+  [renderer.py](../packages/oasa/oasa/haworth/renderer.py).
   The hashed-bond carrier line in `_add_branch_connector_ops()` was the only
   remaining `cap="butt"` bond line; changed to `cap="round"` for visual
   consistency with all other bond connectors.  Hatch cross-strokes retain butt
@@ -3580,10 +4867,10 @@
   Make the hashed-bond carrier line fully transparent (`color="none"`) so only
   the hatch cross-strokes are visible.  Add `HASHED_BOND_WEDGE_RATIO` constant
   (4.6, up from hardcoded 2.8) to
-  [packages/oasa/oasa/haworth/renderer_config.py](packages/oasa/oasa/haworth/renderer_config.py)
+  [renderer_config.py](../packages/oasa/oasa/haworth/renderer_config.py)
   to widen the hatch bond fan angle.
 - Empirically calibrate glyph bounding-box vertical offset in
-  [packages/oasa/oasa/render_geometry.py](packages/oasa/oasa/render_geometry.py).
+  `render_geometry.py`.
   `_label_box_coords()` `bottom_offset` changed from `0.035` to `0.008` based
   on rsvg/Pango pixel measurements (actual descent is 0.1 SVG units at 12pt,
   ratio 0.008).  Previous value overestimated descent, inflating glyph boxes
@@ -3591,12 +4878,12 @@
   `_text_ink_bearing_correction()` helper that computes the left and right
   bearing gap between Cairo advance width and actual ink extent.
 - Increase oxygen exclusion safety margin in
-  [packages/oasa/oasa/haworth/renderer.py](packages/oasa/oasa/haworth/renderer.py).
+  [renderer.py](../packages/oasa/oasa/haworth/renderer.py).
   `_oxygen_exclusion_radius()` safety factor raised from `0.05` to `0.09` to
   compensate for the tighter glyph box: ring edges now maintain visual
   clearance from the oxygen label despite the smaller bounding box.
 - Improve glyph calibration tool
-  [tools/calibrate_glyph_model.py](tools/calibrate_glyph_model.py).
+  [calibrate_glyph_model.py](../tools/calibrate_glyph_model.py).
   `_generate_subscript_svg()` now generates proper SVG `<tspan>` subscript
   structure matching the renderer's output (font-size scaling, dy offsets)
   instead of rendering plain text.  Fix pyflakes lint: remove unused imports
@@ -3611,54 +4898,54 @@
   output.  New `tools/measure_cairo_pdf_parity.py` CLI supports two modes:
   parity mode (SVG+PDF pair comparison) and PDF-only mode (standalone PDF
   analysis).  New modules:
-  [tools/measurelib/pdf_parse.py](tools/measurelib/pdf_parse.py) extracts
+  [pdf_parse.py](../tools/measurelib/pdf_parse.py) extracts
   lines, labels, ring primitives, and wedge bonds from Cairo-generated PDF
   files via `pdfplumber` with Y-coordinate flipping to SVG space;
-  [tools/measurelib/parity.py](tools/measurelib/parity.py) performs
+  [parity.py](../tools/measurelib/parity.py) performs
   nearest-neighbor matching of SVG and PDF primitives with configurable
   tolerance and computes a parity score;
-  [tools/measurelib/pdf_analysis.py](tools/measurelib/pdf_analysis.py)
+  [pdf_analysis.py](../tools/measurelib/pdf_analysis.py)
   runs the full structural analysis pipeline (Haworth detection, hatch
   detection, violations) on PDF-extracted primitives.  Tests in
-  [tests/test_cairo_pdf_parity.py](tests/test_cairo_pdf_parity.py) cover
+  [test_cairo_pdf_parity.py](../tests/test_cairo_pdf_parity.py) cover
   PDF extraction, parity matching, file pairing, and standalone PDF
   analysis (19 tests).  Existing SVG measurement tool is unchanged.
 - Fix antiparallel reverse-strand terminal text orientation in
-  [tools/render_beta_sheets.py](tools/render_beta_sheets.py) so C->N chains
+  [render_beta_sheets.py](../tools/render_beta_sheets.py) so C->N chains
   read as `-OOC ... NH3+` (instead of `COO- ... H3N+`).  Add direction-aware
   terminal label text/position handling (`COO`/`H3N` for forward strands,
   `OOC`/`NH3` for reverse strands) and charge-mark side placement.  Add
   regression coverage in
-  [tests/test_beta_sheet_measurement.py](tests/test_beta_sheet_measurement.py)
+  `test_beta_sheet_measurement.py`
   to assert reverse-strand terminal labels and charge mark positions.
 - Add double bond pair detection and exclusion to glyph-bond alignment
   measurement tool.  New `detect_double_bond_pairs()` in
-  [tools/measurelib/hatch_detect.py](tools/measurelib/hatch_detect.py) finds
+  [hatch_detect.py](../tools/measurelib/hatch_detect.py) finds
   parallel line pairs (C=O double bonds) and excludes the secondary offset line
   from measurement.  Uses linecap attribute to classify primary (round-cap) vs
   secondary (butt-cap) lines.  Add `DOUBLE_BOND_*` constants to
-  [tools/measurelib/constants.py](tools/measurelib/constants.py).  Report now
+  [constants.py](../tools/measurelib/constants.py).  Report now
   includes `decorative_double_bond_offset_count` and `double_bond_pairs`.
 - Add multi-bond label support to glyph-bond alignment measurement tool.
   New `all_endpoints_near_glyph_primitives()` and
   `all_endpoints_near_text_path()` in
-  [tools/measurelib/glyph_model.py](tools/measurelib/glyph_model.py) return all
+  `glyph_model.py` return all
   bond endpoints within search distance, grouped by approach side (left/right).
   Per-label measurement loop in
-  [tools/measurelib/analysis.py](tools/measurelib/analysis.py) now builds a
+  [analysis.py](../tools/measurelib/analysis.py) now builds a
   `connectors` list with independent alignment metrics for each side.  A label
   is aligned only if all its connectors pass.  Backward-compatible top-level
   fields are preserved from the primary (nearest) connector.
 - Update re-exports in
-  [tools/measure_glyph_bond_alignment.py](tools/measure_glyph_bond_alignment.py)
+  [measure_glyph_bond_alignment.py](../tools/measure_glyph_bond_alignment.py)
   for new double bond and multi-connector public names.
 - Add tests for double bond detection and multi-connector labels in
-  [tests/test_measure_glyph_bond_alignment.py](tests/test_measure_glyph_bond_alignment.py).
+  `test_measure_glyph_bond_alignment.py`.
   Update expected bond counts in
-  [tests/test_beta_sheet_measurement.py](tests/test_beta_sheet_measurement.py)
+  `test_beta_sheet_measurement.py`
   to reflect double bond exclusion (42 detected, 6 excluded, 36 checked).
 - Fix double-bond perpendicular distance measurement in
-  [tools/measurelib/analysis.py](tools/measurelib/analysis.py).  Perpendicular
+  [analysis.py](../tools/measurelib/analysis.py).  Perpendicular
   distance was measured from the glyph optical center to the primary drawn line,
   but for C=O double bonds the two parallel lines are offset ~6 SVG units from
   the true bond axis.  The O glyph center sits on the bond axis (between the
@@ -3666,61 +4953,61 @@
   averaging primary and secondary line coordinates, then measure perpendicular
   distance to the midline.  O label perp values drop from 3.03 to 0.03.
   Update infinite-line overlay in
-  [tools/measurelib/diagnostic_svg.py](tools/measurelib/diagnostic_svg.py)
+  [diagnostic_svg.py](../tools/measurelib/diagnostic_svg.py)
   to draw the midline for double-bond primaries.
 - Add gap-ratio filter to multi-connector label detection in
-  [tools/measurelib/analysis.py](tools/measurelib/analysis.py).  Distant bonds
+  [analysis.py](../tools/measurelib/analysis.py).  Distant bonds
   from the far side of a label were incorrectly included as secondary connectors
   (e.g. O labels getting a spurious connector with gap=27 alongside the real
   C=O connector with gap=8).  Discard connectors whose gap exceeds
   `MULTI_CONNECTOR_GAP_RATIO_MAX` (3.0) times the minimum gap among all sides.
   Add constant to
-  [tools/measurelib/constants.py](tools/measurelib/constants.py).
+  [constants.py](../tools/measurelib/constants.py).
 
 - Fix double-bond centering inconsistency in OASA generic renderer.
   `molecule_to_ops()` in
-  [packages/oasa/oasa/render_geometry.py](packages/oasa/oasa/render_geometry.py)
+  `render_geometry.py`
   was passing `point_for_atom=None`, so `_double_bond_side()` compared
   transformed bond coordinates against raw (untransformed) atom positions.
   Neighbor atoms appeared on the wrong side, producing offset double bonds
   where centered was correct.  Fix: pass a `point_for_atom` callback that
   applies the same `transform_xy` used for bond coordinates.
 - Add `center` attribute to OASA bond class in
-  [packages/oasa/oasa/bond.py](packages/oasa/oasa/bond.py).  Parse
+  `bond.py`.  Parse
   `center="yes"` from CDML in
-  [packages/oasa/oasa/cdml_bond_io.py](packages/oasa/oasa/cdml_bond_io.py).
+  [cdml_bond_io.py](../packages/oasa/oasa/cdml_bond_io.py).
   Honor the attribute in `build_bond_ops()` in
-  [packages/oasa/oasa/render_geometry.py](packages/oasa/oasa/render_geometry.py):
+  `render_geometry.py`:
   when `edge.center` is set, skip geometric side detection and force centered
   double-bond rendering.
 
 - Add N, O, R, and H-only atoms to the glyph-bond measurement tool.
   `is_measurement_label()` in
-  [tools/measurelib/glyph_model.py](tools/measurelib/glyph_model.py) now uses
+  `glyph_model.py` now uses
   first/last letter logic instead of substring search; measurable atoms are
   {C, O, S, N, R} plus H-only labels.  Add R to `GLYPH_STEM_CHAR_SET` in
-  [tools/measurelib/constants.py](tools/measurelib/constants.py).  Replace
+  [constants.py](../tools/measurelib/constants.py).  Replace
   element-priority alignment center selection in
-  [tools/measurelib/analysis.py](tools/measurelib/analysis.py) with first/last
+  [analysis.py](../tools/measurelib/analysis.py) with first/last
   letter logic that picks the connecting character based on which side of the
   label the bond approaches.  Add bounding-box fallback in
-  [tools/measurelib/lcf_optical.py](tools/measurelib/lcf_optical.py) to use
+  [lcf_optical.py](../tools/measurelib/lcf_optical.py) to use
   character shape type for optical fitting: curved glyphs (C, O, S) get
   ellipse fitting, stem glyphs (N, H, R) get bounding-box center.  Update
   tests in
-  [tests/test_measurelib_glyph_model.py](tests/test_measurelib_glyph_model.py)
+  `test_measurelib_glyph_model.py`
   and
-  [tests/test_measure_glyph_bond_alignment.py](tests/test_measure_glyph_bond_alignment.py)
+  `test_measure_glyph_bond_alignment.py`
   for new measurement label set and first/last letter alignment.
 
 - Add CPK default colors for charge marks in
-  [packages/bkchem-app/bkchem/marks.py](packages/bkchem-app/bkchem/marks.py): `plus`
+  [marks.py](../packages/bkchem-app/bkchem/marks.py): `plus`
   marks default to blue (`#0000FF`) and `minus` marks default to red
   (`#FF0000`) instead of inheriting the atom's line color.  Override the
   `line_color` property in each subclass with a CPK fallback; explicit color
   set via `set_color()` or `_line_color` still takes precedence.
 - Add zoom scaling for all mark subclasses in
-  [packages/bkchem-app/bkchem/marks.py](packages/bkchem-app/bkchem/marks.py).  Add
+  [marks.py](../packages/bkchem-app/bkchem/marks.py).  Add
   `_scaled_size()` helper to the base `mark` class that multiplies `self.size`
   by `self.paper._scale`.  Update `draw()` in `radical`, `biradical`,
   `electronpair`, `plus`, `minus`, and `text_mark` to use `_scaled_size()`
@@ -3743,7 +5030,7 @@
   bond's already-resolved endpoints via `find_parallel()`. Remove the
   now-unused `no_gap_constraints` variable. Cross-label overlap avoidance
   (`_avoid_cross_label_overlaps`) is retained for all lines.
-- Rewrite [tools/render_beta_sheets.py](tools/render_beta_sheets.py) to produce
+- Rewrite [render_beta_sheets.py](../tools/render_beta_sheets.py) to produce
   bkchem-quality beta-sheet CDML and SVG fixtures.  Write CDML directly via
   `xml.dom.minidom` (not `oasa.cdml_writer`) to emit proper bkchem element
   types: `<atom>` for backbone C/N/O, `<query>` for R groups, and
@@ -3756,7 +5043,7 @@
   file (no cross-strand H-bonds).  SVG rendered via `render_out.render_to_svg()`
   with `show_hydrogens_on_hetero=False`; oasa charge display appends +/- via
   `vertex_label_text`.  Fixtures at
-  [tests/fixtures/oasa_generic/](tests/fixtures/oasa_generic/), SVGs at
+  `oasa_generic`, SVGs at
   `output_smoke/oasa_generic_renders/`.
 - Fix gap retreat reference mismatch: change `_retreat_to_target_gap()` in
   `resolve_label_connector_endpoint_from_text_origin` to use
@@ -3767,31 +5054,31 @@
   tighter endpoint target aligns the retreat reference with the measurement
   reference. Legality retreat still uses `full_target` to prevent text overlap.
   Expand `_point_in_target_closed` tolerance in the chain2 label solver
-  ([packages/oasa/oasa/haworth/renderer.py](packages/oasa/oasa/haworth/renderer.py))
+  ([renderer.py](../packages/oasa/oasa/haworth/renderer.py))
   by `ATTACH_GAP_TARGET` so the endpoint validity check accommodates the
   intentional gap distance. Update chain2 resolver test to use matching
   `epsilon=1e-3` and `make_attach_constraints()` factory call.
 - Fix Haworth renderer gap target mismatch: pass `target_gap=ATTACH_GAP_TARGET`
   (1.5 px) explicitly at all 6 `make_attach_constraints()` call sites in
-  [packages/oasa/oasa/haworth/renderer.py](packages/oasa/oasa/haworth/renderer.py).
+  [renderer.py](../packages/oasa/oasa/haworth/renderer.py).
   Previously the renderer used the font-relative fallback (`12.0 * 0.058 = 0.696 px`),
   which fell outside the measurement spec's 1.3-1.7 px window.
 - Add `make_attach_constraints()` factory and `ATTACH_GAP_FONT_FRACTION` constant
-  to [packages/oasa/oasa/render_geometry.py](packages/oasa/oasa/render_geometry.py).
+  to `render_geometry.py`.
   Three-tier gap resolution: explicit `target_gap` > font-relative > absolute default.
   Delete Haworth-only `TARGET_GAP_FRACTION` constant and replace all inline
   `AttachConstraints()` calls across Haworth, cairo_out, svg_out, bond_render_ops,
   and bond_drawing with the shared factory. Phase 5 of
-  [docs/active_plans/OASA-Wide_Glyph-Bond_Awareness.md](docs/active_plans/OASA-Wide_Glyph-Bond_Awareness.md).
+  [OASA-Wide_Glyph-Bond_Awareness.md](archive/OASA-Wide_Glyph-Bond_Awareness.md).
 - Wire shared gap/perp constraints through `BondRenderContext` into
   `build_bond_ops()`. Add `attach_constraints` field to `BondRenderContext` and
   `attach_gap_target`/`attach_perp_tolerance` style keys to `molecule_to_ops()`.
   Update `cairo_out.py`, `svg_out.py`, `bond_render_ops.py`, and `bond_drawing.py`
   to construct and pass `AttachConstraints` with shared constants. Phase 4 of
-  [docs/active_plans/OASA-Wide_Glyph-Bond_Awareness.md](docs/active_plans/OASA-Wide_Glyph-Bond_Awareness.md).
+  [OASA-Wide_Glyph-Bond_Awareness.md](archive/OASA-Wide_Glyph-Bond_Awareness.md).
 - Fix zoom viewport drift caused by orphaned canvas items leaking during
   redraw.  Non-showing atoms (carbon) in
-  [packages/bkchem-app/bkchem/atom.py](packages/bkchem-app/bkchem/atom.py) called
+  `atom.py` called
   `get_xy_on_paper()` which created a `vertex_item`, then overwrote
   `self.vertex_item = self.item`, orphaning the first item.  These leaked
   items accumulated at stale `canvas.scale()` coordinates, inflating the
@@ -3799,17 +5086,17 @@
   steps).  Fix computes coordinates directly via `real_to_canvas()`.
 - Fix bond position drift during zoom by repositioning `vertex_item`
   coordinates to `model_coord * scale` at the top of `molecule.redraw()`
-  in [packages/bkchem-app/bkchem/molecule.py](packages/bkchem-app/bkchem/molecule.py).
+  in `molecule.py`.
   Bonds redraw before atoms for z-ordering and read atom positions from
   `vertex_item`; without the reset they used stale canvas-scaled coords.
 - Add `_center_viewport_on_canvas()` helper to
-  [packages/bkchem-app/bkchem/paper.py](packages/bkchem-app/bkchem/paper.py) and
+  [paper.py](../packages/bkchem-app/bkchem/paper.py) and
   call it after `update_scrollregion()` in `scale_all()` to re-center the
   viewport on the zoom origin.  Refactor `zoom_to_content()` to use the
   new helper.
 - Fix interactive zoom drift: remove redundant `canvas.scale('all', ox, oy,
   factor, factor)` from `scale_all()` in
-  [packages/bkchem-app/bkchem/paper.py](packages/bkchem-app/bkchem/paper.py).
+  [paper.py](../packages/bkchem-app/bkchem/paper.py).
   `redraw_all()` already redraws content from model coords at the new scale,
   but the background rectangle (`self.background`) is not in `self.stack` and
   was never reset by `redraw_all()`.  The `canvas.scale()` call scaled it
@@ -3818,7 +5105,7 @@
   background via `create_background()` + `scale(background, 0, 0, scale,
   scale)` after `redraw_all()`.
 - Fix Tk canvas inset bug in `_center_viewport_on_canvas()` fraction formula
-  in [packages/bkchem-app/bkchem/paper.py](packages/bkchem-app/bkchem/paper.py).
+  in [paper.py](../packages/bkchem-app/bkchem/paper.py).
   Tk's `xview moveto` internally subtracts the canvas inset
   (`borderwidth + highlightthickness`) from the computed origin.  The
   fraction formula must include a `+inset` correction so that `canvasx()`
@@ -3826,17 +5113,17 @@
   step introduced a systematic ~3 px centering error (matching the default
   inset of 3), causing cumulative viewport drift across zoom operations.
 - Upgrade zoom test assertions in
-  [tests/test_bkchem_gui_zoom.py](tests/test_bkchem_gui_zoom.py):
+  `test_bkchem_gui_zoom.py`:
   convert idempotency and drift warnings to hard assertions (5% scale
   tolerance, 50 px bbox/viewport drift tolerance), add per-zoom-step
   snapshots with canvas item counts.
 - Add `test_zoom_model_coords_stable` and `test_zoom_roundtrip_symmetry` to
-  [tests/test_bkchem_gui_zoom.py](tests/test_bkchem_gui_zoom.py).
+  `test_bkchem_gui_zoom.py`.
   Model-coords test verifies `atom.x`/`atom.y` are unchanged after zoom_in
   x50, zoom_out x100, and zoom reset.  Roundtrip-symmetry test zooms from
   1000% to ~250% (8 steps) and back, checking model-space viewport drift
   stays under 3.0 px.
-- Add [docs/TKINTER_WINDOW_DEBUGGING.md](docs/TKINTER_WINDOW_DEBUGGING.md)
+- Add [TKINTER_WINDOW_DEBUGGING.md](TKINTER_WINDOW_DEBUGGING.md)
   documenting Tk Canvas zoom debugging techniques, the orphaned
   `vertex_item` root cause, and the `redraw()` ordering pitfall.
 
@@ -3845,39 +5132,39 @@
   of `_correct_endpoint_for_alignment()` with scoring-based candidate selection
   that minimizes perpendicular error to the desired centerline and tiebreaks by
   distance from original endpoint. Phase 3 of
-  [docs/active_plans/OASA-Wide_Glyph-Bond_Awareness.md](docs/active_plans/OASA-Wide_Glyph-Bond_Awareness.md).
+  [OASA-Wide_Glyph-Bond_Awareness.md](archive/OASA-Wide_Glyph-Bond_Awareness.md).
 - Add Phase 3 composite target alignment tests in
-  [tests/test_render_geometry.py](tests/test_render_geometry.py).
+  [test_render_geometry.py](../packages/oasa/tests/test_render_geometry.py).
 - Add "Zoom to Content" button and View menu entry that resets zoom, computes
   bounding box of drawn content only (excluding page background), scales to fit
   with 10% margin capped at 400%, and centers the viewport on the molecules.
   New `_content_bbox()` helper and `zoom_to_content()` method in
-  [packages/bkchem-app/bkchem/paper.py](packages/bkchem-app/bkchem/paper.py); button
+  [paper.py](../packages/bkchem-app/bkchem/paper.py); button
   and menu wiring in
-  [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py).
+  [main.py](../packages/bkchem-app/bkchem/main.py).
 - Shorten wavy bond wavelength from `ref * 1.2` to `ref * 0.5` (floor 2.0) in
-  [packages/oasa/oasa/render_geometry.py](packages/oasa/oasa/render_geometry.py)
+  `render_geometry.py`
   for tighter, more visible wave oscillations.
 - Add gap/perp gate harness
-  [tools/gap_perp_gate.py](tools/gap_perp_gate.py) that runs glyph-bond
+  [gap_perp_gate.py](../tools/gap_perp_gate.py) that runs glyph-bond
   alignment measurement on fixture buckets (haworth, oasa_generic, bkchem)
   and emits compact JSON with per-label stats and failure reason counts.
   Phase 0 of
-  [docs/active_plans/OASA-Wide_Glyph-Bond_Awareness.md](docs/active_plans/OASA-Wide_Glyph-Bond_Awareness.md).
+  [OASA-Wide_Glyph-Bond_Awareness.md](archive/OASA-Wide_Glyph-Bond_Awareness.md).
 - Add gate test
-  [tests/test_gap_perp_gate.py](tests/test_gap_perp_gate.py) verifying gate
+  `test_gap_perp_gate.py` verifying gate
   report structure, reason tallies, empty-bucket handling, and haworth
   corpus file count.
 - Add shared gap/perp spec constants (`ATTACH_GAP_TARGET`, `ATTACH_GAP_MIN`,
   `ATTACH_GAP_MAX`, `ATTACH_PERP_TOLERANCE`) to
-  [packages/oasa/oasa/render_geometry.py](packages/oasa/oasa/render_geometry.py).
+  `render_geometry.py`.
   Add `alignment_tolerance` field to `AttachConstraints` (default 0.07) and
   replace hardcoded `max(line_width * 0.5, 0.25)` tolerance in
   `resolve_label_connector_endpoint_from_text_origin()` with
   `constraints.alignment_tolerance`. Phase 1 of
-  [docs/active_plans/OASA-Wide_Glyph-Bond_Awareness.md](docs/active_plans/OASA-Wide_Glyph-Bond_Awareness.md).
+  [OASA-Wide_Glyph-Bond_Awareness.md](archive/OASA-Wide_Glyph-Bond_Awareness.md).
 - Add Phase 1 tests in
-  [tests/test_render_geometry.py](tests/test_render_geometry.py) verifying
+  [test_render_geometry.py](../packages/oasa/tests/test_render_geometry.py) verifying
   shared constants, default/custom alignment tolerance, and no fallback to
   old hardcoded tolerance expression.
 
@@ -3889,82 +5176,82 @@
   wavelength with 1.5x amplitude overshoot so Tk's B-spline `smooth=1`
   produces genuinely smooth curves instead of visible straight-line segments,
   and widen stroke by 10% in
-  [packages/oasa/oasa/render_geometry.py](packages/oasa/oasa/render_geometry.py).
+  `render_geometry.py`.
 - Fix hashed bond rendering in GUI: rewrite `_hashed_ops()` to compute each
   hash line perpendicular to the bond axis (unit-vector math) instead of
   connecting points on converging wedge edges, so all hash lines are parallel;
   linearly interpolate hash line length from `line_width` at the narrow end to
   `wedge_width` at the wide end; tighten spacing to `0.4 * wedge_width` in
-  [packages/oasa/oasa/render_geometry.py](packages/oasa/oasa/render_geometry.py).
+  `render_geometry.py`.
 - Rewrite
-  [docs/active_plans/OASA-Wide_Glyph-Bond_Awareness.md](docs/active_plans/OASA-Wide_Glyph-Bond_Awareness.md)
+  [OASA-Wide_Glyph-Bond_Awareness.md](archive/OASA-Wide_Glyph-Bond_Awareness.md)
   into a focused execution plan for getting gap/perp into spec across shared
   OASA and BKChem rendering paths (not Haworth-only), with current baseline
   metrics, phased implementation, and hard acceptance gates.
 - Update glyph-bond measurement pass/fail criteria in
-  [tools/measurelib/analysis.py](tools/measurelib/analysis.py) so labels are
+  [analysis.py](../tools/measurelib/analysis.py) so labels are
   marked aligned only when `1.3 <= gap <= 1.7` and `perp <= 0.07`; all other
   cases are violations.
 - Replace `err = perp` with a normalized combined metric in
-  [tools/measurelib/analysis.py](tools/measurelib/analysis.py):
+  [analysis.py](../tools/measurelib/analysis.py):
   `err = ((gap - 1.5)/0.2)^2 + (perp/0.07)^2`.
 - Add explicit alignment gap/perp constants in
-  [tools/measurelib/constants.py](tools/measurelib/constants.py).
+  [constants.py](../tools/measurelib/constants.py).
 - Update alignment tests in
-  [tests/test_measure_glyph_bond_alignment.py](tests/test_measure_glyph_bond_alignment.py)
+  `test_measure_glyph_bond_alignment.py`
   to validate the new combined error formula and pass/fail rule.
 - Add per-label `bond_len` reporting to
-  [tools/measurelib/analysis.py](tools/measurelib/analysis.py) and include
+  [analysis.py](../tools/measurelib/analysis.py) and include
   `bond_len=...` in diagnostic SVG annotation blocks in
-  [tools/measurelib/diagnostic_svg.py](tools/measurelib/diagnostic_svg.py),
+  [diagnostic_svg.py](../tools/measurelib/diagnostic_svg.py),
   alongside `gap/perp/err`.
 - Propagate per-label bond lengths through JSON/report data points in
-  [tools/measurelib/reporting.py](tools/measurelib/reporting.py).
+  [reporting.py](../tools/measurelib/reporting.py).
 
 ## 2026-02-13
 - Add `_resolve_endpoint_with_constraints()` in
-  [packages/oasa/oasa/render_geometry.py](packages/oasa/oasa/render_geometry.py):
+  `render_geometry.py`:
   full 4-step constraint pipeline (boundary resolve, centerline correction,
   legality retreat, target-gap retreat) replacing `_clip_to_target()` at all
   6 bond-clipping call sites in `build_bond_ops()` (single, double side-path,
   double parallel-pair). Add clipping to triple bond offset lines which
   previously had none. Deprecate `_clip_to_target()`. Phase 2 of
-  [docs/active_plans/OASA-Wide_Glyph-Bond_Awareness.md](docs/active_plans/OASA-Wide_Glyph-Bond_Awareness.md).
+  [OASA-Wide_Glyph-Bond_Awareness.md](archive/OASA-Wide_Glyph-Bond_Awareness.md).
 - Add Phase 2 tests in
-  [tests/test_render_geometry.py](tests/test_render_geometry.py): none-target
+  [test_render_geometry.py](../packages/oasa/tests/test_render_geometry.py): none-target
   passthrough, backward compatibility with `_clip_to_target()`, alignment
   correction, gap retreat, legality retreat, and triple bond offset clipping.
 - Tighten gap and perp renderer parameters to meet gap 1.3-1.7 and perp < 0.07
   spec. Change `TARGET_GAP_FRACTION` from 0.04 to 0.058 in
-  [packages/oasa/oasa/haworth/renderer.py](packages/oasa/oasa/haworth/renderer.py)
+  [renderer.py](../packages/oasa/oasa/haworth/renderer.py)
   (yields target_gap=0.70 at font_size=12). Tighten renderer alignment tolerance
   from `max(line_width * 0.5, 0.25)` to 0.07 in
-  [packages/oasa/oasa/render_geometry.py](packages/oasa/oasa/render_geometry.py).
+  `render_geometry.py`.
   Add post-gap re-alignment pass after gap retreat to catch perpendicular drift.
   Result: OH gap=1.37, HO gap=1.30, CH2OH gap=1.70 (all in spec). Perp values
   unchanged (structural limitation of composite target geometry).
 - Add median to `length_stats()` in
-  [tools/measurelib/util.py](tools/measurelib/util.py). Per-label alignment
+  [util.py](../tools/measurelib/util.py). Per-label alignment
   summary now shows avg/stddev/median for both bond_end_gap and perp_offset.
 - Tighten perpendicular alignment tolerance from ~1.0 to 0.07 in
-  [tools/measurelib/constants.py](tools/measurelib/constants.py) and simplify
-  formula in [tools/measurelib/analysis.py](tools/measurelib/analysis.py).
+  [constants.py](../tools/measurelib/constants.py) and simplify
+  formula in [analysis.py](../tools/measurelib/analysis.py).
   Rename alignment columns to `bond_end_gap` and `perp_offset` for clarity.
 - Switch per-label `gap_distance_stats` to use signed distance (negative when
   bond endpoint penetrates glyph body) in
-  [tools/measurelib/reporting.py](tools/measurelib/reporting.py).
+  [reporting.py](../tools/measurelib/reporting.py).
 - Add distance annotations (gap, perp, err) to diagnostic SVGs near each bond
   endpoint in
-  [tools/measurelib/diagnostic_svg.py](tools/measurelib/diagnostic_svg.py).
+  [diagnostic_svg.py](../tools/measurelib/diagnostic_svg.py).
 - Create standalone
-  [tools/alignment_summary.py](tools/alignment_summary.py) script that reads
+  [alignment_summary.py](../tools/alignment_summary.py) script that reads
   existing JSON report and prints per-label alignment summary without re-running
   the full analysis.
 - Replace duplicate inline console code in
-  [tools/measure_glyph_bond_alignment.py](tools/measure_glyph_bond_alignment.py)
+  [measure_glyph_bond_alignment.py](../tools/measure_glyph_bond_alignment.py)
   `main()` with `print_summary()` call.
 - Add `_avoid_cross_label_overlaps()` to
-  [packages/oasa/oasa/render_geometry.py](packages/oasa/oasa/render_geometry.py)
+  `render_geometry.py`
   (Phase 4 of OASA-Wide Glyph-Bond Awareness plan). Retreats bond endpoints
   away from non-own-vertex label targets using capsule intersection tests and
   `retreat_endpoint_until_legal()`. Integrated into `build_bond_ops()` for
@@ -3973,38 +5260,38 @@
   from collapsing when surrounded by labels. Note: Haworth renderer uses its
   own pipeline and is not yet affected by this change.
 - Add 6 unit tests for `_avoid_cross_label_overlaps` in
-  [tests/test_render_geometry.py](tests/test_render_geometry.py): cross-target
+  [test_render_geometry.py](../packages/oasa/tests/test_render_geometry.py): cross-target
   exclusion of own vertices, near-end retreat, near-start retreat,
   no-intersection passthrough, and minimum-length guard.
 - Re-baseline plan metrics in
-  [OASA-Wide_Glyph-Bond_Awareness.md](docs/active_plans/OASA-Wide_Glyph-Bond_Awareness.md):
+  [OASA-Wide_Glyph-Bond_Awareness.md](archive/OASA-Wide_Glyph-Bond_Awareness.md):
   record post-connector-fix measurements (362/362 alignment, 0 misses), update
   acceptance criteria to current baseline, relabel Phases 1-3 from DONE to
   IMPLEMENTED, add per-atom optical centering feasibility note.
-- Update [refactor_progress.md](refactor_progress.md) with re-baselined gate
+- Update [refactor_progress.md](../refactor_progress.md) with re-baselined gate
   status and connector selection fix diagnosis.
 - Include hashed bond carrier lines as connector candidates in
-  [tools/measurelib/analysis.py](tools/measurelib/analysis.py). Carrier lines
+  [analysis.py](../tools/measurelib/analysis.py). Carrier lines
   for hatched (behind-the-plane) bonds are intentionally drawn thin with
   perpendicular hatch strokes; the width filter was excluding them, causing
   labels like CH2OH to match distant unrelated bonds instead of the actual
   hatched bond.
 - Add unit tests for `_retreat_to_target_gap`, `_correct_endpoint_for_alignment`,
   and `_perpendicular_distance_to_line` in new
-  [tests/test_render_geometry.py](tests/test_render_geometry.py).
+  [test_render_geometry.py](../packages/oasa/tests/test_render_geometry.py).
 - Move
-  [OASA-Wide_Glyph-Bond_Awareness.md](docs/active_plans/OASA-Wide_Glyph-Bond_Awareness.md)
+  [OASA-Wide_Glyph-Bond_Awareness.md](archive/OASA-Wide_Glyph-Bond_Awareness.md)
   to `docs/active_plans/` and add NOT STARTED labels to Changes 6, 7, 8.
 - Add consumer adoption note to OASA-Wide Glyph-Bond Awareness plan clarifying
   that `target_gap` and `alignment_center` are consumed by Haworth first; other
   consumers adopt when their rendering paths are ready.
 - Extract `TARGET_GAP_FRACTION` constant in
-  [packages/oasa/oasa/haworth/renderer.py](packages/oasa/oasa/haworth/renderer.py)
+  [renderer.py](../packages/oasa/oasa/haworth/renderer.py)
   replacing 4 occurrences of `font_size * 0.04`.
 - Run full acceptance metrics and record gate results in
   `output_smoke/acceptance_gate_results_2026-02-13.txt`.
 - Port `letter-center-finder` algorithms directly into
-  [tools/measure_glyph_bond_alignment.py](tools/measure_glyph_bond_alignment.py)
+  [measure_glyph_bond_alignment.py](../tools/measure_glyph_bond_alignment.py)
   as `_lcf_*` prefixed functions (SVG parsing, glyph isolation rendering,
   contour extraction, convex hull, ellipse fitting), removing the external
   sibling-repo dependency on `/Users/vosslab/nsh/letter-center-finder/`.
@@ -4013,22 +5300,22 @@
   `char.isalnum()`.
 - Delete fallback centering functions `_alignment_primitive_center`,
   `_first_carbon_primitive_center`, and `_first_primitive_center_for_char` from
-  [tools/measure_glyph_bond_alignment.py](tools/measure_glyph_bond_alignment.py).
+  [measure_glyph_bond_alignment.py](../tools/measure_glyph_bond_alignment.py).
   Optical centering failures now propagate visibly instead of silently falling
   back to inaccurate heuristics.
 - Remove `--alignment-center-mode` CLI argument and hardcode optical mode in
-  [tools/measure_glyph_bond_alignment.py](tools/measure_glyph_bond_alignment.py).
+  [measure_glyph_bond_alignment.py](../tools/measure_glyph_bond_alignment.py).
 - Add `numpy`, `opencv-python`, and `scipy` to
-  [pip_extras.txt](pip_extras.txt) as optional dependencies for glyph optical
+  [pip_extras.txt](../pip_extras.txt) as optional dependencies for glyph optical
   center fitting.
 - Use Cairo font-metric label box width in `_label_box_coords()` in
-  [packages/oasa/oasa/render_geometry.py](packages/oasa/oasa/render_geometry.py)
+  `render_geometry.py`
   (Phase 1 of OASA-Wide Glyph-Bond Awareness plan). Replace hardcoded
   `font_size * 0.75 * char_count` with `sum(_text_char_advances(...))`,
   making the full label box consistent with the sub-label attach box that
   already used Cairo metrics.
 - Add `target_gap` and `alignment_center` fields to `AttachConstraints` in
-  [packages/oasa/oasa/render_geometry.py](packages/oasa/oasa/render_geometry.py)
+  `render_geometry.py`
   (Phase 2 and Phase 3 of OASA-Wide Glyph-Bond Awareness plan). Phase 2 adds
   `_retreat_to_target_gap()` for uniform whitespace between connector endpoint
   and glyph body. Phase 3 adds `_correct_endpoint_for_alignment()` to re-aim

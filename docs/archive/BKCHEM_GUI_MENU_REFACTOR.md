@@ -7,20 +7,20 @@ what to improve to make the system more modular and intuitive.
 
 ## Menu-related files
 
-- [packages/bkchem-app/bkchem/main.py](packages/bkchem-app/bkchem/main.py)
+- [main.py](../../packages/bkchem-app/bkchem/main.py)
   - Defines `menu_template` and constructs the top menu bar.
   - Adds plugin menu entries and wires enable/disable logic.
   - Builds the mode toolbar (radio buttons).
-- [packages/bkchem-app/bkchem/context_menu.py](packages/bkchem-app/bkchem/context_menu.py)
+- `context_menu.py`
   - Defines the right-click context menu and dynamically builds entries based
     on the current selection.
-- [packages/bkchem-app/bkchem/modes.py](packages/bkchem-app/bkchem/modes.py)
+- `modes.py`
   - Defines mode classes referenced by the mode toolbar.
-- [packages/bkchem-app/bkchem/pixmaps.py](packages/bkchem-app/bkchem/pixmaps.py)
+- [pixmaps.py](../../packages/bkchem-app/bkchem/pixmaps.py)
   - Holds toolbar icons used by mode buttons.
-- [packages/bkchem-app/bkchem/plugins](packages/bkchem-app/bkchem/plugins)
+- `plugins`
   - Provides importer/exporter plugins that add to File > Import/Export.
-- [packages/bkchem-app/bkchem/plugin_support.py](packages/bkchem-app/bkchem/plugin_support.py)
+- `plugin_support.py`
   - Defines script plugin discovery and menu injection logic.
 
 ## How each menu entry is created
@@ -100,7 +100,7 @@ Two plugin sources are inserted into the menu system:
 
 ### How menu translation works
 
-BKChem uses the standard GNU gettext system for internationalization. The translation system is initialized at startup in [packages/bkchem-app/bkchem/bkchem.py](packages/bkchem-app/bkchem/bkchem.py) lines 44-96.
+BKChem uses the standard GNU gettext system for internationalization. The translation system is initialized at startup in `bkchem.py` lines 44-96.
 
 **Translation initialization flow**:
 

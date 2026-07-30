@@ -59,7 +59,7 @@ class Preferences:
 	}
 
 	#============================================
-	def __init__(self):
+	def __init__(self) -> None:
 		"""Create the QSettings backend.
 
 		Callers should use ``Preferences.instance()`` instead of
@@ -82,7 +82,7 @@ class Preferences:
 		return cls._instance
 
 	#============================================
-	def value(self, key: str, default=None):
+	def value(self, key: str, default: object = None) -> object:
 		"""Read a preference value.
 
 		Lookup order:
@@ -103,7 +103,7 @@ class Preferences:
 		return stored
 
 	#============================================
-	def set_value(self, key: str, val) -> None:
+	def set_value(self, key: str, val: object) -> None:
 		"""Store a preference value and sync to disk.
 
 		Args:

@@ -4,8 +4,8 @@
 - Add Haworth sugar ring projections (furanose and pyranose) to the BKChem GUI
   via the Insert menu.
 - Render with perspective thick-line style (thick front bonds, thin back bonds).
-- Treat the ring as a single locked object that cannot be internally edited but
-  allows external bonds to attach at ring carbon positions.
+- Insert a real editable molecule whose ring bonds retain Haworth front/back
+  depiction tags.
 
 ## Non-goals
 - Do not add a full Haworth toolbar mode (menu items are sufficient).
@@ -33,16 +33,19 @@ Two strategies were considered:
 - External atoms/bonds are fully editable.
 - More complex but fully integrated with OASA chemistry.
 
-**Open question**: Which strategy to pursue? Strategy A is faster to build but
-less useful for chemistry workflows. Strategy B is more work but the result is
-a real molecule.
+**Decision (2026-07-28)**: the Qt frontend uses Strategy B's real-molecule
+boundary without an initial locking layer. This makes the inserted sugar
+immediately usable by atom/bond editing, chemistry checks, SMILES export, and
+CDML. Ring locking, multi-ring/disaccharide automation, and attachment-aware
+glycosidic construction remain out of scope for this first slice.
 
 ### User configuration dialog
 On insertion, a dialog should offer:
 - Ring type: pyranose (6-membered) or furanose (5-membered), pre-selected
   based on which menu item was clicked.
 - Anomeric form: alpha or beta (radio buttons).
-- Series: D or L (radio buttons).
+- No D/L selector: the entered sugar code is authoritative for D/L and avoids
+  contradictory duplicate state.
 - Optional: sugar name dropdown (glucose, galactose, mannose, etc.) that
   auto-configures substituent positions.
 
@@ -64,7 +67,7 @@ The OASA package has extensive Haworth support already:
 
 ## Menu structure
 
-Add to Insert menu in `packages/bkchem-app/bkchem_data/menus.yaml`:
+Add to Insert menu in `packages/bkchem-qt.app/bkchem_qt/resources/menus.yaml`:
 
 ```yaml
 - action: insert.haworth_pyranose
@@ -73,44 +76,39 @@ Add to Insert menu in `packages/bkchem-app/bkchem_data/menus.yaml`:
 
 ## Files to create
 
-- `packages/bkchem-app/bkchem/haworth_insert.py` -- dialog and insertion logic
+- `packages/bkchem-qt.app/bkchem_qt/actions/haworth_actions.py` -- dialog,
+  session-owned worker request, and undoable GUI delivery
 
 ## Files to modify
 
-- `packages/bkchem-app/bkchem/actions/insert_actions.py` -- register actions
-- `packages/bkchem-app/bkchem_data/menus.yaml` -- add menu items
-- `packages/bkchem-app/bkchem/oasa_bridge.py` -- bridge helper if needed
+- `packages/bkchem-qt.app/bkchem_qt/resources/menus.yaml` -- add menu items
+- `packages/bkchem-qt.app/bkchem_qt/bridge/oasa_bridge.py` -- retain Haworth
+  front/back depiction tags across the model bridge
 
-## Insertion flow (Strategy A sketch)
+## Implemented insertion flow (editable molecule)
 
 1. User clicks "Insert > Haworth pyranose" or "Haworth furanose".
-2. Dialog appears with alpha/beta, D/L radio buttons.
+2. Dialog appears with alpha/beta; D/L derives from the sugar code.
 3. On OK:
-   a. Build `HaworthSpec` from `oasa.haworth.spec`.
-   b. Compute ring vertex positions from template arrays scaled to standard
-      bond length.
-   c. Draw thick-front/thin-back ring polygon on canvas as a grouped Tk canvas
-      item (using `create_polygon`, `create_line` with varying widths).
-   d. Store attachment point coordinates (one per ring carbon).
-   e. Register the group as a canvas object that supports bond attachment.
-   f. `paper.start_new_undo_record()`.
+   a. A session-owned OASA worker converts sugar code to stereochemical SMILES,
+      generates initial coordinates, and calls `haworth.layout.build_haworth`.
+   b. The queued GUI relay converts the OASA graph into one `MoleculeModel` at
+      the active scene bond length.
+   c. `AddMoleculeCommand` inserts its real atoms, bonds, and graphics, making
+      both insertion and undo consistent with all other molecule imports.
 
 ## Testing needs
 
-- Unit tests for Haworth spec generation and coordinate computation.
-- Integration test: insert a pyranose, verify canvas items are created.
-- Integration test: draw a bond to a ring attachment point, verify connection.
-- Manual smoke test: visual inspection of thick-front/thin-back rendering.
+- Focused preparation test: known glucose code produces editable OASA/Qt
+  topology with a wide Haworth front edge.
+- Focused delivery test: a prepared model enters the originating session and
+  undo returns that session to its clean baseline.
 
-## Risks
+## Remaining boundary
 
-- **Tk canvas limitations**: thick/thin perspective rendering may not look
-  great with basic Tk canvas primitives. May need anti-aliased rendering
-  or SVG-to-canvas conversion.
-- **Bond attachment snapping**: detecting when a drawn bond endpoint is near
-  a Haworth attachment point requires hooking into the draw mode's endpoint
-  resolution logic.
-- **CDML serialization**: custom canvas groups need save/load support in the
-  CDML format. This is a non-trivial addition.
-- **Chemistry integration**: Strategy A objects would not participate in
-  SMILES generation, formula calculation, or substructure search.
+- **Multi-ring chemistry**: OASA now has a pure direct-glycosidic planner for
+  two strict 5/6-member C/O rings and one external oxygen bridge. This menu
+  slice still does not deliver disaccharides to the document, infer carbon
+  numbering, place exocyclic substituents, or automate larger glycans.
+- **Ring locking**: editable atoms and bonds are deliberate for this first
+  real-molecule implementation; a later interaction policy may add locks.

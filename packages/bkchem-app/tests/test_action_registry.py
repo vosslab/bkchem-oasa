@@ -9,7 +9,7 @@ def _make_action(
 	action_id: str = "test.action",
 	label_key: str = "Test",
 	help_key: str = "A test action",
-	accelerator: str = None,
+	accelerator: str | None = None,
 	handler: object = None,
 	enabled_when: object = None,
 ) -> MenuAction:
@@ -38,7 +38,7 @@ def _make_action(
 
 
 #============================================
-def test_register_and_get():
+def test_register_and_get() -> None:
 	"""Register a MenuAction, retrieve it, and verify all fields."""
 	registry = ActionRegistry()
 	# create a handler function for testing
@@ -63,7 +63,7 @@ def test_register_and_get():
 
 
 #============================================
-def test_duplicate_id_raises():
+def test_duplicate_id_raises() -> None:
 	"""Registering the same action ID twice raises ValueError."""
 	registry = ActionRegistry()
 	action1 = _make_action(action_id="edit.undo")
@@ -78,7 +78,7 @@ def test_duplicate_id_raises():
 
 
 #============================================
-def test_contains():
+def test_contains() -> None:
 	"""Verify __contains__ for registered and unregistered IDs."""
 	registry = ActionRegistry()
 	action = _make_action(action_id="view.zoom")
@@ -90,7 +90,7 @@ def test_contains():
 
 
 #============================================
-def test_all_actions():
+def test_all_actions() -> None:
 	"""Register 3 actions and verify all_actions returns all 3."""
 	registry = ActionRegistry()
 	ids = ["file.new", "file.open", "file.close"]
@@ -105,7 +105,7 @@ def test_all_actions():
 
 
 #============================================
-def test_is_enabled_none():
+def test_is_enabled_none() -> None:
 	"""Action with enabled_when=None is always enabled."""
 	registry = ActionRegistry()
 	action = _make_action(action_id="always.on", enabled_when=None)
@@ -116,7 +116,7 @@ def test_is_enabled_none():
 
 
 #============================================
-def test_is_enabled_callable():
+def test_is_enabled_callable() -> None:
 	"""Action with callable predicate returns its boolean result."""
 	registry = ActionRegistry()
 	# predicate that returns True
@@ -136,7 +136,7 @@ def test_is_enabled_callable():
 
 
 #============================================
-def test_is_enabled_string():
+def test_is_enabled_string() -> None:
 	"""Action with string predicate checks attribute on context."""
 	registry = ActionRegistry()
 	action = _make_action(
@@ -165,7 +165,7 @@ def test_is_enabled_string():
 
 
 #============================================
-def test_label_and_help_properties():
+def test_label_and_help_properties() -> None:
 	"""Verify .label and .help_text call the _() translator."""
 	action = _make_action(
 		label_key="Open",

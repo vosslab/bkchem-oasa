@@ -2,15 +2,10 @@
 
 # PIP3 modules
 import PySide6.QtCore
-import PySide6.QtGui
 import PySide6.QtWidgets
 
 # local repo modules
 import bkchem_qt.modes.base_mode
-
-# default font for the plus symbol
-_PLUS_FONT_FAMILY = "Arial"
-_PLUS_FONT_SIZE = 18
 
 
 #============================================
@@ -26,7 +21,11 @@ class PlusMode(bkchem_qt.modes.base_mode.BaseMode):
 	"""
 
 	#============================================
-	def __init__(self, view, parent=None):
+	def __init__(
+			self,
+			view: PySide6.QtWidgets.QGraphicsView,
+			parent: PySide6.QtCore.QObject | None = None,
+			) -> None:
 		"""Initialize the plus symbol mode.
 
 		Args:
@@ -35,7 +34,15 @@ class PlusMode(bkchem_qt.modes.base_mode.BaseMode):
 		"""
 		super().__init__(view, parent)
 		self._name = "Plus"
+		self._persistent_operation = None
 		self._cursor = PySide6.QtCore.Qt.CursorShape.CrossCursor
+
+	#============================================
+	def set_persistent_operation(self, operation: object | None) -> None:
+		"""Install or clear the generic immutable-request callback."""
+		if operation is not None and not callable(operation):
+			raise TypeError("Plus persistent operation must be callable")
+		self._persistent_operation = operation
 
 	#============================================
 	@property
@@ -48,11 +55,14 @@ class PlusMode(bkchem_qt.modes.base_mode.BaseMode):
 		return "Click to place + symbol"
 
 	#============================================
-	def mouse_press(self, scene_pos: PySide6.QtCore.QPointF, event) -> None:
+	def mouse_press(
+			self,
+			scene_pos: PySide6.QtCore.QPointF,
+			event: object,
+			) -> None:
 		"""Place a plus symbol at the click position.
 
-		Creates a QGraphicsTextItem with a centered + character
-		at the scene position. The item is selectable and movable.
+		Submits one backend-authoritative Plus request at the click position.
 
 		Args:
 			scene_pos: Position in scene coordinates.
@@ -61,26 +71,12 @@ class PlusMode(bkchem_qt.modes.base_mode.BaseMode):
 		scene = self._env.scene
 		if scene is None:
 			return
-		# create a text item with the plus character
-		font = PySide6.QtGui.QFont(_PLUS_FONT_FAMILY, _PLUS_FONT_SIZE)
-		font.setBold(True)
-		text_item = scene.addText("+", font)
-		# center the text on the click position
-		bounding = text_item.boundingRect()
-		offset_x = bounding.width() / 2.0
-		offset_y = bounding.height() / 2.0
-		text_item.setPos(
-			scene_pos.x() - offset_x,
-			scene_pos.y() - offset_y,
+		if self._persistent_operation is None:
+			self.status_message.emit("Document cannot accept a persistent edit")
+			return
+		from bkchem_qt.models import document_session
+		request = document_session.PersistentOperationRequest(
+			"plus.add", "Plus", (("position", (scene_pos.x(), scene_pos.y())),),
 		)
-		# make selectable and movable
-		text_item.setFlag(
-			PySide6.QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable,
-			True,
-		)
-		text_item.setFlag(
-			PySide6.QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable,
-			True,
-		)
-		text_item.setDefaultTextColor(PySide6.QtCore.Qt.GlobalColor.black)
-		self.status_message.emit("Placed + symbol")
+		outcome = self._persistent_operation(request)
+		self.status_message.emit(outcome.message)

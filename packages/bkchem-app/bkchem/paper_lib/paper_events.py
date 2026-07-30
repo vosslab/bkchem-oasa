@@ -8,7 +8,7 @@ from bkchem.singleton_store import Store
 class PaperEventsMixin:
 	"""Event binding and input handling helpers extracted from paper.py."""
 
-	def set_bindings( self):
+	def set_bindings( self) -> None:
 		if not Store.app.in_batch_mode:
 			self.bind( "<B1-Motion>", self._drag1)
 			self.bind( "<ButtonRelease-1>", self._release1)
@@ -58,7 +58,7 @@ class PaperEventsMixin:
 				self.bind('<Command-MouseWheel>', lambda e: self.zoom_in() if e.delta > 0 else self.zoom_out())
 
 
-	def add_bindings( self, active_names=()):
+	def add_bindings( self, active_names: object = ()) -> None:
 		self.lower( self.background)
 		# show hex grid on first call if flagged for startup display
 		if getattr(self, '_hex_grid_show_on_bindings', False):
@@ -73,7 +73,7 @@ class PaperEventsMixin:
 		# we generate this event here because this method is often called after some change as a last thing
 
 
-	def remove_bindings( self, ids=()):
+	def remove_bindings( self, ids: object = ()) -> None:
 		if not ids:
 			for tag in self.all_names_to_bind + ("mark",):
 				self.tag_unbind( tag, '<Enter>')
@@ -84,20 +84,20 @@ class PaperEventsMixin:
 
 
 	## event bound methods
-	def _pressed1( self, event, mod=None):
+	def _pressed1( self, event: object, mod: object = None) -> None:
 		"button 1"
 		event.x = self.canvasx( event.x)
 		event.y = self.canvasy( event.y)
 		Store.app.mode.mouse_down( event, modifiers=mod or [])
 
 
-	def _release1( self, event):
+	def _release1( self, event: object) -> None:
 		event.x = self.canvasx( event.x)
 		event.y = self.canvasy( event.y)
 		Store.app.mode.mouse_up( event)
 
 
-	def _drag1( self, event):
+	def _drag1( self, event: object) -> None:
 		# unfortunately we need to simulate "enter" and "leave" in this way because
 		# when B1 is down such events do not occur
 		event.x = self.canvasx( event.x)
@@ -126,19 +126,19 @@ class PaperEventsMixin:
 				Store.app.mode.leave_object( event)
 
 
-	def _n_pressed3( self, event, mod=None):
+	def _n_pressed3( self, event: object, mod: object = None) -> None:
 		event.x = self.canvasx( event.x)
 		event.y = self.canvasy( event.y)
 		Store.app.mode.mouse_down3( event, modifiers=mod or [])
 
 
-	def _n_pressed2( self, event, mod=None):
+	def _n_pressed2( self, event: object, mod: object = None) -> None:
 		event.x = self.canvasx( event.x)
 		event.y = self.canvasy( event.y)
 		Store.app.mode.mouse_down2( event, modifiers=mod or [])
 
 
-	def _move( self, event):
+	def _move( self, event: object) -> None:
 		event.x = self.canvasx( event.x)
 		event.y = self.canvasy( event.y)
 
@@ -172,16 +172,16 @@ class PaperEventsMixin:
 			Store.app.mode.leave_object( event)
 
 
-	def _enter( self, event):
+	def _enter( self, event: object) -> None:
 		Store.app.mode.clean_key_queue()
 
 
-	def _leave( self, event):
+	def _leave( self, event: object) -> None:
 		Store.app.mode.clean_key_queue()
 
 
 	# item bound methods
-	def enter_item( self, event):
+	def enter_item( self, event: object) -> None:
 		event.x = self.canvasx( event.x)
 		event.y = self.canvasy( event.y)
 
@@ -194,7 +194,7 @@ class PaperEventsMixin:
 			Store.app.mode.enter_object( self._in, event)
 
 
-	def leave_item( self, event):
+	def leave_item( self, event: object) -> None:
 		event.x = self.canvasx( event.x)
 		event.y = self.canvasy( event.y)
 		if self._in:
@@ -202,15 +202,15 @@ class PaperEventsMixin:
 			Store.app.mode.leave_object( event)
 
 
-	def key_pressed( self, event):
+	def key_pressed( self, event: object) -> None:
 		Store.app.mode.key_pressed( event)
 
 
-	def key_released( self, event):
+	def key_released( self, event: object) -> None:
 		Store.app.mode.key_released( event)
 
 	## end of event bound methods
 
 
-	def take_focus( self, event):
+	def take_focus( self, event: object) -> None:
 		self.focus_set()

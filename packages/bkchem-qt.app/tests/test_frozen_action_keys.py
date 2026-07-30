@@ -7,20 +7,25 @@ Validates that every registered action key:
 """
 
 # Standard Library
+import pathlib
 import re
 
 # local repo modules
 import bkchem_qt.actions.action_registry
+import bkchem_qt.actions.menu_builder
+import bkchem_qt.actions.registrar_manifest
+import bkchem_qt.io.format_bridge
 
 # pattern: dotted lowercase, e.g. 'file.save', 'repair.clean_geometry'
 _KEY_PATTERN = re.compile(r'^[a-z][a-z0-9]*(\.[a-z][a-z0-9_]*)+$')
 
-# frozen set of known action keys as of initial creation
-# keys can be added but not removed or renamed without updating this set
+# Frozen baseline of current shipped action keys.  Intentional release removals
+# update this set with their focused action/menu absence regression.
 _KNOWN_KEYS = frozenset({
 	'file.new',
 	'file.save',
 	'file.save_as',
+	'file.recovery_export',
 	'file.save_as_template',
 	'file.load',
 	'file.load_same_tab',
@@ -61,9 +66,7 @@ _KNOWN_KEYS = frozenset({
 	'chemistry.read_inchi',
 	'chemistry.read_peptide',
 	'chemistry.gen_smiles',
-	'chemistry.gen_inchi',
 	'chemistry.set_name',
-	'chemistry.set_id',
 	'chemistry.create_fragment',
 	'chemistry.view_fragments',
 	'chemistry.convert_to_linear',
@@ -92,16 +95,16 @@ class _FakeApp:
 	handler=app.on_whatever resolves without AttributeError.
 	"""
 
-	def __init__(self):
+	def __init__(self) -> None:
 		"""Initialize with required stubs for action registration."""
 		self.document = _FakeDocument()
 		self._scene = _FakeScene()
 
-	def __getattr__(self, name):
+	def __getattr__(self, name: str) -> object:
 		"""Return a no-op callable for any missing attribute."""
 		return lambda *args, **kwargs: None
 
-	def statusBar(self):
+	def statusBar(self) -> object:
 		"""Return a fake status bar."""
 		return _FakeStatusBar()
 
@@ -110,7 +113,7 @@ class _FakeApp:
 class _FakeDocument:
 	"""Minimal stand-in for the document model."""
 
-	def __init__(self):
+	def __init__(self) -> None:
 		"""Initialize with empty molecule list and undo stack."""
 		self.molecules = []
 		self.undo_stack = _FakeUndoStack()
@@ -121,17 +124,17 @@ class _FakeDocument:
 class _FakeUndoStack:
 	"""Minimal stand-in for QUndoStack."""
 
-	def undo(self):
+	def undo(self) -> None:
 		"""No-op undo."""
 
-	def redo(self):
+	def redo(self) -> None:
 		"""No-op redo."""
 
-	def canUndo(self):
+	def canUndo(self) -> bool:
 		"""Return False."""
 		return False
 
-	def canRedo(self):
+	def canRedo(self) -> bool:
 		"""Return False."""
 		return False
 
@@ -142,7 +145,7 @@ class _FakeScene:
 
 	grid_spacing_pt = 40.0
 
-	def items(self):
+	def items(self) -> list:
 		"""Return empty item list."""
 		return []
 
@@ -151,7 +154,7 @@ class _FakeScene:
 class _FakeStatusBar:
 	"""Minimal stand-in for the status bar."""
 
-	def showMessage(self, msg, timeout=0):
+	def showMessage(self, msg: str, timeout: int = 0) -> None:
 		"""No-op message display."""
 
 
@@ -165,7 +168,7 @@ def _get_all_registered_keys() -> set:
 
 
 #============================================
-def test_all_keys_match_dotted_pattern():
+def test_all_keys_match_dotted_pattern() -> None:
 	"""Every action key must match ^[a-z][a-z0-9]*(\\.[a-z][a-z0-9_]*)+$."""
 	keys = _get_all_registered_keys()
 	assert len(keys) > 0, "No action keys registered"
@@ -179,7 +182,7 @@ def test_all_keys_match_dotted_pattern():
 
 
 #============================================
-def test_no_spaces_or_uppercase_in_keys():
+def test_no_spaces_or_uppercase_in_keys() -> None:
 	"""No key should contain spaces or uppercase letters."""
 	keys = _get_all_registered_keys()
 	for key in sorted(keys):
@@ -188,19 +191,86 @@ def test_no_spaces_or_uppercase_in_keys():
 
 
 #============================================
-def test_known_keys_not_removed():
-	"""The frozen set of known keys must not shrink."""
+def test_current_supported_keys_are_registered() -> None:
+	"""Every current shipped action key resolves during deterministic startup."""
 	keys = _get_all_registered_keys()
 	missing = _KNOWN_KEYS - keys
 	assert not missing, (
-		f"Known action keys were removed or renamed: {sorted(missing)}"
+		f"Current shipped action keys are missing: {sorted(missing)}"
 	)
 
 
 #============================================
-def test_known_keys_count():
+def test_known_keys_count() -> None:
 	"""Registered keys should be at least as many as the frozen set."""
 	keys = _get_all_registered_keys()
 	assert len(keys) >= len(_KNOWN_KEYS), (
 		f"Expected at least {len(_KNOWN_KEYS)} keys, got {len(keys)}"
+	)
+
+
+#============================================
+def test_qt_menu_exposes_smiles_without_inchi_export() -> None:
+	"""The shipped Qt menu exposes SMILES without an InChI export action."""
+	registry = bkchem_qt.actions.action_registry.register_all_actions(_FakeApp())
+	menu_path = bkchem_qt.resource_paths.get_resource_path("menus.yaml")
+	menu_action_ids = bkchem_qt.actions.menu_builder.required_menu_action_ids(
+		str(menu_path)
+	)
+
+	assert "chemistry.gen_smiles" in registry
+	assert (
+		"chemistry.gen_inchi" not in registry
+		and "chemistry.gen_inchi" not in menu_action_ids
+	)
+
+
+#============================================
+def test_format_bridge_exposes_no_projection_derived_inchi_export() -> None:
+	"""The Qt format boundary provides no model-to-InChI export adapter."""
+	assert not hasattr(bkchem_qt.io.format_bridge, "export_inchi")
+
+
+#============================================
+def test_registrar_manifest_is_ordered_and_complete() -> None:
+	"""The frozen startup authority lists every current registrar in order."""
+	assert bkchem_qt.actions.registrar_manifest.ACTION_REGISTRAR_MODULES == (
+		"bkchem_qt.actions.align_actions",
+		"bkchem_qt.actions.chemistry_actions",
+		"bkchem_qt.actions.edit_actions",
+		"bkchem_qt.actions.file_actions",
+		"bkchem_qt.actions.haworth_actions",
+		"bkchem_qt.actions.help_actions",
+		"bkchem_qt.actions.insert_actions",
+		"bkchem_qt.actions.object_actions",
+		"bkchem_qt.actions.options_actions",
+		"bkchem_qt.actions.plugins_actions",
+		"bkchem_qt.actions.pubchem_actions",
+		"bkchem_qt.actions.repair_actions",
+		"bkchem_qt.actions.view_actions",
+	)
+
+
+#============================================
+def test_manifest_registration_does_not_depend_on_source_file_discovery(
+		monkeypatch: object,
+		) -> None:
+	"""Manifest registration works when source-directory globbing is unavailable."""
+	def unavailable_glob(*args: object, **kwargs: object) -> object:
+		raise AssertionError("frozen startup must not discover action source files")
+
+	monkeypatch.setattr(pathlib.Path, "glob", unavailable_glob)
+	keys = _get_all_registered_keys()
+
+	assert "file.new" in keys
+
+
+#============================================
+def test_every_required_menu_action_has_a_manifest_registrar() -> None:
+	"""The shipped YAML menu has complete action coverage after manifest loading."""
+	registry = bkchem_qt.actions.action_registry.register_all_actions(_FakeApp())
+	menu_path = bkchem_qt.resource_paths.get_resource_path("menus.yaml")
+
+	bkchem_qt.actions.menu_builder.preflight_required_menu_actions(
+		registry, str(menu_path),
 	)

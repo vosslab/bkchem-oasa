@@ -18,7 +18,7 @@ _ = builtins.__dict__.get( '_', lambda m: m)
 class MainTabsMixin:
   """Tab management helpers extracted from main.py."""
 
-  def _on_tab_changed(self, event=None):
+  def _on_tab_changed(self, event: object = None) -> None:
     """Handle <<NotebookTabChanged>> events from ttk.Notebook.
 
     Maps the currently selected tab frame back to a paper and
@@ -37,7 +37,7 @@ class MainTabsMixin:
         return
 
 
-  def change_paper(self, name):
+  def change_paper(self, name: str) -> None:
     if self.papers:
       old_paper = self.paper
       # look up paper index from tab name
@@ -56,7 +56,7 @@ class MainTabsMixin:
         self.mode.on_paper_switch( old_paper, self.paper)
 
 
-  def add_new_paper( self, name=''):
+  def add_new_paper( self, name: str = '') -> bool:
     # check if the same file is opened
     p = self.check_if_the_file_is_opened( name)
     if p:
@@ -108,7 +108,8 @@ class MainTabsMixin:
     zoom_content_btn = ttk.Button(zoom_frame, text="Content", width=6, style='Zoom.TButton', command=paper.zoom_to_content)
     zoom_content_btn.pack(side='left', padx=2)
 
-    def update_zoom_label(event=None, lbl=zoom_label, p=paper):
+    def update_zoom_label(event: object = None, lbl: object = zoom_label,
+                          p: object = paper) -> None:
       zoom_text = "%d%%" % int(p._scale * 100)
       lbl.config(text=zoom_text)
       # also update the status bar zoom indicator
@@ -132,14 +133,14 @@ class MainTabsMixin:
     return True
 
 
-  def close_current_paper( self, call_quit_if_no_remains=True):
+  def close_current_paper( self, call_quit_if_no_remains: bool = True) -> int:
     ret = self.close_paper()
     if self.papers == [] and call_quit_if_no_remains:
       self._quit()
     return ret
 
 
-  def close_paper( self, paper=None):
+  def close_paper( self, paper: object = None) -> int:
     p = paper or self.paper
     if hasattr( self, "editPool") and self.editPool.active:
       self.editPool._cancel(None)
@@ -173,7 +174,7 @@ class MainTabsMixin:
     return 1
 
 
-  def check_if_the_file_is_opened( self, name, check_current=1):
+  def check_if_the_file_is_opened( self, name: str, check_current: bool = True) -> object:
     """check_current says if the self.paper should be also included into the check,
     this is usefull to make it 0 for renames"""
     for p in self.papers:
@@ -184,7 +185,7 @@ class MainTabsMixin:
     return None
 
 
-  def check_number_of_opened_same_names( self, name):
+  def check_number_of_opened_same_names( self, name: object) -> int:
     """checks if there are papers with same name and returns the highest value"""
     ps = [p.file_name['ord'] for p in self.papers if p.file_name['name'] == name['name']]
     if not ps:
@@ -193,12 +194,12 @@ class MainTabsMixin:
       return max( ps)+1
 
 
-  def get_new_tab_name( self):
+  def get_new_tab_name( self) -> str:
     self._last_tab += 1
     return "tab"+str(self._last_tab)
 
 
-  def get_paper_tab_name( self, paper):
+  def get_paper_tab_name( self, paper: object) -> object:
     for k in self._tab_name_2_paper:
       if self._tab_name_2_paper[ k] == paper:
         return k

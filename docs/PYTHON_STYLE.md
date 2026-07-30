@@ -15,6 +15,9 @@ AI agents frequently get these wrong. Read the full sections below for details.
 - **Import the module, not names from it.** Prefer `import os` over `from os import path`. See [IMPORTING](#importing).
 - **No relative imports.** Never use `from . import` or `from ..module import`. See [IMPORTING](#importing).
 - **Declare all third-party imports.** Every non-stdlib, non-local import must be in `pip_requirements.txt`. See [IMPORT REQUIREMENTS](#import-requirements).
+- **Use hardened XML entry points.** Do not parse XML with native
+  `xml.etree.ElementTree` or `xml.dom.minidom`; use the owning format's
+  hardened parser. See [XML PARSING](#xml-parsing).
 - **No brittle pytest assertions.** Do not assert on dates, collection sizes, required key lists, hardcoded defaults, or function names. See [PYTEST_STYLE.md](PYTEST_STYLE.md).
 - **No `assert` in plain scripts.** All `assert` statements live in `tests/test_*.py`, `tests/playwright/` (browser tests), or `tests/e2e/` (shell/Python E2E). Module-level asserts run on every import and slow script startup. See [ASSERT](#assert).
 
@@ -101,7 +104,7 @@ verbose = config.get("verbose", False)
 - No auto-discovery or registrar logic (put that in a dedicated loader module).
 - No aliases except as temporary migration shims (mark with a removal date comment).
 - No global variables -- they disguise bugs in a file coders rarely inspect.
-- No `__version__` assignments. Version lives in `pyproject.toml` as the single source of truth. Scattering `__version__` across `__init__.py` files is a maintenance nightmare when upgrading.
+- No `__version__` assignments. In this multi-package repository, the root [VERSION](../VERSION) registry is mirrored by every package's `pyproject.toml`; runtime code resolves installed package metadata or that verified source-tree registry. Scattering `__version__` across `__init__.py` files is a maintenance nightmare when upgrading.
 - No `importlib`-based lazy loaders inline. If a package needs lazy loading for startup performance, put the loader in a dedicated module, not in `__init__.py`.
 - Do not add re-exports to satisfy type-checker public API inference. Type checkers that expect names in `__init__.py` can be configured with `py.typed` markers or explicit stubs. Convenience for tooling does not justify cluttering `__init__.py`.
 - Every caller should import from submodules directly.
@@ -238,14 +241,29 @@ export PYTHONDONTWRITEBYTECODE=1
 * For pytest test structure and good/brittle assert patterns, see [PYTEST_STYLE.md](PYTEST_STYLE.md).
 
 ## TYPE HINTING
-* Use the python3-style explicit variable type hinting. I think it is good practice. Very little of my code uses it now, but I want to change that. For example,
+
+Type hints are enforced repo-wide by `tests/test_function_typing.py`. Every `def` must carry
+type annotations on every parameter (except `self`, `cls`, `*args`, and `**kwargs`) and a
+return annotation. For example:
+
 ```python
 def greater_than(a: int, b: int) -> bool:
 	return a > b
 ```
-* Avoid using the typing module, only do top level for typing:
-* GOOD: def func(arg: dict)-> tuple:
-* BAD: def func(arg: typing.Dict[str, typing.Any]) -> typing.Tuple[str, str, str]
+
+Use builtin generics (`list`, `dict`, `tuple`, `set`) and PEP 604 unions (`X | None`).
+Use `collections.abc` for callable and iterable params (for example `collections.abc.Callable`,
+`collections.abc.Iterable`). The `typing` module is not used in this repo.
+
+Good:
+```python
+def func(arg: dict) -> tuple:
+```
+
+Bad (uses `typing` module):
+```python
+def func(arg: typing.Dict[str, typing.Any]) -> typing.Tuple[str, str, str]:
+```
 
 ## IMPORTING
 * Never use import *
@@ -281,6 +299,22 @@ Every import in the repo must come from one of three sources:
 - **Declared pip dependencies** listed in `pip_requirements.txt` or `pip_requirements-dev.txt`
 
 If you add a new third-party import, add the package to the appropriate requirements file. Some pip packages use a different import name than their package name (e.g., `import yaml` comes from `pyyaml`, `import cv2` comes from `opencv-python`). Known aliases are maintained in `tests/test_import_requirements.py` under `IMPORT_REQUIREMENT_ALIASES`. See `tests/test_import_requirements.py` for enforcement.
+
+## XML PARSING
+
+- Route XML through the parser owned by that format. Complete CDML enters
+  through `oasa.cdml_document`, `oasa.cdml_conformance`, or the hardened
+  `oasa.cdml_xml` inspection boundary.
+- Use `oasa.safe_xml` or the corresponding hardened format helper for
+  unrelated legacy XML that has not moved to a dedicated lxml boundary.
+- Do not call `xml.etree.ElementTree.parse`, `fromstring`, or
+  `xml.dom.minidom.parse`/`parseString` on XML input. The Bandit gate treats
+  these native parser calls as security failures, including inside tests.
+- Standard-library XML classes may still build controlled output, escape text,
+  or provide type annotations. An import alone is not a parser boundary.
+- Do not copy a historical parser call into new code or tests. Prefer the
+  public behavior of the owning parser over assertions against a particular
+  DOM implementation.
 
 ## ARGPARSE
 
