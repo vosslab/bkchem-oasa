@@ -123,8 +123,8 @@ deferred with the other chemistry-changing operations.
 
 | Layer | Owns | Supplies at the boundary | Does not own |
 | --- | --- | --- | --- |
-| TemplateMode | Current system-template name, hit test, click scene point, atom-anchor detection, transient status/selection intent. | Immutable template name, expected revision, and finite anchor point. | SMILES parsing, proposal XML, persistent models/items, local undo, durable allocation. |
-| DocumentSession | State/capability gate, exact request validation, OASA helper invocation, backend-history recording, canonical projection replacement. | A frozen `PersistentOperationRequest` and accepted/rejected outcome. | DOM patching, Qt template molecule construction, document reconstruction. |
+| TemplateMode | Current system-template name, hit test, click scene point, atom-anchor detection, transient status/selection intent. | Immutable template name and finite anchor point through its named session action. | Revision capture, SMILES parsing, proposal XML, persistent models/items, local undo, durable allocation. |
+| DocumentSession | State/capability gate, current-revision capture, exact request validation, OASA helper invocation, backend-history recording, canonical projection replacement. | A frozen `PersistentOperationRequest` and accepted/rejected outcome. | DOM patching, Qt template molecule construction, document reconstruction. |
 | OASA preparation | System template lookup, SMILES parse, coordinate generation, centering/translation, proposal serialization. | A frozen detached molecule proposal and nonpersistent label/result metadata. | PySide6 values, scene items, frontend callbacks, projection lifetime. |
 | OASA insertion session | Complete-document clone, proposal import, strict validation, durable IDs, atomic accepted snapshot. | Existing immutable `CDMLCommit` with canonical CDML and `id_map`. | Qt scene/model/undo state. |
 
@@ -306,18 +306,19 @@ does not attach or fuse chemistry.
 
 The pure-model two-anchor comparison established the 40-point mean-bond scale
 and centroid-to-anchor rule without a pixel-equivalence requirement. Accepted
-root provisional IDs map to durable IDs for post-reprojection selection. A
-missing, dangling, or wrong-kind mapping reports `selection-unavailable` and
-clears selection without changing the accepted backend result; exact-snapshot
-retry preserves valid durable selection correlation.
+root provisional IDs map to durable IDs for post-reprojection selection. The
+public retry proof retains that accepted snapshot and its mapped selection
+intent while making OASA preparation fail if retry attempts to replay the
+accepted placement.
 
-Pointed evidence passed: 8 OASA template-placement tests, 10 session template
-correlation tests, 5 offscreen TemplateMode authority/undo tests, 2 pure
-scale-parity tests, and focused lint and whitespace checks. Independent final
-review accepted the backend, session, projection, and lifecycle boundary. This
-does not claim resolution of unrelated native Qt crash reports or completion
-of M5. Attachment/fusion, template markers, BioTemplate, and user catalogs
-remain deferred below.
+Pointed evidence covers OASA placement, low-level session validation and stale
+rejection, public offscreen TemplateMode authority/undo, cross-tab origin
+binding, disposal-safe retained actions, scale parity, and focused lint,
+Markdown, import-boundary, and whitespace checks. The acceptance tests use
+public session/mode/projection behavior rather than private callback, executor,
+or projection-installer details. This does not claim resolution of unrelated
+native Qt crash reports or completion of M5. Attachment/fusion, template
+markers, BioTemplate, and user catalogs remain deferred below.
 
 ## Success conditions
 

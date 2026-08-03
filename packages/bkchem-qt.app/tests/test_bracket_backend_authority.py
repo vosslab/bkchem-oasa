@@ -11,6 +11,7 @@ import bkchem_qt.canvas.items.atom_item
 import bkchem_qt.io.cdml_candidate
 import bkchem_qt.main_window
 import bkchem_qt.models.document_session
+import bkchem_qt.models.projection_lifecycle
 import bkchem_qt.modes.bracket_mode
 import oasa.cdml_document
 import oasa.cdml_writer
@@ -20,16 +21,16 @@ import oasa.safe_xml
 #============================================
 def _install_projection_port(session: object, deliver: object) -> None:
 	"""Install one fresh typed projection lifecycle port for this session."""
-	port = bkchem_qt.models.document_session.SessionProjectionLifecyclePort(session, deliver)
+	port = bkchem_qt.models.projection_lifecycle.SessionProjectionLifecyclePort(session, deliver)
 	session.install_projection_lifecycle_port(port)
 
 
 #============================================
 def _projection_unavailable(snapshot: object) -> object:
 	"""Report one deliberately unavailable typed projection outcome."""
-	return bkchem_qt.models.document_session.ProjectionLifecycleResult(
-		bkchem_qt.models.document_session.ProjectionLifecycleStatus.PREPARATION_UNAVAILABLE,
-		bkchem_qt.models.document_session.ProjectionLifecyclePhase.PREPARATION,
+	return bkchem_qt.models.projection_lifecycle.ProjectionLifecycleResult(
+		bkchem_qt.models.projection_lifecycle.ProjectionLifecycleStatus.PREPARATION_UNAVAILABLE,
+		bkchem_qt.models.projection_lifecycle.ProjectionLifecyclePhase.PREPARATION,
 	)
 
 

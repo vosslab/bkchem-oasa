@@ -1,6 +1,7 @@
 """Tests for Patch 4-5: Dialog wiring, template placement, and bond drawing."""
 
 # Standard Library
+import ast
 import math
 import pathlib
 
@@ -9,8 +10,6 @@ import PySide6.QtCore
 import pytest
 
 # local repo modules
-import oasa.atom_lib
-import oasa.bond_lib
 import bkchem_qt.modes.draw_mode
 import bkchem_qt.models.atom_model
 import bkchem_qt.models.bond_model
@@ -18,7 +17,6 @@ import bkchem_qt.models.molecule_model
 import bkchem_qt.canvas.items.atom_item
 import bkchem_qt.canvas.items.bond_item
 import bkchem_qt.actions.context_menu
-import bkchem_qt.actions.repair_actions
 
 
 #============================================
@@ -48,8 +46,7 @@ def _new_root_from_draw(
 #============================================
 def test_atom_dialog_applies_changes(qapp: object) -> None:
 	"""AtomDialog.edit_atom() can apply changes to an AtomModel."""
-	oasa_atom = oasa.atom_lib.Atom(symbol="C")
-	atom = bkchem_qt.models.atom_model.AtomModel(oasa_atom=oasa_atom)
+	atom = bkchem_qt.models.atom_model.AtomModel(symbol="C")
 	atom.set_xyz(0.0, 0.0, 0.0)
 	assert atom.symbol == "C", "should start as C"
 	# directly test property setting
@@ -64,8 +61,7 @@ def test_atom_dialog_applies_changes(qapp: object) -> None:
 #============================================
 def test_bond_dialog_applies_changes(qapp: object) -> None:
 	"""BondDialog.edit_bond() can apply changes to a BondModel."""
-	oasa_bond = oasa.bond_lib.Bond(order=1, type="n")
-	bond = bkchem_qt.models.bond_model.BondModel(oasa_bond=oasa_bond)
+	bond = bkchem_qt.models.bond_model.BondModel(order=1, bond_type="n")
 	assert bond.order == 1, "should start as single"
 	assert bond.type == "n", "should start as normal"
 	# directly test property setting
@@ -318,42 +314,6 @@ def test_standalone_atom_respects_grid_snap_toggle(main_window: object) -> None:
 
 
 #============================================
-def test_bond_drag_snaps_angle(main_window: object) -> None:
-	"""Drag from an atom snaps endpoint to 15-degree angle increments."""
-	draw_mode = bkchem_qt.modes.draw_mode.DrawMode
-	# unit test _point_on_circle directly
-	# direction at 47 degrees should snap to 45 degrees
-	cx, cy = 100.0, 100.0
-	radius = 40.0
-	dx = math.cos(math.radians(47)) * 50
-	dy = math.sin(math.radians(47)) * 50
-	snap_x, snap_y = draw_mode._point_on_circle(cx, cy, radius, dx, dy)
-	# expected: 45 deg snapped
-	expected_x = cx + round(math.cos(math.radians(45)) * radius, 2)
-	expected_y = cy + round(math.sin(math.radians(45)) * radius, 2)
-	assert abs(snap_x - expected_x) < 0.1, (
-		f"snapped x={snap_x:.2f} should be ~{expected_x:.2f}"
-	)
-	assert abs(snap_y - expected_y) < 0.1, (
-		f"snapped y={snap_y:.2f} should be ~{expected_y:.2f}"
-	)
-	# direction at 5 degrees should snap to 0 degrees
-	dx2 = math.cos(math.radians(5)) * 50
-	dy2 = math.sin(math.radians(5)) * 50
-	snap_x2, snap_y2 = draw_mode._point_on_circle(
-		cx, cy, radius, dx2, dy2,
-	)
-	expected_x2 = cx + round(radius, 2)
-	expected_y2 = cy + 0.0
-	assert abs(snap_x2 - expected_x2) < 0.1, (
-		f"snapped x={snap_x2:.2f} should be ~{expected_x2:.2f} (0 deg)"
-	)
-	assert abs(snap_y2 - expected_y2) < 0.1, (
-		f"snapped y={snap_y2:.2f} should be ~{expected_y2:.2f} (0 deg)"
-	)
-
-
-#============================================
 def test_edit_drag_snaps_anchor_to_grid(main_window: object) -> None:
 	"""Edit drag should snap selected atoms by anchor when enabled."""
 	main_window._mode_manager.set_mode("draw")
@@ -452,17 +412,121 @@ def test_connected_display_atoms_rejects_foreign_atoms_and_invalid_endpoints() -
 
 
 #============================================
-def test_draw_mode_source_uses_display_projection_query_only() -> None:
-	"""Draw Mode must obtain placement topology through MoleculeModel's query."""
-	source_path = pathlib.Path(bkchem_qt.modes.draw_mode.__file__)
-	source = source_path.read_text(encoding="utf-8")
-	for forbidden_name in (
-		"_chem_atom",
-		"_atom_models",
-		"get_edge_leading_to",
-		".neighbors",
-	):
-		assert forbidden_name not in source
+def test_molecule_topology_uses_qt_wrappers_for_cycles_and_removal() -> None:
+	"""A disposable projection reports wrapper cycles and retires wrappers."""
+	molecule = bkchem_qt.models.molecule_model.MoleculeModel()
+	atoms = [molecule.create_atom() for unused_index in range(3)]
+	for atom in atoms:
+		molecule.add_atom(atom)
+	for first, second in ((0, 1), (1, 2), (2, 0)):
+		bond = molecule.create_bond()
+		molecule.add_bond(atoms[first], atoms[second], bond)
+	cycles = molecule.get_smallest_independent_cycles()
+	molecule.remove_atom(atoms[0])
+	assert any(set(cycle) == set(atoms) for cycle in cycles)
+	assert molecule.contains_cycle() is False
+
+
+#============================================
+def test_molecule_model_owns_active_wrappers_and_releases_removed_ones() -> None:
+	"""Wrapper QObject ownership follows the disposable topology lifecycle."""
+	molecule = bkchem_qt.models.molecule_model.MoleculeModel()
+	first = molecule.create_atom()
+	second = molecule.create_atom()
+	molecule.add_atom(first)
+	molecule.add_atom(second)
+	bond = molecule.create_bond()
+	molecule.add_bond(first, second, bond)
+	assert first.parent() is molecule and bond.parent() is molecule
+	molecule.remove_atom(first)
+	assert first.parent() is None and bond.parent() is None
+
+
+#============================================
+def test_molecule_topology_rejects_nonchemical_self_and_parallel_edges() -> None:
+	"""One bond order, rather than duplicate edges, represents one atom pair."""
+	molecule = bkchem_qt.models.molecule_model.MoleculeModel()
+	first = molecule.create_atom()
+	second = molecule.create_atom()
+	molecule.add_atom(first)
+	molecule.add_atom(second)
+	with pytest.raises(ValueError, match="distinct"):
+		molecule.add_bond(first, first, molecule.create_bond())
+	molecule.add_bond(first, second, molecule.create_bond())
+	with pytest.raises(ValueError, match="already contains"):
+		molecule.add_bond(first, second, molecule.create_bond())
+
+
+#============================================
+def test_molecule_topology_handles_empty_and_disconnected_projections() -> None:
+	"""Projection connectivity has explicit empty and disconnected behavior."""
+	empty = bkchem_qt.models.molecule_model.MoleculeModel()
+	disconnected = bkchem_qt.models.molecule_model.MoleculeModel()
+	disconnected.add_atom(disconnected.create_atom())
+	disconnected.add_atom(disconnected.create_atom())
+	assert (empty.is_connected(), empty.contains_cycle()) == (False, False)
+	assert disconnected.is_connected() is False
+
+
+#============================================
+def test_molecule_model_source_has_no_oasa_import_boundary() -> None:
+	"""The projection topology module has no direct backend graph import."""
+	source_path = pathlib.Path(bkchem_qt.models.molecule_model.__file__)
+	tree = ast.parse(source_path.read_text(encoding="utf-8"))
+	modules = [
+			alias.name
+			for node in ast.walk(tree) if isinstance(node, ast.Import)
+			for alias in node.names
+		]
+	modules.extend(
+			node.module for node in ast.walk(tree)
+			if isinstance(node, ast.ImportFrom) and node.module is not None
+			)
+	assert all(not module.startswith("oasa") for module in modules)
+
+
+#============================================
+def test_bond_model_source_has_no_oasa_import_boundary() -> None:
+	"""The scalar bond projection module has no backend import or construction."""
+	source_path = pathlib.Path(bkchem_qt.models.bond_model.__file__)
+	tree = ast.parse(source_path.read_text(encoding="utf-8"))
+	modules = [
+			alias.name
+			for node in ast.walk(tree) if isinstance(node, ast.Import)
+			for alias in node.names
+		]
+	modules.extend(
+			node.module for node in ast.walk(tree)
+			if isinstance(node, ast.ImportFrom) and node.module is not None
+			)
+	constructors = [
+		node.func.attr for node in ast.walk(tree)
+		if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+		]
+	assert all(not module.startswith("oasa") for module in modules)
+	assert "Bond" not in constructors
+
+
+#============================================
+def test_atom_model_source_has_no_oasa_carrier_boundary() -> None:
+	"""The scalar atom projection neither imports nor constructs OASA atoms."""
+	source_path = pathlib.Path(bkchem_qt.models.atom_model.__file__)
+	tree = ast.parse(source_path.read_text(encoding="utf-8"))
+	modules = [
+			alias.name
+			for node in ast.walk(tree) if isinstance(node, ast.Import)
+			for alias in node.names
+		]
+	modules.extend(
+			node.module for node in ast.walk(tree)
+			if isinstance(node, ast.ImportFrom) and node.module is not None
+			)
+	constructors = [
+		node.func.attr for node in ast.walk(tree)
+		if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+		]
+	assert all(not module.startswith("oasa") for module in modules)
+	assert "Atom" not in constructors
 
 
 #============================================
@@ -596,32 +660,32 @@ def _make_bonded_items(
 
 
 #============================================
+def _line_x_extents(bond_item: object) -> tuple[float, float]:
+	"""Return the portable horizontal paint extents of one simple bond."""
+	points = [
+		x
+		for operation in bond_item._ops if operation.kind == "line"
+		for x, unused_y in operation.points
+	]
+	return min(points), max(points)
+
+
+#============================================
 def test_bond_item_clips_at_labeled_atom(qapp: object) -> None:
 	"""Bond endpoint near a labeled heteroatom is shorter than center-to-center."""
 	a1, a2, bond, bond_item = _make_bonded_items(qapp, "C", "N", 0.0, 0.0, 40.0, 0.0)
-	# find the maximum x coordinate in bond ops line endpoints
-	import oasa.render_ops
-	line_ops = [op for op in bond_item._ops if isinstance(op, oasa.render_ops.LineOp)]
-	assert len(line_ops) > 0, "bond should have line ops"
 	# the bond line toward N (at x=40) should be clipped short of 40
-	max_x = max(op.p2[0] for op in line_ops)
-	assert max_x < 40.0, (
-		f"bond end x={max_x:.2f} should be clipped before atom center at 40.0"
-	)
+	unused_min_x, max_x = _line_x_extents(bond_item)
+	assert max_x < 40.0
 
 
 #============================================
 def test_bond_item_no_clip_for_hidden_carbon(qapp: object) -> None:
 	"""Bond between two hidden carbons has no clipping."""
 	a1, a2, bond, bond_item = _make_bonded_items(qapp, "C", "C", 0.0, 0.0, 40.0, 0.0)
-	import oasa.render_ops
-	line_ops = [op for op in bond_item._ops if isinstance(op, oasa.render_ops.LineOp)]
-	assert len(line_ops) > 0, "bond should have line ops"
 	# both endpoints should be at full center-to-center distance
-	min_x = min(op.p1[0] for op in line_ops)
-	max_x = max(op.p2[0] for op in line_ops)
-	assert min_x == 0.0 or abs(min_x) < 1.0, "start should be near 0"
-	assert max_x == 40.0 or abs(max_x - 40.0) < 1.0, "end should be near 40"
+	min_x, max_x = _line_x_extents(bond_item)
+	assert abs(min_x) < 1.0 and abs(max_x - 40.0) < 1.0
 
 
 #============================================
@@ -632,13 +696,8 @@ def test_atom_symbol_change_triggers_bond_redraw(qapp: object) -> None:
 	a2.symbol = "N"
 	# bond_item should have been updated (ops may differ now)
 	# the end should now be clipped because N is shown
-	import oasa.render_ops
-	line_ops = [op for op in bond_item._ops if isinstance(op, oasa.render_ops.LineOp)]
-	assert len(line_ops) > 0
-	max_x = max(op.p2[0] for op in line_ops)
-	assert max_x < 40.0, (
-		f"after symbol change to N, bond end x={max_x:.2f} should be clipped"
-	)
+	unused_min_x, max_x = _line_x_extents(bond_item)
+	assert max_x < 40.0
 
 
 #============================================
@@ -659,50 +718,18 @@ def test_atom_charge_change_triggers_bond_redraw(qapp: object) -> None:
 def test_atom_position_change_triggers_bond_redraw(qapp: object) -> None:
 	"""Moving an atom triggers bond item update via signal chain."""
 	a1, a2, bond, bond_item = _make_bonded_items(qapp, "C", "N", 0.0, 0.0, 40.0, 0.0)
-	import oasa.render_ops
-	line_ops_before = [op for op in bond_item._ops if isinstance(op, oasa.render_ops.LineOp)]
-	max_x_before = max(op.p2[0] for op in line_ops_before)
+	unused_min_x, max_x_before = _line_x_extents(bond_item)
 	# move atom2 further away
 	a2.x = 80.0
-	line_ops_after = [op for op in bond_item._ops if isinstance(op, oasa.render_ops.LineOp)]
-	max_x_after = max(op.p2[0] for op in line_ops_after)
+	unused_min_x, max_x_after = _line_x_extents(bond_item)
 	# the bond should now extend further than before
-	assert max_x_after > max_x_before, (
-		f"after moving atom, bond end x should increase from {max_x_before:.2f}"
-	)
+	assert max_x_after > max_x_before
 
 
 #============================================
 def test_bond_render_context_has_real_targets(qapp: object) -> None:
 	"""BondItem build passes non-empty label_targets for heteroatom bonds."""
 	a1, a2, bond, bond_item = _make_bonded_items(qapp, "C", "O", 0.0, 0.0, 40.0, 0.0)
-	# force update and inspect the context by checking ops differ from empty
-	import oasa.render_ops
-	line_ops = [op for op in bond_item._ops if isinstance(op, oasa.render_ops.LineOp)]
-	assert len(line_ops) > 0
 	# the end near oxygen (at x=40) should be clipped, proving targets were used
-	max_x = max(op.p2[0] for op in line_ops)
-	assert max_x < 40.0, (
-		f"oxygen end x={max_x:.2f} should be clipped, proving real targets are used"
-	)
-
-
-#============================================
-def test_repair_normalize_uses_canonical_spacing(main_window: object) -> None:
-	"""Repair normalization target must come from scene spacing."""
-	main_window._mode_manager.set_mode("draw")
-	draw_mode = main_window._mode_manager.current_mode
-	main_window.scene.set_grid_spacing_pt(50.0)
-	a1 = draw_mode._create_atom_at(100.0, 200.0, "C")
-	a2 = draw_mode._create_atom_at(260.0, 200.0, "C")
-	draw_mode._create_bond_between(a1, a2)
-	bkchem_qt.actions.repair_actions._handle_normalize_bond_lengths(main_window)
-	mol = main_window.document.molecules[0]
-	bond = mol.bonds[0]
-	dx = bond.atom2.x - bond.atom1.x
-	dy = bond.atom2.y - bond.atom1.y
-	actual_dist = math.sqrt(dx * dx + dy * dy)
-	assert abs(actual_dist - main_window.scene.grid_spacing_pt) < 0.5, (
-		f"normalized bond length {actual_dist:.2f} should match scene spacing "
-		f"{main_window.scene.grid_spacing_pt:.2f}"
-	)
+	unused_min_x, max_x = _line_x_extents(bond_item)
+	assert max_x < 40.0

@@ -4,11 +4,13 @@
 import os
 import sys
 import math
+import pathlib
 import subprocess
 import tempfile
 
 # local repo modules
 import file_utils
+import oasa.cdml_document
 import oasa.hex_grid
 
 REPO_ROOT = file_utils.get_repo_root()
@@ -213,31 +215,34 @@ def test_snap_cli_dry_run() -> None:
 
 
 #============================================
-def test_snap_cli_output() -> None:
+def test_snap_cli_output(tmp_path: pathlib.Path) -> None:
 	"""The CLI in write mode should produce a valid CDML output file."""
 	assert os.path.isfile(TEMPLATES_CDML), f"missing: {TEMPLATES_CDML}"
-	with tempfile.NamedTemporaryFile(suffix=".cdml", delete=False) as tmp:
-		tmp_path = tmp.name
-	try:
-		cmd = [
-			sys.executable, SNAP_CLI,
-			'-i', TEMPLATES_CDML,
-			'-o', tmp_path,
-			'-w',
-		]
-		result = subprocess.run(
-			cmd, capture_output=True, text=True, timeout=30,
-		)
-		assert result.returncode == 0, f"CLI failed: {result.stderr}"
-		# output file should exist
-		assert os.path.isfile(tmp_path)
-		# should contain valid XML with CDML root
-		content = open(tmp_path, 'r').read()
-		assert "<cdml" in content
-		assert "<molecule" in content
-	finally:
-		if os.path.exists(tmp_path):
-			os.unlink(tmp_path)
+	output_path = tmp_path / "snapped.cdml"
+	cmd = [
+		sys.executable, SNAP_CLI,
+		'-i', TEMPLATES_CDML,
+		'-o', str(output_path),
+		'-w',
+	]
+	result = subprocess.run(
+		cmd, capture_output=True, text=True, timeout=30,
+	)
+	assert result.returncode == 0, f"CLI failed: {result.stderr}"
+	# The CLI must retain the source molecule records and their stable CDML IDs.
+	source_document = oasa.cdml_document.CDMLDocument.parse(
+		pathlib.Path(TEMPLATES_CDML).read_text(encoding="utf-8")
+	)
+	document = oasa.cdml_document.CDMLDocument.parse(output_path.read_text(encoding="utf-8"))
+	source_molecule_ids = frozenset(
+		record.identifier for record in source_document.objects()
+		if record.local_name == "molecule"
+	)
+	output_molecule_ids = frozenset(
+		record.identifier for record in document.objects()
+		if record.local_name == "molecule"
+	)
+	assert output_molecule_ids == source_molecule_ids
 
 
 #============================================

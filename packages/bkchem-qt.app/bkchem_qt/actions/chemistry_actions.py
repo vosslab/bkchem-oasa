@@ -1,21 +1,13 @@
 """Chemistry menu action registrations for BKChem-Qt."""
 
-# Standard Library
-import collections
-
 # PIP3 modules
 import PySide6.QtCore
 import PySide6.QtWidgets
 
 # local repo modules
-import oasa.cdml_document
-import oasa.periodic_table
-import oasa.peptide_utils
-import oasa.render_ops
-import bkchem_qt.canvas.items.atom_item
-import bkchem_qt.io.format_bridge
 import bkchem_qt.bridge.insertion_placement
-import bkchem_qt.bridge.worker
+import bkchem_qt.bridge.chemistry_preparation
+import bkchem_qt.bridge.oasa_bridge
 import bkchem_qt.models.fragment_model
 import bkchem_qt.models.document_session
 import bkchem_qt.undo.commands
@@ -56,30 +48,8 @@ def _compute_formula(mol: object) -> str:
 	Returns:
 		Formula string, e.g. 'C6H12O6'.
 	"""
-	# count element symbols across all atoms
-	counts = collections.Counter()
-	for atom_model in mol.atoms:
-		counts[atom_model.symbol] += 1
-	# Hill system: C first, H second, then alphabetical
-	parts = []
-	for element in ("C", "H"):
-		if element in counts:
-			count = counts[element]
-			if count == 1:
-				parts.append(element)
-			else:
-				parts.append(f"{element}{count}")
-	# remaining elements in alphabetical order
-	for element in sorted(counts.keys()):
-		if element in ("C", "H"):
-			continue
-		count = counts[element]
-		if count == 1:
-			parts.append(element)
-		else:
-			parts.append(f"{element}{count}")
-	formula = "".join(parts)
-	return formula
+	symbols = tuple(atom_model.symbol for atom_model in mol.atoms)
+	return bkchem_qt.bridge.oasa_bridge.molecule_summary_facts(symbols).formula
 
 
 #============================================
@@ -94,15 +64,8 @@ def _compute_molecular_weight(mol: object) -> float:
 	Returns:
 		Molecular weight as a float.
 	"""
-	total = 0.0
-	pt = oasa.periodic_table.periodic_table
-	for atom_model in mol.atoms:
-		entry = pt.get(atom_model.symbol)
-		if entry:
-			total += entry.get("weight", 0.0)
-		else:
-			total += 0.0
-	return total
+	symbols = tuple(atom_model.symbol for atom_model in mol.atoms)
+	return bkchem_qt.bridge.oasa_bridge.molecule_summary_facts(symbols).molecular_weight
 
 
 #============================================
@@ -151,6 +114,16 @@ def _chemistry_check(app: object) -> None:
 	Args:
 		app: MainWindow instance.
 	"""
+	session = _active_smiles_document_session(app)
+	if session is not None:
+		if not session.can_write_authoritative_snapshot:
+			PySide6.QtWidgets.QMessageBox.warning(
+				app, "Check Chemistry",
+				"Chemistry check is unavailable until the document projection recovers.",
+			)
+			return
+		_selected_chemistry_check(app, session)
+		return
 	mols = app.document.selected_mols
 	if not mols:
 		PySide6.QtWidgets.QMessageBox.information(
@@ -160,8 +133,9 @@ def _chemistry_check(app: object) -> None:
 	# check each atom in each molecule
 	problems = []
 	for mol in mols:
+		chemistry = bkchem_qt.bridge.oasa_bridge.standalone_atom_chemistry(mol)
 		for atom_model in mol.atoms:
-			free_val = atom_model.free_valency
+			free_val, _oxidation_number = chemistry[id(atom_model)]
 			if free_val < 0:
 				msg = (
 					f"Atom {atom_model.symbol} "
@@ -179,17 +153,78 @@ def _chemistry_check(app: object) -> None:
 
 
 #============================================
-def _expand_groups(app: object) -> None:
-	"""Show placeholder dialog for group expansion.
-
-	Args:
-		app: MainWindow instance.
-	"""
-	PySide6.QtWidgets.QMessageBox.information(
-		app, "Expand Groups",
-		"Group expansion requires OASA fragment library support.\n"
-		"This feature will be available in a future release."
+def _selected_chemistry_check(app: object, session: object) -> None:
+	"""Render one synchronized complete-graph valency observation."""
+	molecule_ids = session.document.selected_direct_root_molecule_ids
+	if not molecule_ids:
+		PySide6.QtWidgets.QMessageBox.information(
+			app, "Check Chemistry", "No molecules selected.",
+		)
+		return
+	response = bkchem_qt.bridge.oasa_bridge.observe_atom_chemistry_facts(
+		session, session.backend_snapshot.revision,
 	)
+	if response.failure is not None:
+		message = response.failure.message
+		if response.failure.kind == "revision-conflict":
+			message = "Document changed; try again.\n%s" % message
+		PySide6.QtWidgets.QMessageBox.warning(app, "Check Chemistry", message)
+		return
+	observation = response.value
+	if observation is None:
+		return
+	selected = set(molecule_ids)
+	problems = [
+		"Atom %s: free valency = %d" % (_atom_chemistry_display_label(record), record.free_valency)
+		for record in observation.records
+		if record.molecule_id in selected and record.disposition == "usable"
+		and record.free_valency is not None and record.free_valency < 0
+	]
+	unavailable = [record for record in observation.records
+		if record.molecule_id in selected and record.disposition != "usable"]
+	if problems:
+		text = "Valency violations found:\n\n" + "\n".join(problems)
+	elif unavailable:
+		text = "Chemistry check is unavailable for one or more selected atoms."
+	else:
+		text = "All selected atoms pass the OASA complete-graph valency check."
+	PySide6.QtWidgets.QMessageBox.information(app, "Check Chemistry", text)
+
+
+#============================================
+def _expand_groups(app: object) -> None:
+	"""Expand one current implicit group through the owning backend session."""
+	session = _active_smiles_document_session(app)
+	document = getattr(app, "document", None)
+	if session is None or not session.can_write_authoritative_snapshot or document is None:
+		return
+	groups = tuple(document.selected_groups)
+	if len(groups) != 1:
+		return
+	item = groups[0]
+	model = getattr(item, "group_model", None)
+	molecule = model.parent() if model is not None else None
+	if (
+		not document.is_current_projection_item(item)
+		or model is None
+		or not model.implicit_expandable
+		or type(model.group_id) is not str or not model.group_id
+		or molecule not in document.molecules
+		or type(getattr(molecule, "mol_id", None)) is not str or not molecule.mol_id
+	):
+		return
+	expected_revision = session.backend_snapshot.revision
+	molecule_id = molecule.mol_id
+	group_id = model.group_id
+	submit = session.submit_implicit_group_expand
+	del groups
+	del item
+	del model
+	del molecule
+	del document
+	outcome = submit(expected_revision, molecule_id, group_id)
+	if outcome.status != "accepted":
+		PySide6.QtWidgets.QMessageBox.warning(app, "Expand Group", outcome.message)
 
 
 #============================================
@@ -224,6 +259,17 @@ def _int_to_roman_oxidation(n: int) -> str:
 
 
 #============================================
+def _atom_chemistry_display_label(record: object) -> str:
+	"""Return a plain backend-owned label without consulting Qt atom state."""
+	symbol = record.symbol or "atom"
+	identifier = record.atom_id or "unnamed"
+	label = "%s (%s)" % (symbol, identifier)
+	if record.charge is not None and record.charge != 0:
+		label += ", charge=%+d" % record.charge
+	return label
+
+
+#============================================
 def _oxidation_number(app: object) -> None:
 	"""Compute and display oxidation numbers for atoms in selected molecules.
 
@@ -234,6 +280,16 @@ def _oxidation_number(app: object) -> None:
 	Args:
 		app: MainWindow instance.
 	"""
+	session = _active_smiles_document_session(app)
+	if session is not None:
+		if not session.can_write_authoritative_snapshot:
+			PySide6.QtWidgets.QMessageBox.warning(
+				app, "Oxidation Number",
+				"Oxidation results are unavailable until the document projection recovers.",
+			)
+			return
+		_selected_oxidation_number(app, session)
+		return
 	mols = app.document.selected_mols
 	if not mols:
 		PySide6.QtWidgets.QMessageBox.information(
@@ -245,14 +301,52 @@ def _oxidation_number(app: object) -> None:
 	for idx, mol in enumerate(mols, start=1):
 		mol_name = mol.name if mol.name else f"Molecule {idx}"
 		lines.append(f"--- {mol_name} ---")
+		chemistry = bkchem_qt.bridge.oasa_bridge.standalone_atom_chemistry(mol)
 		for atom_model in mol.atoms:
-			ox_num = atom_model.oxidation_number
+			_free_valency, ox_num = chemistry[id(atom_model)]
 			roman = _int_to_roman_oxidation(ox_num)
 			lines.append(f"  {atom_model.symbol}: {roman}")
 		lines.append("")
 	result_text = "\n".join(lines)
 	PySide6.QtWidgets.QMessageBox.information(
 		app, "Oxidation Number", result_text
+	)
+
+
+#============================================
+def _selected_oxidation_number(app: object, session: object) -> None:
+	"""Render one synchronized OASA-derived oxidation observation."""
+	molecule_ids = session.document.selected_direct_root_molecule_ids
+	if not molecule_ids:
+		PySide6.QtWidgets.QMessageBox.information(
+			app, "Oxidation Number", "No molecules selected.",
+		)
+		return
+	response = bkchem_qt.bridge.oasa_bridge.observe_atom_chemistry_facts(
+		session, session.backend_snapshot.revision,
+	)
+	if response.failure is not None:
+		message = response.failure.message
+		if response.failure.kind == "revision-conflict":
+			message = "Document changed; try again.\n%s" % message
+		PySide6.QtWidgets.QMessageBox.warning(app, "Oxidation Number", message)
+		return
+	observation = response.value
+	if observation is None:
+		return
+	selected = set(molecule_ids)
+	lines = ["OASA-derived electronegativity results (not universal formal assignments):"]
+	for record in observation.records:
+		if record.molecule_id not in selected or record.disposition != "usable":
+			continue
+		if record.oxidation_number is not None:
+			lines.append("  %s: %s" % (
+				_atom_chemistry_display_label(record), _int_to_roman_oxidation(record.oxidation_number),
+			))
+	if len(lines) == 1:
+		lines.append("  No selected atoms have an available complete-graph result.")
+	PySide6.QtWidgets.QMessageBox.information(
+		app, "Oxidation Number", "\n".join(lines),
 	)
 
 
@@ -339,7 +433,7 @@ def _start_text_import(
 	request_token = target.begin_import_request()
 	expected_revision = target.backend_snapshot.revision
 	token_stem = "%s-r%s-i%s" % (codec_name, expected_revision, request_token)
-	worker = bkchem_qt.bridge.worker.TextMoleculeInsertionWorker(
+	worker = bkchem_qt.bridge.chemistry_preparation.create_text_molecule_insertion_worker(
 		codec_name, source_text, expected_revision, token_stem,
 		target_mean_bond_length, insertion_anchor, success_message,
 	)
@@ -362,9 +456,9 @@ def _start_text_import(
 class MoleculeInsertionDelivery:
 	"""Deliver one text-derived proposal to its captured backend session.
 
-	This frontend-local controller owns the request-generation and source-tab
-	fence.  It intentionally exposes only persistent-operation outcomes, never
-	backend handles or OASA graph objects.
+	This frontend-local controller owns the source-tab fence and user feedback.
+	It delegates request construction to the named bridge and exposes only
+	persistent-operation outcomes, never backend handles or OASA graph objects.
 	"""
 
 	#============================================
@@ -408,28 +502,23 @@ class MoleculeInsertionDelivery:
 			return self._discarded_outcome(
 				"%s import request is no longer current" % self._source_label,
 			)
-		if not isinstance(
-				prepared, bkchem_qt.bridge.worker.PreparedMoleculeInsertion,
-			):
+		proposal = bkchem_qt.bridge.chemistry_preparation.molecule_insertion_proposal(
+			prepared,
+		)
+		if proposal is None:
 			message = "%s preparation returned invalid data" % self._source_label
 			self._error_handler(self.app, message)
 			return bkchem_qt.models.document_session.PersistentActionOutcome(
 				"rejected", message, None, False,
 			)
-		if prepared.expected_revision != self._expected_revision:
+		if proposal.expected_revision != self._expected_revision:
 			message = "%s preparation revision changed" % self._source_label
 			self._error_handler(self.app, message)
 			return bkchem_qt.models.document_session.PersistentActionOutcome(
 				"rejected", message, None, False,
 			)
-		request = bkchem_qt.models.document_session.PersistentOperationRequest(
-			operation_key="molecule.insert",
-			label=prepared.label or self._success_message,
-			payload=(
-				("expected_revision", prepared.expected_revision),
-				("proposal_cdml", prepared.proposal_cdml),
-			),
-			target_keys=frozenset(),
+		request = bkchem_qt.bridge.chemistry_preparation.build_molecule_insertion_request(
+			proposal, self._success_message,
 		)
 		outcome = self._target.submit_persistent_operation(request)
 		if outcome.status == "accepted":
@@ -495,9 +584,8 @@ def _show_peptide_import_error(app: object, message: object) -> None:
 #============================================
 def _text_import_error_stage(message: object) -> tuple[str, str]:
 	"""Recover a preparation stage carried by a worker exception string."""
-	if isinstance(message, bkchem_qt.bridge.worker.TextImportPreparationError):
-		return message.stage, str(message)
-	return "unknown", str(message)
+	facts = bkchem_qt.bridge.chemistry_preparation.text_import_failure_facts(message)
+	return facts.stage, facts.message
 
 
 #============================================
@@ -537,7 +625,7 @@ def _read_peptide(app: object) -> None:
 		app: MainWindow instance.
 	"""
 	# build prompt listing supported amino acid codes
-	supported = sorted(oasa.peptide_utils.AMINO_ACID_SMILES.keys())
+	supported = bkchem_qt.bridge.chemistry_preparation.supported_peptide_codes()
 	supported_str = ", ".join(supported)
 	prompt_text = (
 		"Enter a single-letter amino acid sequence (e.g. ANKLE):\n"
@@ -615,32 +703,27 @@ def _gen_smiles(app: object) -> None:
 			"Please select exactly one molecule and no presentation objects."
 		)
 		return
-	snapshot = session.backend_snapshot
-	try:
-		result = session.query_molecule_smiles(snapshot.revision, molecule_ids[0])
-	except bkchem_qt.models.document_session.BackendProjectionOutOfSyncError as exc:
-		PySide6.QtWidgets.QMessageBox.warning(
-			app, "Export SMILES",
-			f"SMILES export is unavailable until the document projection recovers:\n{exc}"
-		)
+	response = bkchem_qt.bridge.oasa_bridge.query_molecule_smiles(
+		session, session.backend_snapshot.revision, molecule_ids[0],
+	)
+	if response.failure is not None:
+		failure = response.failure
+		if failure.kind == "projection-unavailable":
+			title = "Export SMILES"
+			message = "SMILES export is unavailable until the document projection recovers."
+		elif failure.kind == "revision-conflict":
+			title = "Export SMILES"
+			message = "SMILES export used an older document revision. Please try again:\n%s" % failure.message
+		elif failure.kind == "unavailable":
+			title = "Export SMILES"
+			message = "SMILES export is unavailable for this molecule:\n%s" % failure.message
+		else:
+			title = "SMILES Export Error"
+			message = "Failed to generate SMILES:\n%s" % failure.message
+		PySide6.QtWidgets.QMessageBox.warning(app, title, message)
 		return
-	except oasa.cdml_document.CDMLRevisionConflictError as exc:
-		PySide6.QtWidgets.QMessageBox.warning(
-			app, "Export SMILES",
-			f"SMILES export used an older document revision. Please try again:\n{exc}"
-		)
-		return
-	except oasa.cdml_document.CDMLMoleculeSmilesUnavailableError as exc:
-		PySide6.QtWidgets.QMessageBox.warning(
-			app, "Export SMILES",
-			f"SMILES export is unavailable for this molecule:\n{exc}"
-		)
-		return
-	except (oasa.cdml_document.CDMLDocumentError, RuntimeError, ValueError) as exc:
-		PySide6.QtWidgets.QMessageBox.warning(
-			app, "SMILES Export Error",
-			f"Failed to generate SMILES:\n{exc}"
-		)
+	result = response.value
+	if result is None:
 		return
 	smiles_str = result.smiles
 	# copy to clipboard
@@ -698,12 +781,8 @@ def _set_name(app: object) -> None:
 
 
 #============================================
-def _create_fragment(app: object) -> None:
-	"""Create durable metadata for one selected molecular subgraph.
-
-	Args:
-		app: MainWindow instance.
-	"""
+def _ordered_fragment_selection(app: object) -> tuple[object, list[object], list[object]] | None:
+	"""Resolve one selected molecule and its members in canonical model order."""
 	atom_items = app.document.selected_atoms
 	bond_items = app.document.selected_bonds
 	selected_items = [*atom_items, *bond_items]
@@ -718,18 +797,88 @@ def _create_fragment(app: object) -> None:
 		)
 		return
 	molecule = next(iter(molecules))
-	atom_models = {item.atom_model for item in atom_items}
-	bond_models = {item.bond_model for item in bond_items}
+	selected_atom_models = {id(item.atom_model) for item in atom_items}
+	selected_bond_models = {id(item.bond_model) for item in bond_items}
+	bond_models = [
+		bond_model for bond_model in molecule.bonds
+		if id(bond_model) in selected_bond_models
+	]
+	if len(bond_models) != len(selected_bond_models):
+		PySide6.QtWidgets.QMessageBox.warning(
+			app, "Create Fragment", "Selected objects are unavailable in the authoritative document.",
+		)
+		return
+	member_atom_models = set(selected_atom_models)
 	for bond_model in bond_models:
 		if bond_model.atom1 is not None:
-			atom_models.add(bond_model.atom1)
+			member_atom_models.add(id(bond_model.atom1))
 		if bond_model.atom2 is not None:
-			atom_models.add(bond_model.atom2)
+			member_atom_models.add(id(bond_model.atom2))
+	atom_models = [
+		atom_model for atom_model in molecule.atoms
+		if id(atom_model) in member_atom_models
+	]
+	if len(atom_models) != len(member_atom_models):
+		PySide6.QtWidgets.QMessageBox.warning(
+			app, "Create Fragment", "Selected objects are unavailable in the authoritative document.",
+		)
+		return
 	if not atom_models:
 		PySide6.QtWidgets.QMessageBox.warning(
 			app, "Create Fragment", "A fragment must contain at least one atom."
 		)
-		return
+		return None
+	return molecule, atom_models, bond_models
+
+
+#============================================
+def _capture_fragment_create_submit(
+		app: object, origin_session: object,
+		) -> tuple[int, object, str, tuple[str, ...], tuple[str, ...]] | None:
+	"""Capture one synchronized fragment intent with no projection wrappers."""
+	selection = _ordered_fragment_selection(app)
+	if selection is None:
+		return None
+	molecule, atom_models, bond_models = selection
+	molecule_id = molecule.mol_id
+	atom_ids = tuple(
+		atom_model.backend_durable_id for atom_model in atom_models
+		if atom_model.backend_durable_id is not None
+	)
+	bond_ids = tuple(
+		bond_model.backend_durable_id for bond_model in bond_models
+		if bond_model.backend_durable_id is not None
+	)
+	if len(atom_ids) != len(atom_models) or len(bond_ids) != len(bond_models) or not molecule_id:
+		PySide6.QtWidgets.QMessageBox.warning(
+			app, "Create Fragment", "Selected objects are unavailable in the authoritative document.",
+		)
+		return None
+	try:
+		submit = app.persistent_operation_capability_for(origin_session)
+	except ValueError:
+		return None
+	return origin_session.backend_snapshot.revision, submit, molecule_id, atom_ids, bond_ids
+
+
+#============================================
+def _create_fragment(app: object) -> None:
+	"""Create durable metadata for one selected molecular subgraph.
+
+	Args:
+		app: MainWindow instance.
+	"""
+	origin_session = getattr(app, "_active_session", None)
+	captured = None
+	if origin_session is not None and origin_session.can_commit_persistent_action:
+		captured = _capture_fragment_create_submit(app, origin_session)
+		if captured is None:
+			return
+	else:
+		selection = _ordered_fragment_selection(app)
+		if selection is None:
+			return
+		molecule, atom_models, bond_models = selection
 	name, accepted = PySide6.QtWidgets.QInputDialog.getText(
 		app, "Create Fragment", "Fragment name:"
 	)
@@ -740,6 +889,15 @@ def _create_fragment(app: object) -> None:
 		["explicit", "implicit"], 0, False,
 	)
 	if not accepted:
+		return
+	if captured is not None:
+		origin_revision, origin_submit, molecule_id, atom_ids, bond_ids = captured
+		request = bkchem_qt.models.document_session.build_fragment_create_request(
+			origin_revision, molecule_id, name.strip(), fragment_type, atom_ids, bond_ids,
+		)
+		outcome = origin_submit(request)
+		if outcome.status != "accepted":
+			PySide6.QtWidgets.QMessageBox.warning(app, "Create Fragment", outcome.message)
 		return
 	atom_id_changes, bond_id_changes = app.document.planned_fragment_id_changes(
 		molecule,
@@ -763,12 +921,8 @@ def _create_fragment(app: object) -> None:
 
 
 #============================================
-def _view_fragments(app: object) -> None:
-	"""Display one molecule's fragments and delete editable metadata on request.
-
-	Args:
-		app: MainWindow instance.
-	"""
+def _fragment_choices(app: object) -> tuple[list[tuple[str, str, str, int]], list[str]]:
+	"""Read current fragment labels into plain durable dialog data."""
 	choices = []
 	raw_entries = []
 	for molecule_position, molecule in enumerate(app.document.molecules, start=1):
@@ -778,9 +932,22 @@ def _view_fragments(app: object) -> None:
 				molecule_label, fragment.name or "unnamed", fragment.fragment_type,
 				fragment.fragment_id,
 			)
-			choices.append((label, molecule, fragment))
-		for raw_xml in molecule.unsupported_fragment_xml:
-			raw_entries.append("%s: %s" % (molecule_label, raw_xml))
+			choices.append((label, molecule.mol_id, fragment.fragment_id, molecule_position - 1))
+		for notice in molecule.fragment_notices:
+			raw_entries.append("%s: %s" % (molecule_label, notice))
+		if molecule.unsupported_fragment_xml:
+			raw_entries.append("%s: imported fragment metadata is read-only." % molecule_label)
+	return choices, raw_entries
+
+
+#============================================
+def _view_fragments(app: object) -> None:
+	"""Display one molecule's fragments and delete editable metadata on request.
+
+	Args:
+		app: MainWindow instance.
+	"""
+	choices, raw_entries = _fragment_choices(app)
 	if not choices:
 		message = "No editable fragments are defined."
 		if raw_entries:
@@ -789,9 +956,18 @@ def _view_fragments(app: object) -> None:
 			)
 		PySide6.QtWidgets.QMessageBox.information(app, "View Fragments", message)
 		return
+	origin_session = getattr(app, "_active_session", None)
+	origin_revision = None
+	origin_submit = None
+	if origin_session is not None and origin_session.can_commit_persistent_action:
+		origin_revision = origin_session.backend_snapshot.revision
+		try:
+			origin_submit = app.persistent_operation_capability_for(origin_session)
+		except ValueError:
+			return
 	choice_map = {
-			label: (molecule, fragment)
-			for label, molecule, fragment in choices
+		label: (molecule_id, fragment_id, molecule_position)
+		for label, molecule_id, fragment_id, molecule_position in choices
 	}
 	labels = ["Keep fragments unchanged", *choice_map]
 	prompt = "Choose a fragment to delete:"
@@ -802,10 +978,67 @@ def _view_fragments(app: object) -> None:
 	)
 	if not accepted or choice == labels[0]:
 		return
-	molecule, fragment = choice_map[choice]
+	molecule_id, fragment_id, molecule_position = choice_map[choice]
+	if origin_submit is not None and origin_revision is not None:
+		if not molecule_id:
+			PySide6.QtWidgets.QMessageBox.warning(
+				app, "View Fragments", "The selected molecule is unavailable in the authoritative document.",
+			)
+			return
+		request = bkchem_qt.models.document_session.build_fragment_delete_request(
+			origin_revision, molecule_id, fragment_id,
+		)
+		outcome = origin_submit(request)
+		if outcome.status != "accepted":
+			PySide6.QtWidgets.QMessageBox.warning(app, "View Fragments", outcome.message)
+		return
+	if not 0 <= molecule_position < len(app.document.molecules):
+		return
+	molecule = app.document.molecules[molecule_position]
+	if (
+			molecule.mol_id != molecule_id
+			or not any(fragment.fragment_id == fragment_id for fragment in molecule.fragments)
+		):
+		return
 	app.document.undo_stack.push(bkchem_qt.undo.commands.RemoveFragmentCommand(
-		molecule, fragment.fragment_id,
+		molecule, fragment_id,
 	))
+
+
+#============================================
+def _capture_linear_form_submit(
+		app: object, origin_session: object,
+		) -> tuple[int, object, str, tuple[str, ...]] | None:
+	"""Capture one origin-bound linear-form intent without retaining Qt wrappers."""
+	atom_items = tuple(app.document.selected_atoms)
+	bond_items = tuple(app.document.selected_bonds)
+	items = (*atom_items, *bond_items)
+	molecules = {
+		app.document.molecule_for_graphics_item(item)
+		for item in items
+	}
+	if not items or None in molecules or len(molecules) != 1:
+		_linear_warning(app, "Select atoms and bonds from exactly one molecule.")
+		return None
+	molecule = next(iter(molecules))
+	selected_models = {item.atom_model for item in atom_items}
+	for item in bond_items:
+		if item.bond_model.atom1 is not None:
+			selected_models.add(item.bond_model.atom1)
+		if item.bond_model.atom2 is not None:
+			selected_models.add(item.bond_model.atom2)
+	atom_ids = tuple(
+		atom.backend_durable_id for atom in molecule.atoms
+		if atom in selected_models and atom.backend_durable_id is not None
+	)
+	if not molecule.mol_id or len(atom_ids) != len(selected_models):
+		_linear_warning(app, "Selected atoms are unavailable in the authoritative document.")
+		return None
+	try:
+		submit = app.persistent_operation_capability_for(origin_session)
+	except ValueError:
+		return None
+	return origin_session.backend_snapshot.revision, submit, molecule.mol_id, atom_ids
 
 
 #============================================
@@ -820,6 +1053,22 @@ def _convert_to_linear(app: object) -> None:
 	Args:
 		app: MainWindow instance.
 	"""
+	origin_session = getattr(app, "_active_session", None)
+	if origin_session is not None:
+		if not origin_session.can_commit_persistent_action:
+			_linear_warning(app, "Document cannot accept a persistent edit.")
+			return
+		captured = _capture_linear_form_submit(app, origin_session)
+		if captured is None:
+			return
+		origin_revision, submit, molecule_id, atom_ids = captured
+		request = bkchem_qt.models.document_session.build_linear_form_convert_request(
+			origin_revision, molecule_id, atom_ids,
+		)
+		outcome = submit(request)
+		if outcome.status != "accepted":
+			_linear_warning(app, outcome.message)
+		return
 	selection = _linear_selection(app)
 	if selection is None:
 		return
@@ -1055,23 +1304,7 @@ def _linear_label_safe_spacing(path: tuple[object, ...]) -> float:
 #============================================
 def _linear_label_bounds(atom_model: object) -> tuple[float, float]:
 	"""Measure one atom label's horizontal glyph bounds relative to its atom."""
-	left = 0.0
-	right = 0.0
-	for op in bkchem_qt.canvas.items.atom_item._build_atom_ops(
-			atom_model._chem_atom, atom_model,
-	):
-		if not isinstance(op, oasa.render_ops.TextOp):
-			continue
-		width = bkchem_qt.canvas.items.atom_item._measure_text_op_width(op)
-		text_left = op.x - atom_model.x
-		if op.anchor == "middle":
-			text_left -= width / 2.0
-		elif op.anchor == "end":
-			text_left -= width
-		text_right = text_left + width
-		left = min(left, text_left)
-		right = max(right, text_right)
-	return left, right
+	return bkchem_qt.bridge.oasa_bridge.legacy_atom_text_bounds(atom_model)
 
 
 #============================================
@@ -1138,8 +1371,23 @@ def register_chemistry_actions(registry: object, app: object) -> None:
 		)
 
 	def groups_selected() -> bool:
-		"""Return True when a native CDML group is selected."""
-		return app.document is not None and app.document.groups_selected
+		"""Return whether one current implicit group has a writable backend route."""
+		session = _active_smiles_document_session(app)
+		if session is None or not session.can_write_authoritative_snapshot:
+			return False
+		groups = tuple(app.document.selected_groups) if app.document is not None else ()
+		if len(groups) != 1:
+			return False
+		item = groups[0]
+		model = getattr(item, "group_model", None)
+		molecule = model.parent() if model is not None else None
+		return bool(
+			app.document.is_current_projection_item(item)
+			and model is not None and model.implicit_expandable
+			and type(model.group_id) is str and model.group_id
+			and molecule in app.document.molecules
+			and type(getattr(molecule, "mol_id", None)) is str and molecule.mol_id
+		)
 
 	# display summary info on selected molecules
 	registry.register(MenuAction(
@@ -1161,11 +1409,11 @@ def register_chemistry_actions(registry: object, app: object) -> None:
 		enabled_when=has_selection,
 	))
 
-	# expand all selected groups to their structures
+	# expand one supported implicit group through its backend session
 	registry.register(MenuAction(
 		id='chemistry.expand_groups',
 		label_key='Expand groups',
-		help_key='Expand all selected groups to their structures',
+		help_key='Expand one selected implicit group through OASA',
 		accelerator=None,
 		handler=lambda: _expand_groups(app),
 		enabled_when=groups_selected,

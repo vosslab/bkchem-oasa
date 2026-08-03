@@ -3,6 +3,7 @@
 # Standard Library
 import io
 import math
+import pathlib
 
 # PIP3 modules
 import pytest
@@ -366,6 +367,46 @@ def test_zoom_to_fit_no_crash(main_window: object) -> None:
 def test_zoom_to_content_no_crash(main_window: object) -> None:
 	"""Calling on_zoom_to_content does not raise an exception."""
 	main_window.on_zoom_to_content()
+
+
+#============================================
+def test_zoom_to_content_includes_document_backed_vector_projection(
+		main_window: object, tmp_path: pathlib.Path,
+		) -> None:
+	"""Content fit keeps a distant persistent vector inside the viewport."""
+	candidate = """\
+<cdml version="26.07">
+ <text id="anchor"><point x="1cm" y="1cm"/><ftext>Anchor</ftext></text>
+ <rect id="distant" x1="20cm" y1="12cm" x2="24cm" y2="16cm"/>
+</cdml>
+	"""
+	source = tmp_path / "vector-content.cdml"
+	source.write_text(candidate, encoding="utf-8")
+	was_visible = main_window.isVisible()
+	main_window.resize(1280, 800)
+	main_window.show()
+	try:
+		assert main_window.open_file_path(str(source))
+		_flush_events()
+		session = next(
+			session for session in main_window.sessions
+			if session.document is main_window.document
+		)
+		vector = next(
+			item for item in session.scene.items()
+			if getattr(getattr(item, "document_object_model", None), "object_id", None)
+			== "distant"
+		)
+
+		main_window.on_zoom_to_content()
+		_flush_events()
+		vector_center = vector.mapToScene(vector.boundingRect().center())
+		viewport_center = main_window.view.mapFromScene(vector_center)
+
+		assert main_window.view.viewport().rect().contains(viewport_center)
+	finally:
+		if not was_visible:
+			main_window.hide()
 
 
 #============================================

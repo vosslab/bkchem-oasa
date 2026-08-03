@@ -260,10 +260,6 @@ def test_qt_draw_benzene_smoke(qapp: object, main_window: object) -> None:
 		atom = mol.create_atom("C")
 		atom.x = hex_pts[i][0]
 		atom.y = hex_pts[i][1]
-		# also set coordinates on the underlying OASA atom so render_lib
-		# can compute double bond placement from neighbor positions
-		atom._chem_atom.x = hex_pts[i][0]
-		atom._chem_atom.y = hex_pts[i][1]
 		mol.add_atom(atom)
 		atom_models.append(atom)
 	# create 6 bonds with alternating double/single (2,1,2,1,2,1)

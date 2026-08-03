@@ -1,14 +1,49 @@
 """Object menu action registrations for BKChem-Qt."""
 
+# Standard Library
+import re
+
 # local repo modules
 from bkchem_qt.actions.action_registry import MenuAction
 import bkchem_qt.actions.property_editing
+import bkchem_qt.actions.top_level_transform_actions
 import bkchem_qt.canvas.document_projection
+import bkchem_qt.dialogs.scale_dialog
+import bkchem_qt.dialogs.rich_text_dialog
 import bkchem_qt.geometry
 import bkchem_qt.models.document_object
 import bkchem_qt.models.document_session
 import bkchem_qt.models.molecule_model
 import bkchem_qt.undo.commands
+
+
+#============================================
+def _rich_text_font_values(text_model: object) -> tuple[str, int, str] | None:
+	"""Copy valid visible root font values without normalizing persistent attributes."""
+	font_attributes = text_model.font_attributes
+	attributes = text_model.attributes
+	family = font_attributes.get("family", "Arial")
+	if type(family) is not str or not family.strip():
+		return None
+	size_text = font_attributes.get("size", attributes.get("font_size", "12"))
+	if type(size_text) is not str or not size_text.isdecimal():
+		return None
+	size = int(size_text)
+	if not 4 <= size <= 144:
+		return None
+	color = font_attributes.get(
+		"color", attributes.get("line_color", attributes.get("color", "#000000")),
+	)
+	if type(color) is not str or re.fullmatch(r"#[0-9A-Fa-f]{6}", color) is None:
+		return None
+	return family, size, color
+
+
+#============================================
+def _has_authored_rich_style(text_model: object) -> bool:
+	"""Return whether supported authored runs contain at least one visible style."""
+	runs = text_model.formatted_text_runs
+	return runs is not None and any(styles for _text, styles in runs)
 
 #============================================
 def _active_presentation_stack_session(app: object) -> object | None:
@@ -91,7 +126,7 @@ def _selection_bounds(objects: list) -> tuple[float, float, float, float] | None
 
 #============================================
 def _push_affine_transform(
-		app: object, objects: list, origin: tuple[float, float],
+		document: object, objects: tuple[object, ...], origin: tuple[float, float],
 		scale_x: float, scale_y: float, text: str,
 		) -> bool:
 	"""Push a non-merging model-state affine transform for selected objects."""
@@ -132,7 +167,7 @@ def _push_affine_transform(
 			raise TypeError(f"Unsupported document object: {type(object_model)!r}")
 	if not atom_changes and not presentation_changes:
 		return False
-	app.document.undo_stack.push(
+	document.undo_stack.push(
 		bkchem_qt.undo.commands.TransformGeometryCommand(
 			atom_changes, presentation_changes, text,
 		),
@@ -141,8 +176,8 @@ def _push_affine_transform(
 
 
 #============================================
-def handle_vertical_mirror(app: object) -> None:
-	"""Reflect selected top levels across their aggregate vertical center."""
+def _handle_vertical_mirror_locally(app: object) -> None:
+	"""Reflect legacy-isolated selected objects through Qt-local undo."""
 	objects = app.document.selected_top_level_objects
 	bounds = _selection_bounds(objects)
 	if bounds is None:
@@ -152,15 +187,15 @@ def handle_vertical_mirror(app: object) -> None:
 		return
 	left, top, right, bottom = bounds
 	if _push_affine_transform(
-			app, objects, ((left + right) / 2.0, (top + bottom) / 2.0),
+			app.document, tuple(objects), ((left + right) / 2.0, (top + bottom) / 2.0),
 			-1.0, 1.0, "Vertical Mirror",
 		):
 		app.statusBar().showMessage("Vertical mirror applied", 2000)
 
 
 #============================================
-def handle_horizontal_mirror(app: object) -> None:
-	"""Reflect selected top levels across their aggregate horizontal center."""
+def _handle_horizontal_mirror_locally(app: object) -> None:
+	"""Reflect legacy-isolated selected objects through Qt-local undo."""
 	objects = app.document.selected_top_level_objects
 	bounds = _selection_bounds(objects)
 	if bounds is None:
@@ -170,28 +205,44 @@ def handle_horizontal_mirror(app: object) -> None:
 		return
 	left, top, right, bottom = bounds
 	if _push_affine_transform(
-			app, objects, ((left + right) / 2.0, (top + bottom) / 2.0),
+			app.document, tuple(objects), ((left + right) / 2.0, (top + bottom) / 2.0),
 			1.0, -1.0, "Horizontal Mirror",
 		):
 		app.statusBar().showMessage("Horizontal mirror applied", 2000)
 
 
 #============================================
-def handle_scale(app: object) -> None:
-	"""Scale selected top levels around their aggregate bounding-box center.
+def _active_legacy_scale_session(app: object) -> object | None:
+	"""Return one active legacy-isolated session with a live projection."""
+	session = bkchem_qt.actions.top_level_transform_actions.active_transform_session(app)
+	if (
+		session is None
+		or not session.legacy_isolated
+		or not session.has_live_projection
+		or session.document is None
+	):
+		return None
+	return session
+
+
+#============================================
+def _handle_scale_locally(app: object, session: object) -> None:
+	"""Scale legacy-isolated selected objects around their aggregate bounds.
 
 	The dialog retains its existing independent X/Y scale choices.  Its pivot is
 	the center of the selected document objects' aggregate persistent bounds.
 	"""
-	objects = app.document.selected_top_level_objects
-	bounds = _selection_bounds(objects)
+	document = session.document
+	objects = tuple(document.selected_top_level_objects)
+	bounds = _selection_bounds(list(objects))
 	if bounds is None:
 		app.statusBar().showMessage(
 			"Select objects to scale", 3000
 		)
 		return
+	object_ids = tuple(id(object_model) for object_model in objects)
+	persistent_generation = document.persistent_generation
 	# show scale dialog
-	import bkchem_qt.dialogs.scale_dialog
 	result = bkchem_qt.dialogs.scale_dialog.ScaleDialog.get_scale_factors(
 		app
 	)
@@ -201,21 +252,70 @@ def handle_scale(app: object) -> None:
 	# avoid no-op scaling
 	if scale_x == 1.0 and scale_y == 1.0:
 		return
+	current = _active_legacy_scale_session(app)
+	if (
+		current is not session
+		or session.document is not document
+		or document.persistent_generation != persistent_generation
+		or tuple(
+			id(object_model) for object_model in document.selected_top_level_objects
+		) != object_ids
+	):
+		app.statusBar().showMessage("Scale no longer applies to this document", 3000)
+		app._refresh_document_actions()
+		return
 	left, top, right, bottom = bounds
 	if _push_affine_transform(
-			app, objects, ((left + right) / 2.0, (top + bottom) / 2.0),
+			document, objects, ((left + right) / 2.0, (top + bottom) / 2.0),
 		scale_x, scale_y, "Scale",
 		):
 		app.statusBar().showMessage("Scale applied", 2000)
 
 
 #============================================
+def handle_vertical_mirror(app: object) -> None:
+	"""Reflect selected roots through the backend or isolated local authority."""
+	session = bkchem_qt.actions.top_level_transform_actions.active_transform_session(app)
+	if session is not None and session.legacy_isolated:
+		_handle_vertical_mirror_locally(app)
+		return
+	bkchem_qt.actions.top_level_transform_actions.submit_backend_transform(
+		app, "mirror-vertical",
+	)
+
+
+#============================================
+def handle_horizontal_mirror(app: object) -> None:
+	"""Reflect selected roots through the backend or isolated local authority."""
+	session = bkchem_qt.actions.top_level_transform_actions.active_transform_session(app)
+	if session is not None and session.legacy_isolated:
+		_handle_horizontal_mirror_locally(app)
+		return
+	bkchem_qt.actions.top_level_transform_actions.submit_backend_transform(
+		app, "mirror-horizontal",
+	)
+
+
+#============================================
+def handle_scale(app: object) -> None:
+	"""Scale selected roots through backend authority or isolated local undo."""
+	session = _active_legacy_scale_session(app)
+	if session is not None:
+		_handle_scale_locally(app, session)
+		return
+	bkchem_qt.actions.top_level_transform_actions.submit_scale_transform(
+		app, bkchem_qt.dialogs.scale_dialog.ScaleDialog.get_scale_factors,
+	)
+
+
+#============================================
 def handle_configure(app: object) -> None:
-	"""Open the properties dialog for a single selected atom or bond.
+	"""Open properties for one selected atom, bond, Text, Plus, or Wavy.
 
 	If exactly one atom is selected, opens AtomDialog. If exactly
-	one bond is selected, opens BondDialog. Otherwise shows a
-	status message explaining the selection requirement.
+	one bond is selected, opens BondDialog. One synchronized durable top-level
+	Text, plain Plus, or plain Wavy opens its detached dialog. Otherwise the action reports
+	its selection boundary.
 
 	Args:
 		app: The main application object.
@@ -238,9 +338,106 @@ def handle_configure(app: object) -> None:
 		if changed:
 			app.statusBar().showMessage("Edited bond properties", 2000)
 		return
+	# Capture and finish the complete Plus projection/dialog frame before submit.
+	# This local receives only plain immutable values and one session capability,
+	# never a PresentationObject or QGraphics wrapper that reprojection retires.
+	plus_capture = bkchem_qt.actions.property_editing.capture_selected_plus_properties(app)
+	if plus_capture is not None:
+		expected_revision, submit, plus_id, changes = plus_capture
+		if changes:
+			outcome = submit(expected_revision, plus_id, changes)
+			show_outcome = getattr(app, "_show_persistent_action_outcome", None)
+			if callable(show_outcome):
+				show_outcome(outcome)
+			if outcome.status == "accepted" and outcome.commit is not None:
+				app.statusBar().showMessage("Edited Plus properties", 2000)
+		return
+	if bkchem_qt.actions.property_editing.has_single_selected_plus(app):
+		return
+	# Capture and finish the complete Wavy projection/dialog frame before submit.
+	# This retains only plain values and an origin-bound session capability.
+	wavy_capture = bkchem_qt.actions.property_editing.capture_selected_wavy_properties(app)
+	if wavy_capture is not None:
+		expected_revision, submit, wavy_id, changes = wavy_capture
+		if changes:
+			outcome = submit(expected_revision, wavy_id, changes)
+			show_outcome = getattr(app, "_show_persistent_action_outcome", None)
+			if callable(show_outcome):
+				show_outcome(outcome)
+			if outcome.status == "accepted" and outcome.commit is not None:
+				app.statusBar().showMessage("Edited Wavy properties", 2000)
+		return
+	if bkchem_qt.actions.property_editing.has_single_selected_wavy(app):
+		return
+	# exactly one current durable Text presentation root
+	presentations = app.document.selected_presentation_objects
+	presentation_ids = app.document.selected_presentation_stack_root_ids
+	if (
+		len(atoms) == 0 and len(bonds) == 0
+		and len(presentations) == 1 and len(presentation_ids) == 1
+		and presentations[0].kind == "text"
+		and presentations[0].editable
+		and presentations[0].object_id == presentation_ids[0]
+	):
+		if _has_authored_rich_style(presentations[0]):
+			app.statusBar().showMessage("Use Object > Edit Rich Text for formatted Text", 3000)
+			return
+		changed = bkchem_qt.actions.property_editing.edit_text_properties(
+			presentations[0], app,
+		)
+		if changed:
+			app.statusBar().showMessage("Edited Text properties", 2000)
+		return
 	app.statusBar().showMessage(
-		"Select a single atom or bond to configure", 3000
+		"Select a single atom, bond, durable Text, plain Plus, or plain Wavy to configure", 3000
 	)
+
+
+#============================================
+def handle_edit_rich_text(app: object) -> None:
+	"""Edit one selected authored Text through a captured backend-only patch."""
+	presentations = app.document.selected_presentation_objects
+	presentation_ids = app.document.selected_presentation_stack_root_ids
+	if len(presentations) != 1 or len(presentation_ids) != 1:
+		app.statusBar().showMessage("Select one editable rich Text object", 3000)
+		return
+	text_model = presentations[0]
+	if (
+			text_model.kind != "text" or not text_model.editable
+			or text_model.object_id != presentation_ids[0]
+			or not text_model.rich_text_editable
+		):
+		app.statusBar().showMessage("Rich text editing is unavailable for this object", 3000)
+		return
+	runs = text_model.formatted_text_runs
+	if runs is None:
+		app.statusBar().showMessage("Rich text editing is unavailable for this object", 3000)
+		return
+	text_id = text_model.object_id
+	font_values = _rich_text_font_values(text_model)
+	if font_values is None:
+		app.statusBar().showMessage("Rich text editing is unavailable for this object", 3000)
+		return
+	font_family, font_size, font_color = font_values
+	capture = app.capture_rich_text_for_view(app.view, text_id)
+	if capture is None:
+		app.statusBar().showMessage("Rich text editing is unavailable for this object", 3000)
+		return
+	expected_revision, submit = capture
+	del presentations
+	del presentation_ids
+	del text_model
+	dialog = bkchem_qt.dialogs.rich_text_dialog.RichTextDialog(
+		runs, font_family, font_size, font_color, app,
+	)
+	if dialog.exec() != dialog.DialogCode.Accepted:
+		return
+	accepted_runs = dialog.get_runs()
+	changes = dialog.changes()
+	del dialog
+	outcome = submit(expected_revision, text_id, accepted_runs, changes)
+	app._show_persistent_action_outcome(outcome)
+	app._refresh_document_actions()
 
 
 #============================================
@@ -333,5 +530,14 @@ def register_object_actions(registry: object, app: object) -> None:
 		),
 		accelerator=None,
 		handler=lambda: handle_configure(app),
+		enabled_when=has_selection,
+	))
+
+	registry.register(MenuAction(
+		id='object.edit_rich_text',
+		label_key='Edit Rich Text...',
+		help_key='Edit authored Text formatting',
+		accelerator=None,
+		handler=lambda: handle_edit_rich_text(app),
 		enabled_when=has_selection,
 	))

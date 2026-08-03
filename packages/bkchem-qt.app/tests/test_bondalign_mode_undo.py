@@ -14,8 +14,8 @@ def _selected_atoms(main_window: object) -> tuple[object, object]:
 	draw_mode = main_window._mode_manager.current_mode
 	first = draw_mode._create_atom_at(0.0, 0.0, "C")
 	second = draw_mode._create_atom_at(100.0, 100.0, "C")
-	first.atom_model._chem_atom.id = "a1"
-	second.atom_model._chem_atom.id = "a2"
+	first.atom_model.atom_id = "a1"
+	second.atom_model.atom_id = "a2"
 	first.atom_model.bind_backend_durable_id("a1")
 	second.atom_model.bind_backend_durable_id("a2")
 	first.atom_model._molecule_model.mol_id = "m1"

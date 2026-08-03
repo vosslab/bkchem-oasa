@@ -44,15 +44,15 @@ class TemplateMode(bkchem_qt.modes.base_mode.BaseMode):
 		self._cursor = PySide6.QtCore.Qt.CursorShape.CrossCursor
 		self._current_template = None
 		self._template_names = self._validate_template_names(template_names)
-		self._persistent_operation = None
+		self._template_action = None
 		self._install_template_submodes()
 
 	#============================================
-	def set_persistent_operation(self, operation: object | None) -> None:
-		"""Install the session-owned immutable persistent-operation callback."""
-		if operation is not None and not callable(operation):
-			raise TypeError("Template persistent operation must be callable")
-		self._persistent_operation = operation
+	def set_template_action(self, action: object | None) -> None:
+		"""Install the plain session-owned system-template placement action."""
+		if action is not None and not callable(action):
+			raise TypeError("System template placement action must be callable")
+		self._template_action = action
 
 	#============================================
 	@property
@@ -156,14 +156,8 @@ class TemplateMode(bkchem_qt.modes.base_mode.BaseMode):
 			return
 		item = self._item_at(scene_pos)
 		if isinstance(item, bkchem_qt.canvas.items.atom_item.AtomItem):
-			atom_model = item.atom_model
-			molecule = self._env.find_molecule_for_atom(atom_model)
-			molecule_id = getattr(molecule, "mol_id", None)
-			atom_id = atom_model.backend_durable_id
-			if not molecule_id or not atom_id:
-				self.status_message.emit("Selected atom has no durable backend identity")
-				return
-			self._submit_template(anchor=(atom_model.x, atom_model.y))
+			anchor = item.scenePos()
+			self._submit_template(anchor=(anchor.x(), anchor.y()))
 			return
 		self._submit_template(anchor=(scene_pos.x(), scene_pos.y()))
 
@@ -184,7 +178,7 @@ class TemplateMode(bkchem_qt.modes.base_mode.BaseMode):
 	#============================================
 	def _submit_template(self, anchor: tuple[object, object]) -> None:
 		"""Submit one immutable detached-template intent to the session."""
-		if self._persistent_operation is None:
+		if self._template_action is None:
 			self.status_message.emit("Document cannot accept a persistent edit")
 			return
 		template_name = self._current_template
@@ -202,19 +196,7 @@ class TemplateMode(bkchem_qt.modes.base_mode.BaseMode):
 		):
 			self.status_message.emit("Template anchor must use finite coordinates")
 			return
-		owner = getattr(self._persistent_operation, "__self__", None)
-		snapshot = getattr(owner, "backend_snapshot", None)
-		if snapshot is None:
-			self.status_message.emit("Document cannot accept a persistent edit")
-			return
-		from bkchem_qt.models import document_session
-		request = document_session.PersistentOperationRequest(
-			"template.insert", "Place Template",
-			(
-				("expected_revision", snapshot.revision),
-				("template_name", template_name),
-				("anchor", (float(anchor[0]), float(anchor[1]))),
-			),
+		outcome = self._template_action(
+			template_name, (float(anchor[0]), float(anchor[1])),
 		)
-		outcome = self._persistent_operation(request)
 		self.status_message.emit(outcome.message)

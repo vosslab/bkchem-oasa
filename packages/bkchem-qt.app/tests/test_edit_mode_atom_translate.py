@@ -31,7 +31,7 @@ def _durable_atom(main_window: object, identifier: str) -> object:
 	main_window._mode_manager.set_mode("draw")
 	draw_mode = main_window._mode_manager.current_mode
 	atom = draw_mode._create_atom_at(20.0, 20.0, "C")
-	atom.atom_model._chem_atom.id = identifier
+	atom.atom_model.atom_id = identifier
 	atom.atom_model.bind_backend_durable_id(identifier)
 	atom.atom_model._molecule_model.mol_id = "m1"
 	return atom

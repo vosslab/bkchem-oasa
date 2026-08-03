@@ -4,8 +4,6 @@
 import PySide6.QtWidgets
 
 # local repo modules
-import oasa.atom_lib
-import oasa.bond_lib
 import bkchem_qt.canvas.items.atom_item
 import bkchem_qt.canvas.items.bond_item
 import bkchem_qt.main_window
@@ -26,17 +24,11 @@ def test_bond_order_dock_edit_rebuilds_selected_bond_rendering(
 	scene = PySide6.QtWidgets.QGraphicsScene()
 	document.set_scene(scene)
 	molecule = bkchem_qt.models.molecule_model.MoleculeModel()
-	first = bkchem_qt.models.atom_model.AtomModel(
-		oasa_atom=oasa.atom_lib.Atom(symbol="C"),
-	)
-	second = bkchem_qt.models.atom_model.AtomModel(
-		oasa_atom=oasa.atom_lib.Atom(symbol="C"),
-	)
+	first = bkchem_qt.models.atom_model.AtomModel(symbol="C")
+	second = bkchem_qt.models.atom_model.AtomModel(symbol="C")
 	first.set_xyz(20.0, 40.0, 0.0)
 	second.set_xyz(120.0, 40.0, 0.0)
-	bond = bkchem_qt.models.bond_model.BondModel(
-		oasa_bond=oasa.bond_lib.Bond(order=1, type="n"),
-	)
+	bond = bkchem_qt.models.bond_model.BondModel(order=1, bond_type="n")
 	molecule.add_atom(first)
 	molecule.add_atom(second)
 	molecule.add_bond(first, second, bond)

@@ -395,6 +395,30 @@ def test_live_scene_and_snapshot_render_share_backend_paper_semantics(
 
 
 #============================================
+def test_absent_paper_uses_backend_standard_defaults_for_live_and_snapshot_layout(
+		main_window: object,
+		) -> None:
+	"""An unpersisted paper still renders with OASA's direct-standard default page."""
+	session = main_window._active_session
+	_install_backend_snapshot(
+		main_window, session,
+		'<cdml><standard paper_type="Letter" paper_orientation="landscape" /></cdml>',
+	)
+	page = session.scene.paper_rect
+	result = bkchem_qt.io.snapshot_render.render_request(
+		oasa.cdml_render.CDMLRenderRequest(session.backend_snapshot, "svg"),
+	)
+
+	assert (page.width(), page.height()) == pytest.approx(
+		(279.4 * 72.0 / 25.4, 215.9 * 72.0 / 25.4),
+	)
+	assert (
+		result.artifact is not None
+		and _svg_mm_dimension(result.artifact, "width") == pytest.approx(279.4, abs=0.2)
+	)
+
+
+#============================================
 def test_unchanged_paper_properties_leave_authoritative_state_intact(
 		main_window: object, monkeypatch: pytest.MonkeyPatch,
 		) -> None:

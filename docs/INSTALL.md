@@ -1,112 +1,72 @@
 # Install
 
-Install OASA and the PySide6 `bkchem-qt` frontend from this repository to get
-the current BKChem application. The older Tkinter `bkchem` package remains a
-compatibility oracle, not the primary frontend.
+Install OASA and the PySide6 `bkchem-qt` application from this source tree.
+OASA is the chemistry library and authoritative persistent CDML backend;
+BKChem-Qt presents and interacts with its disposable scene projection.
 
 ## Requirements
 
-- Python 3.10 or newer; the repository's agent and test runtime uses Python 3.12.
-- `bkchem-qt` requires PySide6, PyYAML, and OASA; pip installs the declared
-  dependencies.
-- OASA declares `defusedxml`, `lxml`, `pycairo`, PyYAML, RDKit, and rustworkx.
-	`defusedxml` provides hardened legacy XML entry points; `lxml` handles
-	CDML/CDXML parsing and controlled SVG rendering. `pycairo` supports OASA's
-	Cairo PNG, PDF, and SVG renderers.
-- The Tkinter compatibility package directly requires OASA, plus its own YAML
-  and secure-XML readers. Pip resolves OASA's rendering and chemistry
-  dependencies transitively. Install it only when comparing legacy behavior.
+- Python 3.10 or newer.
+- pip able to install the declared OASA and PySide6 dependencies. These include
+  RDKit, rustworkx, lxml, pycairo, PyYAML, and PySide6.
+- A desktop session suitable for PySide6.
 
-## Install the modern frontend
+## Install
 
-From the repository root, install OASA and the PySide6 frontend in editable
-mode while developing:
-
-```sh
-python3 -m pip install -e packages/oasa -e packages/bkchem-qt.app
-```
-
-For a regular, non-editable install from the same source tree:
+From the repository root, install the backend and the only shipped BKChem
+frontend:
 
 ```sh
 python3 -m pip install packages/oasa packages/bkchem-qt.app
 ```
 
-## Install the compatibility oracle
-
-The old `bkchem` command is the Tkinter frontend. It remains useful for
-comparison during the migration, but is not the recommended daily application:
+For source-tree development, use editable installs instead:
 
 ```sh
-python3 -m pip install -e packages/bkchem-app
+python3 -m pip install -e packages/oasa -e packages/bkchem-qt.app
 ```
 
-That package brings in its declared backend dependencies.
+`packages/bkchem-app/` is retained only as historical source and fixture
+reference during the migration. It is not a current-user installation path.
 
 ## Verify install
 
-Confirm that the modern command-line entry point was installed:
+Confirm that pip installed the Qt application entry point:
 
 ```sh
 bkchem-qt --version
 ```
 
-## Qt app-builder preview
+The command prints the installed BKChem-Qt version without starting the GUI.
 
-Preview one fresh, isolated Qt-only `BKChem.app` experiment without running
-PyInstaller or creating files. The explicit run root must be a currently absent
-path below the repository `tmp/` directory:
+## Installed lifecycle validation
 
-```sh
-source source_me.sh && python3 devel/build_qt_app.py \
-  --output tmp/qt_bundle/next-arm64-run --dry-run
-```
-
-The preview describes the accepted Qt bundle plan, local frontend-wheel build,
-wheel-derived metadata stage for frozen `--version`, and future normal Qt
-timer-exit smoke command. A real macOS arm64 build remains a controlled
-experiment; this repository does not yet claim a signed, notarized, or DMG
-delivery artifact.
-
-A real build supplies an explicit numeric macOS build identity. The public
-release label remains the zero-padded root `VERSION` spelling, while wheel
-metadata is normalized and the bundle stores each macOS representation in its
-appropriate field:
+Before a release claim, run the installed Qt authoritative round-trip from an
+isolated environment. The runner rejects source-checkout package origins,
+executes its scenario inside the Qt event loop, and records the exact terminal
+phase in a caller-owned receipt:
 
 ```sh
-source source_me.sh && python3 devel/build_qt_app.py \
-  --output tmp/qt_bundle/next-arm64-run \
-  --bundle-build 26.2.1 \
-  --smoke-exit 2
+source source_me.sh && mkdir -p tmp/installed_qt_roundtrip_check
+env -u PYTHONPATH QT_QPA_PLATFORM=offscreen \
+  /path/to/isolated/venv/bin/python -W error \
+  tests/e2e/e2e_installed_qt_authoritative_roundtrip.py \
+  --kill-after 3 \
+  --output tmp/installed_qt_roundtrip_check \
+  --receipt tmp/installed_qt_roundtrip_check/receipt.json
 ```
 
-Each real build also gives PyInstaller a fresh configuration/cache parent below
-that same retained run root. The builder copies the sourced environment for the
-PyInstaller child and sets its `PYINSTALLER_CONFIG_DIR` there, keeping tool
-state inspectable with the rest of the experiment rather than in a user-level
-location.
+Use a new output directory per run. A completed receipt confirms native Open,
+backend-authoritative Arrow commit, exact-snapshot Save, clean close, reopen,
+and controlled Qt retirement. It does not establish a signed, notarized, or
+DMG delivery artifact.
 
-On a real build, the wrapper first round-trips the system Chess icon through
-`iconutil`. A healthy system encoder retains the standard ten-member iconset
-route. When that bounded host check cannot encode a known-good iconset, the
-wrapper visibly selects its deterministic Qt SVG-to-seven-size PNG-chunk ICNS
-route instead. Both routes derive only from the Qt application icon source.
+## Known limitations
 
-## Development runtime
-
-Repository automation uses the configured Python 3.12 environment. From the
-repository root, load it before running source-tree tools:
-
-```sh
-source source_me.sh
-python3 -c "import oasa, bkchem_qt; print('OASA and BKChem-Qt imports OK')"
-```
-
-For PySide6 tests, set `QT_QPA_PLATFORM=offscreen` before PySide6 imports and
-use only focused tests. See [QT_CONTRACT.md](QT_CONTRACT.md) for the native
-wrapper teardown contract.
-
-## Known gaps
-
-- TODO: Verify platform-specific binary-install workflows before documenting
-  installers beyond pip source installs.
+- This repository documents pip source installs. A signed, notarized, or DMG
+  application artifact is not currently claimed. A direct frozen-executable
+  lifecycle smoke is retained as bounded builder evidence; Finder registration,
+  signing, notarization, and DMG delivery belong to a separate distribution
+  project.
+- The app saves editable documents only as `.cdml`; see [USAGE.md](USAGE.md)
+  for imports, rendered exports, and Recovery Export.

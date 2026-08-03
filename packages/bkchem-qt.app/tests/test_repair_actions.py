@@ -9,7 +9,7 @@ import PySide6.QtCore
 # local repo modules
 from oasa import cdml_document
 import bkchem_qt.actions.repair_actions
-import bkchem_qt.actions.file_actions
+import bkchem_qt.canvas.molecule_projection
 import bkchem_qt.models.molecule_model
 
 
@@ -24,6 +24,35 @@ _TWO_REPAIR_MOLECULES_CDML = (
 	'<atom id="a4" name="C"><point x="9cm" y="1cm"/></atom>'
 	'<atom id="a5" name="O"><point x="12cm" y="1cm"/></atom>'
 	'<bond id="b3" start="a4" end="a5" type="n1"/>'
+	'</molecule></cdml>'
+)
+
+_STRAIGHTEN_REPAIR_MOLECULES_CDML = (
+	'<cdml version="26.07"><molecule id="m1">'
+	'<atom id="a1" name="C"><point x="1cm" y="1cm"/></atom>'
+	'<atom id="a2" name="O"><point x="4cm" y="2cm"/></atom>'
+	'<bond id="b1" start="a1" end="a2" type="n1"/>'
+	'</molecule><molecule id="m2">'
+	'<atom id="a3" name="C"><point x="9cm" y="1cm"/></atom>'
+	'<atom id="a4" name="O"><point x="12cm" y="1cm"/></atom>'
+	'<bond id="b2" start="a3" end="a4" type="n1"/>'
+	'</molecule></cdml>'
+)
+
+_RING_REPAIR_MOLECULES_CDML = (
+	'<cdml version="26.07"><molecule id="m1">'
+	'<atom id="a1" name="C"><point x="0cm" y="0cm"/></atom>'
+	'<atom id="a2" name="C"><point x="2cm" y="0cm"/></atom>'
+	'<atom id="a3" name="C"><point x="1.5cm" y="1cm"/></atom>'
+	'<atom id="a4" name="C"><point x="0cm" y="1cm"/></atom>'
+	'<bond id="rb1" start="a1" end="a2" type="n1"/>'
+	'<bond id="rb2" start="a2" end="a3" type="n1"/>'
+	'<bond id="rb3" start="a3" end="a4" type="n1"/>'
+	'<bond id="rb4" start="a4" end="a1" type="n1"/>'
+	'</molecule><molecule id="m2">'
+	'<atom id="a5" name="C"><point x="9cm" y="1cm"/></atom>'
+	'<atom id="a6" name="O"><point x="12cm" y="1cm"/></atom>'
+	'<bond id="rb5" start="a5" end="a6" type="n1"/>'
 	'</molecule></cdml>'
 )
 
@@ -43,7 +72,7 @@ def _draw_repair_target(
 	bond = molecule.create_bond(order=1, bond_type="n")
 	molecule.add_bond(first, second, bond)
 	main_window.document.add_molecule(molecule, mark_dirty=False)
-	bkchem_qt.actions.file_actions._project_molecules_to_scene(
+	bkchem_qt.canvas.molecule_projection.project_molecules_to_scene(
 		main_window.scene, [molecule],
 	)
 	return molecule, bond
@@ -169,3 +198,89 @@ def test_angle_repair_mode_click_changes_only_the_clicked_durable_molecule(
 		_molecule_xml(after, "m1") != _molecule_xml(before, "m1")
 		and _molecule_xml(after, "m2") == _molecule_xml(before, "m2")
 	)
+
+
+#============================================
+def test_straighten_repair_mode_click_changes_only_the_clicked_durable_molecule(
+		main_window: object, tmp_path: pathlib.Path,
+		) -> None:
+	"""Straighten submits only the clicked durable molecule to OASA."""
+	source = tmp_path / "repair-mode-straighten.cdml"
+	source.write_text(_STRAIGHTEN_REPAIR_MOLECULES_CDML, encoding="utf-8")
+	assert main_window.open_file_path(str(source))
+	session = main_window._active_session
+	before = session.backend_snapshot.cdml
+	for item in session.scene.items():
+		if getattr(getattr(item, "atom_model", None), "backend_durable_id", None) == "a1":
+			click_point = item.scenePos()
+			break
+	else:
+		raise AssertionError("fixture did not project a clickable durable atom")
+	del item
+	main_window._mode_manager.set_mode("repair")
+	repair_mode = main_window._mode_manager.current_mode
+	repair_mode._active_submode_key = "straighten"
+	repair_mode.mouse_press(click_point, None)
+	after = session.backend_snapshot.cdml
+
+	assert (
+		_molecule_xml(after, "m1") != _molecule_xml(before, "m1")
+		and _molecule_xml(after, "m2") == _molecule_xml(before, "m2")
+	)
+
+
+#============================================
+def test_ring_repair_mode_click_uses_backend_history_without_qt_undo(
+		main_window: object, tmp_path: pathlib.Path,
+		) -> None:
+	"""A durable ring click replaces its projection through the session boundary."""
+	source = tmp_path / "repair-mode-ring.cdml"
+	source.write_text(_RING_REPAIR_MOLECULES_CDML, encoding="utf-8")
+	assert main_window.open_file_path(str(source))
+	session = main_window._active_session
+	before = session.backend_snapshot.cdml
+	for item in session.scene.items():
+		if getattr(getattr(item, "atom_model", None), "backend_durable_id", None) == "a1":
+			click_point = item.scenePos()
+			break
+	else:
+		raise AssertionError("fixture did not project a clickable durable ring atom")
+	del item
+	main_window._mode_manager.set_mode("repair")
+	repair_mode = main_window._mode_manager.current_mode
+	repair_mode._active_submode_key = "normalize-rings"
+	repair_mode.mouse_press(click_point, None)
+	after = session.backend_snapshot.cdml
+	only_target_changed = (
+		_molecule_xml(after, "m1") != _molecule_xml(before, "m1")
+		and _molecule_xml(after, "m2") == _molecule_xml(before, "m2")
+	)
+	backend_without_qt_undo = (
+		session.can_undo_backend and not session.document.undo_stack.canUndo()
+	)
+
+	assert only_target_changed
+	assert backend_without_qt_undo
+
+
+#============================================
+def test_straighten_repair_mode_click_is_inert_without_a_backend_molecule_identity(
+		main_window: object,
+		) -> None:
+	"""An ID-less click cannot create a local Straighten Bonds mutation."""
+	clicked, _clicked_bond = _draw_repair_target(main_window, 100.0, 100.0)
+	other, _other_bond = _draw_repair_target(main_window, 400.0, 100.0)
+	main_window.scene.clearSelection()
+	main_window._mode_manager.set_mode("repair")
+	repair_mode = main_window._mode_manager.current_mode
+	repair_mode._active_submode_key = "straighten"
+	before = (
+		_coordinates(clicked), _coordinates(other), main_window.document.dirty,
+		main_window.document.undo_stack.count(),
+	)
+	repair_mode.mouse_press(PySide6.QtCore.QPointF(100.0, 100.0), None)
+
+	assert (
+		_coordinates(clicked), _coordinates(other), main_window.document.dirty,
+		main_window.document.undo_stack.count(),
+	) == before

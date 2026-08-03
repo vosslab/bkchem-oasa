@@ -12,6 +12,7 @@ import bkchem_qt.canvas.graphics_retirement
 import bkchem_qt.models.document
 import bkchem_qt.models.document_object
 import bkchem_qt.undo.commands
+import tests.graphics_test_retirement
 
 
 #============================================
@@ -52,11 +53,10 @@ def test_rebranch_terminally_retires_detached_redo_graphics_tree(
 	document = bkchem_qt.models.document.Document()
 	scene = PySide6.QtWidgets.QGraphicsScene()
 	document.set_scene(scene)
-	root, child = _undone_add_command(document, scene, "history-rebranch")
-
-	document.undo_stack.push(_NoopCommand("New branch"))
-
-	assert not shiboken6.isValid(root) and not shiboken6.isValid(child)
+	with tests.graphics_test_retirement.bare_document_scene_retirement(qapp, document, scene):
+		root, child = _undone_add_command(document, scene, "history-rebranch")
+		document.undo_stack.push(_NoopCommand("New branch"))
+		assert not shiboken6.isValid(root) and not shiboken6.isValid(child)
 
 
 #============================================
@@ -67,11 +67,10 @@ def test_history_clear_terminally_retires_detached_command_graphics_tree(
 	document = bkchem_qt.models.document.Document()
 	scene = PySide6.QtWidgets.QGraphicsScene()
 	document.set_scene(scene)
-	root, child = _undone_add_command(document, scene, "history-clear")
-
-	document.undo_stack.clear()
-
-	assert not shiboken6.isValid(root) and not shiboken6.isValid(child)
+	with tests.graphics_test_retirement.bare_document_scene_retirement(qapp, document, scene):
+		root, child = _undone_add_command(document, scene, "history-clear")
+		document.undo_stack.clear()
+		assert not shiboken6.isValid(root) and not shiboken6.isValid(child)
 
 
 #============================================
@@ -95,32 +94,31 @@ def test_rebranch_failure_transfers_detached_root_to_document_reaper(
 	document = bkchem_qt.models.document.Document()
 	scene = PySide6.QtWidgets.QGraphicsScene()
 	document.set_scene(scene)
-	reaper = bkchem_qt.canvas.graphics_retirement.DetachedGraphicsRetirementReaper()
-	document.set_graphics_retirement_reaper(reaper)
-	root, child = _undone_add_command(document, scene, "history-reaper")
-	real_delete = shiboken6.delete
+	with tests.graphics_test_retirement.bare_document_scene_retirement(qapp, document, scene):
+		reaper = bkchem_qt.canvas.graphics_retirement.DetachedGraphicsRetirementReaper()
+		document.set_graphics_retirement_reaper(reaper)
+		root, child = _undone_add_command(document, scene, "history-reaper")
+		real_delete = shiboken6.delete
 
-	#============================================
-	def fail_root_delete(item: object) -> None:
-		"""Leave the root under the document's explicit terminal owner once."""
-		if item is root:
-			raise RuntimeError("injected undo-history root retirement failure")
-		real_delete(item)
+		#============================================
+		def fail_root_delete(item: object) -> None:
+			"""Leave the root under the document's explicit terminal owner once."""
+			if item is root:
+				raise RuntimeError("injected undo-history root retirement failure")
+			real_delete(item)
 
-	monkeypatch.setattr(
-		bkchem_qt.canvas.graphics_retirement.shiboken6, "delete", fail_root_delete,
-	)
-	document.undo_stack.push(_NoopCommand("New branch"))
-
-	assert (
-		shiboken6.isValid(root)
-		and not shiboken6.isValid(child)
-		and reaper.owns_detached_root(root)
-	)
-
-	monkeypatch.undo()
-	reaper.drain()
-	assert not shiboken6.isValid(root) and not reaper.owns_detached_root(root)
+		monkeypatch.setattr(
+			bkchem_qt.canvas.graphics_retirement.shiboken6, "delete", fail_root_delete,
+		)
+		document.undo_stack.push(_NoopCommand("New branch"))
+		assert (
+			shiboken6.isValid(root)
+			and not shiboken6.isValid(child)
+			and reaper.owns_detached_root(root)
+		)
+		monkeypatch.undo()
+		reaper.drain()
+		assert not shiboken6.isValid(root) and not reaper.owns_detached_root(root)
 
 
 #============================================
@@ -131,42 +129,40 @@ def test_ownerless_history_retry_stays_with_global_terminal_reaper(
 	document = bkchem_qt.models.document.Document()
 	scene = PySide6.QtWidgets.QGraphicsScene()
 	document.set_scene(scene)
-	root, child = _undone_add_command(document, scene, "history-ownerless-reaper")
-	reaper = bkchem_qt.canvas.graphics_retirement.detached_graphics_retirement_reaper
-	delete_attempts = 0
-	real_delete = shiboken6.delete
+	with tests.graphics_test_retirement.bare_document_scene_retirement(qapp, document, scene):
+		root, child = _undone_add_command(document, scene, "history-ownerless-reaper")
+		reaper = bkchem_qt.canvas.graphics_retirement.detached_graphics_retirement_reaper
+		delete_attempts = 0
+		real_delete = shiboken6.delete
 
-	#============================================
-	def fail_first_root_delete(item: object) -> None:
-		"""Keep the first failed root under the process-level terminal owner."""
-		nonlocal delete_attempts
-		if item is root:
-			delete_attempts += 1
-			if delete_attempts == 1:
-				raise RuntimeError("injected ownerless history retirement failure")
-		real_delete(item)
+		#============================================
+		def fail_first_root_delete(item: object) -> None:
+			"""Keep the first failed root under the process-level terminal owner."""
+			nonlocal delete_attempts
+			if item is root:
+				delete_attempts += 1
+				if delete_attempts == 1:
+					raise RuntimeError("injected ownerless history retirement failure")
+			real_delete(item)
 
-	monkeypatch.setattr(
-		bkchem_qt.canvas.graphics_retirement.shiboken6,
-		"delete",
-		fail_first_root_delete,
-	)
-	# A history-clear scan fails once.  Repeating the scan before Qt releases its
-	# command must leave the explicit process reaper as the sole terminal owner.
-	document._retire_all_history_graphics()
-	document._retire_all_history_graphics()
-
-	assert (
-		delete_attempts == 1
-		and shiboken6.isValid(root)
-		and not shiboken6.isValid(child)
-		and reaper.owns_detached_root(root)
-	)
-
-	monkeypatch.undo()
-	reaper.drain()
-	assert not shiboken6.isValid(root) and not reaper.owns_detached_root(root)
-	document.undo_stack.clear()
+		monkeypatch.setattr(
+			bkchem_qt.canvas.graphics_retirement.shiboken6,
+			"delete",
+			fail_first_root_delete,
+		)
+		# A history-clear scan fails once. Repeating it keeps one terminal owner.
+		document._retire_all_history_graphics()
+		document._retire_all_history_graphics()
+		assert (
+			delete_attempts == 1
+			and shiboken6.isValid(root)
+			and not shiboken6.isValid(child)
+			and reaper.owns_detached_root(root)
+		)
+		monkeypatch.undo()
+		reaper.drain()
+		assert not shiboken6.isValid(root) and not reaper.owns_detached_root(root)
+		document.undo_stack.clear()
 
 
 #============================================

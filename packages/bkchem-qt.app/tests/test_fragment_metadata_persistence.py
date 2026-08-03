@@ -6,7 +6,7 @@ import PySide6.QtWidgets
 # local repo modules
 import bkchem_qt.canvas.items.atom_item
 import bkchem_qt.canvas.items.bond_item
-import bkchem_qt.io.cdml_io
+import bkchem_qt.io.cdml_document_io
 import tests.graphics_test_retirement
 
 
@@ -17,7 +17,7 @@ def test_remove_atom_undo_restores_pruned_fragment(
 		qapp: PySide6.QtWidgets.QApplication,
 		) -> None:
 	"""Structural undo restores both fragment references and graph endpoints."""
-	document = bkchem_qt.io.cdml_io.load_cdml_document_string("""<cdml version="0.15"
+	document = bkchem_qt.io.cdml_document_io.decode_compatibility_cdml_string("""<cdml version="0.15"
 		xmlns="http://www.freesoftware.fsf.org/bkchem/cdml">
 		<molecule id="mol-1"><atom id="a1" name="C"><point x="1cm" y="1cm"/></atom>
 		<atom id="a2" name="O"><point x="2cm" y="1cm"/></atom><bond id="b1" start="a1" end="a2" type="n" order="1"/>

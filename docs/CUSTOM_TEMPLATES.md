@@ -9,37 +9,49 @@ contacts.
 
 ## Overview
 
-BKChem supports custom templates that you can place onto drawings. A template
-captures a molecule plus a defined attachment point (atom) and optional
-attachment bond.
+The delivered PySide6 application supports detached saved molecule templates.
+Each template is one complete CDML document containing exactly one direct
+molecule. BKChem validates that document before it is saved or offered in the
+Template mode, and OASA owns the accepted CDML when it is placed.
 
-## Mark the template atom
+The current template action centers the saved molecule's authored atom geometry
+at the canvas click. It does not attach, fuse, bond to, or change a molecule
+already on the canvas.
 
-1. Draw the molecule that will become the template.
-2. Add a substituent atom at the position you want to be the attachment point.
-3. Switch to Template mode (the cyclohexane icon).
-4. Focus the atom and press `Ctrl+t`.
+## Save a template
 
-The focused atom becomes the template atom. This marker atom is deleted when the
-template is placed.
+1. Draw or open a document with one eligible detached molecule.
+2. Choose `File -> Save As Template`.
+3. Give the template a lowercase `.cdml` filename in the configured user-template
+   folder. BKChem adds that suffix when it is omitted.
 
-## Mark the template bond (optional)
+Successful template publication refreshes every open session automatically.
+Choose `File -> Refresh User Templates` after adding, replacing, or removing
+template files outside BKChem.
 
-If you want the template to attach to a bond (for example, building naphthalene
-from two benzenes), focus the bond in Template mode and press `Ctrl+t`. The bond
-is marked but not deleted when the template is used.
+The ordinary application configures that folder as `~/.bkchem/templates/`.
+An embedded host can supply a different explicit folder or no folder; that
+choice belongs to the frontend application, not OASA.
 
-## Name the template
+Saving publishes the exact current authoritative backend snapshot. It does not
+change the document's revision, undo history, dirty state, or saved baseline.
+Use Recovery Export when you need to write an arbitrary exact CDML snapshot
+outside the user-template folder.
 
-Select the molecule and use `Chemistry -> Set molecule name`. The molecule name
-becomes the template name shown in the Custom templates menu.
+## Place a template
 
-## Save the template
+1. Choose User Template mode.
+2. Select a template in its Template ribbon.
+3. Click an empty canvas position or an existing atom position to use that
+   position as the detached template's anchor.
 
-Templates can be stored in:
+The template catalog uses a molecule name when present; otherwise it shows the
+filename stem. Invalid or unreadable `.cdml` files are skipped with a filename
+and reason while valid neighboring templates remain available.
 
-- `~/.bkchem/templates/` for per-user templates.
-- `packages/bkchem-app/bkchem_data/templates/` for source checkouts.
-- `share/bkchem/templates/` when installed system-wide.
+## Current scope
 
-Use `File -> Save As Template` to save and validate templates.
+The legacy Tk attachment-marker and attachment-bond workflow is historical
+reference material. Marker authoring, template attachment, and template fusion
+are separate capabilities and are not part of the delivered PySide6 custom
+template grammar.

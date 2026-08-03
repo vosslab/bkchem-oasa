@@ -1,118 +1,122 @@
 # BKChem and OASA
 
-An open-source chemical drawing application and cheminformatics library for creating,
-converting, and analyzing molecular structures with a modern desktop editor and shared
-chemistry backend.
+A Qt chemical drawing application and Python chemistry backend for scientists and educators who need editable molecular documents, with CDML as the durable source of truth.
 
-BKChem is the drawing application. OASA (Open Architecture for Sketching Atoms and
-Molecules) is the library that powers structure conversion and analysis. This repository
-is the primary home for both projects.
+## One durable drawing, rebuildable UI
 
-## Packages
-- `packages/bkchem-app/` BKChem Tk GUI for drawing chemical structures.
-- `packages/bkchem-qt.app/` BKChem PySide6 GUI, the current frontend modernization track.
-- `packages/oasa/` OASA (Open Architecture for Sketching Atoms and Molecules)
-  library and CLI converters used by BKChem.
+BKChem-Qt is an interactive chemical drawing application whose complete persistent
+document is backend-authoritative: OASA owns canonical CDML, while Qt handles
+interaction and a disposable scene projection that can be rebuilt from that CDML.
+This keeps the editable document separate from any one window, canvas item, or
+temporary preview.
 
-## Terminology
-- Plugin: BKChem GUI extension (menu action or drawing mode) that runs inside the
-  editor and uses Tk/UI state.
-- Addon: filesystem plugin loaded from `packages/bkchem-app/addons/` or
-  `~/.bkchem/addons/`, described by a small XML manifest and script.
-- Codec: OASA format adapter for reading and writing molecules (SMILES, InChI,
-  molfile, CDML). Codecs are non-GUI and registered in OASA.
+The PySide6 screenshot below shows a real drawing session and demonstrates that the
+visible scene is the editor's projection of the document, not the document itself.
 
-## BKChem
-BKChem is the user-facing drawing application. It uses OASA as the backend for
-structure parsing, conversion, and analysis.
+<!-- screenshots:begin (managed by screenshot-docs) -->
+![BKChem-Qt showing an OASA-loaded benzene reaction with an arrow, condition text, and plus object](docs/screenshots/bkchem_qt_cdml_projection.png)
+<!-- screenshots:end -->
 
-The PySide6 frontend is the current modernization track. The established Tkinter
-frontend remains the compatibility oracle while the Qt editor reaches feature parity.
+## Choose the right package
 
-Use BKChem when you need:
-- A GUI for drawing and editing structures by hand.
-- Template-based sketching, fragment reuse, and layout helpers.
-- Visual export workflows backed by OASA conversions.
+| If you need | Use | Why |
+| --- | --- | --- |
+| Draw, edit, open, and save a molecular document | BKChem-Qt | The shipped PySide6 desktop application provides the interactive workflow. |
+| Use chemistry, CDML, conversion, or analysis from Python | OASA | The library owns chemistry behavior and the authoritative complete-CDML document. |
 
-## OASA
-OASA is the chemistry library and conversion engine. It can be used on its own
-in scripts or services, and it powers BKChem under the hood.
+BKChem-Qt sends persistent intent to OASA, then replaces its scene from the accepted
+backend result. That boundary makes native documents durable even when a Qt projection
+is discarded and rebuilt.
 
-Use OASA when you need:
-- Programmatic access to structure graphs and conversions.
-- Batch processing and automation outside the GUI.
-- A reusable backend for other chemistry tools.
+## Status and format boundaries
 
-## Highlights
-BKChem
-- Interactive chemical drawing with templates and reusable fragments.
-- Batch mode scripting for automation and scripted edits.
-- Export and import workflows powered by OASA.
+Pip source installation is supported. BKChem-Qt is the sole supported and shipped
+BKChem frontend; Qt provides interaction and a replaceable scene projection, while
+OASA remains the authoritative complete-CDML backend. Retained Tk source and fixtures
+remain contributor reference material, not a user installation, packaging, or
+compatibility commitment.
 
-OASA
-- Python library for chemical structure graphs and conversions.
-- Used by BKChem but available as a standalone library.
+Native editable Save is CDML. OASA-supported imports create a pathless, dirty CDML
+session until Save As chooses a new `.cdml` destination. SVG, PNG, and PDF are rendered
+exports, not editable Save formats. A signed, notarized, DMG, or frozen application
+artifact is not currently claimed.
 
-## Qt quick start
+The managed screenshot is a reproducible PySide6 capture of a native CDML session
+opened through the public application path and projected from OASA's backend snapshot.
+The more detailed [docs/CAPABILITIES.md](docs/CAPABILITIES.md) visual tour covers
+persistent drawing objects and verified Haworth chemistry. Refresh the complete
+managed screenshot catalog from the repository root with:
 
-From the repository root, use Python 3.10 or newer to install the backend and current
-desktop frontend, then launch the editor:
+```sh
+source source_me.sh && ./take_qt_screenshot.sh --kill-after 3
+```
 
-```bash
-pip install ./packages/oasa ./packages/bkchem-qt.app
+## Quick start
+
+Use Python 3.10 or newer with a desktop session suitable for PySide6. From a source
+checkout, install OASA and the supported BKChem frontend:
+
+```sh
+python3 -m pip install packages/oasa packages/bkchem-qt.app
+bkchem-qt --version
 bkchem-qt
 ```
 
-The Qt frontend opens and saves native CDML documents. See
-[docs/QT_CONTRACT.md](docs/QT_CONTRACT.md) for its document and file-handling contract.
+The version command prints the installed BKChem-Qt version; the final command opens an
+empty drawing session. The complete dependency and editable-install guidance is in
+[docs/INSTALL.md](docs/INSTALL.md).
 
-## Current Qt limits
+## Native CDML workflow
 
-- CDML is the only native save target; imported formats are pathless and require Save As.
-- Some fragment, group, and linear-form actions remain unsupported during the migration.
+Open an editable CDML drawing from the command line:
 
-## Screenshots
+```sh
+bkchem-qt example.cdml
+```
 
-![BKChem drawing example](docs/assets/bkchem_drawing.png)
-![BKChem PDF export example](docs/assets/bkchem_pdf_export.png)
-![BKChem templates example](docs/assets/bkchem_templates.png)
+Draw or edit in the window, then choose **File > Save As** and give the document a
+`.cdml` name. Reopen that file with the same command to continue editing. Ordinary Save
+writes OASA's exact current backend snapshot and marks that revision saved only after
+the write succeeds. [docs/USAGE.md](docs/USAGE.md) describes native Open, imports,
+Recovery Export, and rendered SVG, PNG, and PDF export.
 
-## Docs
-- [docs/AUTHORS.md](docs/AUTHORS.md) primary maintainers and contributors.
-- [docs/BATCH_MODE.md](docs/BATCH_MODE.md) batch scripting workflow.
-- [docs/archive/BKCHEM_FORMAT_SPEC.md](docs/archive/BKCHEM_FORMAT_SPEC.md) CDML format specification.
-- [docs/CHANGELOG.md](docs/CHANGELOG.md) chronological change log.
-- [docs/CODE_ARCHITECTURE.md](docs/CODE_ARCHITECTURE.md) system overview and data flow.
-- [docs/CUSTOM_TEMPLATES.md](docs/CUSTOM_TEMPLATES.md) template workflow.
-- [docs/EXTERNAL_IMPORT.md](docs/EXTERNAL_IMPORT.md) scripting from Python.
-- [docs/FILE_STRUCTURE.md](docs/FILE_STRUCTURE.md) directory map and assets.
-- [docs/INSTALL.md](docs/INSTALL.md) setup, dependencies, and environment.
-- [docs/MARKDOWN_STYLE.md](docs/MARKDOWN_STYLE.md) Markdown conventions.
-- [docs/MIGRATION.md](docs/MIGRATION.md) BKChem + OASA merge summary.
-- [docs/PYTHON_STYLE.md](docs/PYTHON_STYLE.md) Python coding conventions.
-- [docs/active_plans/RELEASE_DISTRIBUTION.md](docs/active_plans/RELEASE_DISTRIBUTION.md) release plans.
-- [docs/RELEASE_HISTORY.md](docs/RELEASE_HISTORY.md) historical release notes.
-- [docs/REPO_STYLE.md](docs/REPO_STYLE.md) repo structure and naming.
-- [docs/SUPPORTED_FORMATS.md](docs/SUPPORTED_FORMATS.md) supported file formats.
-- [docs/TODO_REPO.md](docs/TODO_REPO.md) publishing, planning, and policy tasks.
-- [docs/TODO_CODE.md](docs/TODO_CODE.md) coding tasks and feature work.
-- [docs/USER_GUIDE.md](docs/USER_GUIDE.md) BKChem manual.
-- [packages/oasa/README.md](packages/oasa/README.md) for OASA-specific usage.
-- [packages/bkchem-app/README.md](packages/bkchem-app/README.md) for BKChem-specific usage.
+## What the Qt application supports
 
-## Distribution
-- Planned: publish OASA to PyPI from this repository.
-- Planned: ship BKChem binary installers (macOS dmg, Linux Flatpak, Windows).
+- Create, open, save, close, and reopen the implemented native CDML document path.
+- Draw molecules; place atoms and templates; edit supported structures and presentation
+  objects; and use undo and redo.
+- Work with arrows, text, plus signs, brackets, vectors, marks, clipboard operations,
+  supported chemistry helpers, and artifact export.
+- Import supported chemistry formats through OASA, then save the editable result as a
+  new native CDML document.
 
-## Local website mirror
-- `bkchem_webpage/` contains a local copy of the legacy BKChem website.
+The release-facing action inventory distinguishes supported work from explicitly
+unsupported historical variants. The accepted Qt/OASA composition boundary, clean
+dependency-isolated installation, installed round-trip evidence, and tracked managed
+screenshots are complete. Frozen application, DMG, signing, and notarization delivery
+remain separate from the supported source and pip installation.
 
-## Project home
-- [GitHub repository](https://github.com/vosslab/bkchem) is the primary homepage.
+## Documentation
 
-## Legacy references
-- [Legacy BKChem site](https://bkchem.zirael.org/) (Python 2 era, not maintained).
-- [Legacy OASA site](https://bkchem.zirael.org/oasa_en.html) (Python 2 era, not maintained).
+- [docs/CAPABILITIES.md](docs/CAPABILITIES.md) provides the reproducible visual tour
+  and a concise current-capability map.
+- [docs/INSTALL.md](docs/INSTALL.md) gives source installation, verification, and
+  current delivery limits.
+- [docs/USAGE.md](docs/USAGE.md) explains launching, native file handling, imports,
+  recovery, and rendered export.
+- [docs/CODE_ARCHITECTURE.md](docs/CODE_ARCHITECTURE.md) maps backend ownership, Qt
+  projection, and the live data flow.
+- [docs/FILE_STRUCTURE.md](docs/FILE_STRUCTURE.md) identifies the shipped packages,
+  retained historical source, and extension locations.
+- [docs/CDML_BACKEND_TO_FRONTEND_CONTRACT.md](docs/CDML_BACKEND_TO_FRONTEND_CONTRACT.md)
+  defines complete-CDML persistence, revisions, and backend operations.
+- [docs/QT_CONTRACT.md](docs/QT_CONTRACT.md) defines Qt session, projection, save, and
+  lifecycle behavior.
+- [docs/active_plans/active/cdml_backend_authority_migration_2026-07-27.md](docs/active_plans/active/cdml_backend_authority_migration_2026-07-27.md)
+  records the accepted authority boundary and remaining release gates.
 
-## License
-- See `LICENSE`.
+## Provenance and license
+
+This repository continues the BKChem and OASA open-source projects while delivering the
+current Qt-only application path. OASA and BKChem-Qt declare GPL-2.0-only licensing;
+see [LICENSE](LICENSE) for the GNU General Public License, version 2.

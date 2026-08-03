@@ -6,7 +6,7 @@ import PySide6.QtGui
 import PySide6.QtWidgets
 
 # local repo modules
-import oasa.periodic_table
+import bkchem_qt.bridge.display_geometry
 
 # Element data: (symbol, name, row, col)
 # Covers common elements for organic and general chemistry
@@ -96,7 +96,7 @@ class PeriodicTablePopup(PySide6.QtWidgets.QDialog):
 			btn.setFixedSize(_BTN_SIZE, _BTN_SIZE)
 			btn.setToolTip(name)
 			# color-code by element type
-			bg_color = oasa.periodic_table.get_element_category_color(symbol)
+			bg_color = bkchem_qt.bridge.display_geometry.element_category_color(symbol)
 			btn.setStyleSheet(
 				f"background-color: {bg_color}; "
 				"font-weight: bold; "

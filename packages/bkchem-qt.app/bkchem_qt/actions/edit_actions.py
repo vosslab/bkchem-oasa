@@ -6,7 +6,6 @@ import PySide6.QtGui
 import PySide6.QtWidgets
 
 # local repo modules
-import oasa.cdml_render
 import bkchem_qt.io.clipboard_mime
 import bkchem_qt.io.export
 from bkchem_qt.actions.action_registry import MenuAction
@@ -19,16 +18,9 @@ def _selected_to_svg(app: object) -> None:
 	if session is None:
 		app.statusBar().showMessage("Copy as SVG requires an active backend session", 3000)
 		return
-	request = session.capture_visual_render_request("svg", "selection")
-	if isinstance(request, oasa.cdml_render.CDMLRenderFailure):
-		app.statusBar().showMessage(request.message, 3000)
-		return
-	result = bkchem_qt.io.export.render_snapshot_request(request)
-	if isinstance(result, oasa.cdml_render.CDMLRenderFailure):
+	result = bkchem_qt.io.export.render_session_snapshot(session, "svg", "selection")
+	if not result.succeeded:
 		app.statusBar().showMessage(result.message, 3000)
-		return
-	if result.artifact is None:
-		app.statusBar().showMessage("Snapshot SVG render returned no artifact", 3000)
 		return
 	svg_bytes = result.artifact
 	clipboard = PySide6.QtWidgets.QApplication.clipboard()

@@ -23,25 +23,32 @@ VIOLATIONS_BY_FILE: dict[str, list[str]] = {}
 #============================================
 def multiline_string_lines(path: pathlib.Path) -> set[int]:
 	"""
-	Collect lines that are part of multiline string tokens.
+	Collect lines whose leading whitespace is multiline-string payload.
 
 	Args:
 		path: File path.
 
 	Returns:
-		set[int]: Line numbers inside multiline strings.
+		set[int]: Line numbers whose leading whitespace is string content.
 	"""
-	in_string: set[int] = set()
+	payload_lines: set[int] = set()
 	with tokenize.open(path) as handle:
 		tokens = tokenize.generate_tokens(handle.readline)
 		for token in tokens:
-			if token.type != tokenize.STRING:
+			if token.type not in (tokenize.STRING, tokenize.FSTRING_MIDDLE):
 				continue
 			start_line = token.start[0]
 			end_line = token.end[0]
-			if end_line > start_line:
-				in_string.update(range(start_line, end_line + 1))
-	return in_string
+			if end_line <= start_line:
+				continue
+			# The token starts after executable indentation on its first line.
+			# Interior lines and the token's final partial line begin in literal
+			# payload. A following FSTRING_MIDDLE starts after a closing expression,
+			# so its start line remains executable and is deliberately retained.
+			payload_lines.update(range(start_line + 1, end_line))
+			if token.end[1] > 0:
+				payload_lines.add(end_line)
+	return payload_lines
 
 
 #============================================
@@ -188,3 +195,25 @@ def test_indentation_style(path: str) -> None:
 	assert rel not in VIOLATIONS_BY_FILE, file_utils.format_violation_assert_message(
 		rel, VIOLATIONS_BY_FILE.get(rel, []), REPORT_NAME
 	)
+
+
+#============================================
+def test_multiline_f_string_preserves_expression_indentation(tmp_path: pathlib.Path) -> None:
+	"""Ignore literal f-string payload without exempting expression code."""
+	path = tmp_path / "f_string_payload.py"
+	path.write_text(
+		"\tmessage = f\"\"\"heading\n"
+		"    literal payload\n"
+		"    {(\n"
+		"        1 + 2\n"
+		"    )}\n"
+		"    trailing payload\"\"\"\n",
+		encoding="utf-8",
+	)
+
+	payload_lines = multiline_string_lines(path)
+	assert {2, 3, 6}.issubset(payload_lines)
+	assert 1 not in payload_lines
+	assert 4 not in payload_lines
+	assert 5 not in payload_lines
+	assert summarize_indentation(path) is not None

@@ -117,12 +117,12 @@ def test_snapshot_projection_failure_has_typed_nonmutating_outcome(
 	request = oasa.cdml_render.CDMLRenderRequest(
 		oasa.cdml_document.CDMLSnapshot(14, _CDML, True), "svg",
 	)
-	def fail_projection(_cdml: str) -> object:
+	def fail_projection(_cdml: str, _observations: object) -> object:
 		"""Inject a detached snapshot decoder failure."""
 		raise RuntimeError("injected snapshot projection failure")
 	monkeypatch.setattr(
 		bkchem_qt.io.snapshot_render.bkchem_qt.io.cdml_document_io,
-		"prepare_projection_from_cdml", fail_projection,
+		"prepare_synchronized_projection", fail_projection,
 	)
 	result = bkchem_qt.io.snapshot_render.render_request(request)
 	assert (

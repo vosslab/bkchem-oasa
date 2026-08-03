@@ -8,7 +8,7 @@ import PySide6.QtWidgets
 import bkchem_qt.actions.chemistry_actions
 import bkchem_qt.canvas.items.atom_item
 import bkchem_qt.canvas.items.bond_item
-import bkchem_qt.io.cdml_io
+import bkchem_qt.io.cdml_document_io
 import bkchem_qt.models.fragment_model
 import bkchem_qt.undo.commands
 
@@ -46,7 +46,7 @@ def _dispose(
 #============================================
 def _fragment_document() -> object:
 	"""Return an editable two-atom CDML molecule with durable source IDs."""
-	return bkchem_qt.io.cdml_io.load_cdml_document_string("""<cdml version="0.15"
+	return bkchem_qt.io.cdml_document_io.decode_compatibility_cdml_string("""<cdml version="0.15"
 		xmlns="http://www.freesoftware.fsf.org/bkchem/cdml">
 		<molecule id="mol-1"><atom id="a1" name="C"><point x="1cm" y="1cm"/></atom>
 		<atom id="a2" name="O"><point x="2cm" y="1cm"/></atom>
@@ -117,7 +117,7 @@ def test_view_fragments_deletes_selected_document_wide_duplicate_label(
 		monkeypatch: object,
 		) -> None:
 	"""Document-wide choices include context so the requested duplicate is removed."""
-	document = bkchem_qt.io.cdml_io.load_cdml_document_string("""<cdml version="0.15"
+	document = bkchem_qt.io.cdml_document_io.decode_compatibility_cdml_string("""<cdml version="0.15"
 		xmlns="http://www.freesoftware.fsf.org/bkchem/cdml"><molecule id="m1">
 		<atom id="a1" name="C"><point x="1cm" y="1cm"/></atom></molecule><molecule id="m2">
 		<atom id="a2" name="O"><point x="2cm" y="1cm"/></atom></molecule></cdml>""")
@@ -159,9 +159,9 @@ def test_cancelled_fragment_creation_leaves_missing_id_unchanged(
 	try:
 		scene.addItem(item)
 		item.setSelected(True)
-		molecule.atoms[0]._chem_atom.id = ""
+		molecule.atoms[0].atom_id = None
 		monkeypatch.setattr(PySide6.QtWidgets.QInputDialog, "getText", _cancel_fragment_name)
 		bkchem_qt.actions.chemistry_actions._create_fragment(_ActionApp(document))
-		assert (molecule.atoms[0]._chem_atom.id, molecule.fragments) == ("", ())
+		assert (molecule.atoms[0].atom_id, molecule.fragments) == (None, ())
 	finally:
 		_dispose(document, scene, qapp)

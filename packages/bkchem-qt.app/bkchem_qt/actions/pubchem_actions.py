@@ -1,30 +1,14 @@
 """Explicit PubChem lookup and insertion actions for BKChem-Qt."""
 
-# Standard Library
-import dataclasses
-
 # PIP3 modules
 import PySide6.QtCore
 import PySide6.QtWidgets
 
 # local repo modules
-import oasa.coords_generator
-import oasa.cdml_writer
-import oasa.pubchem
-import oasa.pubchem_http
-import oasa.smiles_lib
-import bkchem_qt.bridge.worker
+import bkchem_qt.bridge.chemistry_preparation
 import bkchem_qt.bridge.insertion_placement
-import bkchem_qt.models.document_session
+import bkchem_qt.bridge.worker
 from bkchem_qt.actions.action_registry import MenuAction
-
-
-@dataclasses.dataclass(frozen=True)
-class PreparedPubChemLookup:
-	"""Immutable PubChem display data plus one backend insertion proposal."""
-
-	compound: oasa.pubchem.PubChemCompound
-	insertion: bkchem_qt.bridge.worker.PreparedMoleculeInsertion
 
 
 #============================================
@@ -121,20 +105,22 @@ class PubChemLookupDialog(PySide6.QtWidgets.QDialog):
 
 	#============================================
 	def set_lookup_result(
-			self, prepared: PreparedPubChemLookup, session: object, token: int,
+			self,
+			prepared: bkchem_qt.bridge.chemistry_preparation.PreparedPubChemLookup,
+			session: object, token: int,
 			) -> None:
 		"""Display one immutable prepared result without mutating a document."""
 		self._prepared = prepared
 		self._result_session = session
 		self._result_token = token
-		compound = prepared.compound
+		display = prepared.display
 		values = {
-			"name": compound.display_name or "; ".join(compound.synonyms[:1]),
-			"cid": str(compound.cid),
-			"formula": compound.molecular_formula,
-			"weight": "%.6g" % compound.molecular_weight,
-			"inchikey": compound.inchikey,
-			"smiles": compound.smiles,
+			"name": display.name,
+			"cid": str(display.cid),
+			"formula": display.molecular_formula,
+			"weight": "%.6g" % display.molecular_weight,
+			"inchikey": display.inchikey,
+			"smiles": display.smiles,
 		}
 		for key, value in values.items():
 			self._result_fields[key].setText(value)
@@ -154,50 +140,6 @@ class PubChemLookupDialog(PySide6.QtWidgets.QDialog):
 		"""Mark late worker deliveries ineligible before Qt destroys the dialog."""
 		self._closed = True
 		super().closeEvent(event)
-
-
-#============================================
-def _prepare_pubchem_lookup(
-		kind: str, query: str, transport: object, expected_revision: int,
-		token_stem: str, target_mean_bond_length: float,
-		insertion_anchor: tuple[float, float],
-		) -> PreparedPubChemLookup:
-	"""Prepare one frozen PubChem display result and molecule-only proposal."""
-	if isinstance(expected_revision, bool) or not isinstance(expected_revision, int):
-		raise ValueError("PubChem insertion revision must be an integer")
-	lookup_by_kind = {
-		"Name": oasa.pubchem.lookup_by_name,
-		"CID": oasa.pubchem.lookup_by_cid,
-		"InChI": oasa.pubchem.lookup_by_inchi,
-		"InChIKey": oasa.pubchem.lookup_by_inchikey,
-	}
-	lookup = lookup_by_kind.get(kind)
-	if lookup is None:
-		raise ValueError("Unsupported PubChem lookup type: %s" % kind)
-	if kind == "CID":
-		try:
-			query_value = int(query)
-		except ValueError as exc:
-			raise ValueError("PubChem CID must be a positive integer") from exc
-	else:
-		query_value = query
-	compound = lookup(query_value, transport)
-	molecule = oasa.smiles_lib.text_to_mol(compound.smiles)
-	oasa.coords_generator.calculate_coords(molecule, bond_length=1.0, force=1)
-	if molecule.is_connected():
-		molecules = [molecule]
-	else:
-		molecules = list(molecule.get_disconnected_subgraphs())
-	oasa.insertion_geometry.place_molecules_for_insertion(
-		molecules, target_mean_bond_length, insertion_anchor,
-	)
-	proposal_cdml = oasa.cdml_writer.molecules_to_insertion_proposal(
-		molecules, token_stem=token_stem,
-	)
-	insertion = bkchem_qt.bridge.worker.PreparedMoleculeInsertion(
-		proposal_cdml, expected_revision, "Insert PubChem structure",
-	)
-	return PreparedPubChemLookup(compound, insertion)
 
 
 #============================================
@@ -233,15 +175,7 @@ class _PubChemLookupRelay(PySide6.QtCore.QObject):
 		"""Display a current immutable worker result without Qt model conversion."""
 		if not self._is_current():
 			return
-		if (
-			not isinstance(prepared, PreparedPubChemLookup)
-			or not isinstance(prepared.compound, oasa.pubchem.PubChemCompound)
-			):
-			self._dialog.set_lookup_error("PubChem preparation returned invalid data")
-			return
-		if not isinstance(
-				prepared.insertion, bkchem_qt.bridge.worker.PreparedMoleculeInsertion,
-				):
+		if not bkchem_qt.bridge.chemistry_preparation.is_prepared_pubchem_lookup(prepared):
 			self._dialog.set_lookup_error("PubChem preparation returned invalid data")
 			return
 		self._dialog.set_lookup_result(prepared, self._target, self._token)
@@ -282,7 +216,8 @@ def _create_pubchem_lookup_worker(
 		dialog.set_lookup_error(error)
 		return None
 	worker = bkchem_qt.bridge.worker.OasaWorker(
-		_prepare_pubchem_lookup, kind, query, transport, expected_revision, token_stem,
+		bkchem_qt.bridge.chemistry_preparation.prepare_pubchem_lookup,
+		kind, query, transport, expected_revision, token_stem,
 		target_mean_bond_length, insertion_anchor,
 	)
 	relay = _PubChemLookupRelay(app, dialog, target, token, worker)
@@ -313,7 +248,10 @@ def _insert_dialog_result(app: object, dialog: PubChemLookupDialog) -> bool:
 	"""Submit one current PubChem proposal through backend authority."""
 	target = dialog._target_session
 	prepared = dialog._prepared
-	if dialog._closed or not isinstance(prepared, PreparedPubChemLookup):
+	if (
+			dialog._closed
+			or not bkchem_qt.bridge.chemistry_preparation.is_prepared_pubchem_lookup(prepared)
+			):
 		return False
 	if (
 			target is None or target not in app.sessions
@@ -333,23 +271,16 @@ def _insert_dialog_result(app: object, dialog: PubChemLookupDialog) -> bool:
 		dialog._status.setText("PubChem result is stale; look it up again.")
 		dialog._lookup_button.setEnabled(True)
 		return False
-	insertion = prepared.insertion
-	if (
-			not isinstance(insertion, bkchem_qt.bridge.worker.PreparedMoleculeInsertion)
-			or insertion.expected_revision != target.backend_snapshot.revision
-			):
+	insertion = bkchem_qt.bridge.chemistry_preparation.molecule_insertion_proposal(
+		prepared.insertion,
+	)
+	if insertion is None or insertion.expected_revision != target.backend_snapshot.revision:
 		dialog._clear_result()
 		dialog._status.setText("PubChem result is stale; look it up again.")
 		dialog._lookup_button.setEnabled(True)
 		return False
-	request = bkchem_qt.models.document_session.PersistentOperationRequest(
-		operation_key="molecule.insert",
-		label=insertion.label or "Insert PubChem structure",
-		payload=(
-			("expected_revision", insertion.expected_revision),
-			("proposal_cdml", insertion.proposal_cdml),
-		),
-		target_keys=frozenset(),
+	request = bkchem_qt.bridge.chemistry_preparation.build_molecule_insertion_request(
+		insertion, "Insert PubChem structure",
 	)
 	outcome = target.submit_persistent_operation(request)
 	if outcome.submitted:
@@ -367,7 +298,8 @@ def _insert_dialog_result(app: object, dialog: PubChemLookupDialog) -> bool:
 
 #============================================
 def open_pubchem_lookup(
-		app: object, transport: object = oasa.pubchem_http.fetch_json,
+		app: object,
+		transport: object = bkchem_qt.bridge.chemistry_preparation.fetch_pubchem_json,
 		) -> PubChemLookupDialog:
 	"""Show a modeless, user-initiated PubChem lookup dialog."""
 	dialog = PubChemLookupDialog(app)

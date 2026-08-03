@@ -37,6 +37,14 @@ class ClipboardManager:
 		# it cannot retain a projection document or selected model wrappers.
 		del objects
 		del document
+		self.publish_fragment(cdml_text)
+		return object_count
+
+	#============================================
+	def publish_fragment(self, cdml_text: str) -> None:
+		"""Publish already-authoritative raw CDML without inspecting a projection."""
+		if not isinstance(cdml_text, str):
+			raise TypeError("Clipboard CDML fragment must be text")
 		clipboard = PySide6.QtWidgets.QApplication.clipboard()
 		mime_data = PySide6.QtCore.QMimeData()
 		mime_data.setData(
@@ -48,7 +56,6 @@ class ClipboardManager:
 			bkchem_qt.io.clipboard_mime.BKCHEM_OWNED_MIME_PROPERTY, True,
 		)
 		clipboard.setMimeData(mime_data)
-		return object_count
 
 	#============================================
 	def read_fragment(self) -> tuple[str, str | None]:

@@ -9,6 +9,7 @@ import bkchem_qt.io.cdml_candidate
 import bkchem_qt.main_window
 import bkchem_qt.models.backend_revision_history
 import bkchem_qt.models.document_session
+import bkchem_qt.models.projection_lifecycle
 import oasa.cdml_document
 import oasa.safe_xml
 
@@ -43,30 +44,30 @@ def _install_projection_port(
 		deliver: object,
 		) -> None:
 	"""Install one fresh typed projection lifecycle port for this session."""
-	port = bkchem_qt.models.document_session.SessionProjectionLifecyclePort(session, deliver)
+	port = bkchem_qt.models.projection_lifecycle.SessionProjectionLifecyclePort(session, deliver)
 	session.install_projection_lifecycle_port(port)
 
 
 #============================================
-def _projection_unavailable(_snapshot: object) -> bkchem_qt.models.document_session.ProjectionLifecycleResult:
+def _projection_unavailable(_snapshot: object) -> bkchem_qt.models.projection_lifecycle.ProjectionLifecycleResult:
 	"""Report a deliberately unavailable projection without claiming installation."""
-	return bkchem_qt.models.document_session.ProjectionLifecycleResult(
-		bkchem_qt.models.document_session.ProjectionLifecycleStatus.PREPARATION_UNAVAILABLE,
-		bkchem_qt.models.document_session.ProjectionLifecyclePhase.PREPARATION,
+	return bkchem_qt.models.projection_lifecycle.ProjectionLifecycleResult(
+		bkchem_qt.models.projection_lifecycle.ProjectionLifecycleStatus.PREPARATION_UNAVAILABLE,
+		bkchem_qt.models.projection_lifecycle.ProjectionLifecyclePhase.PREPARATION,
 	)
 
 
 #============================================
-def _projection_installed(_snapshot: object) -> bkchem_qt.models.document_session.ProjectionLifecycleResult:
+def _projection_installed(_snapshot: object) -> bkchem_qt.models.projection_lifecycle.ProjectionLifecycleResult:
 	"""Model an installed projection where no real replacement is required."""
-	return bkchem_qt.models.document_session.ProjectionLifecycleResult(
-		bkchem_qt.models.document_session.ProjectionLifecycleStatus.INSTALLED,
-		bkchem_qt.models.document_session.ProjectionLifecyclePhase.COMPLETE,
+	return bkchem_qt.models.projection_lifecycle.ProjectionLifecycleResult(
+		bkchem_qt.models.projection_lifecycle.ProjectionLifecycleStatus.INSTALLED,
+		bkchem_qt.models.projection_lifecycle.ProjectionLifecyclePhase.COMPLETE,
 	)
 
 
 #============================================
-def _projection_raises(_snapshot: object) -> bkchem_qt.models.document_session.ProjectionLifecycleResult:
+def _projection_raises(_snapshot: object) -> bkchem_qt.models.projection_lifecycle.ProjectionLifecycleResult:
 	"""Model a frontend projection callback that cannot install a snapshot."""
 	raise RuntimeError("projection unavailable")
 
@@ -236,12 +237,12 @@ def test_retry_uses_the_exact_current_backend_snapshot(
 	session = main_window._active_session
 	projected = []
 
-	def record_false(snapshot: object) -> bkchem_qt.models.document_session.ProjectionLifecycleResult:
+	def record_false(snapshot: object) -> bkchem_qt.models.projection_lifecycle.ProjectionLifecycleResult:
 		"""Record the failed post-acceptance snapshot for comparison."""
 		projected.append(snapshot)
 		return _projection_unavailable(snapshot)
 
-	def record_true(snapshot: object) -> bkchem_qt.models.document_session.ProjectionLifecycleResult:
+	def record_true(snapshot: object) -> bkchem_qt.models.projection_lifecycle.ProjectionLifecycleResult:
 		"""Record the retried snapshot and acknowledge literal projection success."""
 		projected.append(snapshot)
 		return main_window._replace_session_projection(session, snapshot)

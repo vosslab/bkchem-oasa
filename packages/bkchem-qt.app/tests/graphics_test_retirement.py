@@ -46,6 +46,32 @@ def bare_document_scene_retirement(
 
 
 #============================================
+def retire_terminal_top_level_widgets(
+		app: PySide6.QtWidgets.QApplication,
+		widgets: tuple[PySide6.QtWidgets.QWidget, ...] | None = None,
+		) -> None:
+	"""Retire test-process top-level widgets while honoring native validity.
+
+	Qt can retain a Python wrapper in its top-level enumeration after the native
+	object was retired during a session's controlled reaper drain.  The wrapper
+	is absent at this terminal boundary, so it receives no further Qt call.
+	"""
+	targets = tuple(app.topLevelWidgets()) if widgets is None else widgets
+	for widget in targets:
+		if not bkchem_qt.canvas.graphics_retirement.is_valid_native_wrapper(widget):
+			continue
+		widget.close()
+		if not bkchem_qt.canvas.graphics_retirement.is_valid_native_wrapper(widget):
+			continue
+		if isinstance(widget, bkchem_qt.main_window.MainWindow):
+			if not bkchem_qt.main_window.drain_pending_session_deletions(app, widget):
+				raise RuntimeError("MainWindow session reaper did not drain")
+		if bkchem_qt.canvas.graphics_retirement.is_valid_native_wrapper(widget):
+			if not bkchem_qt.main_window.delete_qobject_and_wait(app, widget):
+				raise RuntimeError("Top-level QObject deletion was not delivered")
+
+
+#============================================
 def _retire_document_scene(
 		app: PySide6.QtWidgets.QApplication,
 		document: bkchem_qt.models.document.Document,

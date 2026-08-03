@@ -74,7 +74,7 @@ def _canonical_vector(
 		if kind == "polyline":
 			points = tuple(
 				(float(point.getAttribute("x")[:-2]) * oasa.cdml_writer.POINTS_PER_CM,
-				 float(point.getAttribute("y")[:-2]) * oasa.cdml_writer.POINTS_PER_CM)
+					float(point.getAttribute("y")[:-2]) * oasa.cdml_writer.POINTS_PER_CM)
 				for point in child.childNodes
 				if isinstance(point, xml.dom.minidom.Element) and point.localName == "point"
 			)

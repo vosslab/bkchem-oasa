@@ -4,12 +4,8 @@
 import math
 
 # local repo modules
-from oasa import repair_ops
-import bkchem_qt.canvas.items.atom_item
-import bkchem_qt.bridge.oasa_bridge
 import bkchem_qt.config.geometry_units
 import bkchem_qt.models.molecule_model
-import bkchem_qt.undo.commands
 from bkchem_qt.actions.action_registry import MenuAction
 
 
@@ -20,147 +16,6 @@ def _resolve_target_bond_length_pt(app: object) -> float:
 	if scene is not None and hasattr(scene, "grid_spacing_pt"):
 		return float(scene.grid_spacing_pt)
 	return bkchem_qt.config.geometry_units.DEFAULT_BOND_LENGTH_PT
-
-
-#============================================
-def _get_target_mols_and_items(
-		app: object,
-		target_molecule: bkchem_qt.models.molecule_model.MoleculeModel | None = None,
-		) -> list:
-	"""Get molecules to operate on and their AtomItem mappings.
-
-	Uses an explicit target when supplied, otherwise selected top-level
-	molecules, and finally all document molecules. Builds a mapping from
-	AtomModel identity to the
-	corresponding AtomItem in the scene for each molecule.
-
-	Args:
-		app: The main BKChem-Qt application object.
-		target_molecule: Optional molecule supplied by an interaction mode.
-
-	Returns:
-		List of (MoleculeModel, {AtomModel_id: AtomItem}) pairs.
-		Empty list when no molecules are available.
-	"""
-	if target_molecule is not None:
-		mols = [target_molecule]
-	else:
-		mols = [
-			object_model for object_model in app.document.selected_top_level_objects
-			if isinstance(
-				object_model,
-				bkchem_qt.models.molecule_model.MoleculeModel,
-			)
-		]
-	if not mols:
-		mols = app.document.molecules
-	if not mols:
-		return []
-	# build AtomModel id -> AtomItem mapping from scene
-	atom_item_map = {}
-	for item in app._scene.items():
-		if isinstance(item, bkchem_qt.canvas.items.atom_item.AtomItem):
-			atom_item_map[id(item.atom_model)] = item
-	result = []
-	for mol in mols:
-		mol_items = {}
-		for am in mol.atoms:
-			ai = atom_item_map.get(id(am))
-			if ai is not None:
-				mol_items[id(am)] = ai
-		result.append((mol, mol_items))
-	return result
-
-
-#============================================
-class _RepairMoveAtomsCommand(bkchem_qt.undo.commands.MoveAtomsCommand):
-	"""Keep one complete repair operation as one undo history entry."""
-
-	#============================================
-	def id(self) -> int:
-		"""Disable drag-command merging for a discrete repair action."""
-		return -1
-
-
-#============================================
-def _apply_moves_with_undo(
-		app: object, items_and_offsets: list, description: str,
-		) -> None:
-	"""Push a MoveAtomsCommand to the undo stack for a batch of atom moves.
-
-	The atoms have already been moved in-place before this call. The
-	command records the offsets so undo can reverse them.
-
-	Args:
-		app: The main BKChem-Qt application object.
-		items_and_offsets: List of (AtomItem, dx, dy) tuples.
-		description: Text label for the undo history entry.
-	"""
-	if not items_and_offsets:
-		return
-	cmd = _RepairMoveAtomsCommand(
-		items_and_offsets, text=description,
-	)
-	# first redo is skipped because atoms are already at new positions
-	app.document.undo_stack.push(cmd)
-
-
-#============================================
-def _apply_oasa_repair(
-		app: object, operation: object, description: str, success_message: str,
-		needs_bond_length: bool = True,
-		target_molecule: bkchem_qt.models.molecule_model.MoleculeModel | None = None,
-		) -> None:
-	"""Run one OASA repair operation and commit its coordinate delta once.
-
-	The OASA bridge creates an isolated graph, so repair algorithms can move
-	whole substituent subtrees without altering the live document until their
-	complete result is available.  The bridge preserves atom order, which
-	provides a stable one-to-one coordinate mapping back to the Qt wrappers.
-
-	Args:
-		app: Main window exposing the active document and scene.
-		operation: OASA repair function operating on one molecule.
-		description: Undo-stack label for this repair operation.
-		success_message: Status-bar format string with one atom-count field.
-		needs_bond_length: Whether ``operation`` takes the scene bond length.
-		target_molecule: Optional molecule supplied by an interaction mode.
-	"""
-	targets = _get_target_mols_and_items(app, target_molecule)
-	if not targets:
-		app.statusBar().showMessage("No molecules to repair", 3000)
-		return
-	for mol_model, mol_items in targets:
-		if len(mol_items) != len(mol_model.atoms):
-			app.statusBar().showMessage(
-				"Repair requires every target atom to be projected", 5000
-			)
-			return
-	target_bond_length_pt = _resolve_target_bond_length_pt(app)
-	all_offsets = []
-	for mol_model, mol_items in targets:
-		if not mol_model.atoms:
-			continue
-		oasa_mol = bkchem_qt.bridge.oasa_bridge.qt_mol_to_oasa_mol(mol_model)
-		if needs_bond_length:
-			operation(oasa_mol, target_bond_length_pt)
-		else:
-			operation(oasa_mol)
-		for atom_model, repaired_atom in zip(mol_model.atoms, oasa_mol.atoms):
-			old_x = atom_model.x
-			old_y = atom_model.y
-			new_x = repaired_atom.x
-			new_y = repaired_atom.y
-			dx = new_x - old_x
-			dy = new_y - old_y
-			if abs(dx) < 0.01 and abs(dy) < 0.01:
-				continue
-			atom_model.x = new_x
-			atom_model.y = new_y
-			all_offsets.append((mol_items[id(atom_model)], dx, dy))
-	_apply_moves_with_undo(app, all_offsets, description)
-	message = success_message.format(len(all_offsets))
-	app.statusBar().showMessage(message, 3000)
 
 
 #============================================
@@ -303,11 +158,12 @@ def _handle_normalize_bond_angles(
 def _handle_normalize_rings(
 		app: object,
 		target_molecule: bkchem_qt.models.molecule_model.MoleculeModel | None = None,
+		target_molecule_id: str | None = None,
 		) -> None:
-	"""Normalize rings with OASA while retaining attached substituents."""
-	_apply_oasa_repair(
-		app, repair_ops.normalize_rings, "Normalize ring structures",
-		"Normalized rings for {} atoms", target_molecule=target_molecule,
+	"""Normalize eligible ring structures through the authoritative backend."""
+	_submit_geometry_repair(
+		app, "normalize-rings", "Normalize ring structures",
+		"Normalize ring structures is unavailable", target_molecule, target_molecule_id,
 	)
 
 
@@ -315,12 +171,12 @@ def _handle_normalize_rings(
 def _handle_straighten_bonds(
 		app: object,
 		target_molecule: bkchem_qt.models.molecule_model.MoleculeModel | None = None,
+		target_molecule_id: str | None = None,
 		) -> None:
-	"""Straighten terminal bonds with OASA's shared repair algorithm."""
-	_apply_oasa_repair(
-		app, repair_ops.straighten_bonds, "Straighten bonds",
-		"Straightened {} terminal bonds", needs_bond_length=False,
-		target_molecule=target_molecule,
+	"""Straighten durable terminal bonds through the authoritative backend."""
+	_submit_geometry_repair(
+		app, "straighten-bonds", "Straighten bonds", "Straighten bonds is unavailable",
+		target_molecule, target_molecule_id,
 	)
 
 

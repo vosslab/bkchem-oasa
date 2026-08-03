@@ -7,7 +7,8 @@ import PySide6.QtWidgets
 import bkchem_qt.actions.action_registry
 import bkchem_qt.actions.chemistry_actions
 import bkchem_qt.canvas.items.group_item
-import bkchem_qt.io.cdml_io
+import bkchem_qt.io.cdml_document_io
+import oasa.cdml_document
 import tests.graphics_test_retirement
 
 
@@ -28,11 +29,11 @@ class _ActionApp:
 
 
 #============================================
-def test_group_projection_is_selectable_and_enables_group_action(
+def test_builtin_group_projection_keeps_expand_action_disabled(
 		qapp: PySide6.QtWidgets.QApplication,
 		) -> None:
-	"""A loaded group reaches the same selection predicate as its menu action."""
-	document = bkchem_qt.io.cdml_io.load_cdml_document_string(_GROUP_CDML)
+	"""A builtin group remains outside the narrow implicit expansion route."""
+	document = bkchem_qt.io.cdml_document_io.decode_compatibility_cdml_string(_GROUP_CDML)
 	scene = PySide6.QtWidgets.QGraphicsScene()
 	document.set_scene(scene)
 	group = document.molecules[0].groups[0]
@@ -44,7 +45,24 @@ def test_group_projection_is_selectable_and_enables_group_action(
 		bkchem_qt.actions.chemistry_actions.register_chemistry_actions(
 				registry, _ActionApp(document),
 			)
-		assert (document.groups_selected, registry.is_enabled("chemistry.expand_groups", document)) == (True, True)
+		assert document.groups_selected
+		assert not registry.is_enabled("chemistry.expand_groups", document)
+
+
+#============================================
+def test_group_observation_keeps_nameless_partial_font_labels_selectable() -> None:
+	"""A legacy-visible label remains selectable without gaining expansion authority."""
+	cdml = _GROUP_CDML.replace('name="COOH" ', '').replace(
+		'family="Helvetica" size="14"', 'family="Helvetica"',
+	)
+	backend = oasa.cdml_document.CDMLDocumentSession.load(cdml)
+	projection_snapshot = backend.projection_snapshot()
+	document = bkchem_qt.io.cdml_document_io.hydrate_synchronized_cdml_document(
+		projection_snapshot,
+	)
+	group = document.molecules[0].groups[0]
+	assert group.supported and group.name == "" and not group.implicit_expandable
+	assert dict(group.font_attributes) == {"family": "Helvetica"}
 
 
 #============================================
@@ -69,7 +87,7 @@ def test_group_item_teardown_disconnects_before_scene_clear(
 			super().dispose()
 			self._disposal_state["connected_after_dispose"] = self._connected
 
-	document = bkchem_qt.io.cdml_io.load_cdml_document_string(_GROUP_CDML)
+	document = bkchem_qt.io.cdml_document_io.decode_compatibility_cdml_string(_GROUP_CDML)
 	scene = PySide6.QtWidgets.QGraphicsScene()
 	document.set_scene(scene)
 	disposal_state: dict[str, bool] = {}

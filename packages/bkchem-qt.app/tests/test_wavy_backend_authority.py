@@ -116,16 +116,26 @@ def _mixed_candidate() -> tuple[str, str]:
 def _canonical_wavy_semantics(
 		cdml: str, durable_id: str,
 		) -> tuple[str, str, tuple[str, ...], tuple[tuple[float, float], ...]] | None:
-	"""Return plain canonical Wavy facts selected by an accepted durable ID."""
-	root = oasa.safe_xml.parse_dom_from_string(cdml).documentElement
-	wavy = _element_by_semantics(root, root.namespaceURI, "polyline", durable_id)
-	if wavy is None or wavy.getAttribute("style") != "wavy":
+	"""Return OASA-described Wavy facts selected by an accepted durable ID."""
+	description = oasa.cdml_document.CDMLDocument.parse(
+		cdml, validation="strict",
+	).presentation_description(0)
+	wavy = next(
+		(
+			record for record in description.records
+			if record.identifier == durable_id and record.kind == "polyline"
+			and dict(record.attributes).get("style") == "wavy"
+		),
+		None,
+	)
+	if wavy is None:
 		return None
+	attributes = dict(wavy.attributes)
 	return (
-		wavy.localName,
-		wavy.getAttribute("id"),
-		tuple(wavy.getAttribute(name) for name in ("line_color", "width", "spline", "style")),
-		_scene_points(wavy),
+		wavy.kind,
+		wavy.identifier,
+		tuple(attributes[name] for name in ("line_color", "width", "spline", "style")),
+		tuple(point[:2] for point in wavy.points),
 	)
 
 

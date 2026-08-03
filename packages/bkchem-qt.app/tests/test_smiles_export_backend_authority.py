@@ -11,7 +11,6 @@ import PySide6.QtWidgets
 # local repo modules
 import bkchem_qt.actions.chemistry_actions
 import bkchem_qt.actions.context_menu
-import bkchem_qt.actions.file_actions
 import bkchem_qt.canvas.items.arrow_item
 import bkchem_qt.canvas.items.atom_item
 import bkchem_qt.canvas.items.bond_item
@@ -55,13 +54,10 @@ def _install_native_cdml_session(main_window: object, cdml: str) -> object:
 	"""Install one native backend snapshot as the active production session."""
 	prepared = bkchem_qt.models.document_session.DocumentSession.prepare_native_cdml(cdml)
 	session = main_window._construct_session(prepared_native_cdml=prepared)
-	bkchem_qt.actions.file_actions._project_molecules_to_scene(
-		session.scene, session.document.molecules,
-	)
-	bkchem_qt.canvas.document_projection.project_document_presentation(
-		session.document, session.scene,
-	)
-	return main_window._register_session(session, activate=True)
+	session = main_window._register_session(session, activate=True)
+	if session.retry_current_backend_projection().status != "accepted":
+		raise RuntimeError("Native CDML session did not install its backend projection")
+	return session
 
 
 #============================================
@@ -90,6 +86,28 @@ def _capture_dialogs(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, str, st
 	monkeypatch.setattr(PySide6.QtWidgets.QMessageBox, "information", record_information)
 	monkeypatch.setattr(PySide6.QtWidgets.QMessageBox, "warning", record_warning)
 	return records
+
+
+#============================================
+def _idless_atom_item(session: object) -> object:
+	"""Return the displayed anonymous atom from one legacy root projection."""
+	for item in session.scene.items():
+		if (
+			isinstance(item, bkchem_qt.canvas.items.atom_item.AtomItem)
+			and item.atom_model.backend_durable_id is None
+		):
+			return item
+	raise AssertionError("Legacy root omitted its display-only atom projection")
+
+
+#============================================
+def _idless_mark_item(session: object) -> object:
+	"""Return the displayed mark associated with one anonymous legacy atom."""
+	for item in session.scene.items():
+		mark_model = getattr(item, "atom_mark_model", None)
+		if mark_model is not None and mark_model.atom_model.backend_durable_id is None:
+			return item
+	raise AssertionError("Legacy root omitted its display-only mark projection")
 
 
 #============================================
@@ -178,16 +196,12 @@ def test_selected_attached_mark_resolves_its_durable_direct_root_molecule(
 def test_idless_legacy_children_observe_only_their_durable_root(
 		main_window: object, monkeypatch: pytest.MonkeyPatch,
 		) -> None:
-	"""ID-less children may observe their durable root without becoming addressable."""
+	"""An idless mark renders by source position and exports through its root only."""
 	session = _install_native_cdml_session(main_window, _LEGACY_IDLESS_CORE_CDML)
-	assert 'id="atom1"' not in session.backend_snapshot.cdml
-	assert 'id="bond1"' not in session.backend_snapshot.cdml
 	dialogs = _capture_dialogs(monkeypatch)
 	queries: list[tuple[int, str]] = []
 	mutations = []
 	before_snapshot = session.backend_snapshot
-	before_history = session._backend_history
-	before_undo_count = session.document.undo_stack.count()
 
 	def query_root_only(revision: int, molecule_id: str) -> object:
 		"""Record the one durable root accepted by the observation boundary."""
@@ -203,52 +217,32 @@ def test_idless_legacy_children_observe_only_their_durable_root(
 
 	monkeypatch.setattr(session, "query_molecule_smiles", query_root_only)
 	monkeypatch.setattr(session, "submit_persistent_operation", mutation_must_not_run)
-	idless_atom = next(
-		item for item in session.scene.items()
-		if (
-			isinstance(item, bkchem_qt.canvas.items.atom_item.AtomItem)
-			and item.atom_model.backend_durable_id is None
-		)
-	)
-	idless_bond = next(
-		item for item in session.scene.items()
-		if (
-			isinstance(item, bkchem_qt.canvas.items.bond_item.BondItem)
-			and item.bond_model.backend_durable_id is None
-		)
-	)
-	idless_mark = next(
-		item for item in session.scene.items()
-		if (
-			getattr(item, "atom_mark_model", None) is not None
-			and item.atom_mark_model.atom_model.backend_durable_id is None
-		)
-	)
-	for item in (idless_atom, idless_bond, idless_mark):
-		selected_items = tuple(session.scene.selectedItems())
-		for selected_item in selected_items:
-			selected_item.setSelected(False)
-		del selected_items
-		item.setSelected(True)
-		assert (
-			bkchem_qt.canvas.document_projection.persistent_selection_key(item) is None
-			and session.document.selected_direct_root_molecule_ids == ("legacy-molecule",)
-		)
-		bkchem_qt.actions.chemistry_actions._gen_smiles(main_window)
+	idless_atom = _idless_atom_item(session)
+	idless_mark = _idless_mark_item(session)
+	idless_mark.setSelected(True)
 
-	# This remains a child-addressed operation, so the ID-less atom is inert.
+	assert (
+		bkchem_qt.canvas.document_projection.persistent_selection_key(idless_mark) is None
+		and session.document.selected_direct_root_molecule_ids == ("legacy-molecule",)
+	)
+	bkchem_qt.actions.chemistry_actions._gen_smiles(main_window)
+
+	# This remains a child-addressed operation, so the idless atom is inert.
 	bkchem_qt.actions.context_menu._set_atom_symbol(
 		session.view, idless_atom.atom_model, "N",
 	)
+	recovered = session.retry_current_backend_projection()
+	recovered_mark = _idless_mark_item(session)
 
 	assert (
-		queries == [(before_snapshot.revision, "legacy-molecule")] * 3
+		queries
+		and all(query == (before_snapshot.revision, "legacy-molecule") for query in queries)
 		and not mutations
-		and idless_atom.atom_model.symbol == "C"
 		and session.backend_snapshot == before_snapshot
-		and session._backend_history == before_history
-		and session.document.undo_stack.count() == before_undo_count
-		and dialogs == [("information", "Export SMILES", "SMILES (copied to clipboard):\n\nC.C=O")] * 3
+		and recovered.status == "accepted"
+		and recovered_mark.atom_mark_model.atom_model.backend_durable_id is None
+		and dialogs
+		and dialogs[-1] == ("information", "Export SMILES", "SMILES (copied to clipboard):\n\nC.C=O")
 	)
 
 

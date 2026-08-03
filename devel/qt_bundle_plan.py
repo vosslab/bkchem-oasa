@@ -43,6 +43,7 @@ class QtBundlePlan:
 	python_paths: tuple[str, ...]
 	data_files: tuple[BundleData, ...]
 	hidden_imports: tuple[str, ...]
+	excluded_modules: tuple[str, ...]
 	collect_binaries: tuple[str, ...]
 	frontend_distribution: str
 	frontend_project_dir: str
@@ -137,6 +138,7 @@ def make_qt_bundle_plan(repo_root: pathlib.Path) -> QtBundlePlan:
 		),
 		data_files=data_files,
 		hidden_imports=hidden_imports,
+		excluded_modules=("tkinter", "_tkinter", "PIL.ImageTk"),
 		collect_binaries=("rdkit", "cairo", "rustworkx"),
 		frontend_distribution="bkchem-qt",
 		frontend_project_dir=_repo_path(root, "packages", "bkchem-qt.app"),
@@ -177,6 +179,8 @@ def validate_qt_bundle_plan(plan: QtBundlePlan) -> None:
 			raise ValueError(f"Qt bundle plan contains a legacy runtime input: {value}")
 	if not plan.frontend_distribution:
 		raise ValueError("Qt bundle frontend distribution must be nonempty")
+	if not {"tkinter", "_tkinter", "PIL.ImageTk"}.issubset(plan.excluded_modules):
+		raise ValueError("Qt bundle plan must exclude the Tcl/Tk runtime modules")
 	if not (pathlib.Path(plan.frontend_project_dir) / "pyproject.toml").is_file():
 		raise ValueError("Qt bundle frontend project must contain pyproject.toml")
 

@@ -8,9 +8,37 @@ import shiboken6
 # local repo modules
 import bkchem_qt.canvas.document_projection
 import bkchem_qt.canvas.graphics_retirement
+import bkchem_qt.main_window
 import bkchem_qt.models.document
 import bkchem_qt.models.document_object
 import tests.graphics_test_retirement
+
+
+#============================================
+def test_qapp_only_graphics_test_does_not_construct_main_window(
+		qapp: PySide6.QtWidgets.QApplication,
+		) -> None:
+	"""A bare Qt test keeps window/session ownership out of its fixture closure."""
+	assert not any(
+		isinstance(widget, bkchem_qt.main_window.MainWindow)
+		for widget in qapp.topLevelWidgets()
+	)
+
+
+#============================================
+def test_terminal_cleanup_skips_reaped_session_view(
+		main_window: bkchem_qt.main_window.MainWindow,
+		qapp: PySide6.QtWidgets.QApplication,
+		) -> None:
+	"""A stale session view never crosses the terminal QObject boundary twice."""
+	main_window.on_new()
+	session = main_window.sessions[-1]
+	view = session.view
+	main_window.on_new()
+	closed = main_window.close_session_at(main_window.sessions.index(session))
+	drained = bkchem_qt.main_window.drain_pending_session_deletions(qapp, main_window)
+	tests.graphics_test_retirement.retire_terminal_top_level_widgets(qapp, (view,))
+	assert closed and drained and not shiboken6.isValid(view)
 
 
 #============================================

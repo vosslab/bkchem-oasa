@@ -108,6 +108,13 @@ class ModeManager(PySide6.QtCore.QObject):
 		return list(self._modes.keys())
 
 	#============================================
+	def mode(self, name: str) -> object:
+		"""Return one registered mode by its stable public name."""
+		if name not in self._modes:
+			raise KeyError(f"Unknown mode: {name!r}")
+		return self._modes[name]
+
+	#============================================
 	def dispose(self) -> None:
 		"""Deactivate and queue every Python-backed mode independently.
 

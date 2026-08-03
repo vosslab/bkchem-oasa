@@ -5,25 +5,26 @@
 ```text
 bkchem-oasa/
 +- packages/
-|  +- oasa/                 chemistry backend package
-|  +- bkchem-qt.app/        active PySide6 frontend package
-|  `- bkchem-app/           retained Tkinter compatibility package
-+- docs/                    contracts, plans, and project documentation
-+- tests/                   repository-wide test and style checks
+|  +- oasa/                 authoritative chemistry and CDML backend
+|  +- bkchem-qt.app/        sole supported PySide6 BKChem frontend
+|  `- bkchem-app/           historical Tk source and fixture evidence
++- docs/                    contracts, plans, architecture, and user docs
++- tests/                   repository-wide structural and E2E checks
 +- tools/                   focused developer utilities
-+- devel/                   release and maintenance scripts
-+- launch_bkchem-qt_gui.sh  Qt launcher
-+- launch_bkchem-tk_gui.sh  Tkinter compatibility launcher
++- devel/                   maintenance and release-preparation scripts
++- launch_bkchem-qt_gui.sh  local Qt development launcher
 +- source_me.sh             local development environment setup
-`- VERSION                  shared release version
+`- VERSION                  shared version registry
 ```
 
-- [README.md](../README.md) introduces BKChem and OASA.
+- [README.md](../README.md) is the repository landing page.
 - [pip_requirements.txt](../pip_requirements.txt),
   [pip_requirements-dev.txt](../pip_requirements-dev.txt), and
-  [pip_extras.txt](../pip_extras.txt) record Python dependencies.
-- [devel/dist_clean.sh](../devel/dist_clean.sh) removes generated package and
-  test artifacts after local builds and checks.
+  [pip_extras.txt](../pip_extras.txt) declare Python dependencies.
+- [source_me.sh](../source_me.sh) sets the repository Python path for local
+  pointed checks.
+- [launch_bkchem-qt_gui.sh](../launch_bkchem-qt_gui.sh) is the current local
+  desktop launcher. The release boundary does not include a Tk launcher.
 
 ## Package layout
 
@@ -31,114 +32,141 @@ bkchem-oasa/
 
 ```text
 packages/oasa/
-+- oasa/                    library source
-|  +- codecs/               registered molecule-format codecs
++- oasa/                    backend library source
+|  +- cdml_document.py      complete-CDML session and operations
+|  +- codecs/               molecule-format codecs
 |  +- graph/                graph primitives and backends
-|  +- haworth/              carbohydrate layout and rendering helpers
-|  `- render_lib/           shared rendering geometry and operations
-+- oasa_data/               package data for backend behavior
-+- tests/                   backend unit, parity, and smoke tests
-+- docs/                    OASA package documentation
+|  +- haworth/              carbohydrate layout helpers
+|  `- render_lib/           portable rendering geometry and operations
++- oasa_data/               package data used by OASA
++- tests/                   backend behavior and preservation tests
 `- pyproject.toml           oasa distribution metadata
 ```
 
-- [packages/oasa/oasa/cdml_writer.py](../packages/oasa/oasa/cdml_writer.py)
-  owns molecular CDML serialization.
-- [packages/oasa/oasa/codec_registry.py](../packages/oasa/oasa/codec_registry.py)
-  resolves chemistry codecs.
-- [packages/oasa/oasa/coords_generator.py](../packages/oasa/oasa/coords_generator.py)
-  and [packages/oasa/oasa/repair_ops.py](../packages/oasa/oasa/repair_ops.py)
-  expose geometry operations used by the frontend.
+- [packages/oasa/oasa/cdml_document.py](../packages/oasa/oasa/cdml_document.py)
+  is the persistent-document authority. It owns snapshots, revisioned atomic
+  operations, history, saved baseline, durable identities, and typed failures.
+- [packages/oasa/oasa/cdml_xml.py](../packages/oasa/oasa/cdml_xml.py) and
+  [packages/oasa/oasa/cdml_writer.py](../packages/oasa/oasa/cdml_writer.py)
+  provide hardened CDML parsing and controlled output.
+- [packages/oasa/oasa/render_ops.py](../packages/oasa/oasa/render_ops.py) and
+  [packages/oasa/oasa/render_lib/](../packages/oasa/oasa/render_lib/) keep
+  render facts independent of a particular frontend toolkit.
 
 ### PySide6 BKChem frontend
 
 ```text
 packages/bkchem-qt.app/
 +- bkchem_qt/
-|  +- actions/              QAction registry, menus, and command handlers
-|  +- bridge/               OASA adapters and background workers
-|  +- canvas/               scene, view, projection, and graphics items
-|  +- config/               preferences, geometry units, keybindings
+|  +- actions/              action registration and handlers
+|  +- bridge/               OASA adapters and background preparation
+|  +- canvas/               scene projection, items, and retirement
+|  +- config/               frontend preferences and keybinding configuration
 |  +- dialogs/              Qt dialogs
-|  +- io/                   CDML, clipboard, import, and export boundary
-|  +- models/               document, session, molecule, atom, and bond state
-|  +- modes/                drawing and editing interaction modes
-|  +- resources/            packaged YAML, themes, and pixmaps
-|  +- undo/                 QUndoCommand implementations
-|  +- widgets/              docks, toolbars, ribbons, and controls
+|  +- io/                   snapshot hydration, candidates, clipboard, I/O
+|  +- models/               disposable projection and tab-session models
+|  +- modes/                interactive drawing and editing modes
+|  +- resources/            packaged menus, themes, and pixmaps
+|  +- setup/                application and mode setup helpers
+|  +- themes/               Qt theme definitions and helpers
+|  +- undo/                 Qt-local undo retained during migration
+|  +- widgets/              Qt docks, toolbars, and controls
 |  +- app.py                QApplication setup and shutdown
 |  +- cli.py                bkchem-qt console entry point
-|  `- main_window.py        tab host and global UI coordinator
-+- tests/                   offscreen PySide6 behavior and lifecycle tests
-`- pyproject.toml           bkchem-qt distribution metadata
+|  `- main_window.py        tab host and global Qt coordinator
++- tests/                   focused offscreen PySide6 tests
+`- pyproject.toml           bkchem-qt package and console script
 ```
 
+- [packages/bkchem-qt.app/pyproject.toml](../packages/bkchem-qt.app/pyproject.toml)
+  defines the `bkchem-qt` console entry point and packages the Qt runtime
+  resources.
 - [packages/bkchem-qt.app/bkchem_qt/models/document_session.py](../packages/bkchem-qt.app/bkchem_qt/models/document_session.py)
-  owns one tab's document, scene, view, mode manager, and import lifetime.
+  is the per-tab Qt client/adapter to OASA, not a backend-contract type.
+- [packages/bkchem-qt.app/bkchem_qt/models/projection_lifecycle.py](../packages/bkchem-qt.app/bkchem_qt/models/projection_lifecycle.py)
+  holds projection-delivery outcomes and the generation-bound port without Qt
+  or OASA imports.
 - [packages/bkchem-qt.app/bkchem_qt/io/cdml_document_io.py](../packages/bkchem-qt.app/bkchem_qt/io/cdml_document_io.py)
-  preserves the full Qt document envelope around OASA chemistry.
-- [packages/bkchem-qt.app/bkchem_qt/resources/menus.yaml](../packages/bkchem-qt.app/bkchem_qt/resources/menus.yaml)
-  and [packages/bkchem-qt.app/bkchem_qt/resources/modes.yaml](../packages/bkchem-qt.app/bkchem_qt/resources/modes.yaml)
-  configure menus and modes; `ActionRegistry` and `QAction` shortcuts provide
-  the executable and keybinding source of truth.
+  turns one OASA snapshot envelope into a detached Qt projection.
+- [packages/bkchem-qt.app/bkchem_qt/canvas/document_projection.py](../packages/bkchem-qt.app/bkchem_qt/canvas/document_projection.py)
+  and [packages/bkchem-qt.app/bkchem_qt/canvas/molecule_projection.py](../packages/bkchem-qt.app/bkchem_qt/canvas/molecule_projection.py)
+  and [packages/bkchem-qt.app/bkchem_qt/canvas/graphics_retirement.py](../packages/bkchem-qt.app/bkchem_qt/canvas/graphics_retirement.py)
+  build and dispose Qt scene objects on the frontend side of the boundary.
 
-### Tkinter compatibility frontend
+### Historical BKChem source
 
 ```text
 packages/bkchem-app/
-+- bkchem/                  retained Tkinter implementation
-|  +- actions/              legacy action modules
-|  +- main_lib/             main-window responsibilities
-|  +- modes/                legacy interaction modes
-|  `- paper_lib/            Tk Canvas document helpers
-+- bkchem_data/             templates, themes, locales, images, and DTDs
++- bkchem/                  retained Tk application source
+|  +- actions/              historical action modules
+|  +- main_lib/             historical window responsibilities
+|  +- modes/                historical interaction modes
+|  `- paper_lib/            historical canvas helpers
++- bkchem_data/             legacy templates, assets, locales, and DTDs
 +- addons/                  legacy XML-described addons
-+- tests/                   focused compatibility tests
-`- pyproject.toml           bkchem distribution metadata
++- tests/                   focused historical behavior evidence
+`- pyproject.toml           retained legacy package metadata
 ```
 
-- [packages/bkchem-app/bkchem/main.py](../packages/bkchem-app/bkchem/main.py)
-  and [packages/bkchem-app/bkchem/paper.py](../packages/bkchem-app/bkchem/paper.py)
-  remain the Tkinter reference entry point and canvas.
-- This package is a compatibility oracle for behavior and old documents; new
-  primary GUI work belongs under `packages/bkchem-qt.app/bkchem_qt/`.
+[packages/bkchem-app/](../packages/bkchem-app/) is retained for source and
+fixture reference only. It is not a supported frontend, runtime dependency,
+packaging target, compatibility commitment, or parity target. New work does
+not belong in this subtree.
 
 ## Documentation map
 
-- [CODE_ARCHITECTURE.md](CODE_ARCHITECTURE.md) describes ownership and data flow.
-- [QT_CONTRACT.md](QT_CONTRACT.md) specifies PySide6 document, signal, worker,
-  save, and teardown contracts.
+- [CAPABILITIES.md](CAPABILITIES.md) shows the current application and backend
+  surface through reproducible Qt screenshots.
+- [CODE_ARCHITECTURE.md](CODE_ARCHITECTURE.md) maps ownership and live data
+  flow.
 - [CDML_BACKEND_TO_FRONTEND_CONTRACT.md](CDML_BACKEND_TO_FRONTEND_CONTRACT.md)
-  defines the backend/frontend CDML boundary.
+  defines frontend-neutral persistent behavior, operations, snapshots, and
+  typed failures.
+- [QT_CONTRACT.md](QT_CONTRACT.md) defines PySide6 session, projection,
+  lifecycle, and delivery behavior.
 - [OASA_MOLECULE_COORDINATE_GENERATION_METHODS.md](OASA_MOLECULE_COORDINATE_GENERATION_METHODS.md)
-  records coordinate-generation methods.
-- [active_plans/](active_plans/) contains active plans, audits, reports,
-  decisions, and workstreams; [archive/](archive/) holds closed reference plans.
+  describes coordinate-generation methods.
+- [active_plans/](active_plans/) contains current migration and release work;
+  [archive/](archive/) retains closed reference plans.
 
 ## Generated artifacts
 
-- Python bytecode and test caches: `__pycache__/`, `.pytest_cache/`, and `*.pyc`.
-- Package-build output: `build/`, `dist/`, `*.egg-info/`, and `*.dist-info/`.
-- Local reports and smoke output: `report_*.txt` and `output_smoke/`.
+- `.gitignore` excludes Python bytecode directories through `__pycache__/`.
+- Build output is excluded through `build/`, `dist/`, `sdist/`, `*.egg`,
+  `*.egg-info/`, and `site/`.
+- Local smoke and report output is excluded through `output_smoke/`, `tmp/`,
+  `output*/`, `report_*.txt`, `oasa_capabilities_sheet.*`, and
+  `*Python_*.png`.
 - [devel/dist_clean.sh](../devel/dist_clean.sh) is the targeted cleanup entry
-  point; these artifacts are not source files.
+  point for generated distribution and test artifacts.
 
 ## Where to add work
 
-- Add chemistry and format behavior to [packages/oasa/oasa/](../packages/oasa/oasa/)
-  with a focused test in [packages/oasa/tests/](../packages/oasa/tests/).
-- Add Qt UI behavior to [packages/bkchem-qt.app/bkchem_qt/](../packages/bkchem-qt.app/bkchem_qt/)
-  with an offscreen test in [packages/bkchem-qt.app/tests/](../packages/bkchem-qt.app/tests/).
-- Add retained Tkinter compatibility evidence to
-  [packages/bkchem-app/tests/](../packages/bkchem-app/tests/), rather than
-  treating it as the primary implementation path.
-- Add cross-package tooling to [tools/](../tools/) or [devel/](../devel/), and
-  durable documentation to [docs/](.).
+- Add persistent CDML behavior, chemistry operations, durable-ID allocation,
+  revision/history behavior, and backend observations in
+  [packages/oasa/oasa/](../packages/oasa/oasa/), with focused tests in
+  [packages/oasa/tests/](../packages/oasa/tests/).
+- Add Qt presentation, interaction, dialogs, action routing, projection, and
+  QObject-lifetime behavior in
+  [packages/bkchem-qt.app/bkchem_qt/](../packages/bkchem-qt.app/bkchem_qt/),
+  with focused tests in
+  [packages/bkchem-qt.app/tests/](../packages/bkchem-qt.app/tests/).
+- Put a persistent Qt feature's authoritative operation or complete-candidate
+  route in OASA first. The Qt side then submits plain intent and displays the
+  accepted immutable result; it must not become a second persistence store.
+- Put cross-package developer utilities in [tools/](../tools/) or
+  [devel/](../devel/), durable documentation in [docs/](.), and repository-wide
+  checks in [tests/](../tests/).
+- Consult [packages/bkchem-app/](../packages/bkchem-app/) only for historical
+  source or fixtures needed as migration evidence. Do not add frontend,
+  packaging, compatibility, or parity work there.
 
 ## Known gaps
 
-- Prefix-qualified core CDML remains a known strict-roundtrip limitation.
-- M4 action completion is partial; use the current action inventory and focused
-  tests before marking command parity complete.
-- Tkinter compatibility coverage is representative, not exhaustive, so an
-  untested legacy behavior requires direct comparison before porting.
+- Source and pip installation are the delivered application paths. A frozen
+  application, DMG, signing, and notarization workflow remains a separate
+  delivery project rather than a requirement for this release.
+- Compatibility decoding and deliberately local compatibility undo remain
+  explicit isolated routes. Synchronized persistence remains backend-owned.
+- Legacy source remains in the checkout as historical evidence; that retained
+  layout does not expand the shipped product boundary.

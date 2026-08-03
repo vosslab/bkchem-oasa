@@ -64,7 +64,12 @@ class PaperModel:
 #============================================
 @dataclasses.dataclass
 class UnsupportedContent:
-	"""A top-level CDML node retained but not yet represented by the UI."""
+	"""A plain warning for persistent content not represented by the Qt canvas.
+
+	``raw_xml`` is populated by legacy-isolated and still-transitional decoders.
+	A synchronized direct-root presentation diagnostic receives an empty value
+	because OASA retains the authoritative content.
+	"""
 
 	tag: str
 	object_id: str | None
@@ -87,10 +92,13 @@ class PresentationObject(PySide6.QtCore.QObject):
 			points: list[tuple[float, float, float | None]] | None = None,
 			bounds: tuple[float, float, float, float] | None = None,
 			xml_ftext: str | None = None,
+			formatted_text_runs: tuple[tuple[str, tuple[str, ...]], ...] | None = None,
+			display_text: str = "",
 			font_attributes: dict[str, str] | None = None,
 			raw_xml: str | None = None,
 			supported: bool = True,
 			parent: PySide6.QtCore.QObject | None = None,
+			editable: bool | None = None,
 			) -> None:
 		"""Initialize a CDML presentation object.
 
@@ -100,10 +108,13 @@ class PresentationObject(PySide6.QtCore.QObject):
 			points: Ordered point coordinates in CDML document units.
 			bounds: Optional normalized x, y, width, height bounds.
 			xml_ftext: CDML formatted-text fragment.
+			formatted_text_runs: Supported authored ftext as immutable plain runs.
+			display_text: Always-safe character-data display value.
 			font_attributes: Font element attributes.
 			raw_xml: Original node XML retained for lossless fallback output.
 			supported: Whether the object has a Qt projection.
 			parent: Optional QObject owner.
+			editable: Whether persistent Qt actions may target the projection.
 		"""
 		super().__init__(parent)
 		self._kind = str(kind)
@@ -111,9 +122,12 @@ class PresentationObject(PySide6.QtCore.QObject):
 		self._points = list(points or [])
 		self._bounds = tuple(bounds) if bounds is not None else None
 		self._xml_ftext = xml_ftext
+		self._formatted_text_runs = formatted_text_runs
+		self._display_text = str(display_text)
 		self._font_attributes = dict(font_attributes or {})
 		self._raw_xml = raw_xml
 		self._supported = bool(supported)
+		self._editable = self._supported if editable is None else bool(editable) and self._supported
 
 	#============================================
 	@property
@@ -153,6 +167,28 @@ class PresentationObject(PySide6.QtCore.QObject):
 
 	#============================================
 	@property
+	def formatted_text_runs(self) -> tuple[tuple[str, tuple[str, ...]], ...] | None:
+		"""Return supported authored ftext runs, or None for preservation content."""
+		return self._formatted_text_runs
+
+	#============================================
+	@property
+	def display_text(self) -> str:
+		"""Return plain character data that is safe to display without HTML parsing."""
+		return self._display_text
+
+	#============================================
+	@property
+	def rich_text_editable(self) -> bool:
+		"""Whether this projected Text has supported authored ftext run data."""
+		return (
+			self._editable
+			and self._kind == "text"
+			and self._formatted_text_runs is not None
+		)
+
+	#============================================
+	@property
 	def font_attributes(self) -> dict[str, str]:
 		"""Return a copy of font attributes."""
 		return dict(self._font_attributes)
@@ -168,6 +204,12 @@ class PresentationObject(PySide6.QtCore.QObject):
 	def supported(self) -> bool:
 		"""Whether this object has a supported Qt projection."""
 		return self._supported
+
+	#============================================
+	@property
+	def editable(self) -> bool:
+		"""Whether persistent frontend actions may target this projection."""
+		return self._editable
 
 	#============================================
 	def set_points(self, points: list[tuple[float, float, float | None]]) -> None:
@@ -220,6 +262,8 @@ class AtomMarkModel(PySide6.QtCore.QObject):
 			attributes: dict[str, str],
 			raw_xml: str | None = None,
 			supported: bool = True,
+			matching_mark_index: int | None = None,
+			rendering_facts: tuple[float, float, float, bool, float] | None = None,
 			parent: PySide6.QtCore.QObject | None = None,
 			) -> None:
 		"""Initialize a mark linked to an atom model.
@@ -229,6 +273,8 @@ class AtomMarkModel(PySide6.QtCore.QObject):
 			attributes: CDML mark attributes; ``type`` is required.
 			raw_xml: Original XML retained for lossless fallback output.
 			supported: Whether the mark can be projected by the UI.
+			matching_mark_index: Snapshot-derived zero-based ordinal among direct
+				core marks of this same type.
 			parent: Optional QObject owner.
 		"""
 		if "type" not in attributes:
@@ -238,6 +284,12 @@ class AtomMarkModel(PySide6.QtCore.QObject):
 		self._attributes = dict(attributes)
 		self._raw_xml = raw_xml
 		self._supported = bool(supported)
+		if matching_mark_index is not None and (
+				type(matching_mark_index) is not int or matching_mark_index < 0
+			):
+			raise ValueError("Atom mark matching index must be a nonnegative int")
+		self._matching_mark_index = matching_mark_index
+		self._rendering_facts = rendering_facts
 
 	#============================================
 	@property
@@ -268,6 +320,18 @@ class AtomMarkModel(PySide6.QtCore.QObject):
 	def supported(self) -> bool:
 		"""Whether this mark has a supported Qt projection."""
 		return self._supported
+
+	#============================================
+	@property
+	def matching_mark_index(self) -> int | None:
+		"""Return this direct core mark's same-type CDML child ordinal."""
+		return self._matching_mark_index
+
+	#============================================
+	@property
+	def rendering_facts(self) -> tuple[float, float, float, bool, float] | None:
+		"""Return backend-normalized rendering facts for synchronized projections."""
+		return self._rendering_facts
 
 	#============================================
 	def update_attribute(self, name: str, value: str | None) -> None:

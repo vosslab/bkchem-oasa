@@ -81,7 +81,7 @@ packages/bkchem-qt.app/      # NEW PySide6 frontend
       object_actions.py       # Object menu (align, distribute, group)
       help_actions.py         # Help menu (about, shortcuts)
     io/
-      cdml_io.py              # CDML open/save (reuses OASA CDML parser)
+      cdml_document_io.py     # complete-CDML decoder and projection hydration
       format_bridge.py        # OASA codec registry integration for all chemistry formats
       export.py               # SVG (QSvgGenerator), PNG (QImage), PDF (QPrinter)
     widgets/
@@ -124,7 +124,7 @@ packages/bkchem-qt.app/      # NEW PySide6 frontend
 | `canvas/scene.py`, `canvas/view.py`, `config/preferences.py` | M1 | P4-P5 |
 | `canvas/items/atom_item.py`, `canvas/items/bond_item.py` | M2 | P6-P7 |
 | `models/*`, `bridge/oasa_bridge.py` | M2 | P8-P9 |
-| `io/cdml_io.py`, `actions/file_actions.py` (open only) | M2 | P10 |
+| `io/cdml_document_io.py`, `actions/file_actions.py` (open only) | M2 | P10 |
 | `modes/base_mode.py`, `modes/config.py`, `modes/mode_loader.py` | M3 | P11 |
 | `modes/edit_mode.py`, `modes/draw_mode.py` | M3 | P12-P13 |
 | `undo/commands.py`, `actions/edit_actions.py` | M3 | P14 |
@@ -134,7 +134,7 @@ packages/bkchem-qt.app/      # NEW PySide6 frontend
 | `canvas/items/arrow_item.py`, `canvas/items/text_item.py` | M4 | P19 |
 | `modes/template_mode.py`, template manager integration | M4 | P20 |
 | Context menu system | M4 | P21 |
-| `io/cdml_io.py` (save), `io/format_bridge.py` | M5 | P22-P23 |
+| `io/cdml_document_io.py`, `io/format_bridge.py` | M5 | P22-P23 |
 | `io/export.py` (SVG/PNG/PDF) | M5 | P24 |
 | `canvas/items/mark_item.py`, marks system | M5 | P25 |
 | Remaining modes (rotate, repair, bracket, vector, etc.) | M5 | P26 |
@@ -266,7 +266,7 @@ source source_me.sh && python -m pytest tests/test_pyflakes_code_lint.py -k bkch
 
 **Work packages:**
 - WP-2.3.1: `bridge/oasa_bridge.py` - adapted from `packages/bkchem-app/bkchem/oasa_bridge.py`, creates Qt model objects instead of Tk objects. Key functions: `oasa_mol_to_qt_mol()`, `oasa_atom_to_qt_atom()`, `oasa_bond_to_qt_bond()`
-- WP-2.3.2: `io/cdml_io.py` - CDML file reader using OASA's CDML parser, creates model objects, adds QGraphicsItems to scene, handles coordinate conversion (CDML cm -> scene units)
+- WP-2.3.2: `io/cdml_document_io.py` - complete-CDML compatibility decoder and projection hydration route
 - WP-2.3.3: Wire File > Open to QFileDialog + CDML loader in `actions/file_actions.py`
 
 **Touch points:** `bkchem_qt/bridge/`, `bkchem_qt/io/`, `bkchem_qt/actions/`
@@ -397,7 +397,7 @@ source source_me.sh && python -m pytest packages/bkchem-qt.app/tests/ -v
 
 ### Work packages
 
-- WP-5.1: `io/cdml_io.py` save path - serialize Qt scene to CDML XML
+- WP-5.1: complete-CDML save path - serialize through the authoritative backend
 - WP-5.2: `io/format_bridge.py` - integrate OASA `codec_registry` for all chemistry format import/export. Use `QThread` worker for format conversion to keep GUI responsive
 - WP-5.3: `io/export.py` - SVG via QSvgGenerator, PNG via QImage/QPainter, PDF via QPrinter
 - WP-5.4: `canvas/items/mark_item.py` - charge marks, radical dots, electron pairs as QGraphicsItems attached to parent atom items
@@ -601,7 +601,7 @@ class OasaWorker(QThread):
 - Patch 7: Bond QGraphicsItem (`canvas/items/bond_item.py`)
 - Patch 8: Chemistry model wrappers (`models/atom_model.py`, `bond_model.py`, `molecule_model.py`)
 - Patch 9: Bridge layer (`bridge/oasa_bridge.py`)
-- Patch 10: CDML loader + File > Open (`io/cdml_io.py`, `actions/file_actions.py`)
+- Patch 10: complete-CDML loader + File > Open (`io/cdml_document_io.py`, `actions/file_actions.py`)
 - Patch 11: Mode framework (`modes/base_mode.py`, `config.py`, `mode_loader.py`, view dispatcher)
 - Patch 12: Edit mode (`modes/edit_mode.py`)
 - Patch 13: Draw mode (`modes/draw_mode.py`)

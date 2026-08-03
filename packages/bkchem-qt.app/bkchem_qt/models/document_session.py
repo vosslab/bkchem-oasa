@@ -2,9 +2,7 @@
 
 # Standard Library
 import errno
-import collections.abc
 import dataclasses
-import enum
 import math
 import numbers
 import os
@@ -20,14 +18,18 @@ import bkchem_qt.setup.mode_setup
 import bkchem_qt.canvas.document_projection
 import bkchem_qt.canvas.graphics_retirement
 import bkchem_qt.io.cdml_candidate
+import bkchem_qt.io.user_template_catalog
 import bkchem_qt.models.backend_revision_history
 import bkchem_qt.models.document
+import bkchem_qt.models.projection_lifecycle
 import bkchem_qt.undo.commands
 import bkchem_qt.wavy_geometry
 import oasa.cdml_document
+import oasa.cdml_ftext
 import oasa.cdml_render
 import oasa.cdml_writer
 import oasa.safe_xml
+import oasa.biomolecule_template_placement
 import oasa.template_placement
 
 
@@ -37,6 +39,50 @@ _BLANK_CDML = (
 		oasa.cdml_writer.DEFAULT_CDML_VERSION,
 	)
 )
+
+_ORPHANED_IMPORT_WORKERS: set[PySide6.QtCore.QThread] = set()
+
+
+#============================================
+def orphaned_import_worker_count() -> int:
+	"""Return the directly disposed workers awaiting their finished signal."""
+	return len(_ORPHANED_IMPORT_WORKERS)
+
+
+#============================================
+def _release_orphaned_import_worker(worker: PySide6.QtCore.QThread) -> None:
+	"""Release a directly disposed session's worker after native completion."""
+	if worker not in _ORPHANED_IMPORT_WORKERS:
+		return
+	_ORPHANED_IMPORT_WORKERS.discard(worker)
+	relay = getattr(worker, "_result_relay", None)
+	if relay is not None:
+		try:
+			relay.deleteLater()
+		except RuntimeError:
+			pass
+		worker._result_relay = None
+	try:
+		worker.deleteLater()
+	except RuntimeError:
+		pass
+
+
+#============================================
+def _adopt_orphaned_import_worker(worker: PySide6.QtCore.QThread) -> None:
+	"""Give a directly disposed session's worker an explicit terminal owner.
+
+	The set is established before the connection, so a fast completion cannot
+	drop the final strong reference.  The post-connection check covers a worker
+	that completed before Qt could queue the slot; release is idempotent.
+	"""
+	_ORPHANED_IMPORT_WORKERS.add(worker)
+	worker.finished.connect(
+		lambda worker=worker: _release_orphaned_import_worker(worker),
+		PySide6.QtCore.Qt.ConnectionType.QueuedConnection,
+	)
+	if worker.isFinished():
+		_release_orphaned_import_worker(worker)
 
 
 #============================================
@@ -97,107 +143,8 @@ class ProjectionReplacementError(RuntimeError):
 	"""Raised when a live Qt projection cannot be recovered from backend CDML."""
 
 
-@dataclasses.dataclass(frozen=True)
-class ProjectionLifecycleResult:
-	"""One session-bound delivery result for a backend projection request."""
-
-	status: "ProjectionLifecycleStatus"
-	phase: "ProjectionLifecyclePhase"
-	diagnostic: BaseException | None = None
-
-	#============================================
-	def __bool__(self) -> bool:
-		"""Preserve the direct replacement truthiness contract for callers."""
-		return self.installed
-
-	#============================================
-	@property
-	def installed(self) -> bool:
-		"""Return whether the exact requested snapshot became live."""
-		return self.status is ProjectionLifecycleStatus.INSTALLED
-
-
-class ProjectionLifecycleStatus(enum.StrEnum):
-	"""Closed outcomes for one backend snapshot projection delivery."""
-
-	INSTALLED = "installed"
-	PREPARATION_UNAVAILABLE = "preparation-unavailable"
-	INSTALLATION_FAILED = "installation-failed"
-	SESSION_UNAVAILABLE = "session-unavailable"
-
-
-class ProjectionLifecyclePhase(enum.StrEnum):
-	"""The terminal replacement phase that produced a lifecycle outcome."""
-
-	SESSION = "session"
-	PREPARATION = "preparation"
-	RETIREMENT = "retirement"
-	INSTALLATION = "installation"
-	COMPLETE = "complete"
-
-
-class SessionProjectionLifecyclePort:
-	"""Deliver projection work only to the live session that registered it.
-
-	The port is deliberately narrow: MainWindow owns transient aliases and UI
-	wiring, while DocumentSession retains backend state and the replacement
-	transaction.  Its generation latch makes queued or retained stale delivery
-	inert after tab disposal or port replacement.
-	"""
-
-	#============================================
-	def __init__(
-			self, session: object,
-			deliver: collections.abc.Callable[[object], ProjectionLifecycleResult],
-			notice_consumer: collections.abc.Callable[[object, ProjectionLifecycleResult], None] | None = None,
-			) -> None:
-		"""Bind one typed delivery seam to one currently live session."""
-		self._session = session
-		self._generation = session.projection_lifecycle_generation
-		self._deliver = deliver
-		self._notice_consumer = notice_consumer
-
-	#============================================
-	def is_bound_to(self, session: object) -> bool:
-		"""Return whether this port still targets its original live session."""
-		return (
-			session is self._session
-			and not session.is_disposed
-			and session.projection_lifecycle_generation == self._generation
-		)
-
-	#============================================
-	def project(self, snapshot: object) -> ProjectionLifecycleResult:
-		"""Deliver one exact snapshot or report a typed inert/failure outcome."""
-		if (
-			not self.is_bound_to(self._session)
-			or self._session._projection_lifecycle_port is not self
-		):
-			return ProjectionLifecycleResult(
-				ProjectionLifecycleStatus.SESSION_UNAVAILABLE,
-				ProjectionLifecyclePhase.SESSION,
-			)
-		else:
-			try:
-				result = self._deliver(snapshot)
-			except Exception as exc:
-				result = ProjectionLifecycleResult(
-					ProjectionLifecycleStatus.INSTALLATION_FAILED,
-					ProjectionLifecyclePhase.INSTALLATION, exc,
-				)
-			else:
-				if not isinstance(result, ProjectionLifecycleResult):
-					raise TypeError("Projection lifecycle delivery must return ProjectionLifecycleResult")
-		# Delivery can synchronously close this tab or replace its port.  A
-		# retained notice must not retarget MainWindow aliases after that boundary.
-		if (
-			not self.is_bound_to(self._session)
-			or self._session._projection_lifecycle_port is not self
-		):
-			return result
-		if self._notice_consumer is not None:
-			self._notice_consumer(self._session, result)
-		return result
+class BackendFragmentExtractionError(ValueError):
+	"""Expose one typed backend fragment-read failure to Qt-only callers."""
 
 
 @dataclasses.dataclass(frozen=True)
@@ -229,6 +176,78 @@ class PersistentOperationRequest:
 			raise TypeError("Persistent target keys must be durable string pairs")
 		object.__setattr__(self, "payload", payload)
 		object.__setattr__(self, "target_keys", target_keys)
+
+
+@dataclasses.dataclass(frozen=True)
+class _UserTemplateModeDescriptor:
+	"""One Qt-mode projection of a session-owned saved-template record."""
+
+	catalog_key: str
+	label: str
+
+
+#============================================
+def _freeze_user_template_catalog(
+		entries: object,
+		) -> tuple[
+		tuple[bkchem_qt.io.user_template_catalog.UserTemplateCatalogEntry, ...],
+		dict[str, bkchem_qt.io.user_template_catalog.UserTemplateCatalogEntry],
+		tuple[_UserTemplateModeDescriptor, ...],
+		]:
+	"""Copy one admitted immutable catalog into session-owned delivery data."""
+	if type(entries) is not tuple:
+		raise TypeError("User template catalog must be an immutable tuple")
+	frozen_entries = []
+	for entry in entries:
+		if type(entry) is not bkchem_qt.io.user_template_catalog.UserTemplateCatalogEntry:
+			raise TypeError("User template catalog entries must be admitted catalog records")
+		if type(entry.catalog_key) is not str or not entry.catalog_key.strip():
+			raise ValueError("User template catalog keys must be nonblank strings")
+		if type(entry.label) is not str or not entry.label.strip():
+			raise ValueError("User template catalog labels must be nonblank strings")
+		if type(entry.template_cdml) is not str or not entry.template_cdml:
+			raise ValueError("User template catalog CDML must be nonempty text")
+		frozen_entries.append(bkchem_qt.io.user_template_catalog.UserTemplateCatalogEntry(
+			entry.catalog_key, entry.label, entry.template_cdml,
+		))
+	if len({entry.catalog_key for entry in frozen_entries}) != len(frozen_entries):
+		raise ValueError("User template catalog keys must be unique")
+	immutable_entries = tuple(frozen_entries)
+	by_key = {entry.catalog_key: entry for entry in immutable_entries}
+	descriptors = tuple(
+		_UserTemplateModeDescriptor(entry.catalog_key, entry.label)
+		for entry in immutable_entries
+	)
+	return immutable_entries, by_key, descriptors
+
+
+#============================================
+def build_user_template_insert_request(
+		expected_revision: int, catalog_key: str, anchor: tuple[float, float],
+		) -> PersistentOperationRequest:
+	"""Build one immutable detached saved-template insertion intent."""
+	if type(expected_revision) is not int:
+		raise TypeError("User template insertion expected_revision must be an integer")
+	if type(catalog_key) is not str or not catalog_key.strip():
+		raise ValueError("User template insertion catalog_key must be nonblank")
+	if (
+			type(anchor) is not tuple or len(anchor) != 2
+			or any(
+				isinstance(value, bool) or not isinstance(value, numbers.Real)
+				or not math.isfinite(value)
+				for value in anchor
+			)
+		):
+		raise ValueError("User template insertion anchor must be a finite point tuple")
+	return PersistentOperationRequest(
+		"user-template.insert", "Place User Template",
+		(
+			("expected_revision", expected_revision),
+			("catalog_key", catalog_key),
+			("anchor", (float(anchor[0]), float(anchor[1]))),
+		),
+		frozenset(),
+	)
 
 
 #============================================
@@ -283,6 +302,60 @@ def build_atom_translate_request(
 		frozenset(
 			("molecule", molecule_id) for molecule_id, _atom_id in targets
 		) | frozenset(("atom", atom_id) for _molecule_id, atom_id in targets),
+	)
+
+
+#============================================
+def build_selection_translate_request(
+		expected_revision: int, atom_targets: tuple[tuple[str, str], ...],
+		presentation_root_keys: tuple[tuple[str, str], ...], delta: tuple[float, float],
+		) -> PersistentOperationRequest:
+	"""Build one immutable mixed atom/presentation translation request.
+
+	The frontend retains root kinds only to restore canonical selection. OASA
+	receives durable presentation IDs and validates authoritative geometry.
+	"""
+	if type(expected_revision) is not int:
+		raise TypeError("Selection translation expected_revision must be an integer")
+	if type(atom_targets) is not tuple:
+		raise TypeError("Selection translation atom targets must be an immutable tuple")
+	if type(presentation_root_keys) is not tuple:
+		raise TypeError("Selection translation presentation roots must be an immutable tuple")
+	if type(delta) is not tuple:
+		raise TypeError("Selection translation delta must be an immutable tuple")
+	if not atom_targets:
+		raise ValueError("Selection translation requires durable atom targets")
+	if not presentation_root_keys:
+		raise ValueError("Selection translation requires durable presentation roots")
+	if any(
+			type(target) is not tuple or len(target) != 2
+			or type(target[0]) is not str or not target[0].strip()
+			or type(target[1]) is not str or not target[1].strip()
+			for target in atom_targets
+		):
+		raise ValueError("Selection translation atom targets must be durable ID pairs")
+	if any(
+			type(key) is not tuple or len(key) != 2
+			or key[0] != "presentation"
+			or type(key[1]) is not str or not key[1].strip()
+			for key in presentation_root_keys
+		):
+		raise ValueError("Selection translation presentation roots must be durable keys")
+	presentation_root_ids = tuple(identifier for _kind, identifier in presentation_root_keys)
+	target_keys = (
+		frozenset(("molecule", molecule_id) for molecule_id, _atom_id in atom_targets)
+		| frozenset(("atom", atom_id) for _molecule_id, atom_id in atom_targets)
+		| frozenset(presentation_root_keys)
+	)
+	return PersistentOperationRequest(
+		"selection.translate", "Move Selected",
+		(
+			("expected_revision", expected_revision),
+			("atom_targets", atom_targets),
+			("presentation_root_ids", presentation_root_ids),
+			("delta", delta),
+		),
+		target_keys,
 	)
 
 
@@ -343,7 +416,7 @@ def build_bond_type_request(
 #============================================
 def build_bond_properties_patch_request(
 		expected_revision: int, molecule_id: str, bond_id: str,
-		changes: tuple[tuple[str, object], ...],
+		changes: tuple[tuple[str, object], ...] = (),
 		) -> PersistentOperationRequest:
 	"""Build one immutable explicit-field direct-core bond patch request."""
 	return PersistentOperationRequest(
@@ -361,7 +434,7 @@ def build_bond_properties_patch_request(
 #============================================
 def build_atom_properties_patch_request(
 		expected_revision: int, molecule_id: str, atom_id: str,
-		changes: tuple[tuple[str, object], ...],
+		changes: tuple[tuple[str, object], ...] = (),
 		) -> PersistentOperationRequest:
 	"""Build one immutable explicit-field direct-core atom patch request."""
 	return PersistentOperationRequest(
@@ -373,6 +446,255 @@ def build_atom_properties_patch_request(
 			("changes", changes),
 		),
 		frozenset({("molecule", molecule_id), ("atom", atom_id)}),
+	)
+
+
+#============================================
+def build_text_properties_patch_request(
+		expected_revision: int, text_id: str,
+		changes: tuple[tuple[str, object], ...],
+		) -> PersistentOperationRequest:
+	"""Build one immutable explicit-field direct-root plain Text patch request."""
+	return PersistentOperationRequest(
+		"text.properties.patch", "Edit Text Properties",
+		(
+			("expected_revision", expected_revision),
+			("text_id", text_id),
+			("changes", changes),
+		),
+		frozenset({("presentation", text_id)}),
+	)
+
+
+#============================================
+def build_rich_text_patch_request(
+		expected_revision: int, text_id: str,
+		runs: tuple[tuple[str, tuple[str, ...]], ...],
+		changes: tuple[tuple[str, object], ...] = (),
+		) -> PersistentOperationRequest:
+	"""Build one immutable plain-run direct-root rich Text patch request."""
+	return PersistentOperationRequest(
+		"text.rich.patch", "Edit Rich Text",
+		(
+			("expected_revision", expected_revision),
+			("text_id", text_id),
+			("runs", runs),
+			("changes", changes),
+		),
+		frozenset({("presentation", text_id)}),
+	)
+
+
+#============================================
+def rich_text_patch_from_plain_runs(
+		expected_revision: int, text_id: str,
+		runs: tuple[tuple[str, tuple[str, ...]], ...],
+		changes: tuple[tuple[str, object], ...] = (),
+		) -> oasa.cdml_document.CDMLRichTextPatch:
+	"""Adapt exact frontend plain runs to the OASA rich-text patch at one seam."""
+	if type(runs) is not tuple:
+		raise ValueError("Rich Text runs must be an immutable tuple")
+	backend_runs = []
+	for run in runs:
+		if type(run) is not tuple or len(run) != 2:
+			raise ValueError("Rich Text runs must be exact text/style pairs")
+		text, styles = run
+		if type(text) is not str or type(styles) is not tuple:
+			raise ValueError("Rich Text runs must contain plain immutable values")
+		backend_runs.append(oasa.cdml_ftext.CDMLFTextRun(text, styles))
+	try:
+		normalized = oasa.cdml_ftext.normalize(tuple(backend_runs))
+	except oasa.cdml_ftext.CDMLFTextCodecError as exc:
+		raise ValueError("Rich Text runs are invalid: %s" % exc) from exc
+	canonical_runs = tuple((run.text, run.styles) for run in normalized)
+	if runs != canonical_runs:
+		raise ValueError("Rich Text runs must use canonical styles and adjacent spans")
+	patch = oasa.cdml_document.CDMLRichTextPatch(
+		expected_revision, text_id, normalized, changes,
+	)
+	return patch
+
+
+#============================================
+def build_plus_properties_patch_request(
+		expected_revision: int, plus_id: str,
+		changes: tuple[tuple[str, object], ...],
+		) -> PersistentOperationRequest:
+	"""Build one immutable explicit-field direct-root plain Plus patch request."""
+	return PersistentOperationRequest(
+		"plus.properties.patch", "Edit Plus Properties",
+		(
+			("expected_revision", expected_revision),
+			("plus_id", plus_id),
+			("changes", changes),
+		),
+		frozenset({("presentation", plus_id)}),
+	)
+
+
+#============================================
+def build_wavy_properties_patch_request(
+		expected_revision: int, wavy_id: str,
+		changes: tuple[tuple[str, object], ...],
+		) -> PersistentOperationRequest:
+	"""Build one immutable explicit-field direct-root plain Wavy patch request."""
+	return PersistentOperationRequest(
+		"wavy.properties.patch", "Edit Wavy Properties",
+		(
+			("expected_revision", expected_revision),
+			("wavy_id", wavy_id),
+			("changes", changes),
+		),
+		frozenset({("presentation", wavy_id)}),
+	)
+
+
+#============================================
+def build_fragment_create_request(
+		expected_revision: int, molecule_id: str, name: str, fragment_type: str,
+		atom_ids: tuple[str, ...], bond_ids: tuple[str, ...],
+		) -> PersistentOperationRequest:
+	"""Build one immutable ordinary fragment metadata creation request."""
+	return PersistentOperationRequest(
+		"fragment.create", "Create Fragment",
+		(
+			("expected_revision", expected_revision), ("molecule_id", molecule_id),
+			("name", name), ("fragment_type", fragment_type),
+			("atom_ids", atom_ids), ("bond_ids", bond_ids),
+		),
+		frozenset({("molecule", molecule_id)})
+		| frozenset(("atom", atom_id) for atom_id in atom_ids)
+		| frozenset(("bond", bond_id) for bond_id in bond_ids),
+	)
+
+
+#============================================
+def build_fragment_delete_request(
+		expected_revision: int, molecule_id: str, fragment_id: str,
+		) -> PersistentOperationRequest:
+	"""Build one immutable ordinary fragment metadata deletion request."""
+	return PersistentOperationRequest(
+		"fragment.delete", "Delete Fragment",
+		(
+			("expected_revision", expected_revision),
+			("molecule_id", molecule_id),
+			("fragment_id", fragment_id),
+		),
+		frozenset({("molecule", molecule_id)}),
+	)
+
+
+#============================================
+def build_implicit_group_expand_request(
+		expected_revision: int, molecule_id: str, group_id: str,
+		) -> PersistentOperationRequest:
+	"""Build one immutable backend-owned implicit-group expansion request."""
+	return PersistentOperationRequest(
+		"group.expand.implicit", "Expand Implicit Group",
+		(
+			("expected_revision", expected_revision),
+			("molecule_id", molecule_id),
+			("group_id", group_id),
+		),
+		frozenset({("molecule", molecule_id), ("group", group_id)}),
+	)
+
+
+#============================================
+def build_linear_form_convert_request(
+		expected_revision: int, molecule_id: str, atom_ids: tuple[str, ...],
+		) -> PersistentOperationRequest:
+	"""Build one immutable backend-owned linear-form conversion request."""
+	return PersistentOperationRequest(
+		"linear-form.convert", "Convert to Linear Form",
+		(
+			("expected_revision", expected_revision),
+			("molecule_id", molecule_id),
+			("atom_ids", atom_ids),
+		),
+		frozenset({("molecule", molecule_id)})
+		| frozenset(("atom", atom_id) for atom_id in atom_ids),
+	)
+
+
+#============================================
+def build_atom_mark_request(
+		expected_revision: int, molecule_id: str, atom_id: str,
+		action: str, mark_type: str, matching_mark_index: int | None = None,
+		) -> PersistentOperationRequest:
+	"""Build one immutable direct-atom chemical-mark operation."""
+	payload = (
+		("expected_revision", expected_revision),
+		("molecule_id", molecule_id),
+		("atom_id", atom_id),
+		("action", action),
+		("mark_type", mark_type),
+	)
+	if matching_mark_index is not None:
+		payload += (("matching_mark_index", matching_mark_index),)
+	return PersistentOperationRequest(
+		"atom.mark.apply", "Apply Atom Mark",
+		payload,
+		frozenset({("molecule", molecule_id), ("atom", atom_id)}),
+	)
+
+
+#============================================
+def build_structure_delete_request(
+		expected_revision: int, molecule_id: str,
+		atom_ids: tuple[str, ...], bond_ids: tuple[str, ...],
+		) -> PersistentOperationRequest:
+	"""Build one immutable direct-atom/bond structural deletion request."""
+	if type(expected_revision) is not int:
+		raise TypeError("Structure Delete expected_revision must be an integer")
+	if type(molecule_id) is not str or not molecule_id.strip():
+		raise ValueError("Structure Delete molecule_id must be a nonblank durable ID")
+	for name, identifiers in (("atom_ids", atom_ids), ("bond_ids", bond_ids)):
+		if type(identifiers) is not tuple:
+			raise TypeError("Structure Delete %s must be an immutable tuple" % name)
+		if any(type(identifier) is not str or not identifier.strip() for identifier in identifiers):
+			raise ValueError("Structure Delete IDs must be nonblank strings")
+		if len(set(identifiers)) != len(identifiers):
+			raise ValueError("Structure Delete IDs must be unique")
+	if not atom_ids and not bond_ids:
+		raise ValueError("Structure Delete requires at least one atom or bond")
+	if set(atom_ids).intersection(bond_ids):
+		raise ValueError("Structure Delete atom and bond IDs must be distinct")
+	target_keys = (
+		frozenset({("molecule", molecule_id)})
+		| frozenset(("atom", identifier) for identifier in atom_ids)
+		| frozenset(("bond", identifier) for identifier in bond_ids)
+	)
+	return PersistentOperationRequest(
+		"structure.delete", "Delete",
+		(
+			("expected_revision", expected_revision),
+			("molecule_id", molecule_id),
+			("atom_ids", atom_ids),
+			("bond_ids", bond_ids),
+		),
+		target_keys,
+	)
+
+
+#============================================
+def build_structure_fragment_extraction_query(
+		expected_revision: int, molecule_id: str,
+		atom_ids: tuple[str, ...], bond_ids: tuple[str, ...],
+		) -> oasa.cdml_document.CDMLStructureFragmentExtractionQuery:
+	"""Build the immutable read-only structural clipboard query."""
+	return oasa.cdml_document.CDMLStructureFragmentExtractionQuery(
+		expected_revision, molecule_id, atom_ids, bond_ids,
+	)
+
+
+#============================================
+def build_top_level_fragment_extraction_query(
+		expected_revision: int, root_ids: tuple[str, ...],
+		) -> oasa.cdml_document.CDMLTopLevelFragmentExtractionQuery:
+	"""Build one immutable backend-owned direct-root clipboard query."""
+	return oasa.cdml_document.CDMLTopLevelFragmentExtractionQuery(
+		expected_revision, root_ids,
 	)
 
 
@@ -426,6 +748,81 @@ def build_presentation_stack_request(
 			("root_ids", root_ids),
 		),
 		frozenset(("presentation", identifier) for identifier in root_ids),
+	)
+
+
+#============================================
+def build_top_level_transform_request(
+		expected_revision: int, mode: str,
+		root_keys: tuple[tuple[str, str], ...],
+		scale_x: float | None = None, scale_y: float | None = None,
+		delta: tuple[float, float] | None = None,
+		) -> PersistentOperationRequest:
+	"""Build one immutable mixed direct-root transform request.
+
+	The backend request contains durable root IDs plus only the documented scalar
+	intent for its mode. The paired root kinds stay at the frontend boundary
+	solely to restore the selected roots after canonical reprojection.
+	"""
+	allowed_modes = {
+		"align-top", "align-bottom", "align-left", "align-right",
+		"align-center-x", "align-center-y", "scale", "mirror-vertical",
+		"mirror-horizontal", "translate",
+	}
+	labels = {
+		"align-top": "Align Top",
+		"align-bottom": "Align Bottom",
+		"align-left": "Align Left",
+		"align-right": "Align Right",
+		"align-center-x": "Align Center Horizontally",
+		"align-center-y": "Align Center Vertically",
+		"scale": "Scale",
+		"mirror-vertical": "Vertical Mirror",
+		"mirror-horizontal": "Horizontal Mirror",
+		"translate": "Move Selected",
+	}
+	if type(expected_revision) is not int:
+		raise TypeError("Top-level transform expected_revision must be an integer")
+	if mode not in allowed_modes:
+		raise ValueError("Top-level transform mode is unsupported")
+	if type(root_keys) is not tuple or not root_keys:
+		raise ValueError("Top-level transform roots must be a nonempty immutable tuple")
+	if any(
+		type(key) is not tuple or len(key) != 2
+		or key[0] not in {"molecule", "presentation"}
+		or type(key[1]) is not str or not key[1]
+		for key in root_keys
+	):
+		raise ValueError("Top-level transform roots must be supported durable root keys")
+	if len({identifier for _kind, identifier in root_keys}) != len(root_keys):
+		raise ValueError("Top-level transform root IDs must be unique")
+	if mode == "scale":
+		if delta is not None:
+			raise ValueError("Only translate accepts a top-level transform delta")
+		if any(
+			type(value) not in (int, float) or not math.isfinite(value) or value <= 0
+			for value in (scale_x, scale_y)
+		):
+			raise ValueError("Top-level transform scale factors must be finite positive numbers")
+	elif mode == "translate":
+		if scale_x is not None or scale_y is not None:
+			raise ValueError("Only scale accepts top-level transform scale factors")
+		if (
+			type(delta) is not tuple or len(delta) != 2
+			or any(type(value) not in (int, float) or not math.isfinite(value) for value in delta)
+		):
+			raise ValueError("Top-level transform delta must be two finite non-bool numbers")
+	else:
+		if scale_x is not None or scale_y is not None or delta is not None:
+			raise ValueError("Only scale or translate accepts top-level transform parameters")
+	return PersistentOperationRequest(
+		"top-level.transform.apply", labels[mode],
+		(
+			("expected_revision", expected_revision), ("mode", mode),
+			("root_ids", tuple(identifier for _kind, identifier in root_keys)),
+			("scale_x", scale_x), ("scale_y", scale_y), ("delta", delta),
+		),
+		frozenset(root_keys),
 	)
 
 
@@ -677,13 +1074,16 @@ class DocumentSession(PySide6.QtCore.QObject):
 		prefs: Preferences singleton.
 		mode_host: Window-like object used by FileActionsMode.
 		view_parent: Optional QWidget initially parenting the ChemView.
-		document: Optional existing Document to adopt.
 		file_path: Optional native document path for the initial title.
 		display_name: Optional non-native label for loading/imported content.
 		origin_path: Optional source path used for duplicate-open detection.
 		prepared_native_cdml: One-use native staging result from
 			:meth:`prepare_native_cdml`.  Its canonical CDML is parsed into this
 			session's independently owned backend authority.
+		prepared_imported_cdml: One-use imported-content staging result whose
+			canonical CDML initializes this session's backend authority.
+		user_template_catalog: Immutable admitted saved-template records copied
+			into this session's frontend-owned delivery mapping.
 	"""
 
 	title_changed = PySide6.QtCore.Signal(str)
@@ -691,23 +1091,19 @@ class DocumentSession(PySide6.QtCore.QObject):
 
 	#============================================
 	def __init__(
-			self, parent: PySide6.QtCore.QObject, theme_manager: object,
+		self, parent: PySide6.QtCore.QObject, theme_manager: object,
 		prefs: object, mode_host: object,
 		view_parent: PySide6.QtWidgets.QWidget | None = None,
-		document: bkchem_qt.models.document.Document | None = None,
 		file_path: str | None = None, display_name: str | None = None,
 		origin_path: str | None = None,
 		prepared_native_cdml: PreparedNativeCDML | None = None,
 		prepared_imported_cdml: PreparedImportedCDML | None = None,
+		user_template_catalog: tuple[
+			bkchem_qt.io.user_template_catalog.UserTemplateCatalogEntry, ...
+			] = (),
 		) -> None:
 		"""Create a clean, independently owned document session."""
 		super().__init__(parent)
-		if document is not None and (
-				prepared_native_cdml is not None or prepared_imported_cdml is not None
-			):
-			raise ValueError(
-				"A supplied Qt document cannot accompany prepared native CDML",
-			)
 		self._disposed = False
 		self._teardown_phase = "live"
 		self._teardown_diagnostics: list[BaseException] = []
@@ -729,6 +1125,11 @@ class DocumentSession(PySide6.QtCore.QObject):
 		self._accepted_projection_selection = None
 		self._provisional_action_sequence = 0
 		self._backend_history = None
+		(
+			self._user_template_entries,
+			self._user_templates_by_key,
+			self._user_template_mode_descriptors,
+		) = _freeze_user_template_catalog(user_template_catalog)
 		self._operation_dispatcher = {
 			"arrow.add": self._build_arrow_candidate,
 			"text.add": self._build_text_candidate,
@@ -738,14 +1139,26 @@ class DocumentSession(PySide6.QtCore.QObject):
 			"wavy.add": self._build_wavy_candidate,
 			"molecule.insert": self._build_molecule_insertion,
 			"template.insert": self._build_template_insertion,
+			"biotemplate.insert": self._build_biomolecule_template_insertion,
+			"user-template.insert": self._build_user_template_insertion,
 			"geometry.repair": self._build_geometry_repair,
 			"atom.align": self._build_atom_align,
 			"atom.translate": self._build_atom_translate,
+			"selection.translate": self._build_selection_translate,
 			"atom.rotate": self._build_atom_rotate,
 			"bond.order.set": self._build_bond_order_edit,
 			"bond.type.set": self._build_bond_type_edit,
 			"bond.properties.patch": self._build_bond_properties_patch,
 			"atom.properties.patch": self._build_atom_properties_patch,
+			"text.properties.patch": self._build_text_properties_patch,
+			"text.rich.patch": self._build_rich_text_patch,
+			"plus.properties.patch": self._build_plus_properties_patch,
+			"wavy.properties.patch": self._build_wavy_properties_patch,
+			"fragment.create": self._build_fragment_create,
+			"fragment.delete": self._build_fragment_delete,
+			"group.expand.implicit": self._build_implicit_group_expand,
+			"linear-form.convert": self._build_linear_form_convert,
+			"atom.mark.apply": self._build_atom_mark_operation,
 			"draw.structure": self._build_structural_edit,
 			"atom.element.set": self._build_atom_element_edit,
 			"atom.number.set": self._build_atom_number_edit,
@@ -753,24 +1166,39 @@ class DocumentSession(PySide6.QtCore.QObject):
 			"paper.properties.set": self._build_paper_properties_patch,
 			"presentation.stack.reorder": self._build_presentation_stack_reorder,
 			"top-level.delete": self._build_top_level_delete,
+			"structure.delete": self._build_structure_delete,
+			"top-level.transform.apply": self._build_top_level_transform,
 		}
 		self._operation_commit_executors = {
 			"complete-candidate": self._commit_complete_candidate,
 			"molecule-insertion": self._commit_molecule_insertion,
+			"user-template-insertion": self._commit_user_template_insertion,
 			"geometry-repair": self._commit_geometry_repair,
 			"atom-align": self._commit_atom_align,
 			"atom-translate": self._commit_atom_translate,
+			"selection-translate": self._commit_selection_translate,
 			"atom-rotate": self._commit_atom_rotate,
 			"bond-order-edit": self._commit_bond_order_edit,
 			"bond-type-edit": self._commit_bond_type_edit,
 			"bond-properties-patch": self._commit_bond_properties_patch,
 			"atom-properties-patch": self._commit_atom_properties_patch,
+			"text-properties-patch": self._commit_text_properties_patch,
+			"rich-text-patch": self._commit_rich_text_patch,
+			"plus-properties-patch": self._commit_plus_properties_patch,
+			"wavy-properties-patch": self._commit_wavy_properties_patch,
+			"fragment-create": self._commit_fragment_create,
+			"fragment-delete": self._commit_fragment_delete,
+			"implicit-group-expand": self._commit_implicit_group_expand,
+			"linear-form-convert": self._commit_linear_form_convert,
+			"atom-mark-operation": self._commit_atom_mark_operation,
 			"structural-edit": self._commit_structural_edit,
 			"atom-element-edit": self._commit_atom_element_edit,
 			"atom-number-edit": self._commit_atom_number_edit,
 			"molecule-name-edit": self._commit_molecule_name_edit,
 			"paper-properties-patch": self._commit_paper_properties_patch,
 			"top-level-delete": self._commit_top_level_delete,
+			"structure-delete": self._commit_structure_delete,
+			"top-level-transform": self._commit_top_level_transform,
 		}
 		self._legacy_isolated = False
 		self._document = None
@@ -781,7 +1209,7 @@ class DocumentSession(PySide6.QtCore.QObject):
 		self._mode_manager = None
 		staged_document = None
 		try:
-			bootstrap_backend_projection = document is None
+			bootstrap_backend_projection = True
 			if prepared_native_cdml is None and prepared_imported_cdml is None:
 				self._backend_session = oasa.cdml_document.CDMLDocumentSession.load(
 					_BLANK_CDML,
@@ -793,17 +1221,15 @@ class DocumentSession(PySide6.QtCore.QObject):
 				)
 				bootstrap_backend_projection = True
 				# Keep this document detached until every new session root is viable.
-				document = staged_document
 			else:
 				canonical_cdml, staged_document = prepared_imported_cdml._peek()
 				self._backend_session = oasa.cdml_document.CDMLDocumentSession.load_imported(
 					canonical_cdml,
 				)
 				bootstrap_backend_projection = True
-				document = staged_document
 			self._document = (
-				document
-				if document is not None
+				staged_document
+				if staged_document is not None
 				else bkchem_qt.models.document.Document()
 			)
 			self._document.set_graphics_retirement_reaper(
@@ -826,8 +1252,23 @@ class DocumentSession(PySide6.QtCore.QObject):
 				atom_translate_action=self.submit_atom_translate,
 				atom_rotate_action=self.submit_atom_rotate,
 				atom_translate_authority=self.atom_translate_drag_authority,
+				presentation_translate_action=self.submit_top_level_transform,
+				presentation_translate_context=self.presentation_translate_drag_context,
+				selection_translate_action=self.submit_selection_translate,
+				selection_translate_context=self.selection_translate_drag_context,
+				top_level_delete_context=self.top_level_delete_context,
+				structure_delete_context=self.structure_delete_context,
+				atom_mark_delete_context=self.atom_mark_delete_context,
 				atom_number_context=self.atom_number_context,
+				atom_mark_revision=self.atom_mark_revision,
 				template_names=oasa.template_placement.system_template_names(),
+				template_action=self.submit_system_template,
+				biomolecule_catalog=(
+					oasa.biomolecule_template_placement.biomolecule_template_catalog()
+				),
+				biotemplate_action=self.submit_biomolecule_template,
+				user_template_catalog=self._user_template_mode_descriptors,
+				user_template_action=self.submit_user_template,
 				graphics_retirement_reaper=self._projection_retirement_reaper,
 			)
 			# The backend imported-load baseline is empty, so this projection starts
@@ -896,6 +1337,21 @@ class DocumentSession(PySide6.QtCore.QObject):
 		return self._backend_session.query_molecule_smiles(request)
 
 	#============================================
+	def observe_atom_chemistry_facts(
+			self, expected_revision: int,
+			) -> oasa.cdml_document.CDMLAtomChemistryFactsObservation:
+		"""Return one read-only OASA chemistry observation for this projection."""
+		self._require_live_persistent_operation()
+		if not self.can_write_authoritative_snapshot:
+			raise BackendProjectionOutOfSyncError(
+				"Cannot observe atom chemistry while the Qt projection is not a "
+				"current authoritative projection",
+			)
+		return self._backend_session.atom_chemistry_facts(
+			oasa.cdml_document.CDMLAtomChemistryFactsQuery(expected_revision),
+		)
+
+	#============================================
 	def atom_number_context(self) -> tuple[int, int]:
 		"""Return revision and next transient candidate from backend CDML.
 
@@ -922,6 +1378,12 @@ class DocumentSession(PySide6.QtCore.QObject):
 		return context
 
 	#============================================
+	def atom_mark_revision(self) -> int:
+		"""Return the exact current backend revision for one MarkMode gesture."""
+		self._require_live_persistent_operation()
+		return self.backend_snapshot.revision
+
+	#============================================
 	def capture_visual_render_request(
 			self, format_name: str, scope: str = "page",
 			) -> oasa.cdml_render.CDMLRenderRequest | oasa.cdml_render.CDMLRenderFailure:
@@ -944,17 +1406,37 @@ class DocumentSession(PySide6.QtCore.QObject):
 			)
 		selection_keys = ()
 		if scope == "selection":
-			if self._scene is None or self._document is None:
+			if not self._selection_projection_matches_snapshot(snapshot):
 				return oasa.cdml_render.CDMLRenderFailure(
 					"selection-unavailable",
-					"Selection export requires a live Qt projection", snapshot.revision,
+					"Selection export requires the current Qt projection", snapshot.revision,
 				)
 			try:
+				items = bkchem_qt.canvas.graphics_retirement.selected_items_from_captured_scene(
+					self._scene,
+				)
+				if not items:
+					return oasa.cdml_render.CDMLRenderFailure(
+						"selection-unavailable", "Selection export requires a durable selection",
+						snapshot.revision,
+					)
 				seen = set()
 				captured = []
-				for item in self._scene.selectedItems():
+				for item in items:
+					if not self._document.is_current_projection_item(item):
+						return oasa.cdml_render.CDMLRenderFailure(
+							"selection-unavailable",
+							"Selection export requires current projection items",
+							snapshot.revision,
+						)
 					key = bkchem_qt.canvas.document_projection.persistent_selection_key(item)
-					if key is None or key in seen:
+					if key is None:
+						return oasa.cdml_render.CDMLRenderFailure(
+							"selection-unavailable",
+							"Selection export requires durable selection IDs",
+							snapshot.revision,
+						)
+					if key in seen:
 						continue
 					seen.add(key)
 					captured.append(oasa.cdml_render.CDMLRenderSelectionKey(*key))
@@ -973,6 +1455,31 @@ class DocumentSession(PySide6.QtCore.QObject):
 			return oasa.cdml_render.CDMLRenderFailure(
 				"invalid-render-request", str(exc), snapshot.revision,
 			)
+
+	#============================================
+	def _selection_projection_matches_snapshot(
+			self, snapshot: oasa.cdml_document.CDMLSnapshot,
+			) -> bool:
+		"""Return whether one captured snapshot has its installed Qt projection.
+
+		Selection is frontend interaction state, unlike page/content export.  Its
+		durable keys are meaningful only while the registered projection still
+		represents this exact immutable backend snapshot.  This check deliberately
+		uses the snapshot already captured for the render request rather than
+		reading the backend a second time.
+		"""
+		return (
+			not self._disposed
+			and not self._projection_replacing
+			and self._projection_error is None
+			and self._backend_projection_synchronized
+			and self._document is not None
+			and self._scene is not None
+			and self._view is not None
+			and self._projected_backend_snapshot == snapshot
+			and self._document._scene is self._scene
+			and self._view.document is self._document
+		)
 
 	#============================================
 	@property
@@ -1007,12 +1514,17 @@ class DocumentSession(PySide6.QtCore.QObject):
 
 	#============================================
 	def install_projection_lifecycle_port(
-			self, port: SessionProjectionLifecyclePort,
+			self, port: bkchem_qt.models.projection_lifecycle.SessionProjectionLifecyclePort,
 			) -> None:
 		"""Install one explicitly session-bound projection delivery port."""
 		if self._disposed or not port.is_bound_to(self):
 			raise ValueError("A live session requires its own projection lifecycle port")
 		self._projection_lifecycle_port = port
+
+	#============================================
+	def owns_projection_lifecycle_port(self, port: object) -> bool:
+		"""Return whether a delivery port is this live session's current owner."""
+		return not self._disposed and self._projection_lifecycle_port is port
 
 	#============================================
 	def clear_projection_lifecycle_port(self) -> None:
@@ -1038,6 +1550,34 @@ class DocumentSession(PySide6.QtCore.QObject):
 		return available
 
 	#============================================
+	def replace_user_template_catalog(
+			self,
+			entries: tuple[bkchem_qt.io.user_template_catalog.UserTemplateCatalogEntry, ...],
+			) -> None:
+		"""Atomically replace this session's frozen saved-template delivery data."""
+		if self._disposed:
+			raise RuntimeError("Cannot replace a disposed session's user template catalog")
+		frozen_entries, by_key, descriptors = _freeze_user_template_catalog(entries)
+		mode = self._mode_manager.mode("usertemplate")
+		set_catalog = getattr(mode, "set_catalog", None)
+		if not callable(set_catalog):
+			raise RuntimeError("User template mode is unavailable")
+		previous_entries = self._user_template_entries
+		previous_by_key = self._user_templates_by_key
+		previous_descriptors = self._user_template_mode_descriptors
+		try:
+			set_catalog(descriptors)
+			self._user_template_entries = frozen_entries
+			self._user_templates_by_key = by_key
+			self._user_template_mode_descriptors = descriptors
+		except Exception:
+			set_catalog(previous_descriptors)
+			self._user_template_entries = previous_entries
+			self._user_templates_by_key = previous_by_key
+			self._user_template_mode_descriptors = previous_descriptors
+			raise
+
+	#============================================
 	def atom_translate_drag_authority(self) -> str:
 		"""Return the current frontend-only authority for an EditMode atom drag.
 
@@ -1047,6 +1587,78 @@ class DocumentSession(PySide6.QtCore.QObject):
 		keeps that distinction at the session boundary without carrying Qt
 		objects across the backend-facing request boundary.
 		"""
+		return self._edit_drag_authority()
+
+	#============================================
+	def presentation_translate_drag_authority(self) -> str:
+		"""Return the current frontend-only authority for a presentation drag.
+
+		Presentation-only EditMode drags use the same session/projection provenance
+		gate as atom drags.  The separate public name keeps the mode's two durable
+		request grammars explicit while this session owns their common lifecycle
+		state.
+		"""
+		return self._edit_drag_authority()
+
+	#============================================
+	def presentation_translate_drag_context(self) -> tuple[str, int | None]:
+		"""Return one immutable authority/revision pair for an EditMode drag."""
+		authority = self.presentation_translate_drag_authority()
+		if authority == "backend":
+			return authority, self.backend_snapshot.revision
+		return authority, None
+
+
+	#============================================
+	def selection_translate_drag_context(self) -> tuple[str, int | None]:
+		"""Return one immutable authority/revision pair for a mixed EditMode drag."""
+		authority = self._edit_drag_authority()
+		if authority == "backend":
+			return authority, self.backend_snapshot.revision
+		return authority, None
+
+	#============================================
+	def top_level_delete_authority(self) -> str:
+		"""Return the current frontend-only authority for complete-root Delete.
+
+		Complete-root Delete shares the session/projection provenance gate used by
+		EditMode drags.  The public name makes its local transitional route and
+		unavailable synchronized outcome explicit at the interaction boundary.
+		"""
+		return self._edit_drag_authority()
+
+	#============================================
+	def top_level_delete_context(self) -> tuple[str, int | None]:
+		"""Return one immutable authority/revision pair for complete-root Delete."""
+		authority = self.top_level_delete_authority()
+		if authority == "backend":
+			return authority, self.backend_snapshot.revision
+		return authority, None
+
+	#============================================
+	def structure_delete_authority(self) -> str:
+		"""Return the current frontend-only authority for partial structure Delete."""
+		return self._edit_drag_authority()
+
+	#============================================
+	def structure_delete_context(self) -> tuple[str, int | None]:
+		"""Return one immutable authority/revision pair for partial structure Delete."""
+		authority = self.structure_delete_authority()
+		if authority == "backend":
+			return authority, self.backend_snapshot.revision
+		return authority, None
+
+	#============================================
+	def atom_mark_delete_context(self) -> tuple[str, int | None]:
+		"""Return one immutable authority/revision pair for selected-mark Delete."""
+		authority = self._edit_drag_authority()
+		if authority == "backend":
+			return authority, self.backend_snapshot.revision
+		return authority, None
+
+	#============================================
+	def _edit_drag_authority(self) -> str:
+		"""Classify one in-flight EditMode gesture without exposing Qt state."""
 		if (
 				self._disposed
 				or self._projection_replacing
@@ -1151,6 +1763,12 @@ class DocumentSession(PySide6.QtCore.QObject):
 		return token_stem
 
 	#============================================
+	def _next_biomolecule_token_stem(self, revision: int) -> str:
+		"""Allocate one session-local provisional stem for biomolecule placement."""
+		self._provisional_action_sequence += 1
+		return "biomolecule-r%s-%s" % (revision, self._provisional_action_sequence)
+
+	#============================================
 	def commit_arrow(
 			self, start: tuple[float, float], end: tuple[float, float],
 			) -> PersistentActionOutcome:
@@ -1173,6 +1791,20 @@ class DocumentSession(PySide6.QtCore.QObject):
 		return self.submit_persistent_operation(request)
 
 	#============================================
+	def submit_top_level_transform(
+			self, expected_revision: int, mode: str,
+			root_keys: tuple[tuple[str, str], ...],
+			scale_x: float | None = None, scale_y: float | None = None,
+			delta: tuple[float, float] | None = None,
+			) -> PersistentActionOutcome:
+		"""Submit one durable mixed top-level transform through this session."""
+		self._require_live_persistent_operation()
+		request = build_top_level_transform_request(
+			expected_revision, mode, root_keys, scale_x, scale_y, delta,
+		)
+		return self.submit_persistent_operation(request)
+
+	#============================================
 	def submit_atom_translate(
 			self, targets: tuple[tuple[str, str], ...], delta: tuple[float, float],
 			) -> PersistentActionOutcome:
@@ -1181,6 +1813,79 @@ class DocumentSession(PySide6.QtCore.QObject):
 		if not isinstance(targets, tuple) or not isinstance(delta, tuple):
 			raise TypeError("Atom translation targets and delta must be immutable tuples")
 		request = build_atom_translate_request(self.backend_snapshot.revision, targets, delta)
+		return self.submit_persistent_operation(request)
+
+	#============================================
+	def submit_biomolecule_template(
+			self, catalog_key: str, anchor: tuple[float, float],
+			) -> PersistentActionOutcome:
+		"""Submit one current revision-bound packaged biomolecule placement."""
+		if self._disposed:
+			return PersistentActionOutcome(
+				"unavailable", "Document cannot accept a persistent edit", None, False,
+			)
+		self._require_live_persistent_operation()
+		request = PersistentOperationRequest(
+			"biotemplate.insert", "Place Biomolecule Template",
+			(
+				("expected_revision", self.backend_snapshot.revision),
+				("catalog_key", catalog_key),
+				("anchor", anchor),
+			),
+		)
+		return self.submit_persistent_operation(request)
+
+	#============================================
+	def submit_user_template(
+			self, catalog_key: str, anchor: tuple[float, float],
+			) -> PersistentActionOutcome:
+		"""Submit one current revision-bound session-delivered saved template."""
+		if self._disposed:
+			return PersistentActionOutcome(
+				"unavailable", "Document cannot accept a persistent edit", None, False,
+			)
+		self._require_live_persistent_operation()
+		try:
+			request = build_user_template_insert_request(
+				self.backend_snapshot.revision, catalog_key, anchor,
+			)
+		except (TypeError, ValueError) as exc:
+			return PersistentActionOutcome(
+				"rejected", str(exc), None, False, None, "validation",
+			)
+		return self.submit_persistent_operation(request)
+
+	#============================================
+	def submit_system_template(
+			self, template_name: str, anchor: tuple[float, float],
+			) -> PersistentActionOutcome:
+		"""Submit one current revision-bound OASA system-template placement."""
+		if self._disposed:
+			return PersistentActionOutcome(
+				"unavailable", "Document cannot accept a persistent edit", None, False,
+			)
+		self._require_live_persistent_operation()
+		request = PersistentOperationRequest(
+			"template.insert", "Place Template",
+			(
+				("expected_revision", self.backend_snapshot.revision),
+				("template_name", template_name),
+				("anchor", anchor),
+			),
+		)
+		return self.submit_persistent_operation(request)
+
+
+	#============================================
+	def submit_selection_translate(
+			self, expected_revision: int, atom_targets: tuple[tuple[str, str], ...],
+			presentation_root_keys: tuple[tuple[str, str], ...], delta: tuple[float, float],
+			) -> PersistentActionOutcome:
+		"""Submit one press-revision-bound mixed selection translation."""
+		self._require_live_persistent_operation()
+		request = build_selection_translate_request(
+			expected_revision, atom_targets, presentation_root_keys, delta,
+		)
 		return self.submit_persistent_operation(request)
 
 	#============================================
@@ -1244,6 +1949,94 @@ class DocumentSession(PySide6.QtCore.QObject):
 		return self.submit_persistent_operation(request)
 
 	#============================================
+	def submit_text_properties_patch(
+			self, expected_revision: int, text_id: str,
+			changes: tuple[tuple[str, object], ...],
+			) -> PersistentActionOutcome:
+		"""Submit one revision-bound durable plain Text patch through this session."""
+		self._require_live_persistent_operation()
+		request = build_text_properties_patch_request(
+			expected_revision, text_id, changes,
+		)
+		return self.submit_persistent_operation(request)
+
+	#============================================
+	def submit_rich_text_patch(
+			self, expected_revision: int, text_id: str,
+			runs: tuple[tuple[str, tuple[str, ...]], ...],
+			changes: tuple[tuple[str, object], ...] = (),
+			) -> PersistentActionOutcome:
+		"""Submit one revision-bound durable rich Text run patch through this session."""
+		self._require_live_persistent_operation()
+		request = build_rich_text_patch_request(expected_revision, text_id, runs, changes)
+		return self.submit_persistent_operation(request)
+
+	#============================================
+	def submit_plus_properties_patch(
+			self, expected_revision: int, plus_id: str,
+			changes: tuple[tuple[str, object], ...],
+			) -> PersistentActionOutcome:
+		"""Submit one revision-bound durable plain Plus patch through this session."""
+		self._require_live_persistent_operation()
+		request = build_plus_properties_patch_request(
+			expected_revision, plus_id, changes,
+		)
+		return self.submit_persistent_operation(request)
+
+	#============================================
+	def submit_wavy_properties_patch(
+			self, expected_revision: int, wavy_id: str,
+			changes: tuple[tuple[str, object], ...],
+			) -> PersistentActionOutcome:
+		"""Submit one revision-bound durable plain Wavy patch through this session."""
+		self._require_live_persistent_operation()
+		request = build_wavy_properties_patch_request(
+			expected_revision, wavy_id, changes,
+		)
+		return self.submit_persistent_operation(request)
+
+	#============================================
+	def submit_fragment_create(
+			self, expected_revision: int, molecule_id: str, name: str,
+			fragment_type: str, atom_ids: tuple[str, ...], bond_ids: tuple[str, ...],
+			) -> PersistentActionOutcome:
+		"""Submit one ordinary fragment metadata creation through this session."""
+		self._require_live_persistent_operation()
+		request = build_fragment_create_request(
+			expected_revision, molecule_id, name, fragment_type, atom_ids, bond_ids,
+		)
+		return self.submit_persistent_operation(request)
+
+	#============================================
+	def submit_fragment_delete(
+			self, expected_revision: int, molecule_id: str, fragment_id: str,
+			) -> PersistentActionOutcome:
+		"""Submit one ordinary fragment metadata deletion through this session."""
+		self._require_live_persistent_operation()
+		request = build_fragment_delete_request(expected_revision, molecule_id, fragment_id)
+		return self.submit_persistent_operation(request)
+
+	#============================================
+	def submit_implicit_group_expand(
+			self, expected_revision: int, molecule_id: str, group_id: str,
+			) -> PersistentActionOutcome:
+		"""Submit one backend-authoritative implicit-group expansion."""
+		self._require_live_persistent_operation()
+		return self.submit_persistent_operation(build_implicit_group_expand_request(
+			expected_revision, molecule_id, group_id,
+		))
+
+	#============================================
+	def submit_linear_form_convert(
+			self, expected_revision: int, molecule_id: str, atom_ids: tuple[str, ...],
+			) -> PersistentActionOutcome:
+		"""Submit one durable atom-path linear-form conversion."""
+		self._require_live_persistent_operation()
+		return self.submit_persistent_operation(build_linear_form_convert_request(
+			expected_revision, molecule_id, atom_ids,
+		))
+
+	#============================================
 	def submit_persistent_operation(
 			self, request: PersistentOperationRequest,
 			) -> PersistentActionOutcome:
@@ -1292,11 +2085,19 @@ class DocumentSession(PySide6.QtCore.QObject):
 					oasa.cdml_document.CDMLGeometryRepairResult,
 					oasa.cdml_document.CDMLAtomAlignResult,
 					oasa.cdml_document.CDMLAtomTranslateResult,
+					oasa.cdml_document.CDMLSelectionTranslateResult,
 					oasa.cdml_document.CDMLAtomRotateResult,
 					oasa.cdml_document.CDMLBondOrderEditResult,
 					oasa.cdml_document.CDMLBondTypeEditResult,
 					oasa.cdml_document.CDMLBondPropertiesPatchResult,
 					oasa.cdml_document.CDMLAtomPropertiesPatchResult,
+					oasa.cdml_document.CDMLTextPropertiesPatchResult,
+					oasa.cdml_document.CDMLRichTextPatchResult,
+					oasa.cdml_document.CDMLPlusPropertiesPatchResult,
+					oasa.cdml_document.CDMLWavyPropertiesPatchResult,
+					oasa.cdml_document.CDMLAtomMarkOperationResult,
+					oasa.cdml_document.CDMLTopLevelTransformResult,
+					oasa.cdml_document.CDMLLinearFormConvertResult,
 				),
 			):
 			if not execution_result.changed:
@@ -1307,6 +2108,14 @@ class DocumentSession(PySide6.QtCore.QObject):
 			commit = execution_result.commit
 			if commit is None:
 				raise RuntimeError("Changed persistent operation requires an accepted commit")
+		elif type(execution_result) is oasa.cdml_document.CDMLStructureDeleteResult:
+			commit = execution_result.commit
+		elif type(execution_result) in (
+				oasa.cdml_document.CDMLFragmentCreateResult,
+				oasa.cdml_document.CDMLFragmentDeleteResult,
+				oasa.cdml_document.CDMLImplicitGroupExpandResult,
+		):
+			commit = execution_result.commit
 		elif isinstance(execution_result, oasa.cdml_document.CDMLStructuralEditResult):
 			commit = execution_result.commit
 			structural_result = execution_result
@@ -1320,12 +2129,43 @@ class DocumentSession(PySide6.QtCore.QObject):
 		self._record_accepted_history(request.label, commit.snapshot.revision)
 		if prepared.preserve_existing_selection:
 			selection_keys, selection_error = None, None
+		elif type(execution_result) is oasa.cdml_document.CDMLImplicitGroupExpandResult:
+			selection_keys, selection_error = frozenset({
+				("atom", execution_result.replacement_atom_id),
+			}), None
 		else:
 			selection_keys, selection_error = self._durable_selection_keys(prepared, commit)
 		return self._project_accepted_commit(
 			commit, "%s accepted" % request.label, structural_result, selection_keys,
 			selection_error,
 		)
+
+	#============================================
+	def extract_structure_fragment(
+			self, expected_revision: int, molecule_id: str,
+			atom_ids: tuple[str, ...], bond_ids: tuple[str, ...],
+			) -> oasa.cdml_document.CDMLStructureFragmentExtractionResult:
+		"""Read one backend-authoritative structural clipboard fragment."""
+		self._require_live_persistent_operation()
+		query = build_structure_fragment_extraction_query(
+			expected_revision, molecule_id, atom_ids, bond_ids,
+		)
+		try:
+			return self._backend_session.extract_structure_fragment(query)
+		except oasa.cdml_document.CDMLDocumentError as exc:
+			raise BackendFragmentExtractionError(str(exc)) from exc
+
+	#============================================
+	def extract_top_level_fragment(
+			self, expected_revision: int, root_ids: tuple[str, ...],
+			) -> oasa.cdml_document.CDMLTopLevelFragmentExtractionResult:
+		"""Read one authoritative direct-root clipboard fragment."""
+		self._require_live_persistent_operation()
+		query = build_top_level_fragment_extraction_query(expected_revision, root_ids)
+		try:
+			return self._backend_session.extract_top_level_fragment(query)
+		except oasa.cdml_document.CDMLDocumentError as exc:
+			raise BackendFragmentExtractionError(str(exc)) from exc
 
 	#============================================
 	def submit_clipboard_fragment(self, fragment_cdml: str) -> PersistentActionOutcome:
@@ -1673,6 +2513,84 @@ class DocumentSession(PySide6.QtCore.QObject):
 		)
 
 	#============================================
+	def _build_biomolecule_template_insertion(
+			self, snapshot: oasa.cdml_document.CDMLSnapshot,
+			request: PersistentOperationRequest,
+			) -> _PreparedPersistentOperation:
+		"""Prepare one OASA-owned packaged biomolecule through molecule insertion."""
+		if request.target_keys:
+			raise ValueError("Biomolecule insertion does not accept persistent targets")
+		payload = dict(request.payload)
+		if set(payload) != {"expected_revision", "catalog_key", "anchor"}:
+			raise ValueError("Biomolecule insertion payload has unsupported fields")
+		expected_revision = payload["expected_revision"]
+		if type(expected_revision) is not int:
+			raise ValueError("Biomolecule insertion expected_revision must be an integer")
+		if expected_revision != snapshot.revision:
+			raise oasa.cdml_document.CDMLRevisionConflictError(
+				"Biomolecule insertion expected revision does not match the current snapshot",
+			)
+		prepared = oasa.biomolecule_template_placement.prepare_biomolecule_template_insertion(
+			oasa.biomolecule_template_placement.BiomoleculeTemplatePlacementRequest(
+				catalog_key=payload["catalog_key"], anchor=payload["anchor"],
+				token_stem=self._next_biomolecule_token_stem(snapshot.revision),
+			),
+		)
+		if type(prepared) is not oasa.template_placement.CDMLPreparedMoleculeInsertion:
+			raise ValueError("Biomolecule preparation returned an invalid detached proposal")
+		insertion_request = oasa.cdml_document.CDMLMoleculeInsertionRequest(
+			expected_revision, prepared.proposal_cdml, request.label,
+		)
+		return _PreparedPersistentOperation(
+			"molecule-insertion", expected_revision, insertion_request,
+			frozenset(("molecule", identifier) for identifier in prepared.root_provisional_molecule_ids),
+		)
+
+	#============================================
+	def _build_user_template_insertion(
+			self, snapshot: oasa.cdml_document.CDMLSnapshot,
+			request: PersistentOperationRequest,
+			) -> _PreparedPersistentOperation:
+		"""Bind one session-frozen saved template to OASA's insertion request."""
+		if request.target_keys:
+			raise ValueError("User template insertion does not accept persistent targets")
+		payload = dict(request.payload)
+		if set(payload) != {"expected_revision", "catalog_key", "anchor"}:
+			raise ValueError("User template insertion payload has unsupported fields")
+		expected_revision = payload["expected_revision"]
+		if type(expected_revision) is not int:
+			raise ValueError("User template insertion expected_revision must be an integer")
+		if expected_revision != snapshot.revision:
+			raise oasa.cdml_document.CDMLRevisionConflictError(
+				"User template insertion expected revision does not match the current snapshot",
+			)
+		catalog_key = payload["catalog_key"]
+		if type(catalog_key) is not str or not catalog_key.strip():
+			raise ValueError("User template insertion catalog_key must be nonblank")
+		anchor = payload["anchor"]
+		if (
+			type(anchor) is not tuple or len(anchor) != 2
+			or any(
+				isinstance(value, bool) or not isinstance(value, numbers.Real)
+				or not math.isfinite(value)
+				for value in anchor
+			)
+		):
+			raise ValueError("User template insertion anchor must be a finite point tuple")
+		if catalog_key not in self._user_templates_by_key:
+			raise ValueError("User template catalog key is unavailable")
+		entry = self._user_templates_by_key[catalog_key]
+		insertion_request = oasa.cdml_document.CDMLUserTemplateInsertionRequest(
+			expected_revision=expected_revision,
+			template_cdml=entry.template_cdml,
+			anchor=(float(anchor[0]), float(anchor[1])),
+			label=entry.label,
+		)
+		return _PreparedPersistentOperation(
+			"user-template-insertion", expected_revision, insertion_request,
+		)
+
+	#============================================
 	def _build_geometry_repair(
 			self, _snapshot: oasa.cdml_document.CDMLSnapshot,
 			request: PersistentOperationRequest,
@@ -1748,6 +2666,65 @@ class DocumentSession(PySide6.QtCore.QObject):
 		return _PreparedPersistentOperation(
 			"atom-translate", translate_request.expected_revision, translate_request,
 			frozenset(("atom", atom_id) for _molecule_id, atom_id in targets),
+		)
+
+	#============================================
+	def _build_selection_translate(
+			self, snapshot: oasa.cdml_document.CDMLSnapshot,
+			request: PersistentOperationRequest,
+			) -> _PreparedPersistentOperation:
+		"""Bind one mixed durable selection to OASA's atomic translation operation."""
+		payload = dict(request.payload)
+		if set(payload) != {
+				"expected_revision", "atom_targets", "presentation_root_ids", "delta",
+			}:
+			raise ValueError("Selection translation payload has unsupported fields")
+		expected_revision = payload["expected_revision"]
+		atom_targets = payload["atom_targets"]
+		presentation_root_ids = payload["presentation_root_ids"]
+		delta = payload["delta"]
+		if type(expected_revision) is not int:
+			raise ValueError("Selection translation expected_revision must be an integer")
+		if expected_revision != snapshot.revision:
+			raise oasa.cdml_document.CDMLRevisionConflictError(
+				"Selection translation expected revision does not match the current snapshot",
+			)
+		if type(atom_targets) is not tuple or type(presentation_root_ids) is not tuple:
+			raise ValueError("Selection translation targets must be immutable tuples")
+		if type(delta) is not tuple:
+			raise ValueError("Selection translation delta must be an immutable tuple")
+		if not atom_targets:
+			raise ValueError("Selection translation requires durable atom targets")
+		if not presentation_root_ids:
+			raise ValueError("Selection translation requires durable presentation roots")
+		if any(
+				type(target) is not tuple or len(target) != 2
+				or type(target[0]) is not str or not target[0].strip()
+				or type(target[1]) is not str or not target[1].strip()
+				for target in atom_targets
+			):
+			raise ValueError("Selection translation atom targets must be durable ID pairs")
+		if any(type(identifier) is not str or not identifier.strip() for identifier in presentation_root_ids):
+			raise ValueError("Selection translation presentation IDs must be nonblank strings")
+		expected_target_keys = (
+			frozenset(("molecule", molecule_id) for molecule_id, _atom_id in atom_targets)
+			| frozenset(("atom", atom_id) for _molecule_id, atom_id in atom_targets)
+			| frozenset(("presentation", identifier) for identifier in presentation_root_ids)
+		)
+		if request.target_keys != expected_target_keys:
+			raise ValueError("Selection translation target keys must match durable targets")
+		translate_request = oasa.cdml_document.CDMLSelectionTranslateRequest(
+			expected_revision=expected_revision,
+			atom_targets=atom_targets,
+			presentation_root_ids=presentation_root_ids,
+			delta=delta,
+		)
+		selection_keys = (
+			frozenset(("atom", atom_id) for _molecule_id, atom_id in atom_targets)
+			| frozenset(("presentation", identifier) for identifier in presentation_root_ids)
+		)
+		return _PreparedPersistentOperation(
+			"selection-translate", expected_revision, translate_request, selection_keys,
 		)
 
 	#============================================
@@ -2012,6 +2989,278 @@ class DocumentSession(PySide6.QtCore.QObject):
 		)
 
 	#============================================
+	def _build_text_properties_patch(
+			self, snapshot: oasa.cdml_document.CDMLSnapshot,
+			request: PersistentOperationRequest,
+			) -> _PreparedPersistentOperation:
+		"""Bind one exact plain Text dialog intent to OASA's direct-root patch."""
+		payload = dict(request.payload)
+		if set(payload) != {"expected_revision", "text_id", "changes"}:
+			raise ValueError("Text properties payload has unsupported fields")
+		if type(payload["expected_revision"]) is not int:
+			raise ValueError("Text properties expected_revision must be an integer")
+		if payload["expected_revision"] != snapshot.revision:
+			raise oasa.cdml_document.CDMLRevisionConflictError(
+				"Text properties expected revision does not match the current snapshot",
+			)
+		text_id = payload["text_id"]
+		if type(text_id) is not str or not text_id.strip():
+			raise ValueError("Text properties text_id must contain a non-whitespace character")
+		if type(payload["changes"]) is not tuple:
+			raise ValueError("Text properties changes must be an immutable tuple")
+		if request.target_keys != frozenset({("presentation", text_id)}):
+			raise ValueError("Text properties target keys must match the durable Text target")
+		text_request = oasa.cdml_document.CDMLTextPropertiesPatch(**payload)
+		return _PreparedPersistentOperation(
+			"text-properties-patch", text_request.expected_revision, text_request,
+			frozenset({("presentation", text_id)}),
+		)
+
+	#============================================
+	def _build_rich_text_patch(
+			self, snapshot: oasa.cdml_document.CDMLSnapshot,
+			request: PersistentOperationRequest,
+			) -> _PreparedPersistentOperation:
+		"""Bind plain frontend runs to one OASA-only rich Text patch adapter."""
+		payload = dict(request.payload)
+		if set(payload) != {"expected_revision", "text_id", "runs", "changes"}:
+			raise ValueError("Rich Text payload has unsupported fields")
+		expected_revision = payload["expected_revision"]
+		if type(expected_revision) is not int:
+			raise ValueError("Rich Text expected_revision must be an integer")
+		if expected_revision != snapshot.revision:
+			raise oasa.cdml_document.CDMLRevisionConflictError(
+				"Rich Text expected revision does not match the current snapshot",
+			)
+		text_id = payload["text_id"]
+		if type(text_id) is not str or not text_id.strip():
+			raise ValueError("Rich Text text_id must contain a non-whitespace character")
+		if request.target_keys != frozenset({("presentation", text_id)}):
+			raise ValueError("Rich Text target keys must match the durable Text target")
+		patch = rich_text_patch_from_plain_runs(
+			expected_revision, text_id, payload["runs"], payload["changes"],
+		)
+		return _PreparedPersistentOperation(
+			"rich-text-patch", patch.expected_revision, patch,
+			frozenset({("presentation", text_id)}),
+		)
+
+	#============================================
+	def _build_plus_properties_patch(
+			self, snapshot: oasa.cdml_document.CDMLSnapshot,
+			request: PersistentOperationRequest,
+			) -> _PreparedPersistentOperation:
+		"""Bind one exact plain Plus dialog intent to OASA's root patch."""
+		payload = dict(request.payload)
+		if set(payload) != {"expected_revision", "plus_id", "changes"}:
+			raise ValueError("Plus properties payload has unsupported fields")
+		if type(payload["expected_revision"]) is not int:
+			raise ValueError("Plus properties expected_revision must be an integer")
+		if payload["expected_revision"] != snapshot.revision:
+			raise oasa.cdml_document.CDMLRevisionConflictError(
+				"Plus properties expected revision does not match the current snapshot",
+			)
+		plus_id = payload["plus_id"]
+		if type(plus_id) is not str or not plus_id.strip():
+			raise ValueError("Plus properties plus_id must contain a non-whitespace character")
+		if type(payload["changes"]) is not tuple:
+			raise ValueError("Plus properties changes must be an immutable tuple")
+		if request.target_keys != frozenset({("presentation", plus_id)}):
+			raise ValueError("Plus properties target keys must match the durable Plus target")
+		plus_request = oasa.cdml_document.CDMLPlusPropertiesPatch(**payload)
+		return _PreparedPersistentOperation(
+			"plus-properties-patch", plus_request.expected_revision, plus_request,
+			frozenset({("presentation", plus_id)}),
+		)
+
+	#============================================
+	def _build_wavy_properties_patch(
+			self, snapshot: oasa.cdml_document.CDMLSnapshot,
+			request: PersistentOperationRequest,
+			) -> _PreparedPersistentOperation:
+		"""Bind one exact plain Wavy dialog intent to OASA's root patch."""
+		payload = dict(request.payload)
+		if set(payload) != {"expected_revision", "wavy_id", "changes"}:
+			raise ValueError("Wavy properties payload has unsupported fields")
+		if type(payload["expected_revision"]) is not int:
+			raise ValueError("Wavy properties expected_revision must be an integer")
+		if payload["expected_revision"] != snapshot.revision:
+			raise oasa.cdml_document.CDMLRevisionConflictError(
+				"Wavy properties expected revision does not match the current snapshot",
+			)
+		wavy_id = payload["wavy_id"]
+		if type(wavy_id) is not str or not wavy_id.strip():
+			raise ValueError("Wavy properties wavy_id must contain a non-whitespace character")
+		if type(payload["changes"]) is not tuple:
+			raise ValueError("Wavy properties changes must be an immutable tuple")
+		if request.target_keys != frozenset({("presentation", wavy_id)}):
+			raise ValueError("Wavy properties target keys must match the durable Wavy target")
+		wavy_request = oasa.cdml_document.CDMLWavyPropertiesPatch(**payload)
+		return _PreparedPersistentOperation(
+			"wavy-properties-patch", wavy_request.expected_revision, wavy_request,
+			frozenset({("presentation", wavy_id)}),
+		)
+
+	#============================================
+	def _build_fragment_create(
+			self, snapshot: oasa.cdml_document.CDMLSnapshot,
+			request: PersistentOperationRequest,
+			) -> _PreparedPersistentOperation:
+		"""Bind one selected molecule fragment intent to the OASA operation."""
+		payload = dict(request.payload)
+		if set(payload) != {
+				"expected_revision", "molecule_id", "name", "fragment_type",
+				"atom_ids", "bond_ids",
+			}:
+			raise ValueError("Fragment creation payload has unsupported fields")
+		if type(payload["expected_revision"]) is not int:
+			raise ValueError("Fragment creation expected_revision must be an integer")
+		if payload["expected_revision"] != snapshot.revision:
+			raise oasa.cdml_document.CDMLRevisionConflictError(
+				"Fragment creation expected revision does not match the current snapshot",
+			)
+		for field_name in ("molecule_id", "name", "fragment_type"):
+			if type(payload[field_name]) is not str:
+				raise ValueError("Fragment creation %s must be a string" % field_name)
+		for field_name in ("atom_ids", "bond_ids"):
+			if type(payload[field_name]) is not tuple:
+				raise ValueError("Fragment creation %s must be an immutable tuple" % field_name)
+		molecule_id = payload["molecule_id"]
+		atom_ids = payload["atom_ids"]
+		bond_ids = payload["bond_ids"]
+		expected_targets = frozenset({("molecule", molecule_id)}) | frozenset(
+			("atom", atom_id) for atom_id in atom_ids
+		) | frozenset(("bond", bond_id) for bond_id in bond_ids)
+		if request.target_keys != expected_targets:
+			raise ValueError("Fragment creation target keys must match durable selection")
+		fragment_request = oasa.cdml_document.CDMLFragmentCreateRequest(**payload)
+		return _PreparedPersistentOperation(
+			"fragment-create", fragment_request.expected_revision, fragment_request,
+			frozenset({("molecule", molecule_id)}),
+		)
+
+	#============================================
+	def _build_fragment_delete(
+			self, snapshot: oasa.cdml_document.CDMLSnapshot,
+			request: PersistentOperationRequest,
+			) -> _PreparedPersistentOperation:
+		"""Bind one immutable ordinary fragment deletion target to OASA."""
+		payload = dict(request.payload)
+		if set(payload) != {"expected_revision", "molecule_id", "fragment_id"}:
+			raise ValueError("Fragment deletion payload has unsupported fields")
+		if type(payload["expected_revision"]) is not int:
+			raise ValueError("Fragment deletion expected_revision must be an integer")
+		if payload["expected_revision"] != snapshot.revision:
+			raise oasa.cdml_document.CDMLRevisionConflictError(
+				"Fragment deletion expected revision does not match the current snapshot",
+			)
+		molecule_id = payload["molecule_id"]
+		fragment_id = payload["fragment_id"]
+		if type(molecule_id) is not str or type(fragment_id) is not str:
+			raise ValueError("Fragment deletion targets must be strings")
+		if request.target_keys != frozenset({("molecule", molecule_id)}):
+			raise ValueError("Fragment deletion target keys must match durable molecule")
+		fragment_request = oasa.cdml_document.CDMLFragmentDeleteRequest(**payload)
+		return _PreparedPersistentOperation(
+			"fragment-delete", fragment_request.expected_revision, fragment_request,
+			frozenset({("molecule", molecule_id)}),
+		)
+
+	#============================================
+	def _build_implicit_group_expand(
+			self, snapshot: oasa.cdml_document.CDMLSnapshot,
+			request: PersistentOperationRequest,
+			) -> _PreparedPersistentOperation:
+		"""Bind one direct implicit-group target to the OASA transaction."""
+		payload = dict(request.payload)
+		if set(payload) != {"expected_revision", "molecule_id", "group_id"}:
+			raise ValueError("Implicit group expansion payload has unsupported fields")
+		if type(payload["expected_revision"]) is not int:
+			raise ValueError("Implicit group expansion expected_revision must be an integer")
+		if payload["expected_revision"] != snapshot.revision:
+			raise oasa.cdml_document.CDMLRevisionConflictError(
+				"Implicit group expansion expected revision does not match the current snapshot",
+			)
+		for field_name in ("molecule_id", "group_id"):
+			if type(payload[field_name]) is not str or not payload[field_name]:
+				raise ValueError("Implicit group expansion %s must be a durable ID" % field_name)
+		molecule_id = payload["molecule_id"]
+		group_id = payload["group_id"]
+		if request.target_keys != frozenset({("molecule", molecule_id), ("group", group_id)}):
+			raise ValueError("Implicit group expansion target keys must match durable targets")
+		expand_request = oasa.cdml_document.CDMLImplicitGroupExpandRequest(**payload)
+		return _PreparedPersistentOperation(
+			"implicit-group-expand", expand_request.expected_revision, expand_request,
+		)
+
+	#============================================
+	def _build_linear_form_convert(
+			self, snapshot: oasa.cdml_document.CDMLSnapshot,
+			request: PersistentOperationRequest,
+			) -> _PreparedPersistentOperation:
+		"""Bind one durable path intent to OASA's closed linear-form grammar."""
+		payload = dict(request.payload)
+		if set(payload) != {"expected_revision", "molecule_id", "atom_ids"}:
+			raise ValueError("Linear form payload has unsupported fields")
+		if type(payload["expected_revision"]) is not int:
+			raise ValueError("Linear form expected_revision must be an integer")
+		if payload["expected_revision"] != snapshot.revision:
+			raise oasa.cdml_document.CDMLRevisionConflictError(
+				"Linear form expected revision does not match the current snapshot",
+			)
+		molecule_id = payload["molecule_id"]
+		atom_ids = payload["atom_ids"]
+		if type(molecule_id) is not str or not molecule_id or type(atom_ids) is not tuple:
+			raise ValueError("Linear form requires a durable molecule and immutable atom IDs")
+		expected_targets = frozenset({("molecule", molecule_id)}) | frozenset(
+			("atom", atom_id) for atom_id in atom_ids
+		)
+		if request.target_keys != expected_targets:
+			raise ValueError("Linear form target keys must match durable selection")
+		linear_request = oasa.cdml_document.CDMLLinearFormConvertRequest(**payload)
+		return _PreparedPersistentOperation(
+			"linear-form-convert", linear_request.expected_revision, linear_request,
+			frozenset(("atom", atom_id) for atom_id in atom_ids),
+		)
+
+	#============================================
+	def _build_atom_mark_operation(
+			self, snapshot: oasa.cdml_document.CDMLSnapshot,
+			request: PersistentOperationRequest,
+			) -> _PreparedPersistentOperation:
+		"""Bind one exact MarkMode intent to OASA's atom-mark operation."""
+		payload = dict(request.payload)
+		if set(payload) not in (
+				{"expected_revision", "molecule_id", "atom_id", "action", "mark_type"},
+				{
+					"expected_revision", "molecule_id", "atom_id", "action", "mark_type",
+					"matching_mark_index",
+				},
+			):
+			raise ValueError("Atom mark payload has unsupported fields")
+		if type(payload["expected_revision"]) is not int:
+			raise ValueError("Atom mark expected_revision must be an integer")
+		if payload["expected_revision"] != snapshot.revision:
+			raise oasa.cdml_document.CDMLRevisionConflictError(
+				"Atom mark expected revision does not match the current snapshot",
+			)
+		for field_name in ("molecule_id", "atom_id", "action", "mark_type"):
+			value = payload[field_name]
+			if not isinstance(value, str) or not value:
+				raise ValueError("Atom mark %s must be a nonempty string" % field_name)
+		molecule_id = payload["molecule_id"]
+		atom_id = payload["atom_id"]
+		if request.target_keys != frozenset({
+				("molecule", molecule_id), ("atom", atom_id),
+			}):
+			raise ValueError("Atom mark target keys must match durable edit targets")
+		mark_request = oasa.cdml_document.CDMLAtomMarkOperationRequest(**payload)
+		return _PreparedPersistentOperation(
+			"atom-mark-operation", mark_request.expected_revision, mark_request,
+			frozenset({("atom", atom_id)}),
+		)
+
+	#============================================
 	def _build_atom_number_edit(
 			self, _snapshot: oasa.cdml_document.CDMLSnapshot,
 			request: PersistentOperationRequest,
@@ -2151,6 +3400,119 @@ class DocumentSession(PySide6.QtCore.QObject):
 		)
 
 	#============================================
+	def _build_structure_delete(
+			self, snapshot: oasa.cdml_document.CDMLSnapshot,
+			request: PersistentOperationRequest,
+			) -> _PreparedPersistentOperation:
+		"""Bind one exact partial atom/bond deletion to the OASA executor."""
+		payload = dict(request.payload)
+		if set(payload) != {
+				"expected_revision", "molecule_id", "atom_ids", "bond_ids",
+			}:
+			raise ValueError("Structure Delete payload has unsupported fields")
+		expected_revision = payload["expected_revision"]
+		molecule_id = payload["molecule_id"]
+		atom_ids = payload["atom_ids"]
+		bond_ids = payload["bond_ids"]
+		if type(expected_revision) is not int:
+			raise ValueError("Structure Delete expected_revision must be an integer")
+		if expected_revision != snapshot.revision:
+			raise oasa.cdml_document.CDMLRevisionConflictError(
+				"Structure Delete expected revision does not match the current snapshot",
+			)
+		if type(molecule_id) is not str or not molecule_id.strip():
+			raise ValueError("Structure Delete molecule_id must be a nonblank durable ID")
+		for identifiers in (atom_ids, bond_ids):
+			if type(identifiers) is not tuple:
+				raise ValueError("Structure Delete target IDs must be immutable tuples")
+			if any(
+				type(identifier) is not str or not identifier.strip()
+				for identifier in identifiers
+			):
+				raise ValueError("Structure Delete target IDs must be nonblank strings")
+			if len(set(identifiers)) != len(identifiers):
+				raise ValueError("Structure Delete target IDs must be unique")
+		if not atom_ids and not bond_ids:
+			raise ValueError("Structure Delete requires at least one atom or bond")
+		if set(atom_ids).intersection(bond_ids):
+			raise ValueError("Structure Delete atom and bond IDs must be distinct")
+		expected_targets = (
+			frozenset({("molecule", molecule_id)})
+			| frozenset(("atom", identifier) for identifier in atom_ids)
+			| frozenset(("bond", identifier) for identifier in bond_ids)
+		)
+		if request.target_keys != expected_targets:
+			raise ValueError("Structure Delete target keys must match its durable targets")
+		delete_request = oasa.cdml_document.CDMLStructureDeleteRequest(
+			expected_revision=expected_revision,
+			molecule_id=molecule_id,
+			atom_ids=atom_ids,
+			bond_ids=bond_ids,
+			label=request.label,
+		)
+		return _PreparedPersistentOperation(
+			"structure-delete", expected_revision, delete_request,
+		)
+
+	#============================================
+	def _build_top_level_transform(
+			self, snapshot: oasa.cdml_document.CDMLSnapshot,
+			request: PersistentOperationRequest,
+			) -> _PreparedPersistentOperation:
+		"""Bind one exact durable-root transform request to OASA."""
+		payload = dict(request.payload)
+		expected_fields = {
+			"expected_revision", "mode", "root_ids", "scale_x", "scale_y", "delta",
+		}
+		if set(payload) != expected_fields:
+			raise ValueError("Top-level transform payload has unsupported fields")
+		if type(payload["expected_revision"]) is not int:
+			raise ValueError("Top-level transform expected_revision must be an integer")
+		if payload["expected_revision"] != snapshot.revision:
+			raise oasa.cdml_document.CDMLRevisionConflictError(
+				"Top-level transform expected revision does not match the current snapshot",
+			)
+		root_ids = payload["root_ids"]
+		if (
+			type(root_ids) is not tuple or not root_ids
+			or any(type(identifier) is not str or not identifier for identifier in root_ids)
+			or len(set(root_ids)) != len(root_ids)
+		):
+			raise ValueError("Top-level transform root_ids must be unique nonempty strings")
+		if request.target_keys != frozenset(
+			(kind, identifier)
+			for kind, identifier in request.target_keys
+			if kind in {"molecule", "presentation"} and identifier in root_ids
+		) or {identifier for _kind, identifier in request.target_keys} != set(root_ids):
+			raise ValueError("Top-level transform target keys must match root IDs")
+		canonical_document = oasa.cdml_document.CDMLDocument.parse(
+			snapshot.cdml, validation="compat",
+		)
+		presentation_names = {
+			"arrow", "text", "plus", "rect", "square", "oval", "circle",
+			"polygon", "polyline",
+		}
+		canonical_root_keys = frozenset(
+			("molecule", record.identifier)
+			if record.local_name == "molecule"
+			else ("presentation", record.identifier)
+			for record in canonical_document.objects()
+			if record.identifier is not None and (
+				record.local_name == "molecule"
+				or record.local_name in presentation_names
+			)
+		)
+		if request.target_keys - canonical_root_keys:
+			raise ValueError(
+				"Top-level transform target keys must match authoritative root kinds",
+			)
+		transform_request = oasa.cdml_document.CDMLTopLevelTransformRequest(**payload)
+		return _PreparedPersistentOperation(
+			"top-level-transform", transform_request.expected_revision, transform_request,
+			request.target_keys,
+		)
+
+	#============================================
 	def _commit_complete_candidate(
 			self, prepared: _PreparedPersistentOperation,
 			) -> oasa.cdml_document.CDMLCommit:
@@ -2174,6 +3536,15 @@ class DocumentSession(PySide6.QtCore.QObject):
 			raise ValueError("Molecule insertion requires a molecule insertion request")
 		commit = self._backend_session.insert_molecules(prepared.value)
 		return commit
+
+	#============================================
+	def _commit_user_template_insertion(
+			self, prepared: _PreparedPersistentOperation,
+			) -> oasa.cdml_document.CDMLCommit:
+		"""Submit one prepared serialized user-template insertion to OASA."""
+		if type(prepared.value) is not oasa.cdml_document.CDMLUserTemplateInsertionRequest:
+			raise ValueError("User template insertion requires an exact insertion request")
+		return self._backend_session.insert_user_template(prepared.value)
 
 	#============================================
 	def _commit_geometry_repair(
@@ -2201,6 +3572,15 @@ class DocumentSession(PySide6.QtCore.QObject):
 		if not isinstance(prepared.value, oasa.cdml_document.CDMLAtomTranslateRequest):
 			raise ValueError("Atom translation requires an atom translation request")
 		return self._backend_session.translate_atoms(prepared.value)
+
+	#============================================
+	def _commit_selection_translate(
+			self, prepared: _PreparedPersistentOperation,
+			) -> oasa.cdml_document.CDMLSelectionTranslateResult:
+		"""Execute one backend-owned mixed atom/presentation translation."""
+		if type(prepared.value) is not oasa.cdml_document.CDMLSelectionTranslateRequest:
+			raise ValueError("Selection translation requires an exact translation request")
+		return self._backend_session.translate_selection(prepared.value)
 
 	#============================================
 	def _commit_atom_rotate(
@@ -2266,6 +3646,87 @@ class DocumentSession(PySide6.QtCore.QObject):
 		return self._backend_session.patch_atom_properties(prepared.value)
 
 	#============================================
+	def _commit_text_properties_patch(
+			self, prepared: _PreparedPersistentOperation,
+			) -> oasa.cdml_document.CDMLTextPropertiesPatchResult:
+		"""Execute one backend-owned explicit plain Text-properties patch."""
+		if type(prepared.value) is not oasa.cdml_document.CDMLTextPropertiesPatch:
+			raise ValueError("Text properties requires an exact Text properties patch")
+		return self._backend_session.patch_text_properties(prepared.value)
+
+	#============================================
+	def _commit_rich_text_patch(
+			self, prepared: _PreparedPersistentOperation,
+			) -> oasa.cdml_document.CDMLRichTextPatchResult:
+		"""Execute one backend-owned authored rich Text patch."""
+		if type(prepared.value) is not oasa.cdml_document.CDMLRichTextPatch:
+			raise ValueError("Rich Text requires an exact rich Text patch")
+		return self._backend_session.patch_rich_text(prepared.value)
+
+	#============================================
+	def _commit_plus_properties_patch(
+			self, prepared: _PreparedPersistentOperation,
+			) -> oasa.cdml_document.CDMLPlusPropertiesPatchResult:
+		"""Execute one backend-owned explicit plain Plus-properties patch."""
+		if type(prepared.value) is not oasa.cdml_document.CDMLPlusPropertiesPatch:
+			raise ValueError("Plus properties requires an exact Plus properties patch")
+		return self._backend_session.patch_plus_properties(prepared.value)
+
+	#============================================
+	def _commit_wavy_properties_patch(
+			self, prepared: _PreparedPersistentOperation,
+			) -> oasa.cdml_document.CDMLWavyPropertiesPatchResult:
+		"""Execute one backend-owned explicit plain Wavy-properties patch."""
+		if type(prepared.value) is not oasa.cdml_document.CDMLWavyPropertiesPatch:
+			raise ValueError("Wavy properties requires an exact Wavy properties patch")
+		return self._backend_session.patch_wavy_properties(prepared.value)
+
+	#============================================
+	def _commit_fragment_create(
+			self, prepared: _PreparedPersistentOperation,
+			) -> oasa.cdml_document.CDMLFragmentCreateResult:
+		"""Execute one backend-owned ordinary fragment creation."""
+		if type(prepared.value) is not oasa.cdml_document.CDMLFragmentCreateRequest:
+			raise ValueError("Fragment creation requires an exact fragment request")
+		return self._backend_session.create_fragment(prepared.value)
+
+	#============================================
+	def _commit_fragment_delete(
+			self, prepared: _PreparedPersistentOperation,
+			) -> oasa.cdml_document.CDMLFragmentDeleteResult:
+		"""Execute one backend-owned ordinary fragment deletion."""
+		if type(prepared.value) is not oasa.cdml_document.CDMLFragmentDeleteRequest:
+			raise ValueError("Fragment deletion requires an exact fragment request")
+		return self._backend_session.delete_fragment(prepared.value)
+
+	#============================================
+	def _commit_implicit_group_expand(
+			self, prepared: _PreparedPersistentOperation,
+			) -> oasa.cdml_document.CDMLImplicitGroupExpandResult:
+		"""Execute one backend-owned implicit-group expansion."""
+		if type(prepared.value) is not oasa.cdml_document.CDMLImplicitGroupExpandRequest:
+			raise ValueError("Implicit group expansion requires an exact request")
+		return self._backend_session.expand_implicit_group(prepared.value)
+
+	#============================================
+	def _commit_linear_form_convert(
+			self, prepared: _PreparedPersistentOperation,
+			) -> oasa.cdml_document.CDMLLinearFormConvertResult:
+		"""Execute one backend-owned atom-path linear-form conversion."""
+		if type(prepared.value) is not oasa.cdml_document.CDMLLinearFormConvertRequest:
+			raise ValueError("Linear form requires an exact conversion request")
+		return self._backend_session.convert_linear_form(prepared.value)
+
+	#============================================
+	def _commit_atom_mark_operation(
+			self, prepared: _PreparedPersistentOperation,
+			) -> oasa.cdml_document.CDMLAtomMarkOperationResult:
+		"""Execute one backend-owned atom-mark add or removal."""
+		if not isinstance(prepared.value, oasa.cdml_document.CDMLAtomMarkOperationRequest):
+			raise ValueError("Atom mark requires an atom-mark operation request")
+		return self._backend_session.apply_atom_mark(prepared.value)
+
+	#============================================
 	def _commit_atom_number_edit(
 			self, prepared: _PreparedPersistentOperation,
 			) -> oasa.cdml_document.CDMLCommit:
@@ -2302,6 +3763,27 @@ class DocumentSession(PySide6.QtCore.QObject):
 		return self._backend_session.delete_top_level(prepared.value)
 
 	#============================================
+	def _commit_structure_delete(
+			self, prepared: _PreparedPersistentOperation,
+			) -> oasa.cdml_document.CDMLStructureDeleteResult:
+		"""Execute one backend-owned partial atom/bond deletion."""
+		if type(prepared.value) is not oasa.cdml_document.CDMLStructureDeleteRequest:
+			raise ValueError("Structure Delete requires an exact deletion request")
+		result = self._backend_session.delete_structure(prepared.value)
+		if type(result) is not oasa.cdml_document.CDMLStructureDeleteResult:
+			raise ValueError("Structure Delete requires an exact deletion result")
+		return result
+
+	#============================================
+	def _commit_top_level_transform(
+			self, prepared: _PreparedPersistentOperation,
+			) -> oasa.cdml_document.CDMLTopLevelTransformResult:
+		"""Execute one backend-owned durable-root affine transform."""
+		if type(prepared.value) is not oasa.cdml_document.CDMLTopLevelTransformRequest:
+			raise ValueError("Top-level transform requires a transform request")
+		return self._backend_session.apply_top_level_transform(prepared.value)
+
+	#============================================
 	def _record_accepted_history(self, label: str, revision: int) -> None:
 		"""Append an accepted edit after dropping logical redo entries."""
 		self._backend_history = self._backend_history.append_accepted(label, revision)
@@ -2315,8 +3797,15 @@ class DocumentSession(PySide6.QtCore.QObject):
 		if not prepared.provisional_selection_keys:
 			return frozenset(), None
 		if prepared.executor_key in (
-				"atom-align", "atom-translate", "atom-rotate", "bond-order-edit", "bond-type-edit",
-				"bond-properties-patch", "atom-properties-patch",
+			"atom-align", "atom-translate", "selection-translate", "atom-rotate", "bond-order-edit", "bond-type-edit",
+			"bond-properties-patch", "atom-properties-patch", "text-properties-patch",
+			"rich-text-patch",
+			"plus-properties-patch",
+			"wavy-properties-patch",
+			"atom-mark-operation",
+			"fragment-create", "fragment-delete",
+			"linear-form-convert",
+			"top-level-transform",
 			):
 			# These direct-core edits preserve durable IDs; retain only their immutable
 			# target selections across the replacement projection.
@@ -2362,9 +3851,9 @@ class DocumentSession(PySide6.QtCore.QObject):
 			)
 		port = self._projection_lifecycle_port
 		if port is None:
-			projected = ProjectionLifecycleResult(
-				ProjectionLifecycleStatus.SESSION_UNAVAILABLE,
-				ProjectionLifecyclePhase.SESSION,
+			projected = bkchem_qt.models.projection_lifecycle.ProjectionLifecycleResult(
+				bkchem_qt.models.projection_lifecycle.ProjectionLifecycleStatus.SESSION_UNAVAILABLE,
+				bkchem_qt.models.projection_lifecycle.ProjectionLifecyclePhase.SESSION,
 			)
 		else:
 			projected = port.project(commit.snapshot)
@@ -2469,7 +3958,7 @@ class DocumentSession(PySide6.QtCore.QObject):
 	#============================================
 	def replace_projection_from_backend_snapshot(
 			self, snapshot: oasa.cdml_document.CDMLSnapshot,
-			) -> ProjectionLifecycleResult:
+			) -> bkchem_qt.models.projection_lifecycle.ProjectionLifecycleResult:
 		"""Replace this Qt projection from one exact current backend snapshot.
 
 		Only a snapshot returned by this session's current backend authority can
@@ -2482,14 +3971,17 @@ class DocumentSession(PySide6.QtCore.QObject):
 				or self._projection_replacing
 				or snapshot != self.backend_snapshot
 			):
-			return ProjectionLifecycleResult(
-				ProjectionLifecycleStatus.SESSION_UNAVAILABLE,
-				ProjectionLifecyclePhase.SESSION,
+			return bkchem_qt.models.projection_lifecycle.ProjectionLifecycleResult(
+				bkchem_qt.models.projection_lifecycle.ProjectionLifecycleStatus.SESSION_UNAVAILABLE,
+				bkchem_qt.models.projection_lifecycle.ProjectionLifecyclePhase.SESSION,
 			)
 		from bkchem_qt.io import cdml_document_io
 		try:
-			candidate = cdml_document_io.prepare_projection_from_cdml(
-				snapshot.cdml, self._projection_retirement_reaper,
+			projection_snapshot = self._backend_session.projection_snapshot()
+			if projection_snapshot.snapshot != snapshot:
+				raise ValueError("backend projection envelope does not match the requested snapshot")
+			candidate = cdml_document_io.prepare_synchronized_projection(
+				projection_snapshot, self._projection_retirement_reaper,
 			)
 		except Exception as exc:
 			self._backend_projection_synchronized = False
@@ -2498,9 +3990,10 @@ class DocumentSession(PySide6.QtCore.QObject):
 			)
 			self._projection_error.__cause__ = exc
 			self.title_changed.emit(self.title)
-			return ProjectionLifecycleResult(
-				ProjectionLifecycleStatus.PREPARATION_UNAVAILABLE,
-				ProjectionLifecyclePhase.PREPARATION, self._projection_error,
+			return bkchem_qt.models.projection_lifecycle.ProjectionLifecycleResult(
+				bkchem_qt.models.projection_lifecycle.ProjectionLifecycleStatus.PREPARATION_UNAVAILABLE,
+				bkchem_qt.models.projection_lifecycle.ProjectionLifecyclePhase.PREPARATION,
+				self._projection_error,
 			)
 
 		self._projection_replacing = True
@@ -2533,8 +4026,9 @@ class DocumentSession(PySide6.QtCore.QObject):
 			self._projected_backend_snapshot = snapshot
 			self._backend_projection_synchronized = True
 			self._projection_error = None
-			result = ProjectionLifecycleResult(
-				ProjectionLifecycleStatus.INSTALLED, ProjectionLifecyclePhase.COMPLETE,
+			result = bkchem_qt.models.projection_lifecycle.ProjectionLifecycleResult(
+				bkchem_qt.models.projection_lifecycle.ProjectionLifecycleStatus.INSTALLED,
+				bkchem_qt.models.projection_lifecycle.ProjectionLifecyclePhase.COMPLETE,
 			)
 		except Exception as exc:
 			try:
@@ -2546,12 +4040,14 @@ class DocumentSession(PySide6.QtCore.QObject):
 				self._teardown_diagnostics.append(cleanup_exc)
 			self._backend_projection_synchronized = False
 			phase = (
-				ProjectionLifecyclePhase.INSTALLATION if retirement_started
-				else ProjectionLifecyclePhase.RETIREMENT
+				bkchem_qt.models.projection_lifecycle.ProjectionLifecyclePhase.INSTALLATION
+				if retirement_started
+				else bkchem_qt.models.projection_lifecycle.ProjectionLifecyclePhase.RETIREMENT
 			)
 			status = (
-				ProjectionLifecycleStatus.INSTALLATION_FAILED if retirement_started
-				else ProjectionLifecycleStatus.PREPARATION_UNAVAILABLE
+				bkchem_qt.models.projection_lifecycle.ProjectionLifecycleStatus.INSTALLATION_FAILED
+				if retirement_started
+				else bkchem_qt.models.projection_lifecycle.ProjectionLifecycleStatus.PREPARATION_UNAVAILABLE
 			)
 			message = (
 				"Current backend projection installation failed after retirement"
@@ -2562,7 +4058,9 @@ class DocumentSession(PySide6.QtCore.QObject):
 			if retirement_started:
 				self._document = None
 			self.title_changed.emit(self.title)
-			result = ProjectionLifecycleResult(status, phase, self._projection_error)
+			result = bkchem_qt.models.projection_lifecycle.ProjectionLifecycleResult(
+				status, phase, self._projection_error,
+			)
 		finally:
 			self._projection_replacing = False
 		return result
@@ -2696,6 +4194,12 @@ class DocumentSession(PySide6.QtCore.QObject):
 					raise ProjectionReplacementError("Prepared mark wrapper is unavailable")
 				if item.parentItem() is not atom_item:
 					raise ProjectionReplacementError("Prepared mark lost atom-parent ownership")
+		projection_items = tuple(
+			item
+			for _molecule, items in prepared.molecule_projections
+			for item in items
+		) + tuple(prepared.presentation_items) + tuple(prepared.mark_items)
+		document.register_current_projection_items(projection_items)
 		if hasattr(self._scene, "apply_paper_model"):
 			self._scene.apply_paper_model(document.paper)
 		bkchem_qt.canvas.document_projection.synchronize_document_stack_z_order(
@@ -2794,11 +4298,13 @@ class DocumentSession(PySide6.QtCore.QObject):
 		"""Validate CDML and stage a detached projection without live mutation."""
 		backend_session = oasa.cdml_document.CDMLDocumentSession.load(cdml_text)
 		from bkchem_qt.io import cdml_document_io
-		snapshot = backend_session.snapshot()
-		document = cdml_document_io.load_cdml_document_string(snapshot.cdml)
+		projection_snapshot = backend_session.projection_snapshot()
+		document = cdml_document_io.hydrate_synchronized_cdml_document(
+			projection_snapshot,
+		)
 		return PreparedNativeCDML(
 			factory_token=_PREPARED_NATIVE_FACTORY_TOKEN,
-			snapshot=snapshot,
+			snapshot=projection_snapshot.snapshot,
 			document=document,
 		)
 
@@ -2808,11 +4314,13 @@ class DocumentSession(PySide6.QtCore.QObject):
 		"""Stage imported external content against the backend empty baseline."""
 		backend_session = oasa.cdml_document.CDMLDocumentSession.load_imported(cdml_text)
 		from bkchem_qt.io import cdml_document_io
-		snapshot = backend_session.snapshot()
-		document = cdml_document_io.load_cdml_document_string(snapshot.cdml)
+		projection_snapshot = backend_session.projection_snapshot()
+		document = cdml_document_io.hydrate_synchronized_cdml_document(
+			projection_snapshot,
+		)
 		return PreparedImportedCDML(
 			factory_token=_PREPARED_IMPORTED_FACTORY_TOKEN,
-			snapshot=snapshot,
+			snapshot=projection_snapshot.snapshot,
 			document=document,
 		)
 
@@ -3018,12 +4526,45 @@ class DocumentSession(PySide6.QtCore.QObject):
 			translate_authority_installer = getattr(mode, "set_atom_translate_authority", None)
 			if callable(translate_authority_installer):
 				translate_authority_installer(None)
+			presentation_translate_installer = getattr(mode, "set_presentation_translate_operation", None)
+			if callable(presentation_translate_installer):
+				presentation_translate_installer(None)
+			presentation_context_installer = getattr(mode, "set_presentation_translate_context", None)
+			if callable(presentation_context_installer):
+				presentation_context_installer(None)
+			selection_translate_installer = getattr(mode, "set_selection_translate_operation", None)
+			if callable(selection_translate_installer):
+				selection_translate_installer(None)
+			selection_context_installer = getattr(mode, "set_selection_translate_context", None)
+			if callable(selection_context_installer):
+				selection_context_installer(None)
+			delete_context_installer = getattr(mode, "set_top_level_delete_context", None)
+			if callable(delete_context_installer):
+				delete_context_installer(None)
+			structure_delete_installer = getattr(mode, "set_structure_delete_context", None)
+			if callable(structure_delete_installer):
+				structure_delete_installer(None)
+			atom_mark_delete_installer = getattr(mode, "set_atom_mark_delete_context", None)
+			if callable(atom_mark_delete_installer):
+				atom_mark_delete_installer(None)
 			rotate_installer = getattr(mode, "set_atom_rotate_operation", None)
 			if callable(rotate_installer):
 				rotate_installer(None)
 			candidate_installer = getattr(mode, "set_atom_number_context", None)
 			if callable(candidate_installer):
 				candidate_installer(None)
+			mark_revision_installer = getattr(mode, "set_atom_mark_revision", None)
+			if callable(mark_revision_installer):
+				mark_revision_installer(None)
+			template_installer = getattr(mode, "set_template_action", None)
+			if callable(template_installer):
+				template_installer(None)
+			biotemplate_installer = getattr(mode, "set_biotemplate_action", None)
+			if callable(biotemplate_installer):
+				biotemplate_installer(None)
+			user_template_installer = getattr(mode, "set_user_template_action", None)
+			if callable(user_template_installer):
+				user_template_installer(None)
 
 	#============================================
 	def _require_live_persistent_operation(self) -> None:
@@ -3171,8 +4712,24 @@ class DocumentSession(PySide6.QtCore.QObject):
 		"""Retain a live worker until its native thread has finished."""
 		if self._disposed:
 			worker.requestInterruption()
+			_adopt_orphaned_import_worker(worker)
 			return
 		self._import_workers.add(worker)
+
+	#============================================
+	def retire_import_workers(self) -> tuple[PySide6.QtCore.QThread, ...]:
+		"""Invalidate delivery and surrender live workers to a retirement owner.
+
+		Interruption is a truthful delivery fence only: opaque OASA, RDKit, and
+		transport calls continue until their native call returns.  A live window
+		must retain the returned workers and their relays through ``finished``.
+		"""
+		self.invalidate_import_requests()
+		workers = tuple(self._import_workers)
+		self._import_workers.clear()
+		for worker in workers:
+			worker.requestInterruption()
+		return workers
 
 	#============================================
 	def release_import_worker(self, worker: PySide6.QtCore.QThread) -> None:
@@ -3341,24 +4898,14 @@ class DocumentSession(PySide6.QtCore.QObject):
 
 	#============================================
 	def _stop_import_workers(self) -> None:
-		"""Interrupt, join, and disconnect every session-owned import worker."""
-		workers = tuple(self._import_workers)
-		for worker in workers:
-			worker.requestInterruption()
-		for worker in workers:
-			if worker.isRunning():
-				worker.wait()
-			for signal in (worker.result, worker.error, worker.finished):
-				try:
-					signal.disconnect()
-				except (RuntimeError, TypeError):
-					pass
-			relay = getattr(worker, "_result_relay", None)
-			if relay is not None:
-				relay.deleteLater()
-				worker._result_relay = None
-			self._import_workers.discard(worker)
-			worker.deleteLater()
+		"""Invalidate local worker delivery without joining native work.
+
+		This fallback is only safe when no worker was started during failed
+		construction.  Registered sessions transfer workers to MainWindow before
+		disposal, which remains their terminal Qt owner.
+		"""
+		for worker in self.retire_import_workers():
+			_adopt_orphaned_import_worker(worker)
 
 	#============================================
 	def _dispose_graphics_items(self) -> None:

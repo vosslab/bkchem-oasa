@@ -45,23 +45,40 @@ authoritative coordinate update happens in OASA when the interaction ends.
 | Free rotation | `_transform_freerotation` at `modes.py:1840` | Bond (2 atoms) | Same matrix as mirror | Disconnects bond, applies only to the smaller connected component |
 | 3D rotate (fixed axis) | `rotate_mode` at `modes.py:1638` | Bond axis + angle | `geometry.create_transformation_to_rotate_around_particular_axis()` | Rotates only `_rotated_atoms` subset from `_get_objs_to_rotate()` |
 
-### Scale selected (hybrid operation)
+### Persistent top-level translation
+
+EditMode presentation-only movement is a completed backend-authoritative
+operation. Qt renders a temporary drag preview, then sends the originating
+snapshot revision, selected durable direct-root presentation IDs, and one
+finite `(dx, dy)` scene-point delta to
+`top-level.transform.apply` with mode `translate`. OASA validates the complete
+selection in detached state, converts the point delta through the established
+point-to-centimetre boundary, and translates only supported persistent
+coordinate geometry. It preserves object identity, ordering, style,
+non-coordinate fields, and opaque CDML. An accepted operation returns a new
+canonical snapshot and backend history entry; a zero delta is an exact
+history-free no-op. Qt discards its preview and reconstructs scene items only
+from that returned snapshot.
+
+### Scale selected
 
 `paper.scale_selected()` at `paper.py:1219` resizes selected objects on canvas.
 Original Beda Kosata code from 2004. Supports anisotropic scaling
 (ratio_x != ratio_y) which changes bond lengths and angles. Useful for fitting
 reaction schemes to a page or normalizing bond lengths between pasted molecules.
 
-Any anisotropic change to atom coordinates changes the underlying CDML, so the
-molecule-scaling part must go through OASA like every other coordinate
-transform. The non-molecule parts (arrows, text, shapes, fonts) stay in BKChem.
+Any anisotropic change to persistent coordinates changes the underlying CDML.
+The delivered mixed-root Scale action therefore sends its selected molecules
+and supported artwork to OASA's `top-level.transform.apply`; OASA derives the
+pivot from authoritative CDML and returns the replacement snapshot. Qt retains
+only the modal factor choice and transient projection state.
 
 | Part | Owner | What it scales |
 | --- | --- | --- |
 | Atom coordinates | OASA | x, y positions of all atoms in the molecule |
-| Bond widths | OASA | `bond_width` stored in CDML |
-| Font sizes, mark sizes | BKChem | Display-only properties |
-| Arrows, text, shapes | BKChem | Non-molecular canvas objects |
+| Explicit mark coordinates | OASA | x, y point pairs attached to selected molecules |
+| Arrows, text, shapes | OASA | Supported persistent coordinate geometry |
+| Bond widths, fonts, mark sizes | OASA | Preserved authored fields; Scale does not resize them |
 
 ### Viewport zoom (BKChem only)
 
@@ -72,7 +89,7 @@ transform. The non-molecule parts (arrows, text, shapes, fonts) stay in BKChem.
 
 - **OASA** owns coordinate geometry: atom (x, y, z), bond angles, transforms
   that change molecular shape.
-- **BKChem** owns display: canvas items, selection, fonts, viewport zoom,
+- **BKChem** owns display: canvas items, selection, fonts, viewport zoom, and
   interactive drag feedback.
 
 After the transform refactor (see plan), all coordinate transforms move to OASA

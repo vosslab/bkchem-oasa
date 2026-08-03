@@ -75,6 +75,20 @@ def _properties_action(menu: PySide6.QtWidgets.QMenu) -> object:
 
 
 #============================================
+def _submenu_action(
+		menu: PySide6.QtWidgets.QMenu, submenu_title: str, action_text: str,
+		) -> object:
+	"""Return one visible action from the named atom context submenu."""
+	for submenu in menu.findChildren(PySide6.QtWidgets.QMenu):
+		if submenu.title() != submenu_title:
+			continue
+		for action in submenu.actions():
+			if action.text() == action_text:
+				return action
+	raise AssertionError("Context submenu action is absent")
+
+
+#============================================
 def _selected_atom_ids(session: object) -> set[str]:
 	"""Read durable atom IDs from the current fresh projection selection."""
 	return {
@@ -288,7 +302,7 @@ def test_stale_atom_patch_rejects_before_property_executor(
 
 
 #============================================
-@pytest.mark.parametrize("route", ("context", "object-configure", "edit-double-click"))
+@pytest.mark.parametrize("route", ("object-configure", "edit-double-click"))
 def test_public_atom_properties_routes_commit_only_their_own_session(
 		main_window: bkchem_qt.main_window.MainWindow, monkeypatch: pytest.MonkeyPatch,
 		route: str,
@@ -301,10 +315,7 @@ def test_public_atom_properties_routes_commit_only_their_own_session(
 		atom_item = _atom_item(first)
 		atom_item.setSelected(True)
 		_accept_changes(monkeypatch, (("charge", 1),))
-		if route == "context":
-			menu = bkchem_qt.actions.context_menu._atom_context_menu(atom_item, first.view)
-			_properties_action(menu).trigger()
-		elif route == "object-configure":
+		if route == "object-configure":
 			main_window._activate_session(first)
 			bkchem_qt.actions.object_actions.handle_configure(main_window)
 		else:
@@ -324,6 +335,102 @@ def test_public_atom_properties_routes_commit_only_their_own_session(
 			main_window._remove_session(second)
 		if first in main_window.sessions:
 			main_window._remove_session(first)
+
+
+#============================================
+def test_context_atom_properties_reacquires_the_current_projection(
+		main_window: bkchem_qt.main_window.MainWindow, monkeypatch: pytest.MonkeyPatch,
+		) -> None:
+	"""A retained active-tab Properties action resolves a fresh model by durable ID."""
+	session = _install_native_session(main_window)
+	menu = None
+	try:
+		menu = bkchem_qt.actions.context_menu._atom_context_menu(
+			_atom_item(session), session.view,
+		)
+		old_document = session.document
+		if not main_window._replace_session_projection(session, session.backend_snapshot):
+			raise AssertionError("Canonical reprojection failed before retained action")
+		if session.document is old_document:
+			raise AssertionError("Canonical reprojection retained the old document wrapper")
+		_accept_changes(monkeypatch, (("charge", 1),))
+
+		_properties_action(menu).trigger()
+
+		assert (
+			'charge="1"' in session.backend_snapshot.cdml
+			and _selected_atom_ids(session) == {"a1"}
+			and session.document.undo_stack.count() == 0
+		)
+	finally:
+		if menu is not None:
+			menu.close()
+		if session in main_window.sessions:
+			main_window._remove_session(session)
+
+
+#============================================
+def test_context_atom_properties_are_inert_after_tab_switch(
+		main_window: bkchem_qt.main_window.MainWindow, monkeypatch: pytest.MonkeyPatch,
+		) -> None:
+	"""A retained Properties action cannot retarget after its tab loses activation."""
+	first = _install_native_session(main_window)
+	second = None
+	menu = None
+	try:
+		menu = bkchem_qt.actions.context_menu._atom_context_menu(
+			_atom_item(first), first.view,
+		)
+		first_before = first.backend_snapshot
+		second = _install_native_session(main_window)
+		second_before = second.backend_snapshot
+
+		def fail_dialog(_dialog: object) -> int:
+			"""Expose any stale menu callback that opens a dialog after tab replacement."""
+			raise AssertionError("inactive context Properties opened a dialog")
+
+		monkeypatch.setattr(bkchem_qt.dialogs.atom_dialog.AtomDialog, "exec", fail_dialog)
+		_properties_action(menu).trigger()
+
+		assert first.backend_snapshot == first_before and second.backend_snapshot == second_before
+	finally:
+		if menu is not None:
+			menu.close()
+		if second is not None and second in main_window.sessions:
+			main_window._remove_session(second)
+		if first in main_window.sessions:
+			main_window._remove_session(first)
+
+
+#============================================
+def test_context_set_element_reacquires_the_current_projection(
+		main_window: bkchem_qt.main_window.MainWindow,
+		) -> None:
+	"""A retained Set Element action resolves its active current atom by durable ID."""
+	session = _install_native_session(main_window)
+	menu = None
+	try:
+		menu = bkchem_qt.actions.context_menu._atom_context_menu(
+			_atom_item(session), session.view,
+		)
+		old_document = session.document
+		if not main_window._replace_session_projection(session, session.backend_snapshot):
+			raise AssertionError("Canonical reprojection failed before retained action")
+		if session.document is old_document:
+			raise AssertionError("Canonical reprojection retained the old document wrapper")
+
+		_submenu_action(menu, "Set Element", "O").trigger()
+
+		assert (
+			'name="O"' in session.backend_snapshot.cdml
+			and _selected_atom_ids(session) == {"a1"}
+			and session.document.undo_stack.count() == 0
+		)
+	finally:
+		if menu is not None:
+			menu.close()
+		if session in main_window.sessions:
+			main_window._remove_session(session)
 
 
 #============================================

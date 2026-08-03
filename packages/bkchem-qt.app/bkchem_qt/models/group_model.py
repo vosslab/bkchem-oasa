@@ -13,13 +13,13 @@ _EDITABLE_GROUP_TYPES = frozenset({"builtin", "implicit", "explicit"})
 #============================================
 @dataclasses.dataclass(frozen=True)
 class GroupAttachment:
-	"""One retained CDML bond joining a group vertex to another endpoint."""
+	"""One standalone-compatible retained bond joining a group to an endpoint."""
 
 	bond_id: str
 	start_id: str
 	end_id: str
 	attributes: tuple[tuple[str, str], ...]
-	raw_xml: str
+	raw_xml: str | None
 
 	#============================================
 	def endpoint_for(self, group_id: str) -> str | None:
@@ -33,11 +33,10 @@ class GroupAttachment:
 
 #============================================
 class GroupModel(PySide6.QtCore.QObject):
-	"""Durable display metadata for a CDML ``<group>`` pseudo-vertex.
+	"""Disposable plain-fact projection for one CDML ``<group>`` pseudo-vertex.
 
-	Groups deliberately do not enter the OASA graph until a future explicit
-	expansion command.  They retain their native CDML source and attachment
-	bonds, so unsupported group chemistry cannot be silently rewritten.
+	Synchronized models retain no group or incident-bond XML. Standalone
+	compatibility loading may retain source XML only for its isolated legacy path.
 	"""
 
 	changed = PySide6.QtCore.Signal()
@@ -47,12 +46,12 @@ class GroupModel(PySide6.QtCore.QObject):
 			self, group_id: str, name: str, group_type: str, pos: str,
 			x: float, y: float, attributes: tuple[tuple[str, str], ...],
 			point_attributes: tuple[tuple[str, str], ...],
-			font_attributes: tuple[tuple[str, str], ...], raw_xml: str,
+			font_attributes: tuple[tuple[str, str], ...], raw_xml: str | None,
 			attachments: tuple[GroupAttachment, ...] = (),
 			unsupported_reason: str | None = None,
 			parent: PySide6.QtCore.QObject | None = None,
 			) -> None:
-		"""Create a group model from one local-name-aware CDML element."""
+		"""Create one disposable group projection from CDML-derived facts."""
 		super().__init__(parent)
 		self.group_id = group_id
 		self.name = name
@@ -66,6 +65,7 @@ class GroupModel(PySide6.QtCore.QObject):
 		self.raw_xml = raw_xml
 		self.attachments = attachments
 		self.unsupported_reason = unsupported_reason
+		self.implicit_expandable = False
 
 	#============================================
 	@property
@@ -81,6 +81,6 @@ class GroupModel(PySide6.QtCore.QObject):
 
 	#============================================
 	def set_attachments(self, attachments: tuple[GroupAttachment, ...]) -> None:
-		"""Install retained incident-bond metadata after all molecule nodes load."""
+		"""Install standalone compatibility attachment metadata after decoding."""
 		self.attachments = attachments
 		self.changed.emit()

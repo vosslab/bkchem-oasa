@@ -2,9 +2,27 @@
 
 # Standard Library
 import dataclasses
+import enum
 
 # PIP3 modules
 import PySide6.QtCore
+
+
+class WorkerLifecycleState(enum.StrEnum):
+	"""Observable frontend lifetime state for one native worker."""
+
+	RUNNING = "running"
+	DELIVERY_INVALIDATED = "delivery-invalidated"
+	RETIRING = "retiring"
+	FINISHED = "finished"
+
+
+class WorkerTerminalOutcome(enum.StrEnum):
+	"""Terminal delivery outcome after the native callable returns."""
+
+	COMPLETED = "completed"
+	FAILED = "failed"
+	DELIVERY_CANCELLED = "delivery-cancelled"
 
 
 #============================================
@@ -29,6 +47,8 @@ class OasaWorker(PySide6.QtCore.QThread):
 	error = PySide6.QtCore.Signal(object)
 	# emitted with an integer 0-100 for progress reporting
 	progress = PySide6.QtCore.Signal(int)
+	# Emitted after the callable has returned and before QThread.finished.
+	terminal_outcome = PySide6.QtCore.Signal(str)
 
 	#============================================
 	def __init__(self, func: object, *args: object, **kwargs: object) -> None:
@@ -43,6 +63,36 @@ class OasaWorker(PySide6.QtCore.QThread):
 		self._func = func
 		self._args = args
 		self._kwargs = kwargs
+		self._lifecycle_state = WorkerLifecycleState.RUNNING
+		self._terminal_outcome = None
+		self._delivery_invalidated = False
+		self.finished.connect(self._on_thread_finished)
+
+	#============================================
+	@property
+	def lifecycle_state(self) -> WorkerLifecycleState:
+		"""Return this worker's current frontend lifecycle state."""
+		return self._lifecycle_state
+
+	#============================================
+	@property
+	def outcome(self) -> WorkerTerminalOutcome | None:
+		"""Return the terminal delivery outcome after native work completes."""
+		return self._terminal_outcome
+
+	#============================================
+	def requestInterruption(self) -> None:
+		"""Invalidate future delivery without claiming to preempt native work."""
+		self._delivery_invalidated = True
+		if self._lifecycle_state is WorkerLifecycleState.RUNNING:
+			self._lifecycle_state = WorkerLifecycleState.DELIVERY_INVALIDATED
+		super().requestInterruption()
+
+	#============================================
+	@PySide6.QtCore.Slot()
+	def _on_thread_finished(self) -> None:
+		"""Publish the terminal lifetime state at Qt's finished boundary."""
+		self._lifecycle_state = WorkerLifecycleState.FINISHED
 
 	#============================================
 	def run(self) -> None:
@@ -56,14 +106,24 @@ class OasaWorker(PySide6.QtCore.QThread):
 		"""
 		try:
 			result = self._func(*self._args, **self._kwargs)
-			if not self.isInterruptionRequested():
-				self.result.emit(result)
 		except Exception as exc:
-			if not self.isInterruptionRequested():
+			if self._delivery_invalidated or self.isInterruptionRequested():
+				outcome = WorkerTerminalOutcome.DELIVERY_CANCELLED
+			else:
+				outcome = WorkerTerminalOutcome.FAILED
 				if isinstance(exc, TextImportPreparationError):
 					self.error.emit(exc)
 				else:
 					self.error.emit(str(exc))
+		else:
+			if self._delivery_invalidated or self.isInterruptionRequested():
+				outcome = WorkerTerminalOutcome.DELIVERY_CANCELLED
+			else:
+				outcome = WorkerTerminalOutcome.COMPLETED
+				self.result.emit(result)
+		self._terminal_outcome = outcome
+		self._lifecycle_state = WorkerLifecycleState.RETIRING
+		self.terminal_outcome.emit(outcome)
 
 
 #============================================
@@ -110,29 +170,6 @@ def _generate_coords(mol: object, bond_length: float, force: int) -> object:
 
 
 #============================================
-class FileReaderWorker(OasaWorker):
-	"""Worker for reading chemistry files via OASA codecs.
-
-	Runs the codec file reading in a background thread so that
-	large files do not block the GUI event loop.
-
-	Args:
-		codec_name: OASA codec name (e.g. 'molfile', 'smiles').
-		file_path: Path to the file to read.
-	"""
-
-	#============================================
-	def __init__(self, codec_name: str, file_path: str) -> None:
-		"""Initialize the file reader worker.
-
-		Args:
-			codec_name: OASA codec name string.
-			file_path: Path to the chemistry file.
-		"""
-		super().__init__(_read_file, codec_name, file_path)
-
-
-#============================================
 class FileImportWorker(OasaWorker):
 	"""Worker that parses and prepares an imported chemistry source.
 
@@ -160,7 +197,7 @@ class FileImportWorker(OasaWorker):
 
 #============================================
 def _read_file(codec_name: str, file_path: str) -> object:
-	"""Read a chemistry file using an OASA codec.
+	"""Read one chemistry file inside complete-CDML import preparation.
 
 	Args:
 		codec_name: OASA codec name string.

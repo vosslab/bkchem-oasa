@@ -3,7 +3,7 @@
 Implements Tk-parity click-to-place bond drawing: clicking an atom
 immediately adds a new bonded atom at a fixed bond length and smart
 angle (120 deg zigzag, transoid placement, least-crowded for 2+
-neighbors). Dragging from an atom snaps to 15-degree angle increments.
+neighbors). Dragging from an atom snaps to configured angle increments.
 """
 
 # Standard Library
@@ -597,8 +597,8 @@ class DrawMode(bkchem_qt.modes.base_mode.BaseMode):
 			return self._structural_request_data(
 				"create-bonded-pair", "Draw bonded pair",
 				(("source_position", self._source_position),
-				 ("target_position", self._default_target_position),
-				 ("element", self._current_element)),
+					("target_position", self._default_target_position),
+					("element", self._current_element)),
 				frozenset(),
 			)
 		if self._gesture_kind == "bond":
@@ -635,8 +635,8 @@ class DrawMode(bkchem_qt.modes.base_mode.BaseMode):
 					return self._structural_request_data(
 						"join-atoms", "Join atoms",
 						(("molecule_id", self._source_molecule_id),
-						 ("source_atom_id", self._source_atom_id),
-						 ("target_atom_id", str(end_atom_id))),
+							("source_atom_id", self._source_atom_id),
+							("target_atom_id", str(end_atom_id))),
 						frozenset((
 							("molecule", self._source_molecule_id),
 							("atom", self._source_atom_id), ("atom", str(end_atom_id)),
@@ -651,8 +651,8 @@ class DrawMode(bkchem_qt.modes.base_mode.BaseMode):
 		return self._structural_request_data(
 			"extend-atom", "Extend atom",
 			(("molecule_id", self._source_molecule_id),
-			 ("source_atom_id", self._source_atom_id),
-			 ("target_position", target_position), ("element", self._current_element)),
+				("source_atom_id", self._source_atom_id),
+				("target_position", target_position), ("element", self._current_element)),
 			frozenset((
 				("molecule", self._source_molecule_id), ("atom", self._source_atom_id),
 			)),
@@ -825,9 +825,6 @@ class DrawMode(bkchem_qt.modes.base_mode.BaseMode):
 			bond_type=self._current_bond_type,
 		)
 		bond_model.simple_double = self._simple_double
-		# OASA's CDML writer reads this display property from the chemistry
-		# bond, while the Qt canvas reads it from BondModel.
-		bond_model._chem_bond.simple_double = self._simple_double
 		# add bond to molecule graph first so BondItem can access vertices
 		atom1_model = atom1_item.atom_model
 		atom2_model = atom2_item.atom_model
@@ -976,11 +973,9 @@ class DrawMode(bkchem_qt.modes.base_mode.BaseMode):
 					model.auto_bond_sign = -model.auto_bond_sign
 				else:
 					model.center = True
-		# Match the Tk bond control: the selected double-bond style applies
-		# before the type/order toggle. Keep the CDML-facing OASA state in
-		# lockstep with the canvas model.
+		# Match the Tk bond control: apply the selected double-bond style
+		# before the type/order toggle.
 		model.simple_double = self._simple_double
-		model._chem_bond.simple_double = self._simple_double
 		# push undo for all changed properties
 		undo_stack.beginMacro("Toggle Bond")
 		for prop_name, old_val in [

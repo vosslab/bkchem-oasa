@@ -516,11 +516,12 @@ class ChemView(PySide6.QtWidgets.QGraphicsView):
 
 	#============================================
 	def zoom_to_content(self) -> None:
-		"""Zoom and pan to fit chemistry content (not paper/grid) with a margin.
+		"""Zoom and pan to fit persistent drawing content with a margin.
 
-		Filters scene items to only include chemistry types (atoms, bonds,
-		arrows, text, marks). Falls back to zoom_to_fit if no chemistry
-		items are found.
+		Molecular items and every document-backed presentation projection count
+		as content. Frontend-only paper, grid, and interaction decorations stay
+		outside the fitted bounds. Falls back to the paper when the document has
+		no visible content.
 		"""
 		import bkchem_qt.canvas.items.atom_item
 		import bkchem_qt.canvas.items.bond_item
@@ -542,14 +543,20 @@ class ChemView(PySide6.QtWidgets.QGraphicsView):
 			bkchem_qt.canvas.items.mark_item.MarkItem,
 		)
 
-		# accumulate bounding rect of chemistry items only
+		# Accumulate molecular projections plus every supported persistent
+		# presentation projection. The model marker is installed only by the
+		# document projection boundary, so unrelated frontend decorations do not
+		# become document content merely because they share a Qt item type.
 		content_rect = PySide6.QtCore.QRectF()
 		for item in scene.items():
-			if isinstance(item, chem_types):
+			if (
+				isinstance(item, chem_types)
+				or getattr(item, "document_object_model", None) is not None
+			):
 				item_rect = item.mapToScene(item.boundingRect()).boundingRect()
 				content_rect = content_rect.united(item_rect)
 
-		# fall back to paper zoom if no chemistry items found
+		# Fall back to paper zoom if no persistent drawing items are projected.
 		if content_rect.isEmpty():
 			self.zoom_to_fit()
 			return

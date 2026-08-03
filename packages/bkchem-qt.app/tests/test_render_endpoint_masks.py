@@ -14,7 +14,6 @@ import bkchem_qt.canvas.items.bond_item
 import bkchem_qt.canvas.items.render_ops_painter
 import bkchem_qt.models.molecule_model
 import bkchem_qt.themes.theme_loader
-import oasa.render_ops
 
 
 #============================================
@@ -25,7 +24,7 @@ def _bond_with_explicit_carbon_label() -> tuple[object, object, object]:
 	nitrogen = molecule.create_atom(symbol="N")
 	carbon.set_xyz(0.0, 0.0, 0.0)
 	nitrogen.set_xyz(80.0, 0.0, 0.0)
-	carbon._chem_atom.properties_["label"] = "C"
+	carbon.show = True
 	molecule.add_atom(carbon)
 	molecule.add_atom(nitrogen)
 	bond = molecule.create_bond(order=1, bond_type="n")
@@ -38,8 +37,8 @@ def _horizontal_line_ends(item: object) -> tuple[float, float]:
 	"""Return left and right endpoints of the rendered single-bond line."""
 	points = []
 	for op in item._ops:
-		if isinstance(op, oasa.render_ops.LineOp):
-			points.extend((op.p1[0], op.p2[0]))
+		if op.kind == "line":
+			points.extend((op.points[0][0], op.points[1][0]))
 	return min(points), max(points)
 
 
@@ -62,11 +61,10 @@ def _render_local_item(item: object) -> PySide6.QtGui.QImage:
 
 #============================================
 def _atom_mask_color(item: object) -> PySide6.QtGui.QColor:
-	"""Return the painted color just inside one atom-label mask polygon."""
+	"""Return the painted color just inside one portable atom-label mask."""
 	mask = next(
 		op for op in item._ops
-		if isinstance(op, oasa.render_ops.PolygonOp)
-		and op.fill == bkchem_qt.canvas.items.render_ops_painter._DEFAULT_AREA_COLOR_TOKEN
+		if op.kind == "polygon" and op.fill_role == "document-background"
 	)
 	bounds = item.boundingRect()
 	left, top = mask.points[0]
@@ -103,6 +101,18 @@ def test_hidden_endpoint_has_no_bond_label_clipping(
 	_left, right = _horizontal_line_ends(bond_item)
 
 	assert right == nitrogen.x
+
+
+#============================================
+def test_bond_bounds_contain_its_full_selection_and_hover_axis(
+		qapp: PySide6.QtWidgets.QApplication,
+		) -> None:
+	"""Clipped depiction still reserves bounds for the raw interaction axis."""
+	del qapp
+	carbon, nitrogen, bond_item = _bond_with_explicit_carbon_label()
+	bounds = bond_item.boundingRect()
+
+	assert bounds.contains(carbon.x, carbon.y) and bounds.contains(nitrogen.x, nitrogen.y)
 
 
 #============================================

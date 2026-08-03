@@ -2,24 +2,18 @@
 
 # Standard Library
 import os
-import typing
 
 # PIP3 modules
 import PySide6.QtCore
 import PySide6.QtGui
 import PySide6.QtWidgets
-import shiboken6
 
 # local repo modules
-import oasa.safe_xml
+import bkchem_qt.io.cdml_inspection
 import bkchem_qt.models.molecule_model
 import bkchem_qt.models.atom_model
 import bkchem_qt.models.bond_model
 import bkchem_qt.models.document_object
-
-if typing.TYPE_CHECKING:
-	import bkchem_qt.canvas.graphics_retirement
-
 
 #============================================
 class DocumentUndoStack(PySide6.QtGui.QUndoStack):
@@ -118,6 +112,11 @@ class Document(PySide6.QtCore.QObject):
 		self._molecules = []
 		self._object_stack = []
 		self._presentation_objects = []
+		# This document is the explicit frontend owner of the wrappers in its
+		# current disposable projection.  A QGraphicsScene owns native items, but
+		# PySide does not promise it owns their Python wrappers.  Keep those
+		# wrappers alive until the retirement coordinator has detached them.
+		self._projection_item_refs = {}
 		self._marks = []
 		self._paper = bkchem_qt.models.document_object.PaperModel()
 		self._cdml_envelope = bkchem_qt.models.document_object.CdmlEnvelope()
@@ -182,7 +181,7 @@ class Document(PySide6.QtCore.QObject):
 	#============================================
 	@property
 	def unsupported_content(self) -> list:
-		"""Return retained CDML content not yet projected by the Qt UI."""
+		"""Return warnings for persistent content not projected by the Qt UI."""
 		return list(self._unsupported_content)
 
 	#============================================
@@ -298,15 +297,10 @@ class Document(PySide6.QtCore.QObject):
 					# deletion attempt before the reaper's controlled resolution pass.
 					if self._terminal_reaper_owns_graphics_root(item, reaper):
 						continue
-					if not shiboken6.isValid(item):
-						continue
+					from bkchem_qt.canvas.graphics_retirement import native_scene_for_item
 					# This is the stable pre-retirement ownership check.  No
 					# item is touched again after the coordinator begins deletion.
-					try:
-						is_detached = item.scene() is None
-					except RuntimeError:
-						is_detached = False
-					if is_detached:
+					if native_scene_for_item(item) is None:
 						items.append(item)
 			for index in range(command.childCount()):
 				visit(command.child(index))
@@ -404,8 +398,8 @@ class Document(PySide6.QtCore.QObject):
 		used.update(fragment.fragment_id for fragment in molecule.fragments)
 		for raw_xml in molecule.unsupported_fragment_xml:
 			used.update(self._raw_fragment_ids(raw_xml))
-		atom_changes = self._planned_model_ids(molecule.atoms, "_chem_atom", "atom", used)
-		bond_changes = self._planned_model_ids(molecule.bonds, "_chem_bond", "bond", used)
+		atom_changes = self._planned_model_ids(molecule.atoms, "atom_id", "atom", used)
+		bond_changes = self._planned_bond_ids(molecule.bonds, used)
 		return tuple(atom_changes), tuple(bond_changes)
 
 	#============================================
@@ -420,11 +414,11 @@ class Document(PySide6.QtCore.QObject):
 			if molecule.mol_id:
 				used.add(molecule.mol_id)
 			for atom_model in molecule.atoms:
-				identifier = str(getattr(atom_model._chem_atom, "id", "") or "")
+				identifier = str(atom_model.atom_id or "")
 				if identifier:
 					used.add(identifier)
 			for bond_model in molecule.bonds:
-				identifier = str(getattr(bond_model._chem_bond, "id", "") or "")
+				identifier = str(bond_model.bond_id or "")
 				if identifier:
 					used.add(identifier)
 			for group_model in molecule.groups:
@@ -445,12 +439,8 @@ class Document(PySide6.QtCore.QObject):
 	#============================================
 	def _raw_fragment_ids(self, raw_xml: str) -> set[str]:
 		"""Read retained raw fragment IDs without treating XML as text."""
-		try:
-			element = oasa.safe_xml.parse_dom_from_string(raw_xml).documentElement
-		except ValueError:
-			return set()
-		identifier = element.getAttribute("id")
-		return {identifier} if identifier else set()
+		identifier = bkchem_qt.io.cdml_inspection.root_id(raw_xml)
+		return {identifier} if identifier is not None else set()
 
 	#============================================
 	def _planned_model_ids(
@@ -459,8 +449,7 @@ class Document(PySide6.QtCore.QObject):
 		"""Return deterministic before/after IDs while reserving each result."""
 		changes = []
 		for model in models:
-			chemistry = getattr(model, chemistry_name)
-			before = str(getattr(chemistry, "id", "") or "")
+			before = str(getattr(model, chemistry_name) or "")
 			after = before
 			if not after or after in used:
 				index = 1
@@ -468,6 +457,25 @@ class Document(PySide6.QtCore.QObject):
 				while after in used:
 					index += 1
 					after = "%s%d" % (prefix, index)
+			used.add(after)
+			changes.append((model, before, after))
+		return changes
+
+	#============================================
+	def _planned_bond_ids(
+			self, models: list, used: set[str],
+			) -> list[tuple[object, str, str]]:
+		"""Return deterministic scalar BondModel ID assignments."""
+		changes = []
+		for model in models:
+			before = str(model.bond_id or "")
+			after = before
+			if not after or after in used:
+				index = 1
+				after = "bond%d" % index
+				while after in used:
+					index += 1
+					after = "bond%d" % index
 			used.add(after)
 			changes.append((model, before, after))
 		return changes
@@ -511,12 +519,57 @@ class Document(PySide6.QtCore.QObject):
 		Args:
 			scene: QGraphicsScene instance (ChemScene).
 		"""
-		if self._scene is not None:
+		from bkchem_qt.canvas.graphics_retirement import is_valid_native_wrapper
+		if is_valid_native_wrapper(self._scene):
 			# disconnect old scene
 			self._scene.selectionChanged.disconnect(self._on_scene_selection_changed)
 		self._scene = scene
-		if scene is not None:
+		if is_valid_native_wrapper(scene):
 			scene.selectionChanged.connect(self._on_scene_selection_changed)
+
+	#============================================
+	def is_current_projection_scene(
+			self, scene: PySide6.QtWidgets.QGraphicsScene,
+			) -> bool:
+		"""Return whether ``scene`` remains this document's live projection scene."""
+		from bkchem_qt.canvas.graphics_retirement import is_valid_native_wrapper
+		return self._scene is scene and is_valid_native_wrapper(scene)
+
+	#============================================
+	def register_current_projection_items(
+			self, items: tuple[PySide6.QtWidgets.QGraphicsItem, ...],
+			) -> None:
+		"""Register the exact graphics wrappers installed for this projection.
+
+		A model reference on an arbitrary scene item is presentation metadata, not
+		proof of membership.  This registration both distinguishes the current
+		projection from lookalike wrappers and owns its Python wrappers until the
+		projection is explicitly retired.
+		"""
+		if self._scene is None:
+			raise RuntimeError("Projection item registration requires a live scene")
+		self._projection_item_refs = {id(item): item for item in items}
+
+	#============================================
+	def is_current_projection_item(
+			self, item: PySide6.QtWidgets.QGraphicsItem,
+			) -> bool:
+		"""Return whether one wrapper belongs to this document's live projection."""
+		from bkchem_qt.canvas.graphics_retirement import item_belongs_to_scene
+		scene = self._scene
+		if scene is None or not self.is_current_projection_scene(scene):
+			return False
+		item_ref = self._projection_item_refs.get(id(item))
+		return item_belongs_to_scene(scene, item) and item_ref is item
+
+	#============================================
+	def molecule_for_current_projection_item(
+			self, item: PySide6.QtWidgets.QGraphicsItem,
+			) -> bkchem_qt.models.molecule_model.MoleculeModel | None:
+		"""Resolve one registered current-projection item to its root molecule."""
+		if not self.is_current_projection_item(item):
+			return None
+		return self.molecule_for_graphics_item(item)
 
 	#============================================
 	def _on_scene_selection_changed(self) -> None:
@@ -536,9 +589,8 @@ class Document(PySide6.QtCore.QObject):
 			List of AtomItem instances currently selected.
 		"""
 		import bkchem_qt.canvas.items.atom_item
-		if self._scene is None:
-			return []
-		return [item for item in self._scene.selectedItems()
+		from bkchem_qt.canvas.graphics_retirement import selected_items_from_captured_scene
+		return [item for item in selected_items_from_captured_scene(self._scene)
 				if isinstance(item, bkchem_qt.canvas.items.atom_item.AtomItem)]
 
 	#============================================
@@ -550,9 +602,8 @@ class Document(PySide6.QtCore.QObject):
 			List of BondItem instances currently selected.
 		"""
 		import bkchem_qt.canvas.items.bond_item
-		if self._scene is None:
-			return []
-		return [item for item in self._scene.selectedItems()
+		from bkchem_qt.canvas.graphics_retirement import selected_items_from_captured_scene
+		return [item for item in selected_items_from_captured_scene(self._scene)
 				if isinstance(item, bkchem_qt.canvas.items.bond_item.BondItem)]
 
 	#============================================
@@ -560,9 +611,8 @@ class Document(PySide6.QtCore.QObject):
 	def selected_groups(self) -> list:
 		"""Return selected native CDML group items in scene selection order."""
 		import bkchem_qt.canvas.items.group_item
-		if self._scene is None:
-			return []
-		return [item for item in self._scene.selectedItems()
+		from bkchem_qt.canvas.graphics_retirement import selected_items_from_captured_scene
+		return [item for item in selected_items_from_captured_scene(self._scene)
 				if isinstance(item, bkchem_qt.canvas.items.group_item.GroupItem)]
 
 	#============================================
@@ -601,11 +651,10 @@ class Document(PySide6.QtCore.QObject):
 		Returns:
 			Selected PresentationObject instances in ``Document.objects`` order.
 		"""
-		if self._scene is None:
-			return []
+		from bkchem_qt.canvas.graphics_retirement import selected_items_from_captured_scene
 		selected_ids = {
 			id(getattr(item, "document_object_model", None))
-			for item in self._scene.selectedItems()
+			for item in selected_items_from_captured_scene(self._scene)
 		}
 		return [
 			object_model for object_model in self._object_stack
@@ -649,10 +698,9 @@ class Document(PySide6.QtCore.QObject):
 		Returns:
 			Selected molecule and presentation models in ``Document.objects`` order.
 		"""
-		if self._scene is None:
-			return []
+		from bkchem_qt.canvas.graphics_retirement import selected_items_from_captured_scene
 		selected_ids = set()
-		for item in self._scene.selectedItems():
+		for item in selected_items_from_captured_scene(self._scene):
 			object_model = getattr(item, "document_object_model", None)
 			if object_model in self._presentation_objects:
 				selected_ids.add(id(object_model))
@@ -697,9 +745,8 @@ class Document(PySide6.QtCore.QObject):
 	@property
 	def has_selection(self) -> bool:
 		"""Whether any interactive item is selected."""
-		if self._scene is None:
-			return False
-		return bool(self._scene.selectedItems())
+		from bkchem_qt.canvas.graphics_retirement import selected_items_from_captured_scene
+		return bool(selected_items_from_captured_scene(self._scene))
 
 	#============================================
 	def selected_to_unique_top_levels(self) -> tuple:
@@ -862,7 +909,8 @@ class Document(PySide6.QtCore.QObject):
 		mark_model = getattr(item, "atom_mark_model", None)
 		if mark_model is not None:
 			return self._find_molecule_for_atom(mark_model.atom_model)
-		parent_item = item.parentItem()
+		from bkchem_qt.canvas.graphics_retirement import native_parent_for_item
+		parent_item = native_parent_for_item(item)
 		if parent_item is not None:
 			return self.molecule_for_graphics_item(parent_item)
 		return None
@@ -1078,7 +1126,7 @@ class Document(PySide6.QtCore.QObject):
 		Args:
 			envelope: Root, header, reaction, and external-data state.
 			paper: Paper and viewport state.
-			unsupported_content: Retained nodes without a UI representation.
+			unsupported_content: Warnings for content without a UI representation.
 		"""
 		self._cdml_envelope = envelope
 		self._paper = paper
@@ -1192,16 +1240,26 @@ class Document(PySide6.QtCore.QObject):
 		first_error = None
 		if self._scene is not None:
 			from bkchem_qt.canvas.graphics_retirement import GraphicsRetirementCoordinator
-			owned_model_ids = self._owned_graphics_model_ids()
-			items = [
-				item for item in self._scene.items()
-				if self._item_belongs_to_document(item, owned_model_ids)
-			]
+			# Registered wrappers are the exact active projection and its explicit
+			# Python-owned lifetime.  Legacy locally constructed Documents may not
+			# have crossed the registration boundary, so retain the model-based scan
+			# only as their compatibility fallback.
+			items = list(self._projection_item_refs.values())
+			if not items:
+				owned_model_ids = self._owned_graphics_model_ids()
+				items = [
+					item for item in self._scene.items()
+					if self._item_belongs_to_document(item, owned_model_ids)
+				]
 			coordinator = GraphicsRetirementCoordinator()
 			# The live scene owns the applied projection tree.  Detached graphics
 			# retained by commands are a separate terminal transition owned by
 			# DocumentUndoStack.clear(), so do not walk the undo stack here.
 			coordinator.retire_scene_projection_items(self._scene, items, reaper=reaper)
+			# The retirement coordinator now owns detached wrappers through its
+			# terminal reaper.  Releasing the document's active ownership here makes
+			# native destruction an explicit transition rather than GC timing.
+			self._projection_item_refs.clear()
 			if coordinator.report.callback_errors:
 				first_error = coordinator.report.callback_errors[0]
 		else:
@@ -1209,6 +1267,7 @@ class Document(PySide6.QtCore.QObject):
 			coordinator = GraphicsRetirementCoordinator()
 			# With no scene, this method has no current projection roots to retire.
 			# The following DocumentUndoStack.clear() owns any detached history tree.
+			self._projection_item_refs.clear()
 		if first_error is not None:
 			raise RuntimeError(
 				"Document graphics were detached after a disposal failure",

@@ -29,7 +29,8 @@ def _install_native_session(main_window: bkchem_qt.main_window.MainWindow) -> ob
 	prepared = bkchem_qt.models.document_session.DocumentSession.prepare_native_cdml(_CDML)
 	session = main_window._construct_session(prepared_native_cdml=prepared)
 	registered = main_window._register_session(session, activate=True)
-	if not main_window._replace_session_projection(registered, registered.backend_snapshot):
+	projection = registered.retry_current_backend_projection()
+	if projection.status != "accepted":
 		raise AssertionError("Native CDML projection is unavailable")
 	return registered
 

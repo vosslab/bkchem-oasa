@@ -7,16 +7,17 @@ import PySide6.QtWidgets
 
 # local repo modules
 import bkchem_qt.config.geometry_units
+import bkchem_qt.config.keybindings
 import bkchem_qt.config.preferences
 
 
 #============================================
 class PreferencesDialog(PySide6.QtWidgets.QDialog):
-	"""Multi-tab preferences dialog.
+	"""Preferences dialog for delivered application settings.
 
-	Provides tabs for appearance, drawing defaults, file handling,
-	and keyboard shortcuts. Changes are applied when the user clicks
-	OK or Apply.
+	Provides durable appearance, drawing, and keyboard-shortcut settings.
+	Appearance and drawing values apply to the current window; shortcuts are
+	loaded when BKChem starts.
 
 	Args:
 		parent: Optional parent widget.
@@ -47,7 +48,6 @@ class PreferencesDialog(PySide6.QtWidgets.QDialog):
 		self._tabs = PySide6.QtWidgets.QTabWidget()
 		self._tabs.addTab(self._create_appearance_tab(), self.tr("Appearance"))
 		self._tabs.addTab(self._create_drawing_tab(), self.tr("Drawing"))
-		self._tabs.addTab(self._create_file_tab(), self.tr("Files"))
 		self._tabs.addTab(self._create_shortcuts_tab(), self.tr("Shortcuts"))
 		layout.addWidget(self._tabs)
 
@@ -102,19 +102,13 @@ class PreferencesDialog(PySide6.QtWidgets.QDialog):
 	def _create_drawing_tab(self) -> PySide6.QtWidgets.QWidget:
 		"""Create the drawing defaults tab.
 
-		Contains default element, bond length, and font size settings.
+		Contains the durable default bond length used by new geometry.
 
 		Returns:
 			The drawing tab widget.
 		"""
 		widget = PySide6.QtWidgets.QWidget()
 		form = PySide6.QtWidgets.QFormLayout(widget)
-
-		# default element
-		self._element_edit = PySide6.QtWidgets.QLineEdit()
-		self._element_edit.setMaxLength(3)
-		self._element_edit.setPlaceholderText("C")
-		form.addRow(self.tr("Default element:"), self._element_edit)
 
 		# default bond length
 		self._bond_length_spin = PySide6.QtWidgets.QDoubleSpinBox()
@@ -124,46 +118,6 @@ class PreferencesDialog(PySide6.QtWidgets.QDialog):
 		)
 		self._bond_length_spin.setSuffix(" pt")
 		form.addRow(self.tr("Bond length:"), self._bond_length_spin)
-
-		# default font size
-		self._font_size_spin = PySide6.QtWidgets.QSpinBox()
-		self._font_size_spin.setRange(4, 72)
-		self._font_size_spin.setValue(12)
-		form.addRow(self.tr("Font size:"), self._font_size_spin)
-
-		# spacer
-		form.addItem(PySide6.QtWidgets.QSpacerItem(
-			0, 0,
-			PySide6.QtWidgets.QSizePolicy.Policy.Minimum,
-			PySide6.QtWidgets.QSizePolicy.Policy.Expanding,
-		))
-		return widget
-
-	#============================================
-	def _create_file_tab(self) -> PySide6.QtWidgets.QWidget:
-		"""Create the file handling tab.
-
-		Contains recent files count and auto-save interval settings.
-
-		Returns:
-			The file tab widget.
-		"""
-		widget = PySide6.QtWidgets.QWidget()
-		form = PySide6.QtWidgets.QFormLayout(widget)
-
-		# recent files count
-		self._recent_count_spin = PySide6.QtWidgets.QSpinBox()
-		self._recent_count_spin.setRange(0, 30)
-		self._recent_count_spin.setValue(10)
-		form.addRow(self.tr("Recent files count:"), self._recent_count_spin)
-
-		# auto-save interval (0 = disabled)
-		self._autosave_spin = PySide6.QtWidgets.QSpinBox()
-		self._autosave_spin.setRange(0, 60)
-		self._autosave_spin.setSuffix(self.tr(" min"))
-		self._autosave_spin.setSpecialValueText(self.tr("Disabled"))
-		self._autosave_spin.setValue(0)
-		form.addRow(self.tr("Auto-save interval:"), self._autosave_spin)
 
 		# spacer
 		form.addItem(PySide6.QtWidgets.QSpacerItem(
@@ -199,6 +153,11 @@ class PreferencesDialog(PySide6.QtWidgets.QDialog):
 			0, PySide6.QtWidgets.QHeaderView.ResizeMode.Stretch
 		)
 		layout.addWidget(self._shortcuts_table)
+		shortcut_timing = PySide6.QtWidgets.QLabel(
+			self.tr("Shortcut changes take effect the next time you start BKChem."),
+		)
+		shortcut_timing.setWordWrap(True)
+		layout.addWidget(shortcut_timing)
 
 		# reset defaults button
 		reset_btn = PySide6.QtWidgets.QPushButton(self.tr("Reset to Defaults"))
@@ -227,22 +186,11 @@ class PreferencesDialog(PySide6.QtWidgets.QDialog):
 		self._grid_snap_check.setChecked(bool(grid_snap))
 
 		# drawing defaults
-		element = self._prefs.value("drawing/default_element", "C")
-		self._element_edit.setText(str(element))
 		bond_len = self._prefs.value(
 			bkchem_qt.config.preferences.Preferences.KEY_BOND_LENGTH_PT,
 			bkchem_qt.config.geometry_units.DEFAULT_BOND_LENGTH_PT,
 		)
 		self._bond_length_spin.setValue(float(bond_len))
-		font_sz = self._prefs.value("drawing/font_size", 12)
-		self._font_size_spin.setValue(int(font_sz))
-
-		# file
-		recent_count = self._prefs.value("files/recent_count", 10)
-		self._recent_count_spin.setValue(int(recent_count))
-		autosave = self._prefs.value("files/autosave_interval", 0)
-		self._autosave_spin.setValue(int(autosave))
-
 		# shortcuts table
 		self._populate_shortcuts_table()
 
@@ -298,8 +246,39 @@ class PreferencesDialog(PySide6.QtWidgets.QDialog):
 			self._shortcuts_table.setItem(row, 1, seq_item)
 
 	#============================================
-	def _apply(self) -> None:
+	def _shortcut_bindings_from_table(self) -> dict:
+		"""Return the complete edited shortcut map shown in the dialog."""
+		bindings = {}
+		for row in range(self._shortcuts_table.rowCount()):
+			name_item = self._shortcuts_table.item(row, 0)
+			seq_item = self._shortcuts_table.item(row, 1)
+			if name_item is not None and seq_item is not None:
+				bindings[name_item.text()] = seq_item.text()
+		return bindings
+
+	#============================================
+	def _apply(self) -> bool:
 		"""Save all settings to Preferences."""
+		shortcut_bindings = self._shortcut_bindings_from_table()
+		parent = self.parent()
+		manager = getattr(parent, "_keybinding_manager", None)
+		if manager is not None:
+			try:
+				manager.validate_binding_map(shortcut_bindings)
+			except bkchem_qt.config.keybindings.KeybindingConflictError as exc:
+				PySide6.QtWidgets.QMessageBox.warning(
+					self,
+					self.tr("Conflicting Shortcuts"),
+					self.tr("Choose a different shortcut before saving.\n\n%s") % exc,
+				)
+				return False
+			except bkchem_qt.config.keybindings.KeybindingRegistrationError as exc:
+				PySide6.QtWidgets.QMessageBox.warning(
+					self,
+					self.tr("Invalid Shortcut"),
+					self.tr("Enter a valid shortcut before saving.\n\n%s") % exc,
+				)
+				return False
 		# appearance
 		self._prefs.set_value(
 			bkchem_qt.config.preferences.Preferences.KEY_THEME,
@@ -315,46 +294,23 @@ class PreferencesDialog(PySide6.QtWidgets.QDialog):
 		)
 		# drawing
 		self._prefs.set_value(
-			"drawing/default_element",
-			self._element_edit.text().strip() or "C",
-		)
-		self._prefs.set_value(
 			bkchem_qt.config.preferences.Preferences.KEY_BOND_LENGTH_PT,
 			self._bond_length_spin.value(),
 		)
-		self._prefs.set_value(
-			"drawing/font_size",
-			self._font_size_spin.value(),
-		)
-		# file
-		self._prefs.set_value(
-			"files/recent_count",
-			self._recent_count_spin.value(),
-		)
-		self._prefs.set_value(
-			"files/autosave_interval",
-			self._autosave_spin.value(),
-		)
 		# shortcuts
-		row_count = self._shortcuts_table.rowCount()
-		for row in range(row_count):
-			name_item = self._shortcuts_table.item(row, 0)
-			seq_item = self._shortcuts_table.item(row, 1)
-			if name_item is not None and seq_item is not None:
-				action_name = name_item.text()
-				key_seq = seq_item.text()
-				self._prefs.set_value("keybindings/" + action_name, key_seq)
-		parent = self.parent()
+		for action_name, key_sequence in shortcut_bindings.items():
+			self._prefs.set_value("keybindings/" + action_name, key_sequence)
 		if parent is not None and hasattr(parent, "_apply_geometry_preferences"):
 			parent._apply_geometry_preferences()
 		if parent is not None and hasattr(parent, "_apply_view_preferences"):
 			parent._apply_view_preferences()
+		return True
 
 	#============================================
 	def _accept_and_apply(self) -> None:
 		"""Apply settings and close the dialog."""
-		self._apply()
-		self.accept()
+		if self._apply():
+			self.accept()
 
 	#============================================
 	@staticmethod

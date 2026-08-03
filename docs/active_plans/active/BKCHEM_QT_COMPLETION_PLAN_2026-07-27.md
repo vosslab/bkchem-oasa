@@ -7,11 +7,9 @@ The persistent-authority milestones, work packages, completion claims, and Qt
 document-ownership instructions formerly here are superseded. Git history
 retains their original detail.
 
-The active authority plan is
-`docs/active_plans/active/cdml_backend_authority_migration_2026-07-27.md`.
-That path remains code rather than a Markdown link until the new plan is
-tracked. It governs every persistent change: OASA owns the complete CDML
-document, and Qt projects backend canonical CDML without re-merging content.
+The [active authority plan](cdml_backend_authority_migration_2026-07-27.md)
+governs every persistent change: OASA owns the complete CDML document, and Qt
+projects backend canonical CDML without re-merging content.
 
 ## Evidence retained
 

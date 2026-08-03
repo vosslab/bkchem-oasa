@@ -1,16 +1,18 @@
 # Troubleshooting
 
 ## GUI launch issues
-- If BKChem fails to start with a Tk error, install a Python build with Tk
-  support and retry. See [INSTALL.md](INSTALL.md).
+- If `bkchem-qt` fails to start, confirm that PySide6 is installed and that the
+  command runs from a desktop session. Reinstall the supported OASA and
+  BKChem-Qt packages if either import is unavailable. See [INSTALL.md](INSTALL.md).
 
 ## Missing Cairo output
 - PNG or PDF export requires pycairo. Install it if cairo-based output fails.
   See `README.md`.
 
-## Batch mode scripts
-- Batch and GUI smoke scripts require Tk even when running headless. See
-  [bkchem_batch_examples.py](../packages/bkchem-app/tests/bkchem_batch_examples.py).
+## Historical Tk reference
+
+- `packages/bkchem-app/` remains source and fixture evidence for contributors.
+  It is not an installation, launch, or screenshot workflow for this release.
 
 ## Known gaps
 - Add platform-specific troubleshooting steps once installer testing is done.

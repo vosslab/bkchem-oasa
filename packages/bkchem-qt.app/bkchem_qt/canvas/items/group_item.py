@@ -11,7 +11,7 @@ _PADDING = 4.0
 
 #============================================
 class GroupItem(PySide6.QtWidgets.QGraphicsItem):
-	"""Paint one GroupModel label while keeping its chemistry outside OASA."""
+	"""Paint one GroupModel label without making the projection authoritative."""
 
 	#============================================
 	def __init__(self, group_model: object,

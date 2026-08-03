@@ -1,11 +1,10 @@
 """Resolve BKChem-Qt's release version in source and installed layouts."""
 
 # Standard Library
-import importlib.metadata
 import os
 
 # local repo modules
-import oasa.version_registry
+import bkchem_qt.bridge.release_metadata
 
 
 #============================================
@@ -21,11 +20,7 @@ def _source_tree_version() -> str | None:
 		return None
 
 	version_path = os.path.join(os.path.dirname(packages_dir), "VERSION")
-	try:
-		version = oasa.version_registry.read_version_file(version_path)
-	except (OSError, ValueError) as error:
-		raise RuntimeError(f"Unable to read VERSION file: {error}")
-	return version
+	return bkchem_qt.bridge.release_metadata.read_source_tree_display_version(version_path)
 
 
 #============================================
@@ -34,11 +29,4 @@ def application_version() -> str:
 	source_version = _source_tree_version()
 	if source_version is not None:
 		return source_version
-	try:
-		installed_version = importlib.metadata.version("bkchem-qt")
-	except importlib.metadata.PackageNotFoundError:
-		raise RuntimeError("BKChem-Qt package metadata is unavailable")
-	try:
-		return oasa.version_registry.display_from_distribution(installed_version)
-	except oasa.version_registry.ReleaseVersionError as error:
-		raise RuntimeError(f"Unsupported installed BKChem-Qt version metadata: {error}") from error
+	return bkchem_qt.bridge.release_metadata.installed_display_version("bkchem-qt")

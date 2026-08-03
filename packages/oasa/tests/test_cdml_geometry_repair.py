@@ -10,7 +10,10 @@ import pytest
 import oasa.cdml_document
 import oasa.cdml_xml
 import oasa.cdml_writer
+import oasa.atom_lib
+import oasa.bond_lib
 import oasa.hex_grid
+import oasa.molecule_lib
 import oasa.repair_ops
 
 
@@ -48,6 +51,10 @@ _MULTI_SNAP_CDML = """\
  <molecule id="m1"><atom id="a1" name="C"><point x="1cm" y="1cm"/></atom><atom id="a2" name="O"><point x="4cm" y="1cm"/></atom><bond id="b1" start="a1" end="a2" type="n1"/></molecule>
  <molecule id="m2"><atom id="a3" name="N"><point x="7cm" y="3cm"/></atom><atom id="a4" name="C"><point x="10cm" y="3cm"/></atom><bond id="b2" start="a3" end="a4" type="n1"/></molecule>
 </cdml>
+"""
+
+_SIMPLE_RING_CDML = """\
+<cdml xmlns="http://www.freesoftware.fsf.org/bkchem/cdml" version="26.07"><molecule id="m1"><atom id="a" name="C"><point x="0cm" y="0cm"/></atom><atom id="b" name="C"><point x="2cm" y="0cm"/></atom><atom id="c" name="C"><point x="1.5cm" y="1cm"/></atom><atom id="d" name="C"><point x="0cm" y="1cm"/></atom><bond id="ab" start="a" end="b" type="n1"/><bond id="bc" start="b" end="c" type="n1"/><bond id="cd" start="c" end="d" type="n1"/><bond id="da" start="d" end="a" type="n1"/></molecule></cdml>
 """
 
 
@@ -93,6 +100,32 @@ def _angle_request(
 		expected_revision=revision,
 		molecule_ids=molecule_ids,
 		kind="normalize-bond-angles",
+		target_spacing_pt=spacing,
+	)
+
+
+#============================================
+def _straighten_request(
+		revision: int, molecule_ids: tuple[str, ...] = ("m1",), spacing: float = 40.0,
+		) -> object:
+	"""Create one valid terminal-bond straighten request."""
+	return oasa.cdml_document.CDMLGeometryRepairRequest(
+		expected_revision=revision,
+		molecule_ids=molecule_ids,
+		kind="straighten-bonds",
+		target_spacing_pt=spacing,
+	)
+
+
+#============================================
+def _ring_request(
+		revision: int, molecule_ids: tuple[str, ...] = ("m1",), spacing: float = 40.0,
+		) -> object:
+	"""Create one valid single-simple-ring normalization request."""
+	return oasa.cdml_document.CDMLGeometryRepairRequest(
+		expected_revision=revision,
+		molecule_ids=molecule_ids,
+		kind="normalize-rings",
 		target_spacing_pt=spacing,
 	)
 
@@ -208,6 +241,15 @@ def _direct_atom_coordinates_by_id(text: str) -> dict[str, tuple[float, float]]:
 				float(point.getAttribute("y").removesuffix("cm")) * oasa.cdml_writer.POINTS_PER_CM,
 			)
 	return coordinates
+
+
+#============================================
+def _point_distance(points: dict[str, tuple[float, float]], first: str, second: str) -> float:
+	"""Return Euclidean distance between two durable direct atom points."""
+	dx = points[first][0] - points[second][0]
+	dy = points[first][1] - points[second][1]
+	distance = math.hypot(dx, dy)
+	return distance
 
 
 #============================================
@@ -771,3 +813,293 @@ def test_angle_repair_stale_request_and_restore_are_authoritative() -> None:
 
 	assert stale_preserved and restored.revision == before.revision + 1
 	assert _fingerprint(restored.cdml) == _fingerprint(_CLEAN_CDML)
+
+
+#============================================
+def test_straighten_bonds_uses_durable_id_not_source_order_for_two_atom_component() -> None:
+	"""A reversed two-atom source keeps the lexically first durable endpoint fixed."""
+	cdml_text = """\
+<cdml xmlns="http://www.freesoftware.fsf.org/bkchem/cdml" version="26.07"><molecule id="m1">
+<atom id="b" name="C"><point x="1.327cm" y="0.483cm"/></atom><atom id="a" name="C"><point x="0cm" y="0cm"/></atom>
+<bond id="b1" start="a" end="b" type="n1"/></molecule></cdml>
+"""
+	session = oasa.cdml_document.CDMLDocumentSession.load(cdml_text)
+	before = _direct_atom_coordinates_by_id(session.snapshot().cdml)
+	after = _direct_atom_coordinates_by_id(
+		session.repair_geometry(_straighten_request(session.revision)).snapshot.cdml,
+	)
+
+	assert after["a"] == pytest.approx(before["a"], abs=0.02)
+	assert _bond_angle_degrees(after, "a", "b") == pytest.approx(30.0, abs=0.03)
+
+
+#============================================
+def test_straighten_bonds_advances_exact_half_slots_toward_increasing_angle() -> None:
+	"""Terminal +15, -15, and 345-degree vectors use the documented tie rule."""
+	cdml_text = """\
+<cdml xmlns="http://www.freesoftware.fsf.org/bkchem/cdml" version="26.07"><molecule id="m1">
+<atom id="root" name="C"><point x="0cm" y="0cm"/></atom><atom id="plus" name="C"><point x="0.965925826289cm" y="0.258819045103cm"/></atom><atom id="minus" name="C"><point x="0.965925826289cm" y="-0.258819045103cm"/></atom><atom id="three45" name="C"><point x="1.931851652578cm" y="-0.517638090206cm"/></atom>
+<bond id="b1" start="root" end="plus" type="n1"/><bond id="b2" start="root" end="minus" type="n1"/><bond id="b3" start="root" end="three45" type="n1"/></molecule></cdml>
+"""
+	session = oasa.cdml_document.CDMLDocumentSession.load(cdml_text)
+	coordinates = _direct_atom_coordinates_by_id(
+		session.repair_geometry(_straighten_request(session.revision)).snapshot.cdml,
+	)
+	angles = tuple(
+		_bond_angle_degrees(coordinates, "root", atom_id)
+		for atom_id in ("plus", "minus", "three45")
+	)
+
+	assert angles == pytest.approx((30.0, 0.0, 0.0), abs=0.03)
+
+
+#============================================
+def test_straighten_bonds_resolves_half_slot_boundary_through_backend_request() -> None:
+	"""Public repair keeps the lower side below 15 degrees and advances the tie."""
+	delta = 1e-6
+	coordinates = tuple(
+		(math.cos(math.pi / 12.0 + offset), math.sin(math.pi / 12.0 + offset))
+		for offset in (-delta, 0.0, delta)
+	)
+	atom_xml = ''.join(
+		'<atom id="a%s" name="C"><point x="%.12fcm" y="%.12fcm"/></atom>' % (
+			index, x_value, y_value,
+		)
+		for index, (x_value, y_value) in enumerate(coordinates, start=1)
+	)
+	bond_xml = ''.join(
+		'<bond id="b%s" start="root" end="a%s" type="n1"/>' % (index, index)
+		for index in range(1, 4)
+	)
+	cdml_text = (
+		'<cdml xmlns="http://www.freesoftware.fsf.org/bkchem/cdml" version="26.07">'
+		'<molecule id="m1"><atom id="root" name="C"><point x="0cm" y="0cm"/></atom>'
+		+ atom_xml + bond_xml + '</molecule></cdml>'
+	)
+	session = oasa.cdml_document.CDMLDocumentSession.load(cdml_text)
+	after = _direct_atom_coordinates_by_id(
+		session.repair_geometry(_straighten_request(session.revision)).snapshot.cdml,
+	)
+	angles = tuple(_bond_angle_degrees(after, "root", "a%s" % index) for index in range(1, 4))
+
+	assert angles == pytest.approx((0.0, 30.0, 30.0), abs=0.03)
+
+
+#============================================
+def test_straighten_bonds_moves_branch_and_ring_terminal_without_moving_anchors() -> None:
+	"""Only degree-one endpoints move; a branch center and ring stay fixed."""
+	cdml_text = """\
+<cdml xmlns="http://www.freesoftware.fsf.org/bkchem/cdml" version="26.07"><molecule id="m1">
+<atom id="r1" name="C"><point x="0cm" y="0cm"/></atom><atom id="r2" name="C"><point x="1cm" y="0cm"/></atom><atom id="r3" name="C"><point x="0.5cm" y="0.866cm"/></atom><atom id="terminal" name="C"><point x="-0.940cm" y="0.342cm"/></atom>
+<bond id="b1" start="r1" end="r2" type="n1"/><bond id="b2" start="r2" end="r3" type="n1"/><bond id="b3" start="r3" end="r1" type="n1"/><bond id="b4" start="r1" end="terminal" type="n1"/></molecule></cdml>
+"""
+	session = oasa.cdml_document.CDMLDocumentSession.load(cdml_text)
+	before = _direct_atom_coordinates_by_id(session.snapshot().cdml)
+	after = _direct_atom_coordinates_by_id(
+		session.repair_geometry(_straighten_request(session.revision)).snapshot.cdml,
+	)
+
+	assert all(after[atom_id] == pytest.approx(before[atom_id], abs=0.02) for atom_id in ("r1", "r2", "r3"))
+	assert _bond_angle_degrees(after, "r1", "terminal") == pytest.approx(150.0, abs=0.03)
+
+
+#============================================
+def test_straighten_bonds_preserves_complete_cdml_outside_selected_point_xy() -> None:
+	"""A committed repair retains root order, metadata, and an unselected molecule."""
+	cdml_text = """\
+<cdml xmlns="http://www.freesoftware.fsf.org/bkchem/cdml" xmlns:v="urn:vendor" version="26.07">
+<!--root-comment--><molecule id="m1" vendor-flag="keep"><atom id="a1" name="C" atom-flag="keep"><point x="1cm" y="1cm" z="7cm" point-flag="keep"/><v:note>keep</v:note></atom><atom id="a2" name="O"><point x="3.819cm" y="2.026cm"/></atom><bond id="b1" start="a1" end="a2" type="n1" bond-flag="keep"/></molecule>
+<arrow id="arrow1" arrow-flag="keep"><point x="1cm" y="2cm"/></arrow><v:opaque id="foreign1" value="keep"/><molecule id="m2"><atom id="u1" name="C"><point x="10cm" y="0cm"/></atom><atom id="u2" name="O"><point x="11cm" y="0cm"/></atom><bond id="ub1" start="u1" end="u2" type="n1"/></molecule>
+</cdml>
+"""
+	session = oasa.cdml_document.CDMLDocumentSession.load(cdml_text)
+	result = session.repair_geometry(_straighten_request(session.revision))
+
+	assert result.changed
+	assert _normalized_direct_sequences(result.snapshot.cdml, "m1") == _normalized_direct_sequences(cdml_text, "m1")
+
+
+#============================================
+def test_straighten_bonds_degenerate_and_repeated_requests_are_backend_noops() -> None:
+	"""Degenerate terminals stay fixed, and canonical repeated repair has no history entry."""
+	degenerate = _REPAIR_CDML.replace('x="4cm" y="1cm"', 'x="1cm" y="1cm"')
+	first_session = oasa.cdml_document.CDMLDocumentSession.load(degenerate)
+	first = first_session.repair_geometry(_straighten_request(first_session.revision))
+	canonical = _REPAIR_CDML.replace('x="4cm" y="1cm"', 'x="3.598cm" y="2.500cm"')
+	second_session = oasa.cdml_document.CDMLDocumentSession.load(canonical)
+	second = second_session.repair_geometry(_straighten_request(second_session.revision))
+
+	assert not first.changed and first.snapshot == first_session.snapshot()
+	assert not second.changed and second.commit is None
+
+
+#============================================
+def test_straighten_bonds_rejects_stale_or_invalid_targets_and_restores_backend_history() -> None:
+	"""Invalid and stale requests are atomic; an accepted repair restores through OASA history."""
+	cdml_text = _REPAIR_CDML.replace('x="4cm" y="1cm"', 'x="3.819cm" y="2.026cm"')
+	session = oasa.cdml_document.CDMLDocumentSession.load(cdml_text)
+	before = session.snapshot()
+	with pytest.raises(oasa.cdml_document.CDMLValidationError):
+		session.repair_geometry(_straighten_request(before.revision, ("missing",)))
+	invalid_preserved = session.snapshot() == before
+	changed = session.repair_geometry(_straighten_request(session.revision))
+	with pytest.raises(oasa.cdml_document.CDMLRevisionConflictError):
+		session.repair_geometry(_straighten_request(before.revision))
+	stale_preserved = session.snapshot() == changed.snapshot
+	restored = session.restore(target_revision=0, expected_revision=session.revision)
+
+	assert invalid_preserved and stale_preserved
+	assert _fingerprint(restored.cdml) == _fingerprint(cdml_text)
+
+
+#============================================
+def test_straighten_bonds_rejects_mixed_eligible_and_ineligible_targets_atomically() -> None:
+	"""A bad second target leaves the otherwise eligible first target unchanged."""
+	cdml_text = _MULTI_SNAP_CDML.replace(
+		'x="4cm" y="1cm"', 'x="3.819cm" y="2.026cm"',
+	).replace(
+		'</cdml>', '<molecule id="m3"><atom id="bad" name="C"><point x="0cm" y="0cm"/></atom></molecule></cdml>',
+	)
+	session = oasa.cdml_document.CDMLDocumentSession.load(cdml_text)
+	before = session.snapshot()
+	with pytest.raises(oasa.cdml_document.CDMLValidationError, match="bonded direct-atom molecule"):
+		session.repair_geometry(_straighten_request(before.revision, ("m1", "m3")))
+
+	assert session.snapshot() == before
+
+
+#============================================
+@pytest.mark.parametrize("identifiers", ((None, None), ("same", "same")))
+def test_straighten_bonds_uses_authored_order_without_unambiguous_oasa_ids(
+		identifiers: tuple[str | None, str | None],
+		) -> None:
+	"""Pure OASA keeps the first authored endpoint fixed without a unique ID order."""
+	molecule = oasa.molecule_lib.Molecule()
+	first = oasa.atom_lib.Atom(symbol="C", coords=(0.0, 0.0, 0.0))
+	second = oasa.atom_lib.Atom(symbol="C", coords=(1.327, 0.483, 0.0))
+	first.id, second.id = identifiers
+	molecule.add_vertex(first)
+	molecule.add_vertex(second)
+	molecule.add_edge(first, second, oasa.bond_lib.Bond(order=1, type="n"))
+	before = (first.x, first.y)
+	oasa.repair_ops.straighten_bonds(molecule)
+
+	assert (first.x, first.y) == before
+	assert math.degrees(math.atan2(second.y - first.y, second.x - first.x)) == pytest.approx(30.0, abs=1e-9)
+
+
+#============================================
+def test_straighten_bonds_cdml_requires_a_durable_atom_id() -> None:
+	"""A repair rejects a missing persistent atom identity without a mutation."""
+	cdml_text = """\
+<cdml xmlns="http://www.freesoftware.fsf.org/bkchem/cdml" version="26.07"><molecule id="m1">
+<atom name="C"><point x="0cm" y="0cm"/></atom><atom id="a2" name="C"><point x="1.327cm" y="0.483cm"/></atom><bond id="b1" start="" end="a2" type="n1"/>
+</molecule></cdml>
+"""
+	session = oasa.cdml_document.CDMLDocumentSession.load(cdml_text)
+	before = session.snapshot()
+	with pytest.raises(oasa.cdml_document.CDMLValidationError, match="unique durable atom IDs"):
+		session.repair_geometry(_straighten_request(before.revision))
+
+	assert session.snapshot() == before
+
+
+#============================================
+def test_straighten_bonds_cdml_rejects_ambiguous_durable_atom_ids_at_load() -> None:
+	"""Strict CDML rejects ambiguous persistent IDs before a repair can be requested."""
+	cdml_text = """\
+<cdml xmlns="http://www.freesoftware.fsf.org/bkchem/cdml" version="26.07"><molecule id="m1">
+<atom id="same" name="C"><point x="0cm" y="0cm"/></atom><atom id="same" name="C"><point x="1.327cm" y="0.483cm"/></atom><bond id="b1" start="same" end="same" type="n1"/>
+</molecule></cdml>
+"""
+
+	with pytest.raises(oasa.cdml_document.CDMLValidationError, match="duplicate CDML id"):
+		oasa.cdml_document.CDMLDocumentSession.load(cdml_text)
+
+
+#============================================
+def test_normalize_rings_regularizes_one_ring_and_translates_its_substituent() -> None:
+	"""One accepted repair preserves centroid, opaque XML, and anchor displacement."""
+	cdml_text = """\
+<cdml xmlns="http://www.freesoftware.fsf.org/bkchem/cdml" xmlns:v="urn:vendor" version="26.07">
+<molecule id="m1"><atom id="a" name="C"><point x="0cm" y="0cm"/></atom><atom id="b" name="C"><point x="2cm" y="0cm"/></atom><atom id="c" name="C"><point x="1.5cm" y="1cm"/></atom><atom id="d" name="C"><point x="0cm" y="1cm"/></atom><atom id="side" name="O"><point x="-1cm" y="1cm"/></atom><bond id="ab" start="a" end="b" type="n1"/><bond id="bc" start="b" end="c" type="n1"/><bond id="cd" start="c" end="d" type="n1"/><bond id="da" start="d" end="a" type="n1"/><bond id="ds" start="d" end="side" type="n1"/><v:note>keep</v:note></molecule><v:opaque id="outside">keep</v:opaque>
+</cdml>"""
+	session = oasa.cdml_document.CDMLDocumentSession.load(cdml_text)
+	before = _direct_atom_coordinates_by_id(session.snapshot().cdml)
+	result = session.repair_geometry(_ring_request(session.revision))
+	after = _direct_atom_coordinates_by_id(result.snapshot.cdml)
+	before_centroid = tuple(sum(before[key][axis] for key in "abcd") / 4.0 for axis in (0, 1))
+	after_centroid = tuple(sum(after[key][axis] for key in "abcd") / 4.0 for axis in (0, 1))
+
+	geometry_preserved = (
+		_point_distance(after, "a", "b") == pytest.approx(40.0, abs=0.02)
+		and after_centroid == pytest.approx(before_centroid, abs=0.02)
+		and (after["side"][0] - before["side"][0], after["side"][1] - before["side"][1])
+		== pytest.approx((after["d"][0] - before["d"][0], after["d"][1] - before["d"][1]), abs=0.02)
+	)
+	opaque_preserved = '<v:note>keep</v:note>' in result.snapshot.cdml and '<v:opaque id="outside">keep</v:opaque>' in result.snapshot.cdml
+
+	assert geometry_preserved
+	assert opaque_preserved
+
+
+#============================================
+def test_normalize_rings_is_deterministic_across_authored_atom_and_bond_order() -> None:
+	"""Durable IDs, rather than XML order, choose the normalized coordinate map."""
+	atoms = '<atom id="a" name="C"><point x="0cm" y="0cm"/></atom><atom id="b" name="C"><point x="2cm" y="0cm"/></atom><atom id="c" name="C"><point x="1.5cm" y="1cm"/></atom><atom id="d" name="C"><point x="0cm" y="1cm"/></atom>'
+	bonds = '<bond id="ab" start="a" end="b" type="n1"/><bond id="bc" start="b" end="c" type="n1"/><bond id="cd" start="c" end="d" type="n1"/><bond id="da" start="d" end="a" type="n1"/>'
+	first = '<cdml xmlns="http://www.freesoftware.fsf.org/bkchem/cdml" version="26.07"><molecule id="m1">' + atoms + bonds + '</molecule></cdml>'
+	second = '<cdml xmlns="http://www.freesoftware.fsf.org/bkchem/cdml" version="26.07"><molecule id="m1">' + atoms + bonds + '</molecule></cdml>'
+	second = second.replace(atoms, '<atom id="d" name="C"><point x="0cm" y="1cm"/></atom><atom id="c" name="C"><point x="1.5cm" y="1cm"/></atom><atom id="b" name="C"><point x="2cm" y="0cm"/></atom><atom id="a" name="C"><point x="0cm" y="0cm"/></atom>')
+	second = second.replace(bonds, '<bond id="da" start="d" end="a" type="n1"/><bond id="cd" start="c" end="d" type="n1"/><bond id="bc" start="b" end="c" type="n1"/><bond id="ab" start="a" end="b" type="n1"/>')
+	first_session = oasa.cdml_document.CDMLDocumentSession.load(first)
+	second_session = oasa.cdml_document.CDMLDocumentSession.load(second)
+	first_result = first_session.repair_geometry(_ring_request(first_session.revision))
+	second_result = second_session.repair_geometry(_ring_request(second_session.revision))
+
+	assert _direct_atom_coordinates_by_id(first_result.snapshot.cdml) == pytest.approx(_direct_atom_coordinates_by_id(second_result.snapshot.cdml), abs=0.02)
+
+
+#============================================
+def test_normalize_rings_repeated_stale_and_restore_requests_follow_backend_history() -> None:
+	"""A ring commit is final, repeat is history-free, and stale input cannot overwrite it."""
+	session = oasa.cdml_document.CDMLDocumentSession.load(_SIMPLE_RING_CDML)
+	first = session.repair_geometry(_ring_request(session.revision))
+	second = session.repair_geometry(_ring_request(session.revision))
+	with pytest.raises(oasa.cdml_document.CDMLRevisionConflictError):
+		session.repair_geometry(_ring_request(0))
+	stale_preserved = session.snapshot() == second.snapshot
+	restored = session.restore(target_revision=0, expected_revision=session.revision)
+
+	assert not second.changed and second.commit is None and second.snapshot == first.snapshot and stale_preserved
+	assert _fingerprint(restored.cdml) == _fingerprint(_SIMPLE_RING_CDML)
+
+
+#============================================
+def test_normalize_rings_no_ring_is_a_semantic_noop() -> None:
+	"""A molecule without a cycle needs neither a revision nor a history entry."""
+	session = oasa.cdml_document.CDMLDocumentSession.load(_REPAIR_CDML)
+	before = session.snapshot()
+	result = session.repair_geometry(_ring_request(before.revision))
+
+	assert not result.changed and result.commit is None
+	assert result.snapshot == before
+
+
+#============================================
+@pytest.mark.parametrize("bonds", (
+	('<bond id="b1" start="r1" end="r2" type="n1"/><bond id="b2" start="r2" end="r3" type="n1"/><bond id="b3" start="r3" end="r1" type="n1"/><bond id="b4" start="r2" end="r4" type="n1"/><bond id="b5" start="r4" end="r5" type="n1"/><bond id="b6" start="r5" end="r2" type="n1"/>'),
+	('<bond id="b1" start="r1" end="r2" type="n1"/><bond id="b2" start="r2" end="r3" type="n1"/><bond id="b3" start="r3" end="r1" type="n1"/><bond id="b4" start="r1" end="r4" type="n1"/><bond id="b5" start="r4" end="r2" type="n1"/>'),
+	('<bond id="b1" start="r1" end="r2" type="n1"/><bond id="b2" start="r2" end="r3" type="n1"/><bond id="b3" start="r3" end="r4" type="n1"/><bond id="b4" start="r4" end="r1" type="n1"/><bond id="b5" start="r1" end="r3" type="n1"/>'),
+))
+def test_normalize_rings_rejects_multi_cycle_topology_atomically(bonds: str) -> None:
+	"""A bad second graph preserves an otherwise eligible first ring snapshot."""
+	atoms = '<atom id="r1" name="C"><point x="0cm" y="0cm"/></atom><atom id="r2" name="C"><point x="1cm" y="0cm"/></atom><atom id="r3" name="C"><point x="0.5cm" y="1cm"/></atom><atom id="r4" name="C"><point x="2cm" y="0cm"/></atom><atom id="r5" name="C"><point x="2.5cm" y="1cm"/></atom>'
+	bad_target = '<molecule id="m2">' + atoms + bonds + '</molecule>'
+	cdml_text = _SIMPLE_RING_CDML.replace('</cdml>', bad_target + '</cdml>')
+	session = oasa.cdml_document.CDMLDocumentSession.load(cdml_text)
+	before = session.snapshot()
+
+	with pytest.raises(oasa.cdml_document.CDMLValidationError, match="exactly one independent cycle"):
+		session.repair_geometry(_ring_request(before.revision, ("m1", "m2")))
+	assert session.snapshot() == before

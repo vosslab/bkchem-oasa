@@ -130,12 +130,28 @@ class PlatformMenuAdapter:
 		"""
 		self._parent = parent_window
 		self._menubar = parent_window.menuBar()
+		# One adapter-owned Python retention tree mirrors the complete native menu
+		# tree. Qt parents own deletion; this keeps every wrapper valid while the
+		# live MainWindow still needs to update menu state.
+		self._owned_menu_tree = {"menus": [], "actions": []}
 		# menu_name -> QMenu
 		self._menus = {}
 		# action_key -> QAction (frozen English key lookup)
 		self._actions = {}
 		# (menu_name, label) -> QAction (legacy label-based lookup)
 		self._actions_by_label = {}
+		# cascade_name -> current dynamically replaced QAction wrappers
+		self._dynamic_cascade_actions = {}
+
+	#============================================
+	def _retain_menu(self, menu: object) -> None:
+		"""Keep one native QMenu wrapper live for this adapter lifetime."""
+		self._owned_menu_tree["menus"].append(menu)
+
+	#============================================
+	def _retain_action(self, action: object) -> None:
+		"""Keep one native QAction wrapper live for this adapter lifetime."""
+		self._owned_menu_tree["actions"].append(action)
 
 	#============================================
 	def add_menu(self, name: str, help_text: str, side: str = 'left') -> None:
@@ -148,6 +164,8 @@ class PlatformMenuAdapter:
 		"""
 		menu = self._menubar.addMenu(name)
 		self._menus[name] = menu
+		self._retain_menu(menu)
+		self._retain_action(menu.menuAction())
 
 	#============================================
 	def add_command(self, menu_name: str, label: str,
@@ -166,6 +184,7 @@ class PlatformMenuAdapter:
 		"""
 		menu = self._menus[menu_name]
 		action = menu.addAction(label)
+		self._retain_action(action)
 		# set keyboard shortcut if convertible
 		qt_accel = format_accelerator(accelerator)
 		if qt_accel is not None:
@@ -186,7 +205,27 @@ class PlatformMenuAdapter:
 		Args:
 			menu_name: Parent menu label.
 		"""
-		self._menus[menu_name].addSeparator()
+		action = self._menus[menu_name].addSeparator()
+		self._retain_action(action)
+
+	#============================================
+	def add_direct_action(self, menu_name: str, label: str,
+			action_key: str | None = None) -> object:
+		"""Add and retain one programmatic QAction outside the YAML menu tree.
+
+		Args:
+			menu_name: Parent menu label.
+			label: Visible action text.
+			action_key: Optional frozen English key for later lookup.
+
+		Returns:
+			The retained QAction for caller-owned configuration.
+		"""
+		action = self._menus[menu_name].addAction(label)
+		self._retain_action(action)
+		if action_key is not None:
+			self._actions[action_key] = action
+		return action
 
 	#============================================
 	def add_cascade(self, menu_name: str, cascade_name: str,
@@ -201,6 +240,8 @@ class PlatformMenuAdapter:
 		parent_menu = self._menus[menu_name]
 		sub_menu = parent_menu.addMenu(cascade_name)
 		self._menus[cascade_name] = sub_menu
+		self._retain_menu(sub_menu)
+		self._retain_action(sub_menu.menuAction())
 
 	#============================================
 	def add_command_to_cascade(self, cascade_name: str, label: str,
@@ -217,6 +258,7 @@ class PlatformMenuAdapter:
 		"""
 		menu = self._menus[cascade_name]
 		action = menu.addAction(label)
+		self._retain_action(action)
 		if command is not None:
 			action.triggered.connect(command)
 		# store by frozen key if provided
@@ -224,6 +266,41 @@ class PlatformMenuAdapter:
 			self._actions[action_key] = action
 		# store by label for legacy lookup
 		self._actions_by_label[(cascade_name, label)] = action
+
+	#============================================
+	def replace_cascade_commands(
+			self, cascade_name: str,
+			commands: list[tuple[str, object, bool, str | None]],
+			) -> None:
+		"""Replace one cascade's dynamic commands with adapter-owned wrappers.
+
+		Qt clears the native submenu before this adapter releases the previous
+		Python wrappers.  The replacement actions are retained for as long as
+		they remain live in the cascade.
+
+		Args:
+			cascade_name: Existing cascade menu label.
+			commands: Visible label, optional callback, enabled state, and optional
+				full-path tooltip for each current command.
+		"""
+		menu = self._menus[cascade_name]
+		obsolete_actions = self._dynamic_cascade_actions.pop(cascade_name, [])
+		menu.clear()
+		self._owned_menu_tree["actions"] = [
+			candidate for candidate in self._owned_menu_tree["actions"]
+			if not any(candidate is obsolete for obsolete in obsolete_actions)
+		]
+		current_actions = []
+		for label, command, enabled, tooltip in commands:
+			action = menu.addAction(label)
+			action.setEnabled(enabled)
+			if tooltip is not None:
+				action.setToolTip(tooltip)
+			if command is not None:
+				action.triggered.connect(command)
+			self._retain_action(action)
+			current_actions.append(action)
+		self._dynamic_cascade_actions[cascade_name] = current_actions
 
 	#============================================
 	def get_action_by_key(self, action_key: str) -> object:
@@ -263,11 +340,7 @@ class PlatformMenuAdapter:
 		"""
 		action = self._actions.get(action_key)
 		if action is not None:
-			try:
-				action.setEnabled(enabled)
-			except RuntimeError:
-				# C++ QAction already deleted during teardown
-				pass
+			action.setEnabled(enabled)
 
 	#============================================
 	def set_item_state(self, menu_name: str, label: str,
@@ -283,11 +356,7 @@ class PlatformMenuAdapter:
 		"""
 		action = self._actions_by_label.get((menu_name, label))
 		if action is not None:
-			try:
-				action.setEnabled(enabled)
-			except RuntimeError:
-				# C++ QAction already deleted during teardown
-				pass
+			action.setEnabled(enabled)
 
 	#============================================
 	def register_direct_action(self, action_key: str,
@@ -302,6 +371,7 @@ class PlatformMenuAdapter:
 			qaction: The QAction instance to register.
 		"""
 		self._actions[action_key] = qaction
+		self._retain_action(qaction)
 
 	#============================================
 	def component(self, name: str) -> object:

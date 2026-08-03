@@ -3,6 +3,10 @@
 # local repo modules
 import bkchem_qt.dialogs.atom_dialog
 import bkchem_qt.dialogs.bond_dialog
+import bkchem_qt.dialogs.plus_dialog
+import bkchem_qt.dialogs.text_dialog
+import bkchem_qt.dialogs.wavy_dialog
+import bkchem_qt.io.cdml_inspection
 import bkchem_qt.undo.commands
 
 
@@ -90,6 +94,194 @@ def _atom_properties_submission(
 	):
 		return None
 	return captured[0], captured[1], molecule_id, atom_id
+
+
+#============================================
+def _text_properties_submission(
+		parent: object, text_model: object,
+		) -> tuple[int, object, str] | None:
+	"""Return the frozen synchronized durable Text target for this owning view."""
+	window, view = _owning_window_and_view(parent)
+	text_id = getattr(text_model, "object_id", None)
+	if not getattr(text_model, "editable", False) or not isinstance(text_id, str) or not text_id:
+		return None
+	capture_for_view = getattr(window, "capture_text_properties_for_view", None)
+	if not callable(capture_for_view):
+		return None
+	captured = capture_for_view(view, text_id)
+	if (
+		captured is None or type(captured) is not tuple or len(captured) != 2
+		or type(captured[0]) is not int or not callable(captured[1])
+	):
+		return None
+	return captured[0], captured[1], text_id
+
+
+#============================================
+def _plus_properties_submission(
+		parent: object, plus_model: object,
+		) -> tuple[int, object, str] | None:
+	"""Return the frozen synchronized durable Plus target for this owning view."""
+	window, view = _owning_window_and_view(parent)
+	plus_id = getattr(plus_model, "object_id", None)
+	if not getattr(plus_model, "editable", False) or not isinstance(plus_id, str) or not plus_id:
+		return None
+	capture_for_view = getattr(window, "capture_plus_properties_for_view", None)
+	if not callable(capture_for_view):
+		return None
+	captured = capture_for_view(view, plus_id)
+	if (
+		captured is None or type(captured) is not tuple or len(captured) != 2
+		or type(captured[0]) is not int or not callable(captured[1])
+	):
+		return None
+	return captured[0], captured[1], plus_id
+
+
+#============================================
+def _wavy_properties_submission(
+		parent: object, wavy_model: object,
+		) -> tuple[int, object, str] | None:
+	"""Return the frozen synchronized durable Wavy target for this owning view."""
+	window, view = _owning_window_and_view(parent)
+	wavy_id = getattr(wavy_model, "object_id", None)
+	if not getattr(wavy_model, "editable", False) or not isinstance(wavy_id, str) or not wavy_id:
+		return None
+	capture_for_view = getattr(window, "capture_wavy_properties_for_view", None)
+	if not callable(capture_for_view):
+		return None
+	captured = capture_for_view(view, wavy_id)
+	if (
+		captured is None or type(captured) is not tuple or len(captured) != 2
+		or type(captured[0]) is not int or not callable(captured[1])
+	):
+		return None
+	return captured[0], captured[1], wavy_id
+
+
+#============================================
+def _single_selected_plus(parent: object) -> object | None:
+	"""Return one exact current durable Plus projection inside this helper frame."""
+	window, _view = _owning_window_and_view(parent)
+	document = getattr(window, "document", None)
+	if document is None:
+		return None
+	if document.selected_atoms or document.selected_bonds:
+		return None
+	presentations = document.selected_presentation_objects
+	presentation_ids = document.selected_presentation_stack_root_ids
+	if (
+		len(presentations) != 1 or len(presentation_ids) != 1
+		or presentations[0].kind != "plus"
+		or not presentations[0].editable
+		or presentations[0].object_id != presentation_ids[0]
+	):
+		return None
+	return presentations[0]
+
+
+#============================================
+def has_single_selected_plus(parent: object) -> bool:
+	"""Report exact Plus Configure eligibility without retaining its QObject."""
+	selected = _single_selected_plus(parent)
+	return selected is not None
+
+
+#============================================
+def _single_selected_wavy(parent: object) -> object | None:
+	"""Return one exact current durable Wavy projection inside this helper frame."""
+	window, _view = _owning_window_and_view(parent)
+	document = getattr(window, "document", None)
+	if document is None or document.selected_atoms or document.selected_bonds:
+		return None
+	presentations = document.selected_presentation_objects
+	presentation_ids = document.selected_presentation_stack_root_ids
+	if (
+		len(presentations) != 1 or len(presentation_ids) != 1
+		or presentations[0].kind != "polyline"
+		or not presentations[0].editable
+		or presentations[0].object_id != presentation_ids[0]
+		or presentations[0].attributes.get("style") != "wavy"
+	):
+		return None
+	return presentations[0]
+
+
+#============================================
+def has_single_selected_wavy(parent: object) -> bool:
+	"""Report exact Wavy Configure eligibility without retaining its QObject."""
+	return _single_selected_wavy(parent) is not None
+
+
+#============================================
+def capture_selected_plus_properties(
+		parent: object,
+		) -> tuple[int, object, str, tuple[tuple[str, object], ...]] | None:
+	"""Capture dialog intent while all disposable Plus wrappers stay local."""
+	plus_model = _single_selected_plus(parent)
+	if plus_model is None:
+		return None
+	synchronized = _plus_properties_submission(parent, plus_model)
+	if synchronized is None:
+		window, _view = _owning_window_and_view(parent)
+		status_bar = getattr(window, "statusBar", None)
+		if callable(status_bar):
+			status_bar().showMessage("Plus properties are unavailable for this document", 3000)
+		return None
+	attributes = plus_model.attributes
+	font_size = int(attributes.get("font_size", "14"))
+	color = attributes.get("color", "#000000")
+	dialog = bkchem_qt.dialogs.plus_dialog.PlusDialog(font_size, color, parent)
+	expected_revision, submit, plus_id = synchronized
+	changes = ()
+	if dialog.exec() == dialog.DialogCode.Accepted:
+		changes = dialog.changes()
+	return expected_revision, submit, plus_id, changes
+
+
+#============================================
+def capture_selected_wavy_properties(
+		parent: object,
+		) -> tuple[int, object, str, tuple[tuple[str, object], ...]] | None:
+	"""Capture one Wavy dialog intent before disposable wrappers are released."""
+	wavy_model = _single_selected_wavy(parent)
+	if wavy_model is None:
+		return None
+	synchronized = _wavy_properties_submission(parent, wavy_model)
+	if synchronized is None:
+		return None
+	attributes = wavy_model.attributes
+	width = float(attributes.get("width", "1"))
+	line_color = attributes.get("line_color", attributes.get("color", "#000000"))
+	dialog = bkchem_qt.dialogs.wavy_dialog.WavyDialog(width, line_color, parent)
+	expected_revision, submit, wavy_id = synchronized
+	changes = ()
+	if dialog.exec() == dialog.DialogCode.Accepted:
+		changes = dialog.changes()
+	return expected_revision, submit, wavy_id, changes
+
+
+#============================================
+def _plain_text_values(text_model: object) -> dict[str, object] | None:
+	"""Copy current Text projection values into detached plain dialog scalars."""
+	fragment = text_model.xml_ftext
+	if fragment is None:
+		plain_text = text_model.display_text
+	else:
+		plain_text = bkchem_qt.io.cdml_inspection.direct_ftext_text(fragment)
+	if plain_text is None:
+		return None
+	font = text_model.font_attributes
+	attributes = text_model.attributes
+	values = {
+		"text": plain_text,
+		"font_family": font.get("family", "Arial"),
+		"font_size": int(font.get("size", attributes.get("font_size", "12"))),
+		"font_color": font.get(
+			"color", attributes.get("line_color", attributes.get("color", "#000000")),
+		),
+	}
+	return values
 
 
 #============================================
@@ -247,3 +439,35 @@ def edit_bond_properties(
 		bond_model, old_values, undo_stack, "Edit Bond Properties",
 	)
 	return changed
+
+
+#============================================
+def edit_text_properties(text_model: object, parent: object) -> bool:
+	"""Open one detached plain Text dialog and submit through captured authority.
+
+	Plain Configure is intentionally synchronized-session only. Rich Text and
+	legacy-local Text mutation remain outside this bounded operation.
+	"""
+	synchronized = _text_properties_submission(parent, text_model)
+	if synchronized is None:
+		return False
+	initial = _plain_text_values(text_model)
+	if initial is None:
+		return False
+	dialog = bkchem_qt.dialogs.text_dialog.TextDialog(
+		text=initial["text"], font_size=initial["font_size"],
+		parent=parent, font_family=initial["font_family"],
+		font_color=initial["font_color"],
+	)
+	if dialog.exec() != dialog.DialogCode.Accepted:
+		return False
+	changes = dialog.changes()
+	if not changes:
+		return False
+	expected_revision, submit, text_id = synchronized
+	outcome = submit(expected_revision, text_id, changes)
+	window, _view = _owning_window_and_view(parent)
+	show_outcome = getattr(window, "_show_persistent_action_outcome", None)
+	if callable(show_outcome):
+		show_outcome(outcome)
+	return outcome.status == "accepted" and outcome.commit is not None

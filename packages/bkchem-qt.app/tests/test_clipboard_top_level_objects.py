@@ -5,10 +5,12 @@ import pathlib
 
 # PIP3 modules
 import PySide6.QtCore
+import PySide6.QtWidgets
 import pytest
 
 # local repo modules
 import bkchem_qt.models.document_session
+import bkchem_qt.models.projection_lifecycle
 import bkchem_qt.actions.context_menu
 import bkchem_qt.actions.file_actions
 import bkchem_qt.io.clipboard_manager
@@ -38,16 +40,16 @@ _COPY_SOURCE = """<cdml version="26.07" xmlns="http://www.freesoftware.fsf.org/b
 #============================================
 def _install_projection_port(session: object, deliver: object) -> None:
 	"""Install one fresh typed projection lifecycle port for this session."""
-	port = bkchem_qt.models.document_session.SessionProjectionLifecyclePort(session, deliver)
+	port = bkchem_qt.models.projection_lifecycle.SessionProjectionLifecyclePort(session, deliver)
 	session.install_projection_lifecycle_port(port)
 
 
 #============================================
 def _projection_unavailable(snapshot: object) -> object:
 	"""Report one deliberately unavailable typed projection outcome."""
-	return bkchem_qt.models.document_session.ProjectionLifecycleResult(
-		bkchem_qt.models.document_session.ProjectionLifecycleStatus.PREPARATION_UNAVAILABLE,
-		bkchem_qt.models.document_session.ProjectionLifecyclePhase.PREPARATION,
+	return bkchem_qt.models.projection_lifecycle.ProjectionLifecycleResult(
+		bkchem_qt.models.projection_lifecycle.ProjectionLifecycleStatus.PREPARATION_UNAVAILABLE,
+		bkchem_qt.models.projection_lifecycle.ProjectionLifecyclePhase.PREPARATION,
 	)
 
 
@@ -161,10 +163,25 @@ def _select_copy_source_objects(main_window: object) -> None:
 
 
 #============================================
-def _open_copy_source(main_window: object, tmp_path: pathlib.Path) -> object:
+def _select_copy_source_arrow(main_window: object) -> None:
+	"""Select only the durable presentation root used by whole-root Cut tests."""
+	arrow = next(
+		model for model in main_window.document.presentation_objects
+		if model.kind == "arrow"
+	)
+	next(
+		item for item in main_window.scene.items()
+		if getattr(item, "document_object_model", None) is arrow
+	).setSelected(True)
+
+
+#============================================
+def _open_copy_source(
+		main_window: object, tmp_path: pathlib.Path, cdml_text: str = _COPY_SOURCE,
+		) -> object:
 	"""Open the mixed durable-root source through the normal backend path."""
 	source = tmp_path / "cut-source.cdml"
-	source.write_text(_COPY_SOURCE, encoding="utf-8")
+	source.write_text(cdml_text, encoding="utf-8")
 	assert main_window.open_file_path(str(source))
 	return main_window._active_session
 
@@ -207,9 +224,10 @@ def test_copy_builds_a_bounded_selected_fragment_that_public_paste_accepts(
 	assert main_window.open_file_path(str(source))
 	session = main_window._active_session
 	try:
+		assert session.document.molecules[0].compatibility_source_xml is None
 		_select_copy_source_objects(main_window)
 		before_copy = session.backend_snapshot
-		main_window._clipboard_manager.copy_selection(main_window.document)
+		main_window.on_copy()
 		copied = main_window._clipboard_manager.read_fragment()
 		fragment = copied[1]
 		assert fragment is not None
@@ -225,7 +243,7 @@ def test_copy_builds_a_bounded_selected_fragment_that_public_paste_accepts(
 	assert (copied[0], copy_records, after_copy) == (
 		"ok",
 		(
-			"valid", "",
+			"valid", "retained-only",
 			(("molecule", "selected-molecule"), ("arrow", "selected-arrow")),
 		),
 		before_copy,
@@ -234,73 +252,86 @@ def test_copy_builds_a_bounded_selected_fragment_that_public_paste_accepts(
 
 
 #============================================
-def test_cut_of_mixed_durable_roots_uses_one_backend_delete_and_replays(
-		main_window: object, tmp_path: pathlib.Path,
+def test_synchronized_copy_preserves_unknown_molecule_content_from_backend(
+		main_window: object, tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch,
 		) -> None:
-	"""Cut resolves an atom to its molecule and deletes mixed roots atomically."""
-	session = _open_copy_source(main_window, tmp_path)
+	"""Whole-root Copy/Paste preserves opaque molecule content without Qt XML."""
+	cdml_text = _COPY_SOURCE.replace(
+		'<cdml version="26.07"',
+		'<cdml xmlns:vendor="urn:vendor" version="26.07"',
+	).replace(
+		'</molecule>\n  <molecule id="unselected-molecule">',
+		'<vendor:extension role="preserve-me" /></molecule>\n'
+		'  <molecule id="unselected-molecule">',
+	)
+	monkeypatch.setattr(PySide6.QtWidgets.QMessageBox, "warning", lambda *_args: None)
+	session = _open_copy_source(main_window, tmp_path, cdml_text)
 	try:
+		assert session.document.molecules[0].compatibility_source_xml is None
 		_select_copy_source_objects(main_window)
-		before_document = session.document
-		before = session.backend_snapshot
-		qt_undo_count = before_document.undo_stack.count()
-		main_window.on_cut()
-		after_document = session.document
-		after = session.backend_snapshot
-		after_qt_undo_count = after_document.undo_stack.count()
-		root = oasa.safe_xml.parse_xml_string(after.cdml)
-		remaining_ids = {
-			child.get("id", "") for child in root
-		}
-		undone = session.undo_backend()
-		undo_snapshot = session.backend_snapshot
-		redone = session.redo_backend()
-		redo_snapshot = session.backend_snapshot
+		main_window.on_copy()
+		clipboard_status, fragment = main_window._clipboard_manager.read_fragment()
+		if fragment is None:
+			raise AssertionError("Synchronized Copy did not publish a fragment")
+		main_window.on_paste()
+		pasted_root = oasa.safe_xml.parse_xml_string(session.backend_snapshot.cdml)
+		pasted_extension = next(
+			child for child in pasted_root.iter() if child.tag.endswith("extension")
+		)
 	finally:
 		if not session.is_disposed:
 			main_window._on_new()
 			main_window._remove_session(session)
 
-	assert (
-		after.revision == before.revision + 1,
-		after_document is not before_document,
-		after_document.has_selection,
-		{"selected-molecule", "selected-arrow"}.isdisjoint(remaining_ids),
-		{"unselected-molecule", "unselected-plus"} <= remaining_ids,
-		'<metadata><source>full document only</source>' in after.cdml,
-	) == (True, True, False, True, True, True)
-	assert (
-		qt_undo_count,
-		after_qt_undo_count,
-		undone.status,
-		redone.status,
-		undo_snapshot.cdml == before.cdml,
-		redo_snapshot.cdml == after.cdml,
-	) == (0, 0, "accepted", "accepted", True, True)
+	assert (clipboard_status, pasted_extension.get("role")) == ("ok", "preserve-me")
+
+
+#============================================
+def test_cut_of_mixed_structural_and_presentation_selection_is_inert(
+		main_window: object, tmp_path: pathlib.Path,
+		) -> None:
+	"""Partial structural Cut never promotes a mixed selection to whole roots."""
+	session = _open_copy_source(main_window, tmp_path)
+	PySide6.QtWidgets.QApplication.clipboard().clear()
+	try:
+		_select_copy_source_objects(main_window)
+		before = session.backend_snapshot
+		main_window.on_cut()
+		after = session.backend_snapshot
+		clipboard_status, _fragment = main_window._clipboard_manager.read_fragment()
+	finally:
+		if not session.is_disposed:
+			main_window._on_new()
+			main_window._remove_session(session)
+
+	assert after == before and clipboard_status == "no_data"
 
 
 #============================================
 @pytest.mark.parametrize("case", ("unavailable", "idless", "rejected"))
 def test_synchronized_cut_failures_keep_the_document_inert_after_copy(
 		main_window: object, tmp_path: pathlib.Path, case: str,
+		monkeypatch: pytest.MonkeyPatch,
 		) -> None:
 	"""Copied Cut fragments do not authorize a local fallback on failure."""
-	session = _open_copy_source(main_window, tmp_path)
+	cdml_text = _COPY_SOURCE
+	if case == "idless":
+		cdml_text = cdml_text.replace('id="selected-arrow"', "", 1)
+	session = _open_copy_source(main_window, tmp_path, cdml_text)
 	restore_delivery = lambda snapshot: main_window._replace_session_projection(session, snapshot)
 	try:
-		_select_copy_source_objects(main_window)
-		molecule = next(
-			model for model in session.document.molecules
-			if model.mol_id == "selected-molecule"
-		)
+		_select_copy_source_arrow(main_window)
 		before = session.backend_snapshot
 		qt_undo_count = session.document.undo_stack.count()
 		if case == "unavailable":
 			session.clear_projection_lifecycle_port()
-		elif case == "idless":
-			molecule.mol_id = ""
-		else:
-			molecule.mol_id = "missing-root"
+		elif case == "rejected":
+			monkeypatch.setattr(
+				session, "submit_persistent_operation",
+				lambda _request: bkchem_qt.models.document_session.PersistentActionOutcome(
+					"rejected", "presentation Cut rejected", None, False,
+				),
+			)
 		main_window.on_cut()
 		clipboard_status, clipboard_fragment = main_window._clipboard_manager.read_fragment()
 		after = session.backend_snapshot
@@ -312,7 +343,10 @@ def test_synchronized_cut_failures_keep_the_document_inert_after_copy(
 			main_window._on_new()
 			main_window._remove_session(session)
 
-	assert (clipboard_status, clipboard_fragment is not None) == ("ok", True)
+	if case == "rejected":
+		assert (clipboard_status, clipboard_fragment is not None) == ("ok", True)
+	else:
+		assert (clipboard_status, clipboard_fragment) == ("no_data", None)
 	assert (after.cdml, after.revision, qt_undo_count, after_qt_undo_count) == (
 		before.cdml, before.revision, 0, 0,
 	)
@@ -324,21 +358,20 @@ def test_cut_stays_bound_to_the_originating_tab_after_clipboard_delivery(
 		) -> None:
 	"""A tab change during clipboard delivery cannot redirect Cut to that tab."""
 	session = _open_copy_source(main_window, tmp_path)
-	original_copy = main_window._clipboard_manager.copy_selection
+	original_publish = main_window._clipboard_manager.publish_fragment
 	try:
-		_select_copy_source_objects(main_window)
+		_select_copy_source_arrow(main_window)
 		before_other = None
 
-		def copy_then_activate_other(document: object) -> int:
+		def publish_then_activate_other(fragment_cdml: str) -> None:
 			"""Publish the fragment, then make a new tab current before submission."""
 			nonlocal before_other
-			count = original_copy(document)
+			original_publish(fragment_cdml)
 			main_window._on_new()
 			before_other = main_window._active_session.backend_snapshot
-			return count
 
 		monkeypatch.setattr(
-			main_window._clipboard_manager, "copy_selection", copy_then_activate_other,
+			main_window._clipboard_manager, "publish_fragment", publish_then_activate_other,
 		)
 		main_window.on_cut()
 		origin_snapshot = session.backend_snapshot
@@ -348,10 +381,9 @@ def test_cut_stays_bound_to_the_originating_tab_after_clipboard_delivery(
 			main_window._remove_session(session)
 
 	assert (
-		'id="selected-molecule"' not in origin_snapshot.cdml,
 		'id="selected-arrow"' not in origin_snapshot.cdml,
 		other_snapshot == before_other,
-	) == (True, True, True)
+	) == (True, True)
 
 
 #============================================
@@ -360,22 +392,21 @@ def test_cut_uses_its_frozen_revision_after_clipboard_callback_mutation(
 		) -> None:
 	"""A callback commit leaves copied Cut roots intact through stale rejection."""
 	session = _open_copy_source(main_window, tmp_path)
-	original_copy = main_window._clipboard_manager.copy_selection
+	original_publish = main_window._clipboard_manager.publish_fragment
 	try:
-		_select_copy_source_objects(main_window)
+		_select_copy_source_arrow(main_window)
 		before = session.backend_snapshot
 		qt_undo_count = session.document.undo_stack.count()
 		callback_outcome = None
 
-		def copy_then_mutate_origin(document: object) -> int:
+		def publish_then_mutate_origin(fragment_cdml: str) -> None:
 			"""Publish first, then accept one real mutation in the origin session."""
 			nonlocal callback_outcome
-			count = original_copy(document)
+			original_publish(fragment_cdml)
 			callback_outcome = session.submit_clipboard_fragment(_MIXED_FRAGMENT)
-			return count
 
 		monkeypatch.setattr(
-			main_window._clipboard_manager, "copy_selection", copy_then_mutate_origin,
+			main_window._clipboard_manager, "publish_fragment", publish_then_mutate_origin,
 		)
 		main_window.on_cut()
 		clipboard_status, clipboard_fragment = main_window._clipboard_manager.read_fragment()
@@ -393,9 +424,8 @@ def test_cut_uses_its_frozen_revision_after_clipboard_callback_mutation(
 		clipboard_fragment is not None,
 		after.revision,
 		after_qt_undo_count,
-		'id="selected-molecule"' in after.cdml,
 		'id="selected-arrow"' in after.cdml,
-	) == ("accepted", "ok", True, before.revision + 1, qt_undo_count, True, True)
+	) == ("accepted", "ok", True, before.revision + 1, qt_undo_count, True)
 
 
 #============================================
@@ -404,20 +434,19 @@ def test_synchronized_cut_never_downgrades_to_local_after_clipboard_callback(
 		) -> None:
 	"""A callback isolation transition makes a synchronized Cut unavailable."""
 	session = _open_copy_source(main_window, tmp_path)
-	original_copy = main_window._clipboard_manager.copy_selection
+	original_publish = main_window._clipboard_manager.publish_fragment
 	try:
-		_select_copy_source_objects(main_window)
+		_select_copy_source_arrow(main_window)
 		before = session.backend_snapshot
 		qt_undo_count = session.document.undo_stack.count()
 
-		def copy_then_isolate_origin(document: object) -> int:
+		def publish_then_isolate_origin(fragment_cdml: str) -> None:
 			"""Publish the fragment and turn the origin into a local projection."""
-			count = original_copy(document)
+			original_publish(fragment_cdml)
 			session.document.mark_dirty()
-			return count
 
 		monkeypatch.setattr(
-			main_window._clipboard_manager, "copy_selection", copy_then_isolate_origin,
+			main_window._clipboard_manager, "publish_fragment", publish_then_isolate_origin,
 		)
 		main_window.on_cut()
 		clipboard_status, clipboard_fragment = main_window._clipboard_manager.read_fragment()
@@ -661,6 +690,7 @@ def test_cut_keeps_legacy_isolated_paste_disabled_in_each_menu(
 	try:
 		document = main_window.document
 		molecule = _add_molecule(main_window)
+		molecule.compatibility_source_xml = "<molecule/>"
 		# This test exercises the explicitly isolated compatibility state, not an
 		# unaddressable selection in an otherwise synchronized session.
 		document.mark_dirty()

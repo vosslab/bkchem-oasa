@@ -12,7 +12,6 @@ import bkchem_qt.models.document
 import bkchem_qt.models.document_session
 import bkchem_qt.models.molecule_model
 import bkchem_qt.widgets.property_dock
-import oasa.atom_lib
 import tests.graphics_test_retirement
 
 
@@ -255,7 +254,7 @@ def test_isolated_property_dock_atom_symbol_uses_local_undo(
 	scene = PySide6.QtWidgets.QGraphicsScene()
 	document.set_scene(scene)
 	molecule = bkchem_qt.models.molecule_model.MoleculeModel()
-	atom = bkchem_qt.models.atom_model.AtomModel(oasa.atom_lib.Atom(symbol="C"))
+	atom = bkchem_qt.models.atom_model.AtomModel(symbol="C")
 	molecule.add_atom(atom)
 	dock = bkchem_qt.widgets.property_dock.PropertyDock(document)
 	with tests.graphics_test_retirement.bare_document_scene_retirement(qapp, document, scene):

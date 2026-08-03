@@ -16,6 +16,7 @@ import PySide6.QtWidgets
 
 # local repo modules
 import bkchem_qt.canvas.graphics_retirement
+import bkchem_qt.canvas.document_projection
 import bkchem_qt.canvas.items.atom_item
 import bkchem_qt.canvas.items.bond_item
 import bkchem_qt.io.cdml_document_io
@@ -27,6 +28,7 @@ import bkchem_qt.main_window
 import bkchem_qt.models.document
 import bkchem_qt.models.document_object
 import bkchem_qt.models.document_session
+import bkchem_qt.models.projection_lifecycle
 import bkchem_qt.modes.template_mode
 import bkchem_qt.setup.mode_setup
 import oasa.cdml_document
@@ -56,6 +58,25 @@ _ANGLE_REPAIR_CDML = (
 	'<atom id="a3" name="O"><point x="3cm" y="3cm"/></atom>'
 	'<bond id="b1" start="a1" end="a2" type="n1"/>'
 	'<bond id="b2" start="a1" end="a3" type="n1"/>'
+	'</molecule></cdml>'
+)
+_STRAIGHTEN_REPAIR_CDML = (
+	'<cdml version="26.07"><molecule id="m1">'
+	'<atom id="a1" name="C"><point x="1cm" y="1cm"/></atom>'
+	'<atom id="a2" name="O"><point x="4cm" y="2cm"/></atom>'
+	'<bond id="b1" start="a1" end="a2" type="n1"/>'
+	'</molecule></cdml>'
+)
+_RING_REPAIR_CDML = (
+	'<cdml version="26.07"><molecule id="m1">'
+	'<atom id="a1" name="C"><point x="0cm" y="0cm"/></atom>'
+	'<atom id="a2" name="C"><point x="2cm" y="0cm"/></atom>'
+	'<atom id="a3" name="C"><point x="1.5cm" y="1cm"/></atom>'
+	'<atom id="a4" name="C"><point x="0cm" y="1cm"/></atom>'
+	'<bond id="rb1" start="a1" end="a2" type="n1"/>'
+	'<bond id="rb2" start="a2" end="a3" type="n1"/>'
+	'<bond id="rb3" start="a3" end="a4" type="n1"/>'
+	'<bond id="rb4" start="a4" end="a1" type="n1"/>'
 	'</molecule></cdml>'
 )
 _DELETE_CDML = (
@@ -102,25 +123,25 @@ $$$$
 #============================================
 def _install_projection_port(session: object, deliver: object) -> None:
 	"""Install one fresh typed projection lifecycle port for this session."""
-	port = bkchem_qt.models.document_session.SessionProjectionLifecyclePort(session, deliver)
+	port = bkchem_qt.models.projection_lifecycle.SessionProjectionLifecyclePort(session, deliver)
 	session.install_projection_lifecycle_port(port)
 
 
 #============================================
 def _projection_unavailable(snapshot: object) -> object:
 	"""Report one deliberately unavailable typed projection outcome."""
-	return bkchem_qt.models.document_session.ProjectionLifecycleResult(
-		bkchem_qt.models.document_session.ProjectionLifecycleStatus.PREPARATION_UNAVAILABLE,
-		bkchem_qt.models.document_session.ProjectionLifecyclePhase.PREPARATION,
+	return bkchem_qt.models.projection_lifecycle.ProjectionLifecycleResult(
+		bkchem_qt.models.projection_lifecycle.ProjectionLifecycleStatus.PREPARATION_UNAVAILABLE,
+		bkchem_qt.models.projection_lifecycle.ProjectionLifecyclePhase.PREPARATION,
 	)
 
 
 #============================================
 def _projection_installed(snapshot: object) -> object:
 	"""Report an installed typed projection outcome without a real replacement."""
-	return bkchem_qt.models.document_session.ProjectionLifecycleResult(
-		bkchem_qt.models.document_session.ProjectionLifecycleStatus.INSTALLED,
-		bkchem_qt.models.document_session.ProjectionLifecyclePhase.COMPLETE,
+	return bkchem_qt.models.projection_lifecycle.ProjectionLifecycleResult(
+		bkchem_qt.models.projection_lifecycle.ProjectionLifecycleStatus.INSTALLED,
+		bkchem_qt.models.projection_lifecycle.ProjectionLifecyclePhase.COMPLETE,
 	)
 
 
@@ -144,9 +165,8 @@ def _close_tab(
 		main_window: bkchem_qt.main_window.MainWindow,
 		session: bkchem_qt.models.document_session.DocumentSession,
 		) -> None:
-	"""Close a clean temporary tab through the production disposal path."""
-	session.document.mark_clean()
-	main_window.close_session_at(main_window.sessions.index(session))
+	"""Dispose a temporary tab without entering a user-confirmation dialog."""
+	assert main_window._remove_session(session)
 
 
 #============================================
@@ -249,6 +269,19 @@ def _selected_bond_ids(
 		if isinstance(item, bkchem_qt.canvas.items.bond_item.BondItem)
 		and item.bond_model.backend_durable_id is not None
 	}
+
+
+#============================================
+def _selected_persistent_keys(
+		session: bkchem_qt.models.document_session.DocumentSession,
+		) -> set[tuple[str, str]]:
+	"""Return every durable key selected by the current disposable projection."""
+	keys = set()
+	for item in session.scene.selectedItems():
+		key = bkchem_qt.canvas.document_projection.persistent_selection_key(item)
+		if key is not None:
+			keys.add(key)
+	return keys
 
 
 #============================================
@@ -813,6 +846,53 @@ def test_snap_hex_projection_failure_recovers_only_accepted_snapshot(
 			and session.backend_snapshot == accepted
 			and _selected_atom_ids(session) == {"a1"}
 		)
+	finally:
+		_dispose_session(session)
+
+
+#============================================
+def test_ring_repair_projection_retry_uses_only_the_accepted_snapshot(
+		main_window: bkchem_qt.main_window.MainWindow,
+		) -> None:
+	"""A failed ring projection recovers the accepted snapshot without replaying intent."""
+	session = _new_native_session(main_window, _RING_REPAIR_CDML)
+	before = session.backend_snapshot
+	projection_snapshots = []
+
+	def fail_then_reproject(snapshot: oasa.cdml_document.CDMLSnapshot) -> bool:
+		"""Report one unavailable projection, then install the exact retry snapshot."""
+		projection_snapshots.append(snapshot)
+		if len(projection_snapshots) == 1:
+			return _projection_unavailable(snapshot)
+		return session.replace_projection_from_backend_snapshot(snapshot)
+
+	_install_projection_port(session, session.replace_projection_from_backend_snapshot)
+	if not session.replace_projection_from_backend_snapshot(before):
+		raise AssertionError("Durable CDML projection is unavailable")
+	_install_projection_port(session, fail_then_reproject)
+	request = bkchem_qt.models.document_session.PersistentOperationRequest(
+		"geometry.repair", "Normalize ring structures",
+		(
+			("expected_revision", before.revision),
+			("molecule_ids", ("m1",)),
+			("kind", "normalize-rings"),
+			("target_spacing_pt", 40.0),
+		),
+		frozenset({("molecule", "m1")}),
+	)
+	try:
+		outcome = session.submit_persistent_operation(request)
+		accepted = session.backend_snapshot
+		recovered = session.retry_current_backend_projection()
+		accepted_before_retry = (
+			outcome.status == "unavailable"
+			and outcome.submitted
+			and accepted.revision == before.revision + 1
+		)
+		final_snapshot_only = projection_snapshots == [accepted, accepted]
+
+		assert accepted_before_retry
+		assert recovered.status == "accepted" and not recovered.submitted and final_snapshot_only
 	finally:
 		_dispose_session(session)
 
@@ -1562,11 +1642,12 @@ def test_session_injects_plain_template_catalog_for_mode_submission(
 	)
 	session = _new_native_session(main_window, '<cdml version="26.07"></cdml>')
 	_install_projection_port(session, session.replace_projection_from_backend_snapshot)
-	mode = session.mode_manager._modes["template"]
+	session.mode_manager.set_mode("template")
+	mode = session.mode_manager.current_mode
 	if not isinstance(mode, bkchem_qt.modes.template_mode.TemplateMode):
 		raise AssertionError("Session did not install TemplateMode")
 	try:
-		mode._place_template(120.0, 80.0)
+		mode.mouse_press(PySide6.QtCore.QPointF(120.0, 80.0), None)
 
 		assert mode.template_names == ("Me",) and "<molecule" in session.backend_snapshot.cdml
 	finally:
@@ -1693,121 +1774,6 @@ def test_template_insertion_rejects_stale_request_before_oasa_preparation(
 
 
 #============================================
-def test_template_insertion_projection_recovery_reprojects_accepted_snapshot(
-		main_window: bkchem_qt.main_window.MainWindow,
-		monkeypatch: pytest.MonkeyPatch,
-		) -> None:
-	"""Recovery replaces Qt state from the accepted template snapshot."""
-	session = _new_native_session(main_window, '<cdml version="26.07"></cdml>')
-	original_install = session._install_prepared_projection
-	initial_install = True
-
-	def fail_initial_install(*args: object, **kwargs: object) -> None:
-		"""Exercise the one-shot projection-install failure boundary."""
-		nonlocal initial_install
-		if initial_install:
-			initial_install = False
-			raise RuntimeError("intentional projection failure")
-		original_install(*args, **kwargs)
-
-	monkeypatch.setattr(session, "_install_prepared_projection", fail_initial_install)
-	_install_projection_port(session, session.replace_projection_from_backend_snapshot)
-	request = bkchem_qt.models.document_session.PersistentOperationRequest(
-		"template.insert", "Place template Me",
-		(
-			("expected_revision", session.backend_snapshot.revision),
-			("template_name", "Me"),
-			("anchor", (120.0, 80.0)),
-		),
-	)
-	try:
-		outcome = session.submit_persistent_operation(request)
-		accepted = session.backend_snapshot
-		recovered = session.retry_current_backend_projection()
-		assert outcome.status == "unavailable" and outcome.submitted
-		assert (
-			recovered.status == "accepted"
-			and session.backend_snapshot == accepted
-			and session.backend_projection_synchronized
-		)
-	finally:
-		_dispose_session(session)
-
-
-#============================================
-@pytest.mark.parametrize("mapping_problem", ("missing", "dangling", "wrong-kind"))
-def test_template_selection_correlation_failure_retains_accepted_history(
-		main_window: bkchem_qt.main_window.MainWindow,
-		monkeypatch: pytest.MonkeyPatch,
-		mapping_problem: str,
-		) -> None:
-	"""Malformed correlations retain the accepted edit but clear stale selection."""
-	session = _new_native_session(main_window, _DELETE_CDML)
-	_install_projection_port(session, session.replace_projection_from_backend_snapshot)
-	before = session.backend_snapshot
-	original_executor = session._operation_commit_executors["molecule-insertion"]
-
-	def commit_with_malformed_selection_map(
-			prepared: object,
-			) -> oasa.cdml_document.CDMLCommit:
-		"""Model a malformed accepted result without changing backend acceptance."""
-		commit = original_executor(prepared)
-		id_map = dict(commit.id_map)
-		root_token = next(
-			identifier for kind, identifier in prepared.provisional_selection_keys
-			if kind == "molecule"
-		)
-		if mapping_problem == "missing":
-			del id_map[root_token]
-		elif mapping_problem == "dangling":
-			id_map[root_token] = "missing-durable-molecule"
-		else:
-			accepted_document = oasa.cdml_document.CDMLDocument.parse(
-				commit.snapshot.cdml, validation="compat",
-			)
-			wrong_kind_identifier = next(
-				identifier for identifier in id_map.values()
-				if accepted_document.find_by_id(identifier).local_name != "molecule"
-			)
-			id_map[root_token] = wrong_kind_identifier
-		return oasa.cdml_document.CDMLCommit(commit.snapshot, id_map)
-
-	monkeypatch.setitem(
-		session._operation_commit_executors,
-		"molecule-insertion",
-		commit_with_malformed_selection_map,
-	)
-	request = bkchem_qt.models.document_session.PersistentOperationRequest(
-		"template.insert", "Place template Me",
-		(
-			("expected_revision", before.revision),
-			("template_name", "Me"),
-			("anchor", (120.0, 80.0)),
-		),
-	)
-	try:
-		outcome = session.submit_persistent_operation(request)
-		accepted_snapshot = session.backend_snapshot
-		accepted_state = (
-			outcome.commit is not None
-			and outcome.commit.snapshot == accepted_snapshot
-			and session.backend_projection_synchronized
-			and session.can_undo_backend
-			and not session.scene.selectedItems()
-		)
-		undone = session.undo_backend()
-
-		assert (
-			outcome.status == "selection-unavailable"
-			and outcome.submitted
-			and accepted_state
-		)
-		assert undone.status == "accepted" and session.backend_snapshot.cdml == before.cdml
-	finally:
-		_dispose_session(session)
-
-
-#============================================
 def test_top_level_delete_uses_backend_history_and_exact_reprojection(
 		main_window: bkchem_qt.main_window.MainWindow,
 		) -> None:
@@ -1880,17 +1846,17 @@ def test_edit_mode_unavailable_complete_root_delete_keeps_backend_and_qt_unchang
 		edit_mode._delete_selected()
 		assert (session.backend_snapshot, session.document.undo_stack.count()) == (before, undo_count)
 		assert arrow_item in scene.items()
-		assert messages == ["Document cannot accept a persistent edit"]
+		assert messages == ["Delete unavailable for this document"]
 	finally:
 		edit_mode.status_message.disconnect(messages.append)
 		_dispose_session(session)
 
 
 #============================================
-def test_edit_mode_partial_mixed_delete_remains_legacy_isolated(
+def test_edit_mode_partial_mixed_delete_is_inert_while_synchronized(
 		main_window: bkchem_qt.main_window.MainWindow,
 		) -> None:
-	"""A partial mixed selection stays with the documented local grammar."""
+	"""A synchronized atom/presentation selection does not enter local isolation."""
 	session = _new_native_session(main_window, _REPAIR_CDML)
 	_install_projection_port(session, session.replace_projection_from_backend_snapshot)
 	assert session.replace_projection_from_backend_snapshot(session.backend_snapshot)
@@ -1909,8 +1875,9 @@ def test_edit_mode_partial_mixed_delete_remains_legacy_isolated(
 		atom_item.setSelected(True)
 		arrow_item.setSelected(True)
 		edit_mode._delete_selected()
-		assert session.backend_snapshot == before and session.legacy_isolated
-		assert session.document.undo_stack.count() > undo_count
+		assert session.backend_snapshot == before and not session.legacy_isolated
+		assert session.document.undo_stack.count() == undo_count
+		assert atom_item in session.scene.items() and arrow_item in session.scene.items()
 	finally:
 		_dispose_session(session)
 
@@ -1943,7 +1910,6 @@ def test_edit_mode_delete_of_complete_molecule_uses_backend(
 #============================================
 def test_normalize_length_menu_action_commits_backend_repair_and_reprojects(
 		main_window: bkchem_qt.main_window.MainWindow, tmp_path: pathlib.Path,
-		monkeypatch: pytest.MonkeyPatch,
 		) -> None:
 	"""The registered Repair action uses backend history instead of local moves."""
 	source = tmp_path / "backend-repair.cdml"
@@ -1952,13 +1918,6 @@ def test_normalize_length_menu_action_commits_backend_repair_and_reprojects(
 	session = main_window._active_session
 	before = session.backend_snapshot
 
-	def reject_local_move(*_args: object, **_kwargs: object) -> None:
-		"""Make a legacy local MoveAtomsCommand path immediately visible."""
-		raise AssertionError("Normalize bond lengths must use backend history")
-
-	monkeypatch.setattr(
-		bkchem_qt.actions.repair_actions, "_apply_moves_with_undo", reject_local_move,
-	)
 	try:
 		main_window._registry.get("repair.normalize_bond_lengths").handler()
 		assert session.backend_snapshot.revision == before.revision + 1
@@ -2009,7 +1968,6 @@ def test_snap_hex_menu_action_uses_backend_history_and_preserves_selection(
 #============================================
 def test_normalize_angle_menu_action_uses_backend_history_and_reprojects(
 		main_window: bkchem_qt.main_window.MainWindow, tmp_path: pathlib.Path,
-		monkeypatch: pytest.MonkeyPatch,
 		) -> None:
 	"""Visible Angle repair replaces Qt state and restores accepted backend history."""
 	source = tmp_path / "backend-angle.cdml"
@@ -2027,13 +1985,6 @@ def test_normalize_angle_menu_action_uses_backend_history_and_reprojects(
 		raise AssertionError("fixture did not project a selectable durable atom")
 	del item
 
-	def reject_local_move(*_args: object, **_kwargs: object) -> None:
-		"""Make the retired Qt-local repair route immediately visible."""
-		raise AssertionError("Normalize bond angles must use backend history")
-
-	monkeypatch.setattr(
-		bkchem_qt.actions.repair_actions, "_apply_moves_with_undo", reject_local_move,
-	)
 	try:
 		main_window._registry.get("repair.normalize_bond_angles").handler()
 		accepted = session.backend_snapshot
@@ -2056,6 +2007,74 @@ def test_normalize_angle_menu_action_uses_backend_history_and_reprojects(
 			and undone_snapshot.cdml == before.cdml
 			and redone.status == "accepted"
 			and session.backend_snapshot.cdml == accepted.cdml
+			and session.document.undo_stack.count() == 0
+		)
+	finally:
+		_restore_blank_anchor(main_window, session)
+
+
+#============================================
+def test_straighten_menu_action_uses_backend_history_and_reprojects(
+		main_window: bkchem_qt.main_window.MainWindow, tmp_path: pathlib.Path,
+		) -> None:
+	"""Visible Straighten replaces the projection without Qt-local undo."""
+	source = tmp_path / "backend-straighten.cdml"
+	source.write_text(_STRAIGHTEN_REPAIR_CDML, encoding="utf-8")
+	assert main_window.open_file_path(str(source))
+	session = main_window._active_session
+	before = session.backend_snapshot
+	before_document = session.document
+	for item in session.scene.items():
+		if getattr(getattr(item, "atom_model", None), "backend_durable_id", None) == "a1":
+			selected_item = item
+			selected_item.setSelected(True)
+			break
+	else:
+		raise AssertionError("fixture did not project a selectable durable atom")
+	del item
+
+	try:
+		main_window._registry.get("repair.straighten_bonds").handler()
+		accepted = session.backend_snapshot
+		accepted_document = session.document
+		assert not shiboken6.isValid(selected_item)
+		undone = session.undo_backend()
+		redone = session.redo_backend()
+
+		assert (
+			accepted.revision == before.revision + 1
+			and accepted.cdml != before.cdml
+			and accepted_document is not before_document
+			and accepted_document.undo_stack.count() == 0
+			and _selected_atom_ids(session) == {"a1"}
+		)
+		assert (
+			undone.status == "accepted"
+			and redone.status == "accepted"
+			and session.backend_snapshot.cdml == accepted.cdml
+			and session.document.undo_stack.count() == 0
+		)
+	finally:
+		_restore_blank_anchor(main_window, session)
+
+
+#============================================
+def test_straighten_menu_noop_keeps_authoritative_revision_and_projection(
+		main_window: bkchem_qt.main_window.MainWindow, tmp_path: pathlib.Path,
+		) -> None:
+	"""A canonical terminal bond has no history or projection replacement."""
+	source = tmp_path / "backend-straighten-noop.cdml"
+	source.write_text(_REPAIR_CDML, encoding="utf-8")
+	assert main_window.open_file_path(str(source))
+	session = main_window._active_session
+	before = session.backend_snapshot
+	before_document = session.document
+	try:
+		main_window._registry.get("repair.straighten_bonds").handler()
+
+		assert (
+			session.backend_snapshot == before
+			and session.document is before_document
 			and session.document.undo_stack.count() == 0
 		)
 	finally:
@@ -2091,20 +2110,12 @@ def test_imported_cdml_session_is_pathless_dirty_and_saves_exact_snapshot(
 #============================================
 def test_worker_mol_open_replaces_same_tab_with_backend_dirty_exact_snapshot(
 		main_window: bkchem_qt.main_window.MainWindow,
-		tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch, qtbot: object,
+		tmp_path: pathlib.Path, qtbot: object,
 		) -> None:
 	"""A queued Molfile Open publishes only the staged backend snapshot on Save."""
 	source = tmp_path / "ethane.mol"
 	source.write_text(_MOLFILE, encoding="utf-8")
 	target = main_window._active_session
-
-	def reject_legacy_install(*_args: object, **_kwargs: object) -> object:
-		"""Keep the retired Qt-local file-install path out of this transaction."""
-		raise AssertionError("worker Open must stage an imported backend session")
-
-	monkeypatch.setattr(
-		main_window, "_install_loaded_document", reject_legacy_install,
-	)
 	try:
 		assert main_window.open_file_path(str(source), replace_current=True)
 		_wait_for_async_import_terminal(qtbot, main_window, target)
@@ -2262,6 +2273,257 @@ def test_closed_worker_mol_open_delivery_is_inert_and_reaches_terminal_cleanup(
 		bkchem_qt.config.preferences.Preferences.KEY_RECENT_FILES,
 	) == recent_before
 	assert warnings == []
+
+
+#============================================
+def _new_projected_selection_translate_session(
+		main_window: bkchem_qt.main_window.MainWindow,
+		) -> bkchem_qt.models.document_session.DocumentSession:
+	"""Create one disposable Qt projection for a mixed selection contract test."""
+	session = _new_native_session(main_window, _REPAIR_CDML)
+	_install_projection_port(session, session.replace_projection_from_backend_snapshot)
+	if not session.replace_projection_from_backend_snapshot(session.backend_snapshot):
+		raise AssertionError("Durable CDML projection is unavailable")
+	return session
+
+
+#============================================
+@pytest.mark.parametrize(
+	"atom_targets,presentation_root_keys",
+	(
+		((("m1", "a1"),), (("arrow", "arrow1"),)),
+		((("m1", "a1", "extra"),), (("presentation", "arrow1"),)),
+	),
+)
+def test_selection_translate_request_rejects_malformed_boundary_keys(
+		atom_targets: tuple, presentation_root_keys: tuple,
+		) -> None:
+	"""The Qt boundary rejects malformed durable-key shapes before dispatch."""
+	with pytest.raises(ValueError):
+		bkchem_qt.models.document_session.build_selection_translate_request(
+			0, atom_targets, presentation_root_keys, (1.0, 0.0),
+		)
+
+
+#============================================
+@pytest.mark.parametrize(
+	"atom_targets,presentation_root_ids,target_keys",
+	(
+		((), ("arrow1",), frozenset({("presentation", "arrow1")})),
+		((("m1", "a1"),), (), frozenset({("molecule", "m1"), ("atom", "a1")})),
+	),
+)
+def test_selection_translate_requires_both_target_categories_before_dispatch(
+		main_window: bkchem_qt.main_window.MainWindow, atom_targets: tuple,
+		presentation_root_ids: tuple, target_keys: frozenset[tuple[str, str]],
+		) -> None:
+	"""An incomplete mixed request leaves every local and backend history untouched."""
+	session = _new_projected_selection_translate_session(main_window)
+	backend_calls = []
+	request = bkchem_qt.models.document_session.PersistentOperationRequest(
+		"selection.translate", "Move Selected",
+		(
+			("expected_revision", session.backend_snapshot.revision),
+			("atom_targets", atom_targets),
+			("presentation_root_ids", presentation_root_ids),
+			("delta", (1.0, 0.0)),
+		),
+		target_keys,
+	)
+	executor = session._operation_commit_executors["selection-translate"]
+
+	def record_backend_call(
+			prepared: bkchem_qt.models.document_session._PreparedPersistentOperation,
+			) -> oasa.cdml_document.CDMLSelectionTranslateResult:
+		"""Record any unexpected attempt to execute an incomplete request."""
+		backend_calls.append(prepared)
+		return executor(prepared)
+
+	session._operation_commit_executors["selection-translate"] = record_backend_call
+	try:
+		before = session.backend_snapshot
+		outcome = session.submit_persistent_operation(request)
+		with pytest.raises(ValueError):
+			bkchem_qt.models.document_session.build_selection_translate_request(
+				before.revision, atom_targets,
+				tuple(("presentation", identifier) for identifier in presentation_root_ids),
+				(1.0, 0.0),
+			)
+
+		histories_unchanged = (
+			session.backend_snapshot == before and not session.can_undo_backend
+			and session.document.undo_stack.count() == 0
+		)
+		assert (
+			(outcome.status, outcome.failure_kind) == ("rejected", "validation")
+			and backend_calls == [] and histories_unchanged
+		)
+	finally:
+		_dispose_session(session)
+
+
+#============================================
+def test_selection_translate_acceptance_uses_backend_history_not_qt_undo(
+		main_window: bkchem_qt.main_window.MainWindow,
+		) -> None:
+	"""One accepted mixed move creates backend history and no Qt undo command."""
+	session = _new_projected_selection_translate_session(main_window)
+	try:
+		before = session.backend_snapshot
+		outcome = session.submit_selection_translate(
+			before.revision, (("m1", "a1"),), (("presentation", "arrow1"),), (72.0, 0.0),
+		)
+		history_state = (
+			outcome.status == "accepted", outcome.commit is not None,
+			session.backend_snapshot.revision == before.revision + 1,
+			session.can_undo_backend, session.document.undo_stack.count(),
+		)
+
+		assert history_state == (True, True, True, True, 0)
+	finally:
+		_dispose_session(session)
+
+
+#============================================
+def test_selection_translate_acceptance_reprojects_durable_mixed_selection(
+		main_window: bkchem_qt.main_window.MainWindow,
+		) -> None:
+	"""Canonical replacement restores the selected atom and presentation root."""
+	session = _new_projected_selection_translate_session(main_window)
+	try:
+		for item in session.scene.items():
+			key = bkchem_qt.canvas.document_projection.persistent_selection_key(item)
+			if key in {("atom", "a1"), ("presentation", "arrow1")}:
+				item.setSelected(True)
+		before = session.backend_snapshot
+		session.submit_selection_translate(
+			before.revision, (("m1", "a1"),), (("presentation", "arrow1"),), (72.0, 0.0),
+		)
+
+		assert _selected_persistent_keys(session) == {
+			("atom", "a1"), ("presentation", "arrow1"),
+		}
+	finally:
+		_dispose_session(session)
+
+
+#============================================
+def test_selection_translate_rejects_mismatched_target_keys_without_history(
+		main_window: bkchem_qt.main_window.MainWindow,
+		) -> None:
+	"""A request whose durable correlation is wrong cannot reach OASA."""
+	session = _new_projected_selection_translate_session(main_window)
+	try:
+		before = session.backend_snapshot
+		mismatched = bkchem_qt.models.document_session.PersistentOperationRequest(
+			"selection.translate", "Move Selected",
+			(
+				("expected_revision", before.revision),
+				("atom_targets", (("m1", "a1"),)),
+				("presentation_root_ids", ("arrow1",)),
+				("delta", (72.0, 0.0)),
+			),
+			frozenset({("atom", "wrong")}),
+		)
+		outcome = session.submit_persistent_operation(mismatched)
+
+		assert (
+			(outcome.status, outcome.failure_kind, session.backend_snapshot) ==
+			("rejected", "validation", before) and not session.can_undo_backend
+		)
+	finally:
+		_dispose_session(session)
+
+
+#============================================
+def test_selection_translate_zero_delta_is_an_accepted_noop(
+		main_window: bkchem_qt.main_window.MainWindow,
+		) -> None:
+	"""A canonical zero movement preserves the current snapshot without history."""
+	session = _new_projected_selection_translate_session(main_window)
+	try:
+		before = session.backend_snapshot
+		outcome = session.submit_selection_translate(
+			before.revision, (("m1", "a1"),), (("presentation", "arrow1"),), (0.0, 0.0),
+		)
+
+		assert (
+			outcome.status == "accepted" and outcome.commit is None
+			and session.backend_snapshot == before and not session.can_undo_backend
+		)
+	finally:
+		_dispose_session(session)
+
+
+#============================================
+def test_selection_translate_stale_revision_cannot_add_backend_history(
+		main_window: bkchem_qt.main_window.MainWindow,
+		) -> None:
+	"""A stale captured revision preserves the one already accepted snapshot."""
+	session = _new_projected_selection_translate_session(main_window)
+	try:
+		original = session.backend_snapshot
+		session.submit_selection_translate(
+			original.revision, (("m1", "a1"),), (("presentation", "arrow1"),), (72.0, 0.0),
+		)
+		accepted = session.backend_snapshot
+		stale = session.submit_selection_translate(
+			original.revision, (("m1", "a1"),), (("presentation", "arrow1"),), (72.0, 0.0),
+		)
+		stale_preserved_snapshot = session.backend_snapshot == accepted
+		undo = session.undo_backend()
+		history_state = (
+			stale.status, stale.failure_kind, stale_preserved_snapshot, undo.status,
+			session.backend_snapshot.cdml == original.cdml, session.can_undo_backend,
+		)
+
+		assert history_state == ("rejected", "revision-conflict", True, "accepted", True, False)
+	finally:
+		_dispose_session(session)
+
+
+#============================================
+def test_selection_translate_projection_retry_reuses_only_the_accepted_snapshot(
+		main_window: bkchem_qt.main_window.MainWindow,
+		) -> None:
+	"""Projection recovery never sends the accepted mixed request twice."""
+	session = _new_native_session(main_window, _REPAIR_CDML)
+	_install_projection_port(session, session.replace_projection_from_backend_snapshot)
+	if not session.replace_projection_from_backend_snapshot(session.backend_snapshot):
+		raise AssertionError("Durable CDML projection is unavailable")
+	calls = []
+	projection_revisions = []
+	executor = session._operation_commit_executors["selection-translate"]
+
+	def count_translate(
+			prepared: bkchem_qt.models.document_session._PreparedPersistentOperation,
+			) -> oasa.cdml_document.CDMLSelectionTranslateResult:
+		"""Record the one backend call made for the accepted mixed operation."""
+		calls.append(prepared)
+		return executor(prepared)
+
+	def fail_once(snapshot: oasa.cdml_document.CDMLSnapshot) -> object:
+		"""Make the first accepted replacement unavailable, then install its retry."""
+		projection_revisions.append(snapshot.revision)
+		if len(projection_revisions) == 1:
+			return _projection_unavailable(snapshot)
+		return session.replace_projection_from_backend_snapshot(snapshot)
+
+	session._operation_commit_executors["selection-translate"] = count_translate
+	_install_projection_port(session, fail_once)
+	try:
+		outcome = session.submit_selection_translate(
+			session.backend_snapshot.revision, (("m1", "a1"),),
+			(("presentation", "arrow1"),), (72.0, 0.0),
+		)
+		retried = session.retry_current_backend_projection()
+
+		assert outcome.status == "unavailable" and retried.status == "accepted"
+		assert len(calls) == 1 and projection_revisions == [
+			session.backend_snapshot.revision, session.backend_snapshot.revision,
+		]
+	finally:
+		_dispose_session(session)
 
 
 #============================================
@@ -2512,7 +2774,7 @@ def test_native_staging_installs_matching_projection(
 		) -> None:
 	"""Native staging installs a Qt projection from canonical backend CDML."""
 	prepared = bkchem_qt.models.document_session.DocumentSession.prepare_native_cdml(
-		_ARROW_CDML,
+		_OPEN_ARROW_CDML,
 	)
 	session = _new_synchronized_session(main_window, prepared)
 	try:
@@ -2559,8 +2821,21 @@ def test_prepared_native_cdml_remains_retryable_after_setup_failure(
 			atom_translate_action: object | None = None,
 			atom_rotate_action: object | None = None,
 			atom_translate_authority: object | None = None,
+			presentation_translate_action: object | None = None,
+			presentation_translate_context: object | None = None,
+			selection_translate_action: object | None = None,
+			selection_translate_context: object | None = None,
+			top_level_delete_context: object | None = None,
+			structure_delete_context: object | None = None,
+			atom_mark_delete_context: object | None = None,
 			atom_number_context: object | None = None,
+			atom_mark_revision: object | None = None,
 			template_names: tuple[str, ...] | None = None,
+			template_action: object | None = None,
+			biomolecule_catalog: tuple[object, ...] | None = None,
+			biotemplate_action: object | None = None,
+			user_template_catalog: tuple[object, ...] | None = None,
+			user_template_action: object | None = None,
 			graphics_retirement_reaper: object | None = None,
 			) -> object:
 		"""Fail only the first receiver setup after the canvas has been created."""
@@ -2575,8 +2850,21 @@ def test_prepared_native_cdml_remains_retryable_after_setup_failure(
 			atom_translate_action=atom_translate_action,
 			atom_rotate_action=atom_rotate_action,
 			atom_translate_authority=atom_translate_authority,
+			presentation_translate_action=presentation_translate_action,
+			presentation_translate_context=presentation_translate_context,
+			selection_translate_action=selection_translate_action,
+			selection_translate_context=selection_translate_context,
+			top_level_delete_context=top_level_delete_context,
+			structure_delete_context=structure_delete_context,
+			atom_mark_delete_context=atom_mark_delete_context,
 			atom_number_context=atom_number_context,
+			atom_mark_revision=atom_mark_revision,
 			template_names=template_names,
+			template_action=template_action,
+			biomolecule_catalog=biomolecule_catalog,
+			biotemplate_action=biotemplate_action,
+			user_template_catalog=user_template_catalog,
+			user_template_action=user_template_action,
 			graphics_retirement_reaper=graphics_retirement_reaper,
 		)
 
@@ -2599,13 +2887,15 @@ def test_native_staging_decoder_failure_does_not_change_live_session(
 	original_document = session.document
 	original_snapshot = session.backend_snapshot
 
-	def fail_decode(_text: str) -> bkchem_qt.models.document.Document:
+	def fail_decode(
+			_projection_snapshot: object,
+			) -> bkchem_qt.models.document.Document:
 		"""Model a projection decode failure after backend staging succeeds."""
 		raise ValueError("projection failed")
 
 	try:
 		monkeypatch.setattr(
-			bkchem_qt.io.cdml_document_io, "load_cdml_document_string", fail_decode,
+			bkchem_qt.io.cdml_document_io, "hydrate_synchronized_cdml_document", fail_decode,
 		)
 		with pytest.raises(ValueError, match="projection failed"):
 			bkchem_qt.models.document_session.DocumentSession.prepare_native_cdml(
@@ -2616,6 +2906,25 @@ def test_native_staging_decoder_failure_does_not_change_live_session(
 		)
 	finally:
 		_close_tab(main_window, session)
+
+
+#============================================
+def test_core_projection_never_binds_a_bond_to_a_duplicate_atom_id() -> None:
+	"""Compatibility geometry shows duplicate atoms without inventing a bond target."""
+	cdml = (
+		"<cdml><molecule id='m'><atom id='a' name='C'><point x='0cm' y='0cm'/></atom>"
+		"<atom id='a' name='N'><point x='1cm' y='0cm'/></atom>"
+		"<atom id='c' name='O'><point x='2cm' y='0cm'/></atom>"
+		"<bond id='e' start='a' end='c' type='n1'/></molecule></cdml>"
+	)
+	backend_document = oasa.cdml_document.CDMLDocument.parse(cdml, validation="compat")
+	projection_snapshot = oasa.cdml_document.CDMLDocument.projection_snapshot(
+		oasa.cdml_document.CDMLSnapshot(0, backend_document.serialize(), False),
+	)
+	document = bkchem_qt.io.cdml_document_io.hydrate_synchronized_cdml_document(
+		projection_snapshot,
+	)
+	assert not document.molecules[0].bonds
 
 
 #============================================
@@ -2880,31 +3189,6 @@ def test_authoritative_writer_follows_symlink_and_preserves_referent_mode(
 
 
 #============================================
-def test_authoritative_writer_requests_umask_compatible_new_target_mode(
-		main_window: bkchem_qt.main_window.MainWindow, tmp_path: pathlib.Path,
-		monkeypatch: pytest.MonkeyPatch,
-		) -> None:
-	"""New backend targets request standard Save permissions without changing umask."""
-	session = _new_native_session(main_window)
-	target = tmp_path / "new-target.cdml"
-	requested_modes = []
-	original_open = bkchem_qt.models.document_session.os.open
-
-	def capture_open(path: str, flags: int, mode: int = 0o777) -> int:
-		"""Record only creation modes while delegating each real filesystem open."""
-		if flags & os.O_CREAT:
-			requested_modes.append(mode)
-		return original_open(path, flags, mode)
-
-	try:
-		monkeypatch.setattr(bkchem_qt.models.document_session.os, "open", capture_open)
-		session.write_backend_snapshot(str(target))
-		assert requested_modes == [0o666]
-	finally:
-		_dispose_session(session)
-
-
-#============================================
 def test_directory_fsync_failure_reports_partial_publication_and_cleans_stage(
 		main_window: bkchem_qt.main_window.MainWindow, tmp_path: pathlib.Path,
 		monkeypatch: pytest.MonkeyPatch,
@@ -3082,29 +3366,23 @@ def test_disposed_session_rejects_backend_write(
 
 
 #============================================
-def test_native_open_bypasses_legacy_file_loader_for_backend_snapshot(
+def test_native_open_installs_canonical_backend_snapshot_projection(
 		main_window: bkchem_qt.main_window.MainWindow, tmp_path: pathlib.Path,
-		monkeypatch: pytest.MonkeyPatch,
 		) -> None:
-	"""Native Open stages canonical CDML without the legacy file decoder."""
+	"""Native Open projects the canonical backend snapshot without local reserialization."""
 	source = tmp_path / "backend-first.cdml"
 	source.write_text(_OPEN_ARROW_CDML, encoding="utf-8")
 	startup = main_window._active_session
-
-	def reject_legacy_loader(_file_path: str) -> bkchem_qt.models.document.Document:
-		"""Fail if native Open reintroduces the legacy file-loading route."""
-		raise AssertionError("Native Open called the legacy file loader")
-
-	monkeypatch.setattr(
-		bkchem_qt.io.cdml_document_io,
-		"load_cdml_document_file",
-		reject_legacy_loader,
-	)
+	expected = oasa.cdml_document.CDMLDocumentSession.load(
+		_OPEN_ARROW_CDML,
+	).projection_snapshot().snapshot
 	try:
 		opened = main_window.open_file_path(str(source))
 		session = main_window._active_session
-		assert opened and session.backend_projection_synchronized and (
-			"arrow-1" in session.backend_snapshot.cdml
+		assert opened and (
+			session.backend_projection_synchronized
+			and session.backend_snapshot == expected
+			and _presentation_by_id(session.document, "arrow-1").kind == "arrow"
 		)
 		assert startup not in main_window.sessions
 	finally:
@@ -3157,12 +3435,15 @@ def test_native_open_projection_staging_failure_keeps_active_aliases(
 	target = main_window._active_session
 	aliases = (main_window.document, main_window.scene, main_window.view)
 
-	def fail_projection(_cdml_text: str) -> bkchem_qt.models.document.Document:
+	def fail_projection(
+			_cdml_text: str, observations: object,
+		) -> bkchem_qt.models.document.Document:
 		"""Model a decoder failure after backend canonicalization succeeds."""
+		del observations
 		raise ValueError("projection staging failed")
 
 	monkeypatch.setattr(
-		bkchem_qt.io.cdml_document_io, "load_cdml_document_string", fail_projection,
+		bkchem_qt.io.cdml_document_io, "hydrate_synchronized_cdml_document", fail_projection,
 	)
 	opened = main_window.open_file_path(str(source))
 	assert (opened, main_window._active_session, (
@@ -3199,14 +3480,33 @@ def test_same_tab_native_open_setup_failure_keeps_target_and_prepared_retryable(
 			atom_align_action: object | None = None,
 			atom_translate_action: object | None = None,
 			atom_rotate_action: object | None = None,
+			atom_translate_authority: object | None = None,
+			presentation_translate_action: object | None = None,
+			presentation_translate_context: object | None = None,
+			selection_translate_action: object | None = None,
+			selection_translate_context: object | None = None,
+			top_level_delete_context: object | None = None,
+			structure_delete_context: object | None = None,
+			atom_mark_delete_context: object | None = None,
 			atom_number_context: object | None = None,
+			atom_mark_revision: object | None = None,
 			template_names: tuple[str, ...] | None = None,
+			template_action: object | None = None,
+			biomolecule_catalog: tuple[object, ...] | None = None,
+			biotemplate_action: object | None = None,
+			user_template_catalog: tuple[object, ...] | None = None,
+			user_template_action: object | None = None,
 			graphics_retirement_reaper: object | None = None,
 			) -> object:
 		"""Fail after native staging but before a session becomes viable."""
 		del (
 			parent, persistent_action, atom_align_action, atom_translate_action, atom_rotate_action,
-			atom_number_context, template_names,
+			atom_translate_authority, presentation_translate_action,
+			presentation_translate_context, selection_translate_action,
+			selection_translate_context, top_level_delete_context, structure_delete_context,
+			atom_mark_delete_context, atom_number_context, atom_mark_revision, template_names,
+			template_action, biomolecule_catalog, biotemplate_action, user_template_catalog,
+			user_template_action,
 			graphics_retirement_reaper,
 		)
 		raise RuntimeError("mode setup failed")

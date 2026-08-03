@@ -1,8 +1,9 @@
 # source_me.sh - Set up environment for testing and development
 #
 # This script is for TESTING AND DEVELOPMENT ONLY, not for installation.
-# It configures PYTHONPATH so you can run tests and scripts that import
-# from packages/oasa and packages/bkchem-app.
+# It configures PYTHONPATH for tests and maintainer scripts.  The legacy
+# bkchem-app path remains here only for historical behavioral-reference tests;
+# it is not a supported application launcher or Qt delivery input.
 #
 # Usage:
 #   source source_me.sh

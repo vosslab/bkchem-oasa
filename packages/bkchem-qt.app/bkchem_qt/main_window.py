@@ -5,6 +5,7 @@ import dataclasses
 import functools
 import os
 import pathlib
+import enum
 
 # PIP3 modules
 import yaml
@@ -13,7 +14,6 @@ import PySide6.QtGui
 import PySide6.QtWidgets
 
 # local repo modules
-import oasa.cdml_render
 import bkchem_qt.config.geometry_units
 import bkchem_qt.config.keybindings
 import bkchem_qt.config.preferences
@@ -24,14 +24,20 @@ import bkchem_qt.setup.canvas_setup
 import bkchem_qt.setup.mode_setup
 import bkchem_qt.setup.toolbar_setup
 import bkchem_qt.actions.file_actions
+import bkchem_qt.actions.options_actions
 import bkchem_qt.canvas.document_projection
+import bkchem_qt.canvas.graphics_retirement
+import bkchem_qt.canvas.molecule_projection
 import bkchem_qt.io.clipboard_manager
 import bkchem_qt.io.import_capabilities
+import bkchem_qt.io.user_template_catalog
+import bkchem_qt.bridge.user_template_inspection
 import bkchem_qt.dialogs.about_dialog
 import bkchem_qt.dialogs.preferences_dialog
 import bkchem_qt.dialogs.theme_chooser_dialog
 import bkchem_qt.models.document
 import bkchem_qt.models.document_session
+import bkchem_qt.models.projection_lifecycle
 import bkchem_qt.io.export
 import bkchem_qt.themes.theme_loader
 import bkchem_qt.undo.commands
@@ -56,6 +62,14 @@ class _PendingSessionDeletion:
 		return self.retained_graphics_records.detached
 
 
+class ShutdownState(enum.StrEnum):
+	"""Public MainWindow shutdown lifecycle for Qt behavior tests and hosts."""
+
+	LIVE = "live"
+	DRAINING = "draining"
+	READY = "ready"
+
+
 #============================================
 class MainWindow(PySide6.QtWidgets.QMainWindow):
 	"""Main application window with menus, canvas, toolbar, and status bar.
@@ -64,19 +78,26 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 		theme_manager: ThemeManager instance for toggling themes.
 	"""
 
+	worker_retirement_drained = PySide6.QtCore.Signal()
+
 	#============================================
 	def __init__(self, theme_manager: object,
-			parent: PySide6.QtWidgets.QWidget | None = None) -> None:
+			parent: PySide6.QtWidgets.QWidget | None = None, *,
+			user_template_directory: str | pathlib.Path | None = None) -> None:
 		"""Initialize the main window with all UI components.
 
 		Args:
 			theme_manager: ThemeManager instance for theme toggling.
 			parent: Optional parent widget.
+			user_template_directory: Explicit frontend-owned directory used for
+				discovering saved user templates, or None for an empty embedded catalog.
 		"""
 		super().__init__(parent)
 		self._theme_manager = theme_manager
 		self._prefs = bkchem_qt.config.preferences.Preferences.instance()
+		bkchem_qt.actions.options_actions.apply_saved_logging_level(self._prefs)
 		self._shutdown_prepared = False
+		self._shutdown_state = ShutdownState.LIVE
 		self._ui_signals_connected = False
 		# The active document has four window-owned callbacks.  Keep their
 		# ownership as explicit state so a projection preparation failure can
@@ -93,7 +114,13 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 		# instead of scheduling an unbounded zero-delay loop.
 		self._pending_session_graphics_retry_scheduled = False
 		self._retired_import_workers = set()
+		self._shutdown_sessions_pending_disposal = []
 		self._active_session = None
+		self._user_template_directory = (
+			pathlib.Path(user_template_directory)
+			if user_template_directory is not None else None
+		)
+		self._user_template_catalog = self._scan_user_template_catalog()
 		self._clipboard_manager = bkchem_qt.io.clipboard_manager.ClipboardManager()
 		self._clipboard = PySide6.QtWidgets.QApplication.clipboard()
 
@@ -118,6 +145,98 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 		self._connect_signals()
 		self._apply_geometry_preferences()
 		self._apply_view_preferences()
+		self._show_user_template_catalog_status(self._user_template_catalog)
+
+	#============================================
+	@property
+	def user_template_catalog(self) -> bkchem_qt.io.user_template_catalog.UserTemplateCatalogSnapshot:
+		"""Return the immutable frontend-owned saved-template catalog snapshot."""
+		return self._user_template_catalog
+
+	#============================================
+	def _scan_user_template_catalog(
+			self,
+			) -> bkchem_qt.io.user_template_catalog.UserTemplateCatalogSnapshot:
+		"""Return one immutable scan of the explicitly configured directory."""
+		if self._user_template_directory is None:
+			return bkchem_qt.io.user_template_catalog.UserTemplateCatalogSnapshot((), ())
+		return bkchem_qt.io.user_template_catalog.scan_user_template_catalog(
+			self._user_template_directory,
+		)
+
+	#============================================
+	def _show_user_template_catalog_status(
+			self,
+			snapshot: bkchem_qt.io.user_template_catalog.UserTemplateCatalogSnapshot,
+			) -> None:
+		"""Present one concise catalog outcome without hiding admitted neighbors."""
+		if self._user_template_directory is None:
+			self.statusBar().showMessage(self.tr("User template directory is not configured"), 3000)
+			return
+		if not snapshot.failures:
+			self.statusBar().showMessage(
+				self.tr("User templates refreshed: %d available") % len(snapshot.entries), 3000,
+			)
+			return
+		first_failure = snapshot.failures[0]
+		self.statusBar().showMessage(
+			self.tr("User templates refreshed: %d available; skipped %s: %s") % (
+				len(snapshot.entries), first_failure.source_name, first_failure.message,
+			),
+			5000,
+		)
+
+	#============================================
+	def rescan_user_templates(
+			self,
+			) -> bkchem_qt.io.user_template_catalog.UserTemplateCatalogSnapshot:
+		"""Replace the delivered saved-template catalog in every live session."""
+		snapshot = self._scan_user_template_catalog()
+		for session in tuple(self._sessions):
+			if not session.is_disposed:
+				session.replace_user_template_catalog(snapshot.entries)
+		self._user_template_catalog = snapshot
+		if self._active_mode_name() == "usertemplate":
+			self._on_mode_changed("usertemplate")
+		self._show_user_template_catalog_status(snapshot)
+		return snapshot
+
+	#============================================
+	def refresh_user_templates(
+			self,
+			) -> bkchem_qt.io.user_template_catalog.UserTemplateCatalogSnapshot:
+		"""Refresh saved templates through the visible File-action behavior."""
+		return self._on_refresh_user_templates()
+
+	#============================================
+	def _on_refresh_user_templates(
+			self,
+			) -> bkchem_qt.io.user_template_catalog.UserTemplateCatalogSnapshot:
+		"""Run one explicit catalog refresh and present all recoverable skips."""
+		snapshot = self.rescan_user_templates()
+		if snapshot.failures:
+			details = "\n".join(
+				"%s: %s" % (failure.source_name, failure.message)
+				for failure in snapshot.failures
+			)
+			PySide6.QtWidgets.QMessageBox.information(
+				self,
+				self.tr("User Template Refresh"),
+				self.tr("Some user templates were skipped.\n\n%s") % details,
+			)
+		return snapshot
+
+	#============================================
+	@property
+	def shutdown_state(self) -> ShutdownState:
+		"""Return the observable application retirement state."""
+		return self._shutdown_state
+
+	#============================================
+	@property
+	def retiring_worker_count(self) -> int:
+		"""Return the number of adopted workers still awaiting ``finished``."""
+		return len(self._retired_import_workers)
 
 	#============================================
 	@property
@@ -283,6 +402,153 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 		return session.backend_snapshot.revision, self.atom_properties_capability_for(session)
 
 	#============================================
+	def text_properties_capability_for(
+			self, session: bkchem_qt.models.document_session.DocumentSession,
+			) -> object:
+		"""Freeze one narrow direct-root plain Text patch onto a registered tab."""
+		if not isinstance(session, bkchem_qt.models.document_session.DocumentSession):
+			raise TypeError("Text properties capability requires a DocumentSession")
+		if session.is_disposed or session not in self._sessions:
+			raise ValueError("Text properties capability requires a live registered session")
+		def submit(
+				expected_revision: int, text_id: str,
+				changes: tuple[tuple[str, object], ...],
+				) -> bkchem_qt.models.document_session.PersistentActionOutcome:
+			"""Submit only while the exact captured session remains registered."""
+			if session.is_disposed or session not in self._sessions:
+				return bkchem_qt.models.document_session.PersistentActionOutcome(
+					"unavailable", "Document cannot accept a persistent edit", None, False,
+				)
+			return session.submit_text_properties_patch(
+				expected_revision, text_id, changes,
+			)
+		return submit
+
+	#============================================
+	def rich_text_capability_for(
+			self, session: bkchem_qt.models.document_session.DocumentSession,
+			) -> object:
+		"""Freeze one authored rich-Text patch capability onto a registered tab."""
+		if not isinstance(session, bkchem_qt.models.document_session.DocumentSession):
+			raise TypeError("Rich Text capability requires a DocumentSession")
+		if session.is_disposed or session not in self._sessions:
+			raise ValueError("Rich Text capability requires a live registered session")
+		def submit(
+				expected_revision: int, text_id: str,
+			runs: tuple[tuple[str, tuple[str, ...]], ...],
+			changes: tuple[tuple[str, object], ...] = (),
+				) -> bkchem_qt.models.document_session.PersistentActionOutcome:
+			"""Submit only while the exact captured session remains registered."""
+			if session.is_disposed or session not in self._sessions:
+				return bkchem_qt.models.document_session.PersistentActionOutcome(
+					"unavailable", "Document cannot accept a persistent edit", None, False,
+				)
+			return session.submit_rich_text_patch(expected_revision, text_id, runs, changes)
+		return submit
+
+	#============================================
+	def capture_rich_text_for_view(
+			self, view: object, text_id: str,
+			) -> tuple[int, object] | None:
+		"""Capture one revision and exact-tab rich Text callback for one dialog."""
+		session = self._sessions_by_view.get(view)
+		if (
+			session is None or session.is_disposed or session.document is None
+			or not session.can_commit_persistent_action
+			or not isinstance(text_id, str) or not text_id
+		):
+			return None
+		return session.backend_snapshot.revision, self.rich_text_capability_for(session)
+
+	#============================================
+	def capture_text_properties_for_view(
+			self, view: object, text_id: str,
+			) -> tuple[int, object] | None:
+		"""Capture one revision and exact-tab Text patch callback for one intent."""
+		session = self._sessions_by_view.get(view)
+		if (
+			session is None or session.is_disposed or session.document is None
+			or not session.can_commit_persistent_action
+			or not isinstance(text_id, str) or not text_id
+		):
+			return None
+		return session.backend_snapshot.revision, self.text_properties_capability_for(session)
+
+	#============================================
+	def plus_properties_capability_for(
+			self, session: bkchem_qt.models.document_session.DocumentSession,
+			) -> object:
+		"""Freeze one narrow direct-root plain Plus patch onto a registered tab."""
+		if not isinstance(session, bkchem_qt.models.document_session.DocumentSession):
+			raise TypeError("Plus properties capability requires a DocumentSession")
+		if session.is_disposed or session not in self._sessions:
+			raise ValueError("Plus properties capability requires a live registered session")
+		def submit(
+				expected_revision: int, plus_id: str,
+				changes: tuple[tuple[str, object], ...],
+				) -> bkchem_qt.models.document_session.PersistentActionOutcome:
+			"""Submit only while the exact captured session remains registered."""
+			if session.is_disposed or session not in self._sessions:
+				return bkchem_qt.models.document_session.PersistentActionOutcome(
+					"unavailable", "Document cannot accept a persistent edit", None, False,
+				)
+			return session.submit_plus_properties_patch(
+				expected_revision, plus_id, changes,
+			)
+		return submit
+
+	#============================================
+	def capture_plus_properties_for_view(
+			self, view: object, plus_id: str,
+			) -> tuple[int, object] | None:
+		"""Capture one revision and exact-tab Plus patch callback for one intent."""
+		session = self._sessions_by_view.get(view)
+		if (
+			session is None or session.is_disposed or session.document is None
+			or not session.can_commit_persistent_action
+			or not isinstance(plus_id, str) or not plus_id
+		):
+			return None
+		return session.backend_snapshot.revision, self.plus_properties_capability_for(session)
+
+	#============================================
+	def wavy_properties_capability_for(
+			self, session: bkchem_qt.models.document_session.DocumentSession,
+			) -> object:
+		"""Freeze one narrow direct-root plain Wavy patch onto a registered tab."""
+		if not isinstance(session, bkchem_qt.models.document_session.DocumentSession):
+			raise TypeError("Wavy properties capability requires a DocumentSession")
+		if session.is_disposed or session not in self._sessions:
+			raise ValueError("Wavy properties capability requires a live registered session")
+		def submit(
+				expected_revision: int, wavy_id: str,
+				changes: tuple[tuple[str, object], ...],
+				) -> bkchem_qt.models.document_session.PersistentActionOutcome:
+			"""Submit only while the exact captured session remains registered."""
+			if session.is_disposed or session not in self._sessions:
+				return bkchem_qt.models.document_session.PersistentActionOutcome(
+					"unavailable", "Document cannot accept a persistent edit", None, False,
+				)
+			return session.submit_wavy_properties_patch(
+				expected_revision, wavy_id, changes,
+			)
+		return submit
+
+	#============================================
+	def capture_wavy_properties_for_view(
+			self, view: object, wavy_id: str,
+			) -> tuple[int, object] | None:
+		"""Capture one revision and exact-tab Wavy patch callback for one intent."""
+		session = self._sessions_by_view.get(view)
+		if (
+			session is None or session.is_disposed or session.document is None
+			or not session.can_commit_persistent_action
+			or not isinstance(wavy_id, str) or not wavy_id
+		):
+			return None
+		return session.backend_snapshot.revision, self.wavy_properties_capability_for(session)
+
+	#============================================
 	def _bind_property_dock(
 			self,
 			session: bkchem_qt.models.document_session.DocumentSession | None,
@@ -328,7 +594,6 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 	#============================================
 	def _construct_session(
 			self, *,
-			document: bkchem_qt.models.document.Document | None = None,
 			file_path: str | None = None, display_name: str | None = None,
 			origin_path: str | None = None,
 			prepared_native_cdml: (
@@ -345,12 +610,12 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 			prefs=self._prefs,
 			mode_host=self,
 			view_parent=self,
-			document=document,
 			file_path=file_path,
 			display_name=display_name,
 			origin_path=origin_path,
 			prepared_native_cdml=prepared_native_cdml,
 			prepared_imported_cdml=prepared_imported_cdml,
+			user_template_catalog=self._user_template_catalog.entries,
 		)
 
 	#============================================
@@ -400,7 +665,7 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 			self._tab_change_blocked = previous_tab_change_blocked
 			self._tab_widget.blockSignals(previous_block)
 		session.install_projection_lifecycle_port(
-			bkchem_qt.models.document_session.SessionProjectionLifecyclePort(
+			bkchem_qt.models.projection_lifecycle.SessionProjectionLifecyclePort(
 				session,
 				lambda snapshot: self._replace_session_projection(session, snapshot),
 				self._consume_session_projection_notice,
@@ -411,7 +676,7 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 	#============================================
 	def _consume_session_projection_notice(
 			self, session: bkchem_qt.models.document_session.DocumentSession,
-			result: bkchem_qt.models.document_session.ProjectionLifecycleResult,
+			result: bkchem_qt.models.projection_lifecycle.ProjectionLifecycleResult,
 			) -> None:
 		"""Refresh only the emitting active session's disposable UI aliases."""
 		if session.is_disposed or session not in self._sessions:
@@ -419,17 +684,15 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 		if session is not self._active_session:
 			return
 		self._set_active_session_aliases(session)
-		self._synchronize_active_session_ui(bind_property_dock=result.installed)
+		self._refresh_active_session_controls()
 
 	#============================================
 	def _create_session(
-			self, document: bkchem_qt.models.document.Document | None = None,
-			index: int | None = None, activate: bool = True,
+			self, index: int | None = None, activate: bool = True,
 			display_name: str | None = None, origin_path: str | None = None,
 			) -> bkchem_qt.models.document_session.DocumentSession:
 		"""Create, register, and optionally activate one tab session."""
 		session = self._construct_session(
-			document=document,
 			display_name=display_name,
 			origin_path=origin_path,
 		)
@@ -459,7 +722,7 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 	def _replace_session_projection(
 			self, session: bkchem_qt.models.document_session.DocumentSession,
 			snapshot: object,
-			) -> bkchem_qt.models.document_session.ProjectionLifecycleResult:
+			) -> bkchem_qt.models.projection_lifecycle.ProjectionLifecycleResult:
 		"""Rebuild one registered Qt projection from an accepted backend snapshot.
 
 		The session, tab, scene, view, modes, and workers remain in place.  Only
@@ -467,9 +730,9 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 		backend snapshot has prepared successfully.
 		"""
 		if session.is_disposed or session not in self._sessions:
-			return bkchem_qt.models.document_session.ProjectionLifecycleResult(
-				bkchem_qt.models.document_session.ProjectionLifecycleStatus.SESSION_UNAVAILABLE,
-				bkchem_qt.models.document_session.ProjectionLifecyclePhase.SESSION,
+			return bkchem_qt.models.projection_lifecycle.ProjectionLifecycleResult(
+				bkchem_qt.models.projection_lifecycle.ProjectionLifecycleStatus.SESSION_UNAVAILABLE,
+				bkchem_qt.models.projection_lifecycle.ProjectionLifecyclePhase.SESSION,
 			)
 		active = session is self._active_session
 		old_document = session.document
@@ -495,7 +758,9 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 			self._set_active_session_aliases(session)
 			if replaced.installed and self._ui_signals_connected and session.document is not None:
 				self._connect_document_signals(session.document)
-			if not replaced.installed:
+			if replaced.installed:
+				self._bind_property_dock(session)
+			else:
 				self._bind_property_dock(None)
 				if session.document is None:
 					current_mode = session.mode_manager.current_mode
@@ -581,19 +846,15 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 		# create it as a standalone checkable action
 		view_menu = self._adapter.get_menu_component("View")
 		if view_menu is not None:
-			view_menu.addSeparator()
-			self._action_toggle_grid = view_menu.addAction(
-				self.tr("Toggle &Grid")
+			self._adapter.add_separator("View")
+			self._action_toggle_grid = self._adapter.add_direct_action(
+				"View", self.tr("Toggle &Grid"), "view.toggle_grid",
 			)
 			self._action_toggle_grid.setCheckable(True)
 			self._action_toggle_grid.setChecked(self._scene.grid_visible)
 			self._action_toggle_grid.triggered.connect(self._on_toggle_grid)
-			# register with frozen key for key-based lookup
-			self._adapter.register_direct_action(
-				"view.toggle_grid", self._action_toggle_grid
-			)
-			self._action_toggle_grid_snap = view_menu.addAction(
-				self.tr("Snap To &Grid")
+			self._action_toggle_grid_snap = self._adapter.add_direct_action(
+				"View", self.tr("Snap To &Grid"), "view.toggle_grid_snap",
 			)
 			self._action_toggle_grid_snap.setCheckable(True)
 			self._action_toggle_grid_snap.setChecked(
@@ -604,10 +865,6 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 			)
 			self._action_toggle_grid_snap.triggered.connect(
 				self._on_toggle_grid_snap
-			)
-			# register with frozen key for key-based lookup
-			self._adapter.register_direct_action(
-				"view.toggle_grid_snap", self._action_toggle_grid_snap
 			)
 		# populate the Recent files cascade from stored preferences
 		self.refresh_recent_files_menu()
@@ -807,6 +1064,17 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 	#============================================
 	def _synchronize_active_session_ui(self, bind_property_dock: bool = True) -> None:
 		"""Refresh controls after creating or activating a document session."""
+		self._refresh_active_session_controls()
+		if self._active_session is None:
+			return
+		if bind_property_dock:
+			self._bind_property_dock(self._active_session)
+		else:
+			self._bind_property_dock(None)
+
+	#============================================
+	def _refresh_active_session_controls(self) -> None:
+		"""Refresh active-session controls without changing dock projection ownership."""
 		if self._active_session is None:
 			return
 		mode_name = self._active_mode_name()
@@ -823,10 +1091,6 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 			self._action_toggle_grid_snap.setChecked(
 				self._scene.grid_snap_enabled
 			)
-		if bind_property_dock:
-			self._bind_property_dock(self._active_session)
-		else:
-			self._bind_property_dock(None)
 		self._refresh_document_actions()
 
 	#============================================
@@ -1127,34 +1391,61 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 		scene = target.scene
 		if document is None or scene is None or not document.has_selection:
 			return
+		structural_targets = self._selected_cut_structural_targets(document, scene)
+		if structural_targets is False:
+			self.statusBar().showMessage(
+				self.tr("Cut selection cannot be committed"), 3000,
+			)
+			return
+		if structural_targets is not None:
+			# Structural extraction can accept and reproject synchronously.  Its
+			# immutable targets are the only projection-derived values it needs.
+			del document
+			del scene
+			self._cut_synchronized_structure(target, structural_targets)
+			return
 		targets = self._selected_cut_root_targets(document, scene)
 		request = None
 		submit = None
+		fragment_cdml = None
 		if targets is not None and target.can_commit_persistent_action:
 			root_ids, target_keys = targets
 			try:
 				submit = self.persistent_operation_capability_for(target)
 			except ValueError:
 				submit = None
-			else:
+			if submit is not None:
+				revision = target.backend_snapshot.revision
 				request = bkchem_qt.models.document_session.PersistentOperationRequest(
 					"top-level.delete", "Cut",
-					(
-						("expected_revision", target.backend_snapshot.revision),
-						("root_ids", root_ids),
-					),
-					target_keys,
+					(("expected_revision", revision), ("root_ids", root_ids)), target_keys,
 				)
+				try:
+					fragment = target.extract_top_level_fragment(
+						revision, root_ids,
+					)
+					fragment_cdml = fragment.fragment_cdml
+					del fragment
+				except ValueError as exc:
+					self.statusBar().showMessage(str(exc), 3000)
+					return
 		# Keep only session-bound callable and immutable plain request data after
 		# the callback boundary.  An accepted commit can now replace this entire
 		# projection without an old wrapper remaining in this stack frame.
 		del document
 		del scene
 		del targets
-		count = self._clipboard_manager.copy_selection(target.document)
-		if count == 0:
+		del target
+		if fragment_cdml is None:
 			self.statusBar().showMessage(
-				self.tr("Could not copy selection; nothing was cut"), 3000,
+				self.tr("Cut selection cannot be committed"), 3000,
+			)
+			return
+		try:
+			self._clipboard_manager.publish_fragment(fragment_cdml)
+		except (RuntimeError, TypeError, ValueError) as exc:
+			self.statusBar().showMessage(
+				self.tr("Could not copy selection; nothing was cut: %s") % exc, 3000,
 			)
 			return
 		if submit is None or request is None:
@@ -1166,6 +1457,67 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 		# The captured capability is session-bound.  It remains attached to the
 		# originating tab across tab activation, while its own liveness predicate
 		# rejects disposal, stale projection, and legacy-isolation transitions.
+		outcome = submit(request)
+		self._show_persistent_action_outcome(outcome)
+		self._refresh_document_actions()
+
+	#============================================
+	def _selected_cut_structural_targets(
+			self, document: object, scene: object,
+			) -> tuple[str, tuple[str, ...], tuple[str, ...]] | bool | None:
+		"""Resolve an exact direct atom/bond Cut selection, or reject its mixture."""
+		items = tuple(scene.selectedItems())
+		if not items:
+			return None
+		classification = bkchem_qt.canvas.document_projection.classify_structural_selection(
+			document, items,
+		)
+		if classification.kind is bkchem_qt.canvas.document_projection.StructuralSelectionKind.EXACT:
+			return classification.targets
+		if classification.kind is bkchem_qt.canvas.document_projection.StructuralSelectionKind.INVALID:
+			return False
+		for item in items:
+			# A structural wrapper must prove membership before any native model
+			# field is observed.  Unsupported marks and structural/presentation
+			# mixtures are inert for this bounded partial-Cut grammar.
+			if not document.is_current_projection_item(item):
+				return False
+			if document.molecule_for_current_projection_item(item) is not None:
+				return False
+		return None
+
+	#============================================
+	def _cut_synchronized_structure(
+			self, target: bkchem_qt.models.document_session.DocumentSession,
+			targets: tuple[str, tuple[str, ...], tuple[str, ...]],
+			) -> None:
+		"""Extract, publish, then delete one backend-authoritative subgraph."""
+		molecule_id, atom_ids, bond_ids = targets
+		if not target.can_commit_persistent_action:
+			self.statusBar().showMessage(self.tr("Cut selection cannot be committed"), 3000)
+			return
+		revision = target.backend_snapshot.revision
+		try:
+			submit = self.persistent_operation_capability_for(target)
+			request = bkchem_qt.models.document_session.build_structure_delete_request(
+				revision, molecule_id, atom_ids, bond_ids,
+			)
+			fragment = target.extract_structure_fragment(
+				revision, molecule_id, atom_ids, bond_ids,
+			)
+		except ValueError as exc:
+			self.statusBar().showMessage(str(exc), 3000)
+			return
+		fragment_cdml = fragment.fragment_cdml
+		del fragment
+		del target
+		try:
+			self._clipboard_manager.publish_fragment(fragment_cdml)
+		except (RuntimeError, TypeError, ValueError) as exc:
+			self.statusBar().showMessage(
+				self.tr("Could not copy selection; nothing was cut: %s") % exc, 3000,
+			)
+			return
 		outcome = submit(request)
 		self._show_persistent_action_outcome(outcome)
 		self._refresh_document_actions()
@@ -1185,7 +1537,11 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 			return
 		document_identity = id(document)
 		persistent_generation = document.persistent_generation
-		count = self._clipboard_manager.copy_selection(document)
+		try:
+			count = self._clipboard_manager.copy_selection(document)
+		except ValueError as exc:
+			self.statusBar().showMessage(str(exc), 3000)
+			return
 		del document
 		if count == 0:
 			self.statusBar().showMessage(
@@ -1248,7 +1604,9 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 			# Atom, bond, and mark projections may also expose their child model as
 			# ``document_object_model``.  Their owning molecule takes precedence;
 			# only otherwise-unowned items are presentation-root candidates.
-			molecule = document.molecule_for_graphics_item(item)
+			if not document.is_current_projection_item(item):
+				return None
+			molecule = document.molecule_for_current_projection_item(item)
 			if molecule is not None:
 				if id(molecule) not in selected_model_ids:
 					return None
@@ -1293,8 +1651,64 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 
 	#============================================
 	def on_copy(self) -> None:
-		"""Copy selected top-level CDML objects to the clipboard."""
-		count = self._clipboard_manager.copy_selection(self._document)
+		"""Copy an exact structural selection or existing selected top-level roots."""
+		target = self._active_cut_session()
+		if target is not None and not target.legacy_isolated:
+			document = target.document
+			scene = target.scene
+			if document is not None and scene is not None and document.has_selection:
+				classification = bkchem_qt.canvas.document_projection.classify_structural_selection(
+					document, tuple(scene.selectedItems()),
+				)
+				if classification.kind is bkchem_qt.canvas.document_projection.StructuralSelectionKind.EXACT:
+					targets = classification.targets
+					fragment_cdml = self._extract_synchronized_structure_fragment(target, targets)
+					del document
+					del scene
+					del classification
+					del targets
+					del target
+					if fragment_cdml is not None:
+						self._publish_structural_copy_fragment(fragment_cdml)
+					return
+				if classification.kind is bkchem_qt.canvas.document_projection.StructuralSelectionKind.INVALID:
+					self.statusBar().showMessage(self.tr("Copy selection cannot be copied"), 3000)
+					return
+				del classification
+				root_targets = self._selected_cut_root_targets(document, scene)
+				if root_targets is None:
+					self.statusBar().showMessage(self.tr("Copy selection cannot be copied"), 3000)
+					return
+				root_ids, _target_keys = root_targets
+				revision = target.backend_snapshot.revision
+				try:
+					fragment = target.extract_top_level_fragment(revision, root_ids)
+				except ValueError as exc:
+					self.statusBar().showMessage(str(exc), 3000)
+					return
+				fragment_cdml = fragment.fragment_cdml
+				del fragment
+				del root_targets
+				del root_ids
+				del _target_keys
+				del revision
+				del document
+				del scene
+				del target
+				self._publish_synchronized_top_level_fragment(fragment_cdml)
+				return
+			del document
+			del scene
+		# The native clipboard can synchronously invoke application callbacks.  Both
+		# synchronized root/mixed Copy and legacy-isolated whole-root Copy reach the
+		# shared publication path below, so neither may retain its origin session.
+		if target is not None:
+			del target
+		try:
+			count = self._clipboard_manager.copy_selection(self._document)
+		except ValueError as exc:
+			self.statusBar().showMessage(str(exc), 3000)
+			return
 		if count == 0:
 			self.statusBar().showMessage(
 				self.tr("Nothing selected to copy"), 3000,
@@ -1303,6 +1717,51 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 		self.statusBar().showMessage(
 			self.tr("Copied %d object(s)") % count, 3000,
 		)
+
+	#============================================
+	def _publish_synchronized_top_level_fragment(self, fragment_cdml: str) -> None:
+		"""Publish OASA-owned direct-root CDML after wrappers leave scope."""
+		try:
+			self._clipboard_manager.publish_fragment(fragment_cdml)
+		except (RuntimeError, TypeError, ValueError) as exc:
+			self.statusBar().showMessage(
+				self.tr("Could not copy selection: %s") % exc, 3000,
+			)
+			return
+		self.statusBar().showMessage(self.tr("Copied selection"), 3000)
+
+	#============================================
+	def _extract_synchronized_structure_fragment(
+			self, target: bkchem_qt.models.document_session.DocumentSession,
+			targets: tuple[str, tuple[str, ...], tuple[str, ...]] | None,
+			) -> str | None:
+		"""Extract one read-only authoritative fragment before native publication."""
+		if targets is None:
+			return None
+		molecule_id, atom_ids, bond_ids = targets
+		revision = target.backend_snapshot.revision
+		try:
+			fragment = target.extract_structure_fragment(
+				revision, molecule_id, atom_ids, bond_ids,
+			)
+		except ValueError as exc:
+			self.statusBar().showMessage(str(exc), 3000)
+			return None
+		fragment_cdml = fragment.fragment_cdml
+		del fragment
+		return fragment_cdml
+
+	#============================================
+	def _publish_structural_copy_fragment(self, fragment_cdml: str) -> None:
+		"""Publish raw structural CDML after all origin projection state is gone."""
+		try:
+			self._clipboard_manager.publish_fragment(fragment_cdml)
+		except (RuntimeError, TypeError, ValueError) as exc:
+			self.statusBar().showMessage(
+				self.tr("Could not copy selection: %s") % exc, 3000,
+			)
+			return
+		self.statusBar().showMessage(self.tr("Copied 1 object(s)"), 3000)
 
 	#============================================
 	def on_paste(self) -> None:
@@ -1604,6 +2063,7 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 			self._retired_import_workers.discard(worker)
 			if not worker.isRunning():
 				worker.deleteLater()
+			self._emit_worker_retirement_drained()
 			return
 		for session in self._sessions:
 			if worker in session._import_workers:
@@ -1628,25 +2088,32 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 		must therefore release ownership without joining that still-delivering
 		thread; the window retains it until the relay observes ``finished``.
 		"""
-		workers = tuple(session._import_workers)
-		for worker in workers:
-			session._import_workers.discard(worker)
+		for worker in session.retire_import_workers():
 			self._retired_import_workers.add(worker)
 
 	#============================================
+	def _emit_worker_retirement_drained(self) -> None:
+		"""Publish the terminal drain only after every adopted worker finished."""
+		if self._shutdown_prepared and not self._retired_import_workers:
+			self._shutdown_state = ShutdownState.READY
+			self._complete_shutdown_session_disposal()
+			self.worker_retirement_drained.emit()
+
+	#============================================
+	def _complete_shutdown_session_disposal(self) -> None:
+		"""Queue detached session roots only after worker retirement drains."""
+		sessions = tuple(self._shutdown_sessions_pending_disposal)
+		self._shutdown_sessions_pending_disposal.clear()
+		for session in sessions:
+			self._dispose_session_later(session)
+
+	#============================================
 	def _stop_import_workers(self) -> None:
-		"""Stop every session-owned import worker."""
+		"""Move all workers into delivery-cancelled window retirement."""
 		for session in tuple(self._sessions):
-			session.invalidate_import_requests()
-			session._stop_import_workers()
-		workers = tuple(self._retired_import_workers)
-		for worker in workers:
+			self._retain_retiring_session_workers(session)
+		for worker in tuple(self._retired_import_workers):
 			worker.requestInterruption()
-		for worker in workers:
-			if worker.isRunning():
-				worker.wait()
-			worker.deleteLater()
-			self._retired_import_workers.discard(worker)
 
 	#============================================
 	def _registered_recovery_export_session(
@@ -1690,7 +2157,12 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 	#============================================
 	def can_save_as_template(self) -> bool:
 		"""Return whether Template export has one current backend snapshot to publish."""
-		return self.can_recovery_export()
+		return self._user_template_directory is not None and self.can_recovery_export()
+
+	#============================================
+	def can_refresh_user_templates(self) -> bool:
+		"""Return whether this window has an explicit user-template directory."""
+		return self._user_template_directory is not None
 
 	#============================================
 	def _export_captured_backend_snapshot(
@@ -2135,27 +2607,6 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 		return True
 
 	#============================================
-	def _replace_session(
-			self,
-			session: bkchem_qt.models.document_session.DocumentSession,
-			document: bkchem_qt.models.document.Document,
-			display_name: str | None = None,
-			origin_path: str | None = None,
-			activate: bool | None = None,
-			) -> bkchem_qt.models.document_session.DocumentSession | None:
-		"""Build a replacement before changing the old tab's ownership graph."""
-		if session not in self._sessions:
-			return None
-		replacement = self._construct_session(
-			document=document,
-			display_name=display_name,
-			origin_path=origin_path,
-		)
-		return self._replace_with_prebuilt_session(
-			session, replacement, activate=activate,
-		)
-
-	#============================================
 	def _replace_with_prebuilt_session(
 			self,
 			session: bkchem_qt.models.document_session.DocumentSession,
@@ -2229,13 +2680,6 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 		self._retain_retiring_session_workers(session)
 		self._dispose_session_later(session)
 		return replacement
-
-	#============================================
-	def _replace_active_document(
-			self, document: bkchem_qt.models.document.Document,
-			) -> None:
-		"""Compatibility wrapper replacing the active tab's full session."""
-		self._replace_session(self._active_session, document, activate=True)
 
 	#============================================
 	def close_session_at(self, index: int) -> bool:
@@ -2324,13 +2768,9 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 			)
 			return False
 		if capability.route == "worker":
-			bond_length_pt = (
-				bkchem_qt.actions.file_actions._resolve_scene_bond_length_pt(self)
-			)
 			return self._start_async_import(
 				capability.codec_name,
 				absolute_path,
-				bond_length_pt,
 				replace_current,
 			)
 		if capability.route != "native":
@@ -2367,8 +2807,7 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 
 	#============================================
 	def _start_async_import(
-			self, codec_name: str, file_path: str, bond_length_pt: float,
-			replace_current: bool,
+			self, codec_name: str, file_path: str, replace_current: bool,
 			) -> bool:
 		"""Start one session-owned non-CDML import."""
 		startup_session = None
@@ -2388,7 +2827,6 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 			self,
 			codec_name,
 			file_path,
-			bond_length_pt=bond_length_pt,
 			on_loaded=lambda prepared_cdml: self._complete_async_import(
 				target,
 				request_token,
@@ -2495,11 +2933,8 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 		if replace_current:
 			return
 		if len(self._sessions) == 1:
-			self._replace_session(
-				target,
-				bkchem_qt.models.document.Document(),
-				activate=True,
-			)
+			replacement = self._construct_session()
+			self._replace_with_prebuilt_session(target, replacement, activate=True)
 		else:
 			self._remove_session(target)
 
@@ -2525,11 +2960,17 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 				origin_path=absolute_path,
 				prepared_native_cdml=prepared_native_cdml,
 			)
-			bkchem_qt.actions.file_actions._project_molecules_to_scene(
+			molecule_projections = bkchem_qt.canvas.molecule_projection.project_molecules_to_scene(
 				session.scene, session.document.molecules,
 			)
-			bkchem_qt.canvas.document_projection.project_document_presentation(
+			presentation_projections = bkchem_qt.canvas.document_projection.project_document_presentation(
 				session.document, session.scene,
+			)
+			session.document.register_current_projection_items(
+				tuple(
+					item for _molecule, items in molecule_projections for item in items
+				) + tuple(presentation_projections["presentation"].values())
+				+ tuple(presentation_projections["marks"].values()),
 			)
 		except Exception as exc:
 			if session is not None:
@@ -2598,11 +3039,17 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 				origin_path=absolute_path,
 				prepared_imported_cdml=prepared_imported_cdml,
 			)
-			bkchem_qt.actions.file_actions._project_molecules_to_scene(
+			molecule_projections = bkchem_qt.canvas.molecule_projection.project_molecules_to_scene(
 				session.scene, session.document.molecules,
 			)
-			bkchem_qt.canvas.document_projection.project_document_presentation(
+			presentation_projections = bkchem_qt.canvas.document_projection.project_document_presentation(
 				session.document, session.scene,
+			)
+			session.document.register_current_projection_items(
+				tuple(
+					item for _molecule, items in molecule_projections for item in items
+				) + tuple(presentation_projections["presentation"].values())
+				+ tuple(presentation_projections["marks"].values()),
 			)
 		except Exception as exc:
 			if session is not None:
@@ -2629,6 +3076,7 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 			)
 			return False
 		bkchem_qt.actions.file_actions._record_recent_file(self, absolute_path)
+		self._warn_unsupported_content(session, absolute_path)
 		self.statusBar().showMessage(
 			self.tr("Imported %d molecule(s); save as CDML to publish") % (
 				len(session.document.molecules),
@@ -2640,105 +3088,6 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 				and startup_session in self._sessions
 			):
 			self._remove_session(startup_session)
-		return True
-
-	#============================================
-	def _install_loaded_document(
-			self, file_path: str, molecules: list, native_cdml: bool,
-			replace_session: (
-				bkchem_qt.models.document_session.DocumentSession | None
-			) = None,
-			loaded_document: bkchem_qt.models.document.Document | None = None,
-			) -> bool:
-		"""Install parsed molecules into a newly owned document session."""
-		if not molecules and loaded_document is None:
-			self.statusBar().showMessage(
-				self.tr("No molecules found in %s") % file_path, 3000,
-			)
-			return False
-
-		absolute_path = os.path.abspath(file_path)
-		display_name = None if native_cdml else os.path.basename(absolute_path)
-		document = (
-			loaded_document
-			if loaded_document is not None
-			else bkchem_qt.models.document.Document()
-		)
-		startup_session = None
-		if replace_session is not None:
-			activate = replace_session is self._active_session
-			session = self._replace_session(
-				replace_session,
-				document,
-				display_name=display_name,
-				origin_path=absolute_path,
-				activate=activate,
-			)
-			if session is None:
-				return False
-		else:
-			startup_session = self._pristine_startup_session()
-			session = self._create_session(
-				document=document,
-				activate=True,
-				display_name=display_name,
-				origin_path=absolute_path,
-			)
-
-		installed = self._populate_session(
-			session, absolute_path, molecules, native_cdml,
-			document_prepopulated=loaded_document is not None,
-		)
-		if not installed:
-			return False
-		if (
-			startup_session is not None
-			and startup_session is not session
-			and startup_session in self._sessions
-		):
-			self._remove_session(startup_session)
-		return True
-
-	#============================================
-	def _populate_session(
-			self,
-			session: bkchem_qt.models.document_session.DocumentSession,
-			file_path: str,
-			molecules: list,
-			native_cdml: bool,
-			document_prepopulated: bool = False,
-			) -> bool:
-		"""Populate one explicit session and establish its file-state policy."""
-		if session.is_disposed or session not in self._sessions:
-			return False
-		if document_prepopulated:
-			bkchem_qt.actions.file_actions._project_molecules_to_scene(
-				session.scene, molecules,
-			)
-			bkchem_qt.canvas.document_projection.project_document_presentation(
-				session.document, session.scene,
-			)
-		else:
-			bkchem_qt.actions.file_actions._add_molecules_to_scene(
-				self, molecules, undoable=False, session=session,
-			)
-		if native_cdml:
-			session.set_file_path(os.path.abspath(file_path))
-			session.document.mark_clean()
-		else:
-			# Imported formats must use Save As so CDML never overwrites a
-			# MOL/SDF/SMILES/CML/CDXML source file.
-			session.document.file_path = None
-			session.set_display_name(os.path.basename(file_path))
-			session.document.mark_dirty()
-		bkchem_qt.actions.file_actions._record_recent_file(self, file_path)
-		self._warn_unsupported_content(session, file_path)
-		self.statusBar().showMessage(
-			self.tr("Loaded %d molecule(s), %d drawing object(s)") % (
-				len(molecules), len(session.document.presentation_objects),
-			),
-			3000,
-		)
 		return True
 
 	#============================================
@@ -2932,23 +3281,94 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 				self.tr("No active backend snapshot is available for template export."),
 			)
 			return False
+		snapshot = session.backend_snapshot
+		try:
+			bkchem_qt.bridge.user_template_inspection.inspect_user_template_display_name(
+				snapshot.cdml,
+			)
+		except bkchem_qt.bridge.user_template_inspection.UserTemplateInspectionError as exc:
+			PySide6.QtWidgets.QMessageBox.warning(
+				self,
+				self.tr("Template Not Eligible"),
+				self.tr("Save As Template accepts one detached molecule with valid geometry.\n\n%s") % exc,
+			)
+			return False
+		if self._user_template_directory is None:
+			PySide6.QtWidgets.QMessageBox.warning(
+				self,
+				self.tr("Template Directory Unavailable"),
+				self.tr("This embedded BKChem window has no user template directory."),
+			)
+			return False
+		try:
+			self._user_template_directory.mkdir(parents=True, exist_ok=True)
+		except OSError as exc:
+			PySide6.QtWidgets.QMessageBox.warning(
+				self,
+				self.tr("Template Directory Unavailable"),
+				self.tr("Could not create the user template directory:\n%s") % exc,
+			)
+			return False
 		file_path = PySide6.QtWidgets.QFileDialog.getSaveFileName(
-			self, self.tr("Save As Template"), "",
+			self, self.tr("Save As Template"), str(self._user_template_directory),
 			self.tr("CDML Template (*.cdml);;All Files (*)"),
 		)[0]
 		if not file_path:
 			return False
+		if self._registered_recovery_export_session(session, require_active=True) is None:
+			PySide6.QtWidgets.QMessageBox.warning(
+				self,
+				self.tr("Template Export Unavailable"),
+				self.tr("The active document changed before template publication."),
+			)
+			return False
+		current_snapshot = session.backend_snapshot
+		if current_snapshot != snapshot:
+			PySide6.QtWidgets.QMessageBox.warning(
+				self,
+				self.tr("Template Export Unavailable"),
+				self.tr("The document changed before template publication. Please try again."),
+			)
+			return False
+		try:
+			bkchem_qt.bridge.user_template_inspection.inspect_user_template_display_name(
+				current_snapshot.cdml,
+			)
+		except bkchem_qt.bridge.user_template_inspection.UserTemplateInspectionError as exc:
+			PySide6.QtWidgets.QMessageBox.warning(
+				self,
+				self.tr("Template Not Eligible"),
+				self.tr("The document changed to an ineligible template.\n\n%s") % exc,
+			)
+			return False
 		path = pathlib.Path(file_path)
 		if not path.suffix:
 			path = path.with_suffix(".cdml")
-		elif path.suffix.lower() != ".cdml":
+		elif path.suffix != ".cdml":
 			PySide6.QtWidgets.QMessageBox.warning(
 				self,
 				self.tr("Unsupported Template Format"),
-				self.tr("BKChem templates must use the .cdml extension."),
+				self.tr("BKChem templates must use the lowercase .cdml extension."),
 			)
 			return False
-		return self._save_template_session_to_path(session, os.path.abspath(str(path)))
+		template_directory = self._user_template_directory.resolve()
+		candidate = path.resolve()
+		if candidate.parent != template_directory:
+			PySide6.QtWidgets.QMessageBox.warning(
+				self,
+				self.tr("Template Destination Outside Catalog"),
+				self.tr("Save templates directly in the configured user template directory."),
+			)
+			return False
+		if not self._save_template_session_to_path(session, str(candidate)):
+			return False
+		self.rescan_user_templates()
+		return True
+
+	#============================================
+	def save_as_template(self) -> bool:
+		"""Publish one eligible active backend snapshot through File behavior."""
+		return self._on_save_as_template()
 
 	#============================================
 	def _export_snapshot_to_path(self, format_name: str, path: str) -> bool:
@@ -2957,12 +3377,10 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 		if session is None or session not in self._sessions:
 			self.statusBar().showMessage(self.tr("Visual export unavailable"), 3000)
 			return False
-		request = session.capture_visual_render_request(format_name)
-		if isinstance(request, oasa.cdml_render.CDMLRenderFailure):
-			self.statusBar().showMessage(request.message, 5000)
-			return False
-		result = bkchem_qt.io.export.write_snapshot_artifact(request, path)
-		if isinstance(result, oasa.cdml_render.CDMLRenderFailure):
+		result = bkchem_qt.io.export.write_session_snapshot_artifact(
+			session, format_name, path,
+		)
+		if not result.succeeded:
 			self.statusBar().showMessage(result.message, 5000)
 			return False
 		message = self.tr("Exported %s") % path
@@ -3128,10 +3546,8 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 		filename, with the full path as a tooltip. When the list
 		is empty, shows a single disabled placeholder entry.
 		"""
-		recent_menu = self._adapter.get_menu_component("Recent files")
-		if recent_menu is None:
+		if self._adapter.get_menu_component("Recent files") is None:
 			return
-		recent_menu.clear()
 		# read the current recent files list
 		recent = self._prefs.value(
 			bkchem_qt.config.preferences.Preferences.KEY_RECENT_FILES
@@ -3141,20 +3557,20 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 			recent = []
 		elif isinstance(recent, str):
 			recent = [recent] if recent else []
-		# populate the submenu
+		commands = []
 		if not recent:
-			placeholder = recent_menu.addAction(self.tr("(No recent files)"))
-			placeholder.setEnabled(False)
-			return
-		for file_path in recent:
-			# show just the filename as the menu label
-			display_name = os.path.basename(file_path)
-			action = recent_menu.addAction(display_name)
-			action.setToolTip(file_path)
-			# capture file_path in the lambda closure
-			action.triggered.connect(
-				lambda checked=False, fp=file_path: self._open_recent_file(fp)
-			)
+			commands.append((self.tr("(No recent files)"), None, False, None))
+		else:
+			for file_path in recent:
+				# show just the filename as the menu label
+				display_name = os.path.basename(file_path)
+				def open_recent_file(
+						_checked: bool = False, path: str = file_path,
+						) -> None:
+					"""Open the immutable path bound to one dynamic menu action."""
+					self._open_recent_file(path)
+				commands.append((display_name, open_recent_file, True, file_path))
+		self._adapter.replace_cascade_commands("Recent files", commands)
 
 	#============================================
 	def _open_recent_file(self, file_path: str) -> None:
@@ -3179,8 +3595,21 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 		accepted = bkchem_qt.dialogs.preferences_dialog.PreferencesDialog \
 			.show_preferences(self)
 		if accepted:
+			chosen_theme = str(self._prefs.value(
+				bkchem_qt.config.preferences.Preferences.KEY_THEME,
+				self._theme_manager.current_theme,
+			))
+			if chosen_theme != self._theme_manager.current_theme:
+				self._theme_manager.apply_theme(chosen_theme)
 			self._apply_geometry_preferences()
 			self._apply_view_preferences()
+			self.statusBar().showMessage(
+				self.tr(
+					"Preferences saved. Display and drawing changes are applied now; "
+					"shortcuts are loaded when BKChem starts."
+				),
+				5000,
+			)
 
 	#============================================
 	def _on_about(self) -> None:
@@ -3270,6 +3699,7 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 			self.saveGeometry(),
 		)
 		self._shutdown_prepared = True
+		self._shutdown_state = ShutdownState.DRAINING
 		self._stop_import_workers()
 		try:
 			self._clipboard.dataChanged.disconnect(self._on_clipboard_data_changed)
@@ -3301,7 +3731,8 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 				)
 			except (RuntimeError, TypeError):
 				pass
-			self._dispose_session_later(session)
+			self._shutdown_sessions_pending_disposal.append(session)
+		self._emit_worker_retirement_drained()
 		return True
 
 	#============================================
@@ -3325,6 +3756,15 @@ def drain_pending_session_deletions(
 	"""Prove one live window's QObject reaper has released every record."""
 	if target_window is None:
 		raise ValueError("A MainWindow is required to prove reaper completion")
+	while target_window._retired_import_workers:
+		loop = PySide6.QtCore.QEventLoop()
+		target_window.worker_retirement_drained.connect(loop.quit)
+		if target_window._retired_import_workers:
+			loop.exec()
+		try:
+			target_window.worker_retirement_drained.disconnect(loop.quit)
+		except (RuntimeError, TypeError):
+			pass
 	for _pass in range(max_passes):
 		target_window._resolve_pending_session_graphics()
 		PySide6.QtCore.QCoreApplication.sendPostedEvents(
@@ -3343,6 +3783,8 @@ def delete_qobject_and_wait(
 		max_passes: int = 4,
 		) -> bool:
 	"""Queue one QObject deletion and prove its destroyed signal was delivered."""
+	if not bkchem_qt.canvas.graphics_retirement.is_valid_native_wrapper(target):
+		raise RuntimeError("Cannot retire an already-retired QObject")
 	destroyed = []
 
 	#============================================

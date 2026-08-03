@@ -357,13 +357,13 @@ def _detached_builder_retry_contract(
 		selected_item = _persistent_arrow(session.scene)
 		selected_item.setSelected(True)
 		second = session.commit_complete_candidate(_ARROW_AND_PLUS_CDML)
-		original_builder = bkchem_qt.io.cdml_document_io.prepare_projection_from_cdml
+		original_builder = bkchem_qt.io.cdml_document_io.prepare_synchronized_projection
 
-		def fail_builder(_cdml: str) -> object:
+		def fail_builder(_cdml: str, _observations: object, _reaper: object) -> object:
 			"""Fail before the replacement candidate reaches the live scene."""
 			raise RuntimeError("detached builder failed")
 
-		bkchem_qt.io.cdml_document_io.prepare_projection_from_cdml = fail_builder
+		bkchem_qt.io.cdml_document_io.prepare_synchronized_projection = fail_builder
 		result = main_window._replace_session_projection(session, second.snapshot)
 		if result.status != "preparation-unavailable":
 			return _fail("detached-builder fault did not report preparation-unavailable")
@@ -374,13 +374,13 @@ def _detached_builder_retry_contract(
 				or session.backend_projection_synchronized
 			):
 			return _fail("detached-builder fault did not retain only a view-only projection")
-		bkchem_qt.io.cdml_document_io.prepare_projection_from_cdml = original_builder
+		bkchem_qt.io.cdml_document_io.prepare_synchronized_projection = original_builder
 		if not main_window._replace_session_projection(session, second.snapshot):
 			return _fail("detached-builder retry did not install the backend candidate")
 		return 0
 	finally:
 		if "original_builder" in locals():
-			bkchem_qt.io.cdml_document_io.prepare_projection_from_cdml = original_builder
+			bkchem_qt.io.cdml_document_io.prepare_synchronized_projection = original_builder
 		if session in main_window.sessions:
 			main_window._remove_session(session)
 

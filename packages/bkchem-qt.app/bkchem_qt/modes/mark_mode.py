@@ -1,19 +1,24 @@
-"""Mark mode for adding chemical marks to atoms."""
-
-# Standard Library
-import math
+"""Backend-authoritative atom-mark interaction mode."""
 
 # PIP3 modules
 import PySide6.QtCore
 import PySide6.QtWidgets
 
 # local repo modules
-import bkchem_qt.canvas.document_projection
 import bkchem_qt.modes.base_mode
 import bkchem_qt.canvas.items.atom_item
-import bkchem_qt.canvas.items.mark_item
-import bkchem_qt.models.document_object
-import bkchem_qt.undo.commands
+
+
+_MARK_TYPE_BY_SUBMODE = {
+	"radical": "radical",
+	"biradical": "biradical",
+	"electronpair": "electronpair",
+	"dottedelectronpair": "dotted_electronpair",
+	"plusincircle": "plus",
+	"minusincircle": "minus",
+	"pzorbital": "pz_orbital",
+}
+_MARK_ACTIONS = frozenset({"add", "remove"})
 
 
 #============================================
@@ -43,9 +48,26 @@ class MarkMode(bkchem_qt.modes.base_mode.BaseMode):
 		"""
 		super().__init__(view, parent)
 		self._name = "Mark"
-		# default mark type to add
-		self._current_mark_type = bkchem_qt.canvas.items.mark_item.MARK_PLUS
+		# Defaults mirror the two YAML submode-group defaults exactly.
+		self._current_mark_type = "radical"
+		self._current_action = "add"
 		self._cursor = PySide6.QtCore.Qt.CursorShape.PointingHandCursor
+		self._persistent_operation = None
+		self._atom_mark_revision = None
+
+	#============================================
+	def set_persistent_operation(self, operation: object | None) -> None:
+		"""Install or clear the session-owned immutable-request callback."""
+		if operation is not None and not callable(operation):
+			raise TypeError("Mark persistent operation must be callable")
+		self._persistent_operation = operation
+
+	#============================================
+	def set_atom_mark_revision(self, provider: object | None) -> None:
+		"""Install or clear the session-bound backend revision provider."""
+		if provider is not None and not callable(provider):
+			raise TypeError("Mark revision provider must be callable")
+		self._atom_mark_revision = provider
 
 	#============================================
 	@property
@@ -55,13 +77,29 @@ class MarkMode(bkchem_qt.modes.base_mode.BaseMode):
 
 	#============================================
 	def set_mark_type(self, mark_type: str) -> None:
-		"""Set the mark type for subsequent clicks.
-
-		Args:
-			mark_type: One of the MARK_* constants from mark_item module.
-		"""
+		"""Set one backend-supported mark type for subsequent clicks."""
+		if mark_type not in set(_MARK_TYPE_BY_SUBMODE.values()):
+			raise ValueError("Mark type is unsupported")
 		self._current_mark_type = mark_type
 		self.status_message.emit(f"Mark mode: {mark_type}")
+
+	#============================================
+	def on_submode_switch(self, submode_index: int, name: str) -> None:
+		"""Map both public YAML submode groups to backend operation scalars."""
+		if submode_index == 0:
+			mark_type = _MARK_TYPE_BY_SUBMODE.get(name)
+			if mark_type is None:
+				raise ValueError("Mark YAML type is unsupported")
+			self._current_mark_type = mark_type
+		elif submode_index == 1:
+			if name not in _MARK_ACTIONS:
+				raise ValueError("Mark YAML action is unsupported")
+			self._current_action = name
+		else:
+			raise ValueError("Mark submode group is unsupported")
+		self.status_message.emit(
+			"Mark mode: %s %s" % (self._current_action, self._current_mark_type),
+		)
 
 	#============================================
 	def mouse_press(
@@ -69,11 +107,7 @@ class MarkMode(bkchem_qt.modes.base_mode.BaseMode):
 			scene_pos: PySide6.QtCore.QPointF,
 			event: object,
 			) -> None:
-		"""Add or toggle a mark on the atom under the cursor.
-
-		If the click lands on an AtomItem, checks whether a mark of
-		the current type already exists. If so, removes it; otherwise
-		adds a new mark at the default angle for that type.
+		"""Submit one revision-bound atom-mark request for a durable atom.
 
 		Args:
 			scene_pos: Position in scene coordinates.
@@ -82,118 +116,26 @@ class MarkMode(bkchem_qt.modes.base_mode.BaseMode):
 		atom_item = self._item_at(scene_pos)
 		if not isinstance(atom_item, bkchem_qt.canvas.items.atom_item.AtomItem):
 			return
-		document = self._env.document
-		undo_stack = self._env.undo_stack
-		if document is None or undo_stack is None:
+		if self._persistent_operation is None or self._atom_mark_revision is None:
+			self.status_message.emit("Document cannot accept a persistent edit")
 			return
-		legacy_mark_type = _legacy_mark_type(self._current_mark_type)
-		if legacy_mark_type is None:
+		atom_model = atom_item.atom_model
+		molecule = self._env.find_molecule_for_atom(atom_model)
+		molecule_id = getattr(molecule, "mol_id", None)
+		atom_id = getattr(atom_model, "backend_durable_id", None)
+		if (
+				not isinstance(molecule_id, str) or not molecule_id
+				or not isinstance(atom_id, str) or not atom_id
+			):
+			self.status_message.emit("Selected atom has no durable backend identity")
 			return
-		# Persisted models, rather than transient child item types, define toggle
-		# identity. This also handles CDML's electronpair spelling consistently.
-		existing_mark = _matching_mark_item(atom_item, legacy_mark_type)
-		if existing_mark is not None:
-			command = bkchem_qt.undo.commands.RemoveAtomMarkCommand(
-				document,
-				existing_mark.atom_mark_model,
-				existing_mark,
-				atom_item,
-			)
-			undo_stack.push(command)
-			self.status_message.emit(f"Removed {self._current_mark_type} mark")
-		else:
-			# CDML stores mark position in document coordinates. MarkItem uses a
-			# 12-point radial display offset, so preserve the same position.
-			angle = _default_angle_for_type(self._current_mark_type)
-			angle_radians = math.radians(angle)
-			atom_model = atom_item.atom_model
-			x = atom_model.x + 12.0 * math.cos(angle_radians)
-			y = atom_model.y + 12.0 * math.sin(angle_radians)
-			attributes = {
-				"type": legacy_mark_type,
-				"x": f"{x:g}",
-				"y": f"{y:g}",
-				"auto": "0",
-				"size": "4",
-				"angle": f"{angle:g}",
-			}
-			mark_model = bkchem_qt.models.document_object.AtomMarkModel(
-				atom_model, attributes,
-			)
-			mark_item = bkchem_qt.canvas.document_projection.create_mark_item(
-				mark_model, atom_item,
-			)
-			if mark_item is None:
-				return
-			command = bkchem_qt.undo.commands.AddAtomMarkCommand(
-				document, mark_model, mark_item, atom_item,
-			)
-			undo_stack.push(command)
-			self.status_message.emit(f"Added {self._current_mark_type} mark")
-
-
-#============================================
-def _default_angle_for_type(mark_type: str) -> float:
-	"""Return a default placement angle for the given mark type.
-
-	Args:
-		mark_type: One of the MARK_* constants.
-
-	Returns:
-		Angle in degrees.
-	"""
-	angle_map = {
-		bkchem_qt.canvas.items.mark_item.MARK_PLUS: 45.0,
-		bkchem_qt.canvas.items.mark_item.MARK_MINUS: 45.0,
-		bkchem_qt.canvas.items.mark_item.MARK_RADICAL: 90.0,
-		bkchem_qt.canvas.items.mark_item.MARK_ELECTRON_PAIR: 180.0,
-		bkchem_qt.canvas.items.mark_item.MARK_LONE_PAIR: 180.0,
-	}
-	angle = angle_map.get(mark_type, 0.0)
-	return angle
-
-
-#============================================
-def _legacy_mark_type(mark_type: str) -> str | None:
-	"""Map the Qt display type to the legacy CDML mark spelling.
-
-	Args:
-		mark_type: Current MarkItem constant selected by the ribbon.
-
-	Returns:
-		CDML mark type, or None when the ribbon supplied an unsupported type.
-	"""
-	legacy_types = {
-		bkchem_qt.canvas.items.mark_item.MARK_PLUS: "plus",
-		bkchem_qt.canvas.items.mark_item.MARK_MINUS: "minus",
-		bkchem_qt.canvas.items.mark_item.MARK_RADICAL: "radical",
-		bkchem_qt.canvas.items.mark_item.MARK_ELECTRON_PAIR: "electronpair",
-		bkchem_qt.canvas.items.mark_item.MARK_LONE_PAIR: "electronpair",
-	}
-	legacy_type = legacy_types.get(mark_type)
-	return legacy_type
-
-
-#============================================
-def _matching_mark_item(
-		atom_item: bkchem_qt.canvas.items.atom_item.AtomItem,
-		legacy_mark_type: str,
-		) -> bkchem_qt.canvas.items.mark_item.MarkItem | None:
-	"""Return this atom's persistent child mark of the requested CDML type.
-
-	Args:
-		atom_item: Atom projection whose child marks are inspected.
-		legacy_mark_type: CDML type used to identify a matching mark.
-
-	Returns:
-		Matching persistent MarkItem, or None when no model-backed child matches.
-	"""
-	for child in atom_item.childItems():
-		if not isinstance(child, bkchem_qt.canvas.items.mark_item.MarkItem):
-			continue
-		mark_model = getattr(child, "atom_mark_model", None)
-		if mark_model is None:
-			continue
-		if mark_model.mark_type == legacy_mark_type:
-			return child
-	return None
+		expected_revision = self._atom_mark_revision()
+		if type(expected_revision) is not int:
+			raise ValueError("Mark revision provider must return an integer")
+		from bkchem_qt.models import document_session
+		request = document_session.build_atom_mark_request(
+			expected_revision, molecule_id, atom_id,
+			self._current_action, self._current_mark_type,
+		)
+		outcome = self._persistent_operation(request)
+		self.status_message.emit(outcome.message)

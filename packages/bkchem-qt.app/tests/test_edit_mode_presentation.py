@@ -137,6 +137,8 @@ def test_edit_mode_delete_undo_restores_same_presentation_projection(
 	edit_mode._delete_selected()
 	main_window.document.undo_stack.undo()
 	assert (
-		presentation in main_window.document.presentation_objects
+		main_window._active_session.top_level_delete_authority() == "local"
+		and main_window._active_session.backend_snapshot.revision == 0
+		and presentation in main_window.document.presentation_objects
 		and presentation_item.scene() is main_window.scene
 	)

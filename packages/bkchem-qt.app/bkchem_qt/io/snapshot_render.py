@@ -131,8 +131,11 @@ def _build_projection(
 		request: oasa.cdml_render.CDMLRenderRequest,
 		) -> tuple[_SnapshotProjection, tuple[oasa.cdml_render.CDMLRenderWarning, ...]]:
 	"""Decode one snapshot and install only its requested supported graphics."""
-	prepared = bkchem_qt.io.cdml_document_io.prepare_projection_from_cdml(
-		request.snapshot.cdml,
+	projection_snapshot = oasa.cdml_document.CDMLDocument.projection_snapshot(
+		request.snapshot,
+	)
+	prepared = bkchem_qt.io.cdml_document_io.prepare_synchronized_projection(
+		projection_snapshot,
 	)
 	scene = PySide6.QtWidgets.QGraphicsScene()
 	items = []
@@ -157,10 +160,13 @@ def _build_projection(
 			if include_all or str(identifier) in selected_presentations:
 				scene.addItem(item)
 				items.append(item)
-		for item in prepared.mark_items:
-			parent = item.parentItem()
-			if parent is not None and parent.scene() is scene:
-				items.append(item)
+		included_atoms = {
+			item for _molecule, molecule_items in prepared.molecule_projections
+			for item in molecule_items if getattr(item, "atom_model", None) is not None
+		}
+		for atom_item, mark_items in prepared.mark_parent_items:
+			if atom_item in included_atoms:
+				items.extend(mark_items)
 		bkchem_qt.canvas.document_projection.synchronize_document_stack_z_order(
 			prepared.document, scene,
 		)

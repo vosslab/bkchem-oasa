@@ -47,6 +47,6 @@ availability does not imply that the PySide6 File menu supports the same
 operation. New GUI formats must preserve the session, undo, and
 backend/frontend ownership contracts before they are advertised.
 
-The classic Tkinter frontend retains older plugin routes as a compatibility
-oracle while migration is completed; those routes are not the current
-PySide6 format contract.
+The retained Tk source contains older plugin routes as contributor reference
+evidence only. Those routes are not a supported frontend, packaging target, or
+part of the BKChem-Qt format contract.

@@ -1,8 +1,8 @@
 # Usage
 
-`bkchem-qt` is the current PySide6 chemical-drawing frontend over the OASA
-backend. The older Tkinter `bkchem` command remains a compatibility oracle
-while feature parity is completed.
+`bkchem-qt` is the only supported BKChem frontend. OASA owns the canonical,
+persistent CDML document; Qt supplies presentation, interaction, and a
+replaceable scene projection of the current backend snapshot.
 
 ## Quick start
 
@@ -12,86 +12,75 @@ Launch an empty drawing session:
 bkchem-qt
 ```
 
-Open one or more native CDML documents at launch:
+From a dependency-ready source checkout before installing the entry point, use
+the equivalent Qt launcher:
 
 ```sh
-bkchem-qt example.cdml second-example.cdml
+./launch_bkchem-qt_gui.sh
 ```
 
-The CLI form is `bkchem-qt [files...]`. Use `--version` to print the installed
-frontend version.
+Open a native document at launch:
 
-## Files and saving
+```sh
+bkchem-qt example.cdml
+```
 
-- Native `.cdml` is the only save target currently supported by `bkchem-qt`.
-- A suffixless Save As name receives `.cdml`; other save suffixes are refused.
-- Opening native CDML creates a clean, path-backed document session.
-- File import supports `.mol`, `.sdf`, `.smi`, `.smiles`, `.cdxml`, and `.cml`
-  through OASA. Generic `.xml` is not an import option because XML alone does
-  not identify a chemistry format.
-  Imported chemistry becomes a dirty, pathless session, so use Save As to
-  create a CDML document instead of overwriting the original source.
-- The app opens ordinary files in separate sessions and activates an existing
-  tab when that source is already open.
+Use File > Save As to choose a `.cdml` name, then reopen that file to continue
+with a clean, path-backed document.
 
-## Typical workflow
+## Command line
 
-1. Start `bkchem-qt` and sketch a structure, or open a `.cdml` document.
-2. Use File > Import for a Molfile, SDF, SMILES, CDXML, or CML input.
-3. Select File > Save As and choose a `.cdml` name for imported work.
-4. Reopen the saved CDML document to continue editing in a clean session.
+The normal command form is `bkchem-qt [files...]`. The only ordinary
+user-facing flag is `-v` or `--version`, which prints the installed version.
+The positional launch files are CDML documents.
 
-See [QT_CONTRACT.md](QT_CONTRACT.md) for session, save, import, and teardown
-semantics. The backend/frontend data boundary is specified in
+## Files, saving, and recovery
+
+- `.cdml` is the native editable format and the only ordinary Save or Save As
+  target. A name without a suffix receives `.cdml`; another suffix is refused.
+- File > Open accepts native `.cdml`. It opens each ordinary file in a separate
+  session and activates an already-open source instead of duplicating it.
+- File > Import accepts `.mol`, `.sdf`, `.smi`, `.smiles`, `.cdxml`, and
+  `.cml` through OASA. Generic `.xml` is not accepted because it does not name
+  a chemistry format.
+- Imported material becomes a dirty, pathless CDML session. Save As creates a
+  new `.cdml` document and never overwrites the source import format.
+- Ordinary Save publishes the exact current backend snapshot and marks that
+  backend revision as saved only after the file write succeeds. Qt never
+  reconstructs a complete document for publication.
+
+If ordinary Save is unavailable because the current Qt projection is not an
+exact current backend snapshot, use File > Recovery Export Backend CDML. It
+writes the exact backend snapshot as `.cdml` without changing the session or
+its saved baseline. Qt-local edits not present in that snapshot are excluded.
+If the app reports unconfirmed durability, the snapshot may exist at the chosen
+path, but the tab remains open and no session state changes.
+
+## Rendered export
+
+File > Export writes the current backend snapshot as SVG, PNG, or PDF for
+sharing or publication. These rendered outputs are not editable document save
+formats; keep the `.cdml` file as the editable source.
+
+## Carbohydrate drawings
+
+Insert > Direct Glycosidic Haworth accepts a supported structural SMILES and
+creates a detached two-ring five- or six-member C/O Haworth drawing through the
+same backend insertion and undo path as other molecules. The generated CDML
+retains its Haworth depiction records on Save and reopen. This is a drawing
+tool for the supported direct-oxygen profile; it does not assign alpha/beta or
+tetrahedral stereochemistry.
+
+## Current limitations
+
+- Group expansion requires one current plain implicit group with exactly one
+  exterior bond. Fragment workflows support ordinary fragment metadata; rich
+  imported or generated fragment records are display-only. Linear-form
+  conversion requires a selected unbranched atom path.
+- Rendered export can report unsupported persistent objects that it omitted.
+- OASA's frontend-neutral backend contract defines the data boundary only; this
+  release ships the Qt application and does not claim another frontend.
+
+For the detailed ownership and lifecycle rules, see
+[QT_CONTRACT.md](QT_CONTRACT.md) and
 [CDML_BACKEND_TO_FRONTEND_CONTRACT.md](CDML_BACKEND_TO_FRONTEND_CONTRACT.md).
-
-## OASA and the Tkinter oracle
-
-OASA is also available as a Python library after installation:
-
-```python
-import oasa
-```
-
-Use `bkchem` only when comparing the legacy Tkinter behavior against the
-modern frontend. Its batch scripting is described in
-[BATCH_MODE.md](BATCH_MODE.md); it is not the primary PySide6 workflow.
-
-## macOS delivery preview
-
-For the next isolated Qt-only app experiment, provide a new path below the
-repository `tmp/` directory:
-
-```sh
-source source_me.sh && python3 devel/build_qt_app.py \
-  --output tmp/qt_bundle/next-arm64-run --dry-run
-```
-
-The preview prints deterministic icon, local frontend-wheel, metadata-staging,
-PyInstaller, and normal timer-exit smoke stages without writing the requested
-run root. A later controlled macOS arm64 run may use the same command without
-`--dry-run`; it builds one local frontend wheel into that retained run root,
-stages its complete matching distribution metadata, then starts source-tree
-PyInstaller analysis. Every run root is single-use and preserved for inspection.
-The PyInstaller subprocess receives a copied environment with its configuration
-and cache parent rooted in that same run directory, so the experiment retains
-all of its builder-owned state together.
-
-The real-build icon encoder is host-adaptive: a bounded system Chess-icon
-round-trip selects the existing standard `iconutil` path when that encoder is
-healthy. A failed self-test is reported and selects a validated multiresolution
-ICNS container built from seven Qt-rendered copies of the current application
-SVG. The preview does not run the self-test, renderer, or encoder.
-
-## Current limits
-
-- Group expansion, fragment workflows, and conversion to linear form do not
-  yet have complete PySide6 action parity.
-- The current migration boundary and completion evidence are tracked in
-  [BKCHEM_QT_COMPLETION_PLAN_2026-07-27.md](active_plans/active/BKCHEM_QT_COMPLETION_PLAN_2026-07-27.md).
-
-## Exporting a rendered page
-
-Use File > Export to write the current scene as SVG, PNG, or PDF. These are
-rendered outputs for sharing or publication; continue saving the editable
-document as CDML.

@@ -1,8 +1,7 @@
 """Geometry unit helpers for BKChem-Qt scene-space values."""
 
 # local repo modules
-from oasa.cdml_writer import POINTS_PER_CM
-
+import bkchem_qt.bridge.display_geometry
 import bkchem_qt.config.preferences
 
 
@@ -12,13 +11,13 @@ DEFAULT_BOND_LENGTH_PT = 40.0
 #============================================
 def cm_to_pt(cm: float) -> float:
 	"""Convert centimeters to scene points."""
-	return float(cm) * POINTS_PER_CM
+	return bkchem_qt.bridge.display_geometry.cm_to_points(cm)
 
 
 #============================================
 def pt_to_cm(pt: float) -> float:
 	"""Convert scene points to centimeters."""
-	return float(pt) / POINTS_PER_CM
+	return bkchem_qt.bridge.display_geometry.points_to_cm(pt)
 
 
 #============================================

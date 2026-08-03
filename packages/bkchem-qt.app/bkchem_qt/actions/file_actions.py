@@ -8,11 +8,8 @@ import PySide6.QtCore
 import PySide6.QtWidgets
 
 # local repo modules
-import bkchem_qt.bridge.oasa_bridge
 import bkchem_qt.bridge.worker
-import bkchem_qt.canvas.items.atom_item
-import bkchem_qt.canvas.items.bond_item
-import bkchem_qt.canvas.items.group_item
+import bkchem_qt.canvas.molecule_projection
 import bkchem_qt.config.geometry_units
 import bkchem_qt.config.preferences
 import bkchem_qt.dialogs.paper_properties_dialog
@@ -43,7 +40,7 @@ class _ImportResultRelay(PySide6.QtCore.QObject):
 	#============================================
 	def __init__(
 			self, main_window: object, worker: PySide6.QtCore.QThread,
-			file_path: str, bond_length_pt: float, on_loaded: object = None,
+			file_path: str, on_loaded: object = None,
 			should_deliver: object = None, worker_owner: object = None,
 			on_error: object = None,
 			) -> None:
@@ -52,7 +49,6 @@ class _ImportResultRelay(PySide6.QtCore.QObject):
 		self._main_window = main_window
 		self._worker = worker
 		self._file_path = file_path
-		self._bond_length_pt = bond_length_pt
 		self._on_loaded = on_loaded
 		self._should_deliver = should_deliver
 		# A DocumentSession owns work started for it.  Retain the MainWindow
@@ -74,12 +70,19 @@ class _ImportResultRelay(PySide6.QtCore.QObject):
 		"""Deliver a current worker result through its typed public boundary."""
 		if not self._request_is_current():
 			return
-		if isinstance(result, bkchem_qt.bridge.worker.PreparedCompleteCDML):
+		if type(result) is bkchem_qt.bridge.worker.PreparedCompleteCDML:
 			if callable(self._on_loaded):
 				self._on_loaded(result)
 				return
-			raise TypeError("complete CDML imports require a session-aware delivery")
-		if not result:
+			failure = TypeError(
+				"Complete CDML imports require a session-aware delivery",
+			)
+			if callable(self._on_error):
+				self._on_error(failure)
+				return
+			self.on_error(failure)
+			return
+		if result is None:
 			if callable(self._on_error):
 				self._on_error("No molecules found")
 				return
@@ -87,21 +90,13 @@ class _ImportResultRelay(PySide6.QtCore.QObject):
 				"No molecules found", 3000,
 			)
 			return
-		molecules = []
-		for part in result:
-			mol_model = bkchem_qt.bridge.oasa_bridge.oasa_mol_to_qt_mol(
-				part, bond_length_pt=self._bond_length_pt,
-			)
-			molecules.append(mol_model)
-		if callable(self._on_loaded):
-			self._on_loaded(molecules)
-			return
-		if molecules:
-			_add_molecules_to_scene(self._main_window, molecules)
-			_record_recent_file(self._main_window, self._file_path)
-		self._main_window.statusBar().showMessage(
-			"Loaded %d molecule(s)" % len(molecules), 3000,
+		failure = TypeError(
+			"File imports must return PreparedCompleteCDML or None",
 		)
+		if callable(self._on_error):
+			self._on_error(failure)
+			return
+		self.on_error(failure)
 
 	#============================================
 	@PySide6.QtCore.Slot(object)
@@ -170,15 +165,6 @@ def push_recent_file(file_path: str) -> list:
 		recent,
 	)
 	return recent
-
-
-#============================================
-def _resolve_scene_bond_length_pt(main_window: object) -> float:
-	"""Resolve canonical bond length from the active scene."""
-	scene = getattr(main_window, "_scene", None)
-	if scene is not None and hasattr(scene, "grid_spacing_pt"):
-		return float(scene.grid_spacing_pt)
-	return bkchem_qt.config.geometry_units.DEFAULT_BOND_LENGTH_PT
 
 
 #============================================
@@ -259,21 +245,21 @@ def open_file_path(main_window: object, file_path: str) -> None:
 #============================================
 def _load_with_worker(
 	main_window: object, codec_name: str, file_path: str,
-	bond_length_pt: float, on_loaded: object = None,
+	on_loaded: object = None,
 	should_deliver: object = None, worker_owner: object = None,
 	on_error: object = None,
 ) -> None:
 	"""Load a non-CDML file asynchronously using FileImportWorker.
 
-	Runs parsing, coordinate generation, and component splitting in a
-	background thread. On completion, converts the result to MoleculeModels
-	in the GUI thread and adds them to the scene.
+	Runs parsing, coordinate generation, and strict complete-CDML preparation in
+	a background thread. On completion, its immutable prepared-CDML result is
+	installed through the originating session.
 
 	Args:
 		main_window: MainWindow instance.
 		codec_name: OASA codec name (e.g. 'molfile', 'smiles').
 		file_path: Path to the chemistry file.
-		on_loaded: Optional callback receiving converted MoleculeModels.
+		on_loaded: Optional callback receiving prepared complete CDML.
 		should_deliver: Optional callback that rejects a stale request.
 		worker_owner: Optional session-like owner providing
 			``track_import_worker`` and ``release_import_worker``.
@@ -284,7 +270,6 @@ def _load_with_worker(
 		main_window,
 		worker,
 		file_path,
-		bond_length_pt,
 		on_loaded=on_loaded,
 		should_deliver=should_deliver,
 		worker_owner=worker_owner,
@@ -295,7 +280,7 @@ def _load_with_worker(
 #============================================
 def _start_prepared_import_worker(
 		main_window: object, worker: PySide6.QtCore.QThread,
-		source_label: str, bond_length_pt: float, on_loaded: object = None,
+		source_label: str, on_loaded: object = None,
 		should_deliver: object = None, worker_owner: object = None,
 		on_error: object = None,
 		) -> None:
@@ -307,10 +292,9 @@ def _start_prepared_import_worker(
 
 	Args:
 		main_window: MainWindow providing status and the QObject relay parent.
-		worker: Started-once worker that produces positioned OASA components.
+		worker: Started-once worker that produces prepared complete CDML.
 		source_label: Human-readable source identity for default delivery.
-		bond_length_pt: Display-space conversion scale for Qt models.
-		on_loaded: Optional GUI-thread callback receiving MoleculeModels.
+		on_loaded: Optional GUI-thread callback receiving prepared complete CDML.
 		should_deliver: Optional session/token liveness predicate.
 		worker_owner: Optional session-like owner retaining the worker.
 		on_error: Optional GUI-thread callback receiving an error message.
@@ -319,7 +303,6 @@ def _start_prepared_import_worker(
 		main_window,
 		worker,
 		source_label,
-		bond_length_pt,
 		on_loaded=on_loaded,
 		should_deliver=should_deliver,
 		worker_owner=worker_owner,
@@ -392,10 +375,14 @@ def _add_molecules_to_scene(
 		scene = main_window._scene
 	if document is None:
 		document = getattr(main_window, "_document", None)
-	projections = _build_molecule_projections(molecules)
+	projections = bkchem_qt.canvas.molecule_projection.build_molecule_projections(
+		molecules,
+	)
 
 	if document is None:
-		_project_molecule_projections(scene, projections)
+		bkchem_qt.canvas.molecule_projection.install_molecule_projections(
+			scene, projections,
+		)
 		return
 
 	if undoable:
@@ -418,68 +405,6 @@ def _add_molecules_to_scene(
 		document.add_molecule(mol_model, mark_dirty=False)
 		for item in graphics_items:
 			scene.addItem(item)
-
-
-#============================================
-def _build_molecule_projections(molecules: list) -> list[tuple[object, list]]:
-	"""Construct molecule graphics without changing a document or scene."""
-	projections = []
-	graphics_items = []
-	try:
-		for mol_model in molecules:
-			graphics_items = []
-			for bond_model in mol_model.bonds:
-				item = bkchem_qt.canvas.items.bond_item.BondItem(bond_model)
-				item.molecule_model = mol_model
-				graphics_items.append(item)
-			for atom_model in mol_model.atoms:
-				item = bkchem_qt.canvas.items.atom_item.AtomItem(atom_model)
-				item.molecule_model = mol_model
-				graphics_items.append(item)
-			for group_model in mol_model.groups:
-				item = bkchem_qt.canvas.items.group_item.GroupItem(group_model)
-				item.molecule_model = mol_model
-				graphics_items.append(item)
-			projections.append((mol_model, graphics_items))
-	except Exception:
-		# This helper is the detached construction boundary.  A later wrapper
-		# can fail after earlier molecule items have connected model callbacks;
-		# clean both completed and current molecules before preserving the error.
-		items = [
-			item
-			for _mol_model, molecule_items in projections
-			for item in molecule_items
-		]
-		items.extend(graphics_items)
-		# Delay the import to preserve the existing cdml_document_io ->
-		# file_actions direction while reusing the projection's child-first
-		# detached-item cleanup.
-		from bkchem_qt.canvas.document_projection import dispose_detached_items
-		dispose_detached_items(items)
-		raise
-	return projections
-
-
-#============================================
-def _project_molecule_projections(
-		scene: PySide6.QtWidgets.QGraphicsScene,
-		projections: list[tuple[object, list]],
-		) -> None:
-	"""Add already-owned molecule graphics to a scene without model mutation."""
-	for _mol_model, graphics_items in projections:
-		for item in graphics_items:
-			scene.addItem(item)
-
-
-#============================================
-def _project_molecules_to_scene(
-		scene: PySide6.QtWidgets.QGraphicsScene, molecules: list,
-		) -> list[tuple[object, list]]:
-	"""Project molecules already owned by a loaded Document into its scene."""
-	projections = _build_molecule_projections(molecules)
-	_project_molecule_projections(scene, projections)
-	return projections
-
 
 #============================================
 #============================================
@@ -618,8 +543,17 @@ def register_file_actions(registry: object, app: object) -> None:
 		label_key='Save As Template',
 		help_key='Export the current backend CDML snapshot as a template',
 		accelerator=None,
-		handler=app._on_save_as_template,
+		handler=app.save_as_template,
 		enabled_when=app.can_save_as_template,
+	))
+	# refresh the frontend-owned saved user-template catalog
+	registry.register(MenuAction(
+		id='file.refresh_user_templates',
+		label_key='Refresh User Templates',
+		help_key='Rescan the configured user template directory',
+		accelerator=None,
+		handler=app.refresh_user_templates,
+		enabled_when=app.can_refresh_user_templates,
 	))
 	# open a file in a new tab
 	registry.register(MenuAction(

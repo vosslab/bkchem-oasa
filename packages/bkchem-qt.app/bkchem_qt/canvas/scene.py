@@ -8,8 +8,8 @@ import PySide6.QtGui
 import PySide6.QtWidgets
 
 # local repo modules
-import oasa.hex_grid
 import bkchem_qt.bridge.oasa_bridge
+import bkchem_qt.bridge.display_geometry
 import bkchem_qt.canvas.graphics_retirement
 import bkchem_qt.config.geometry_units
 import bkchem_qt.themes.theme_loader
@@ -32,10 +32,10 @@ _PAPER_NUMBER_RE = re.compile(r"(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)")
 
 #============================================
 class HexGridOverlayItem(PySide6.QtWidgets.QGraphicsItem):
-	"""Draw one disposable hex-grid projection from OASA display geometry.
+	"""Draw one disposable hex-grid projection from scalar display geometry.
 
 	The overlay is intentionally a frontend-only item.  It retains no document
-	objects and delegates all vertex and edge geometry to ``oasa.hex_grid``.
+	objects and obtains only immutable coordinate tuples from the named bridge.
 	"""
 
 	#============================================
@@ -78,10 +78,13 @@ class HexGridOverlayItem(PySide6.QtWidgets.QGraphicsItem):
 	#============================================
 	def set_geometry(self, paper_rect: PySide6.QtCore.QRectF, spacing: float) -> None:
 		"""Replace cached display paths after paper or spacing changes."""
+		new_paper_rect = PySide6.QtCore.QRectF(paper_rect)
+		new_line_path = _hex_grid_line_path(new_paper_rect, spacing)
+		new_dot_path = _hex_grid_dot_path(new_paper_rect, spacing)
 		self.prepareGeometryChange()
-		self._paper_rect = PySide6.QtCore.QRectF(paper_rect)
-		self._line_path = _hex_grid_line_path(self._paper_rect, spacing)
-		self._dot_path = _hex_grid_dot_path(self._paper_rect, spacing)
+		self._paper_rect = new_paper_rect
+		self._line_path = new_line_path
+		self._dot_path = new_dot_path
 		self.update()
 
 	#============================================
@@ -104,31 +107,29 @@ class HexGridOverlayItem(PySide6.QtWidgets.QGraphicsItem):
 #============================================
 def _hex_grid_line_path(paper_rect: PySide6.QtCore.QRectF,
 		spacing: float) -> PySide6.QtGui.QPainterPath:
-	"""Build the current paper's honeycomb path from OASA's pure geometry."""
+	"""Build the current paper's honeycomb path from scalar bridge geometry."""
 	path = PySide6.QtGui.QPainterPath()
-	edges = oasa.hex_grid.generate_hex_honeycomb_edges(
+	edges = bkchem_qt.bridge.display_geometry.hex_grid_edges(
 		paper_rect.left(), paper_rect.top(), paper_rect.right(), paper_rect.bottom(),
 		spacing,
 	)
-	if edges is not None:
-		for (x1, y1), (x2, y2) in edges:
-			path.moveTo(x1, y1)
-			path.lineTo(x2, y2)
+	for (x1, y1), (x2, y2) in edges:
+		path.moveTo(x1, y1)
+		path.lineTo(x2, y2)
 	return path
 
 
 #============================================
 def _hex_grid_dot_path(paper_rect: PySide6.QtCore.QRectF,
 		spacing: float) -> PySide6.QtGui.QPainterPath:
-	"""Build the current paper's vertex-dot path from OASA's pure geometry."""
+	"""Build the current paper's vertex-dot path from scalar bridge geometry."""
 	path = PySide6.QtGui.QPainterPath()
-	points = oasa.hex_grid.generate_hex_grid_points(
+	points = bkchem_qt.bridge.display_geometry.hex_grid_points(
 		paper_rect.left(), paper_rect.top(), paper_rect.right(), paper_rect.bottom(),
 		spacing,
 	)
-	if points is not None:
-		for px, py in points:
-			path.addEllipse(px - 1.0, py - 1.0, 2.0, 2.0)
+	for px, py in points:
+		path.addEllipse(px - 1.0, py - 1.0, 2.0, 2.0)
 	return path
 
 
@@ -208,11 +209,12 @@ class ChemScene(PySide6.QtWidgets.QGraphicsScene):
 		self._paper_item.setZValue(PAPER_Z_VALUE)
 
 	#============================================
-	def _build_grid(self) -> None:
-		"""Create one paper-local hex-grid display item from OASA geometry."""
+	def _build_grid(self, spacing: float | None = None) -> None:
+		"""Create one paper-local hex-grid display item from bridge geometry."""
 		grid_colors = bkchem_qt.themes.theme_loader.get_grid_colors(self._theme_name)
+		resolved_spacing = self._grid_spacing_pt if spacing is None else spacing
 		overlay = HexGridOverlayItem(
-			self._paper_item.rect(), self._grid_spacing_pt, grid_colors,
+			self._paper_item.rect(), resolved_spacing, grid_colors,
 		)
 		overlay.setZValue(GRID_Z_VALUE)
 		overlay.setVisible(self._grid_visible)
@@ -224,7 +226,7 @@ class ChemScene(PySide6.QtWidgets.QGraphicsScene):
 		"""Update paper and grid colors from the named YAML theme.
 
 		The single grid overlay changes pens and brushes in place without
-		rebuilding its OASA-generated display geometry.
+		rebuilding its scalar bridge display geometry.
 
 		Args:
 			theme_name: 'dark' or 'light'.
@@ -445,13 +447,17 @@ class ChemScene(PySide6.QtWidgets.QGraphicsScene):
 			value: New spacing in scene-space points.
 		"""
 		self._require_active_contents("change grid spacing")
-		new_spacing = float(value)
-		if new_spacing <= 0.0:
+		try:
+			new_spacing = bkchem_qt.bridge.display_geometry.normalize_hex_grid_spacing(value)
+		except (TypeError, ValueError):
 			return
 		if abs(new_spacing - self._grid_spacing_pt) < 1e-6:
 			return
+		if self._grid_overlay is not None:
+			self._grid_overlay.set_geometry(self._paper_item.rect(), new_spacing)
+		else:
+			self._build_grid(new_spacing)
 		self._grid_spacing_pt = new_spacing
-		self._rebuild_grid()
 
 	#============================================
 	def snap_to_grid(self, x: float, y: float) -> tuple:
@@ -464,7 +470,7 @@ class ChemScene(PySide6.QtWidgets.QGraphicsScene):
 		Returns:
 			Tuple of (snapped_x, snapped_y) on the hex grid.
 		"""
-		snapped = oasa.hex_grid.snap_to_hex_grid(
+		snapped = bkchem_qt.bridge.display_geometry.snap_to_hex_grid(
 			x, y, self._grid_spacing_pt,
 		)
 		return snapped

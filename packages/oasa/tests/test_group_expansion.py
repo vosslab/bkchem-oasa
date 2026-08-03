@@ -106,3 +106,14 @@ def test_attachment_rewire_is_deterministic() -> None:
 		"chain", "methyl", "CH3", _anchor(), (attachment,), _InjectedMolecule,
 	)
 	assert first.rewires == second.rewires
+
+
+#============================================
+def test_implicit_group_uses_end_valency_when_start_valency_is_unavailable() -> None:
+	"""A directional formula retains its valid attachment endpoint."""
+	plan = oasa.group_expansion.plan_group_expansion(
+		"implicit", "H3CO", None, _anchor(),
+		(oasa.group_expansion.GroupAttachment("b1", "a1", 1),),
+		_InjectedMolecule,
+	)
+	assert plan.graph.vertices[plan.replacement_vertex_index].symbol == "C"

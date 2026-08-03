@@ -26,6 +26,12 @@ SMOKE_RECEIPT_SCHEMA = "bkchem-smoke-1"
 
 
 #============================================
+def default_user_template_directory() -> pathlib.Path:
+	"""Return the product's explicit frontend-owned user-template directory."""
+	return pathlib.Path.home() / ".bkchem" / "templates"
+
+
+#============================================
 @dataclasses.dataclass
 class _SmokeTimerDelivery:
 	"""Retain controlled-smoke timer delivery until the event loop has retired."""
@@ -238,7 +244,9 @@ def main(
 	theme_mgr.restore_theme()
 
 	# create the main window
-	window = bkchem_qt.main_window.MainWindow(theme_mgr)
+	window = bkchem_qt.main_window.MainWindow(
+		theme_mgr, user_template_directory=default_user_template_directory(),
+	)
 	if not app_icon.isNull():
 		window.setWindowIcon(app_icon)
 	window.show()

@@ -48,7 +48,7 @@ def _role_directed_styles(molecule: object) -> tuple[tuple[str, str, str, str], 
 	roles = oasa.haworth.verified_sucrose.role_by_atom(molecule)
 	result = tuple(sorted(
 		(roles[bond.vertices[0]], roles[bond.vertices[1]], bond.type,
-		 bond.properties_["haworth_position"])
+			bond.properties_["haworth_position"])
 		for bond in molecule.edges
 		if bond.type in ("q", "w", "n") and "haworth_position" in bond.properties_
 	))
@@ -69,7 +69,7 @@ def _fixed_shape(molecule: object) -> tuple:
 	bridge_roles = tuple(sorted(roles[atom] for atom in bridge.neighbors))
 	directed_wedges = tuple(sorted(
 		("%s>%s" % (roles[bond.vertices[0]], roles[bond.vertices[1]]),
-		 bond.properties_["haworth_position"])
+			bond.properties_["haworth_position"])
 		for bond in molecule.edges if bond.type == "w"
 	))
 	q_roles = {}
@@ -246,12 +246,12 @@ def test_verified_sucrose_has_fixed_scientific_shape_and_directed_wedges() -> No
 	assert shape[:5] == (
 		tuple("C" for _index in range(12)) + tuple("O" for _index in range(11)),
 		23, (tuple("C" for _index in range(5)) + ("O",),
-		     tuple("C" for _index in range(4)) + ("O",)),
+			tuple("C" for _index in range(4)) + ("O",)),
 		2, ("fructose.c2", "glucose.c1"),
 	)
 	assert shape[5:] == (
 		(("fructose.c2>fructose.c3", "front"), ("fructose.c5>fructose.c4", "front"),
-		 ("glucose.c1>glucose.c2", "front"), ("glucose.c4>glucose.c3", "front")), True,
+			("glucose.c1>glucose.c2", "front"), ("glucose.c4>glucose.c3", "front")), True,
 	)
 
 

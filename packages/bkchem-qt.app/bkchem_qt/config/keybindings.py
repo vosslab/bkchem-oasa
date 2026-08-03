@@ -119,8 +119,22 @@ class KeybindingManager(PySide6.QtCore.QObject):
 	#============================================
 	def _validate_bindings(self) -> None:
 		"""Reject empty, invalid, or ambiguous active key sequences."""
+		self.validate_binding_map(self._bindings)
+
+	#============================================
+	@staticmethod
+	def validate_binding_map(bindings: dict) -> None:
+		"""Reject an uncommitted shortcut map that cannot start BKChem.
+
+		Args:
+			bindings: Action IDs mapped to portable Qt key-sequence text.
+
+		Raises:
+			KeybindingRegistrationError: A nonempty shortcut is invalid.
+			KeybindingConflictError: Multiple actions use one shortcut.
+		"""
 		sequences = {}
-		for action_name, key_sequence in self._bindings.items():
+		for action_name, key_sequence in bindings.items():
 			if not key_sequence:
 				continue
 			sequence = PySide6.QtGui.QKeySequence(key_sequence)

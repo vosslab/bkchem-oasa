@@ -97,6 +97,23 @@ class TextOp:
 
 
 #============================================
+@dataclasses.dataclass(frozen=True)
+class TextLayoutRun:
+	"""One immutable text run with backend-defined baseline semantics.
+
+	The run describes legacy render-operation markup without selecting a
+	rendering toolkit.  A consumer measures ``text`` with its own font engine,
+	then applies ``font_scale`` and ``baseline_offset_em`` to preserve the
+	backend's subscript and superscript meaning.
+	"""
+
+	text: str
+	baseline: str
+	font_scale: float
+	baseline_offset_em: float
+
+
+#============================================
 def _text_segments(text: object) -> object:
 	if "<" not in text and ">" not in text:
 		return [(text, set())]
@@ -158,6 +175,27 @@ def _baseline_transition_dy_em(previous_state: object, next_state: object) -> ob
 def _baseline_transition_dy_px(font_size: object, previous_state: object, next_state: object) -> object:
 	"""Return absolute SVG dy in user units for one baseline-state change."""
 	return font_size * _baseline_transition_dy_em(previous_state, next_state)
+
+
+#============================================
+def text_layout_runs(text: str) -> tuple[TextLayoutRun, ...]:
+	"""Return immutable frontend-neutral text layout runs for a local painter.
+
+	Plain text produces one base-baseline run.  Supported nested ``sub`` and
+	``sup`` markup produces runs whose baseline, font scale, and em offset carry
+	the legacy layout meaning.  Malformed markup remains one literal base run,
+	preserving the established compatibility fallback.
+	"""
+	runs = []
+	for chunk, tags in _text_segments(text):
+		baseline = _segment_baseline_state(tags)
+		runs.append(TextLayoutRun(
+			text=chunk,
+			baseline=baseline,
+			font_scale=_segment_font_size(1.0, baseline),
+			baseline_offset_em=_baseline_offset_em(baseline),
+		))
+	return tuple(runs)
 
 
 #============================================

@@ -40,6 +40,42 @@ backend transaction boundary.
   snapshots.
 - Remove Qt-side full-document authority and raw-XML re-merge after migration.
 
+## Integration status (2026-08-03)
+
+The authority and projection milestones are closed by accepted bounded slices:
+OASA owns complete snapshots, atomic revisions, saved-baseline state, typed
+operations, opaque preservation, and exact-revision projection observations.
+Qt's synchronized projection consumes one immutable aggregate envelope and is
+discardable/rebuildable without raw CDML or OASA graph ownership. Copy as SVG,
+chemistry observations and text imports, preferences/logging, Rotate, Bond
+Align, repair, PubChem, detached templates, file import/export, portable
+render batches, direct-glycosidic Haworth preparation, installed-wheel
+round-trip, clean-install, and direct frozen-bundle gates have focused
+implementation evidence. The action-parity audit records each delivered
+capability and its explicit unsupported disposition.
+
+M6 is therefore release closure rather than another document-ownership
+migration. Its completed source, installed, composition-boundary, direct
+frozen-process, and six-perspective audit gates are recorded in the rollout
+checklist. The managed README screenshot is retained in version control, and
+the reproducible capabilities gallery expands that evidence with persistent
+drawing objects and a verified sucrose Haworth projection. Finder registration
+is not an application correctness gate. Signing, notarization, and DMG delivery
+remain a separate future distribution project.
+
+Six fresh perspectives completed the final audit: plan, test, style,
+documentation, legacy, and comments. Their material findings corrected stale
+milestone and release claims, fragile tests, scoped code/style issues,
+Qt-only delivery documentation, obsolete Tk and molecule-only paths,
+and ownership wording. The accepted dispositions are reflected here and in
+the changelog; the stable contracts remain implementation-independent.
+
+The delivered direct-glycosidic Haworth route is deliberately narrow: two
+vertex-disjoint five- or six-member C/O rings with one direct degree-two oxygen
+bridge. Its backend-created geometry and `q`/`w`/`n` plus `haworth_position`
+depiction values survive CDML insertion and reload. It is a 2D drawing profile,
+not an alpha/beta, tetrahedral, or general carbohydrate-semantics claim.
+
 ## Atom Align M0 implementation note (2026-07-30)
 
 The existing BondAlign horizontal and vertical controls now have one narrow
@@ -74,9 +110,10 @@ backend history, dirty state, exact reprojection, and durable selection
 restoration, with no Qt nudge undo command. Selected presentation items remain
 ignored, while an ID-less atom or unavailable synchronized route makes the full
 gesture inert. Atom-only mouse dragging, including its transient snapping and
-axis-lock preview, is covered by the bounded slice below; presentation motion,
-mixed atom/presentation drags, general transforms, partial structural Delete,
-and bond property editing remain separate behavior.
+axis-lock preview, is covered by the bounded slice below. Presentation-only
+motion has its own completed bounded slice. Mixed atom/presentation dragging
+now has its own one-operation authority route below; general transforms,
+partial structural Delete, and bond property editing remain separate behavior.
 
 ## EditMode atom drag M0 implementation note (2026-07-30)
 
@@ -91,8 +128,39 @@ as proof of backend authority. Backend acceptance owns revision history,
 canonical reprojection, dirty state, and durable selection recovery. Missing
 IDs, unequal deltas, rejection, stale state, and unavailable synchronized
 projections leave the backend and Qt undo stack unchanged. Mixed atom/artwork
-and artwork-only drags remain the established local macro while their complete
-presentation mutation grammar is still separate.
+drags remain the established local macro; presentation-only movement is
+completed in the bounded slice below.
+
+## EditMode presentation drag M0 implementation note (2026-07-30)
+
+A presentation-only EditMode mouse drag now completes through the
+revision-bound `top-level.transform.apply` operation with mode `translate`.
+At press, Qt freezes the originating session-owned callback and exact revision;
+while the pointer moves, Qt owns only the transient grid-snapped and axis-locked
+preview. On release, the mode verifies every selected wrapper belongs to the
+current projection and names one supported durable direct-root presentation
+object, derives one common final point delta, restores its preview, discards
+its wrappers, and submits exactly once. OASA validates and translates the
+authoritative CDML geometry, preserving opaque content. Accepted movement owns
+backend history, dirty state, canonical reprojection, and durable selection
+recovery, without a Qt move command. ID-less, foreign, unsupported, reshaped,
+unequal-delta, unavailable, rejected, and stale gestures are inert after
+preview restoration. Explicitly legacy-isolated documents retain their
+existing local presentation move command.
+
+## EditMode mixed drag M0 implementation note (2026-07-30)
+
+Mixed selections of direct-core atoms and supported direct-root presentation
+records now submit one revision-bound `selection.translate` request. Qt captures
+the originating session callback and revision at press, displays a temporary
+shared drag preview, and resolves the exact current selection again at release
+in document source order. It restores the preview and drops the old wrappers
+before one submission. OASA owns the atomic coordinate update, history, and
+canonical snapshot; Qt restores selection only from durable IDs after
+reprojection. Foreign, retired, ID-less, unsupported, reshaped, unequal-delta,
+unavailable, stale, and rejected synchronized gestures are inert. A failed
+accepted projection retries the exact current snapshot without resubmission.
+Legacy-isolated and standalone canvases retain one local mixed move macro.
 
 ## Atom-only 2D Rotate M0 implementation note (2026-07-30)
 
@@ -171,6 +239,96 @@ Symbol, Charge, and Show Label controls bind their intent to the owning
 session before it submits; accepted edits use backend history and fresh durable
 selection rather than Qt property undo.
 
+## Plain Text Configure M0 implementation note (2026-08-02)
+
+One durable direct-root plain Text now uses the revision-bound
+`text.properties.patch` transaction. OASA validates the complete scalar intent,
+direct-root target, direct point/font/ftext grammar, and rich-text exclusion
+before detached mutation; accepted changes preserve opaque CDML and use backend
+history, while semantic no-ops are history-free. Object Configure captures the
+originating synchronized session, revision, Text ID, and exact capability
+before TextDialog opens. Accepted state canonically reprojects and restores the
+durable Text selection; disposal is typed unavailable and projection recovery
+reuses only the accepted snapshot. This M0 covers plain content, family, size,
+and color. This checkpoint predates the separate completed plain Wavy
+width/color Configure slice; Rich Text editing and broader Plus work remain
+separate.
+
+## Rich Text root-font M1 implementation note (2026-08-03)
+
+Rich Text now carries complete immutable authored runs plus unique explicit
+root-font changes for family, size, and color through `text.rich.patch`.
+OASA validates the entire request before detached mutation, preserves absent
+font attributes unless named, creates a namespaced core font immediately before
+`ftext` only when needed, and keeps canonical no-ops history-free. The separate
+modal editor captures its originating session, revision, Text ID, runs, and
+visible root values before opening. Its run formats carry only authored styles,
+so refreshed root family, size, and color inherit through the document default.
+Plain Configure remains plain-only and directs selected authored Text to Edit
+Rich Text. Inline fonts, root weight/style, and rich Plus remain out of scope.
+
+## Plain Wavy Configure M0 implementation note (2026-08-02)
+
+One durable direct-root `<polyline style="wavy">` now uses the revision-bound
+`wavy.properties.patch` transaction. OASA validates exact direct-root Wavy
+identity, unambiguous direct core points, width and color intent, and existing
+visible root values before detached mutation. Width and color semantic no-ops
+remain history-free; accepted writes preserve geometry, spline, opaque content,
+legacy color, and source order. Object Configure copies plain width/color,
+captures the originating synchronized session, revision, Wavy ID, and exact
+capability before WavyDialog opens, then submits once after wrappers leave
+scope. Accepted state canonically reprojects, restores durable Wavy selection,
+and uses accepted-snapshot-only projection retry. Geometry editing, spline
+normalization, amplitude/wavelength, and Wavy inference remain out of scope.
+
+## Atom-mark backend M0 implementation note (2026-07-30)
+
+OASA now supplies the bounded `atom.mark.apply` operation for plus, minus,
+radical, biradical, electronpair, dotted electronpair, and pz orbital. The
+request carries only immutable revision, direct-root molecule and atom IDs,
+exact add/remove intent, and exact mark type. OASA derives new mark geometry
+from the authoritative direct atom point, appends an ID-less mark as the final
+direct atom child, and atomically applies the declared charge or multiplicity
+delta where applicable. Removal uses the first direct matching mark in
+persistent child order; no match is a successful history-free no-op. The
+operation preserves later duplicates, legacy residual state outside its own
+delta, and all unrelated opaque CDML. Plus/minus validate only charge; radical
+and biradical validate only multiplicity. The unaddressed scalar, including
+legacy or incompatible text, remains verbatim; presentation-only marks retain
+both scalars. The backend contract is complete; the
+Qt MarkMode now consumes this contract through the session dispatcher.  Its
+YAML type/action choices produce one revision-bound plain request; changed
+results use backend history and canonical reprojection, while no-match removal
+preserves the current projection and history.  The durable parent atom is the
+only post-reprojection selection key; marks remain ID-less. Focused lifecycle
+and selection coverage complete the bounded frontend slice.
+
+Selected-mark Delete extends that boundary without inventing mark IDs: CDML
+projection records each supported mark's zero-based same-type direct core-child
+ordinal, and exactly one current bound MarkItem submits it with durable parent
+IDs. Invalid, foreign, retired, mixed, ID-less, or ordinal-less synchronized
+selections are inert. Accepted deletion has only backend history and canonical
+reprojection; stale and validation outcomes are final, and recovery retries
+only the accepted snapshot.
+
+## Top-level transform backend M0 implementation note (2026-07-30)
+
+OASA now provides the bounded `top-level.transform.apply` operation for
+durable direct-root mixed-object alignment, scaling, horizontal or vertical
+mirroring, and direct-root translation. Its plain frozen request carries only
+revision, exact mode, selected root IDs, and the mode's documented scalar
+intent: scale factors for scale or a finite point delta for translate. The
+backend derives bounds, pivots, and
+all affine coordinates from persistent CDML, validates every selected root
+before detached mutation, preserves full-document content, and commits one
+accepted revision only when canonical content changes. The Qt session adapter,
+canonical durable selection bridge, and the nine visible Align/Object menu
+routes are complete. Their router captures only immutable roots, revision, and
+an exact registered-session capability; Scale validates that same capability
+after modal acceptance. Canonical reprojection, backend history, typed stale
+outcomes, and snapshot-only recovery own synchronized changes. The explicit
+legacy-isolated state retains the prior local undo route for its local edits.
+
 ## Design philosophy
 
 This is a clean ownership redesign under **Fix the design, not the symptom** and
@@ -242,13 +400,13 @@ frontend projections and adapters.
 | Area | Current behavior | Migration classification |
 | --- | --- | --- |
 | OASA CDML | Owns complete canonical CDML, typed/opaque records, validation, revisions, IDs, and history | Accepted backend authority |
-| Qt CDML codec | Builds projections and transitional candidates; ordinary Save and Save As publish only backend snapshots | Reduce to projection/candidate code only |
-| Qt `Document` | Replaceable projection cache, with transitional local mutation and undo state | Migrate each persistent family off local authority |
+| Qt CDML codec | Builds projections and explicit compatibility candidates; ordinary Save and Save As publish only backend snapshots | Projection/candidate code only |
+| Qt `Document` | Replaceable projection cache; legacy-isolated compatibility state is not a release persistence route | No persistent authority in the release-selected set |
 | Qt models/items | Disposable chemistry and presentation projections | Reuse without persistent authority |
 | `DocumentSession` | Owns the private backend session plus tab/view/scene/workers and safe projection replacement | Accepted session/projection infrastructure |
-| Qt undo commands | Still own mutable models and graphics for unmigrated actions | Replace persistent commands with backend revisions |
-| Full-document tests | Prove backend preservation plus Qt projection/save/reopen behavior | Extend per migrated action family |
-| Package/version work | Mostly independent of authority | Revalidate after runtime migration |
+| Qt undo commands | Qt actions adapt synchronized Undo/Redo to backend revision navigation; graphics commands remain legacy-isolated compatibility only | Backend history owns release-selected persistence |
+| Full-document tests | Prove backend preservation plus Qt projection/save/reopen behavior | Accepted authority coverage |
+| Package/version work | Qt-only package metadata, clean installation, and installed round-trip are accepted | Await only external frozen-release gates |
 
 ## Architecture boundaries and ownership
 
@@ -352,9 +510,9 @@ Qt may not:
 | M1 | Backend document core | Own, preserve, validate, commit, and restore complete CDML. | A backend-only round-trip loses nothing persistent. |
 | M2 | Qt projection session | Load backend snapshots and safely replace Qt projections. | Qt becomes replaceable view state. |
 | M3 | Arrow proof | Commit an arrow through complete CDML and backend revisions. | Prove Model B end to end on a nonchemical object. |
-| M4 | Bounded presentation hypotheses | Freeze the generic seam, then test only selected presentation, paper, and stacking routes. | Promote only evidence-backed nonchemical routes; M4 remains incomplete. |
-| M5 | Chemistry and history | Migrate the triaged required molecule, worker, and undo/redo slices. | Every declared required persistent edit is a backend revision. |
-| M6 | Retire the old authority | Delete Qt persistence authority and close release gates. | No hidden Qt owner remains. |
+| M4 | Bounded presentation hypotheses | Freeze the generic seam and test the release-selected presentation, paper, and stacking routes. | Complete for the selected release set; excluded historical variants are not delivery claims. |
+| M5 | Chemistry and history | Migrate the selected molecule, worker, and undo/redo slices. | Every declared release-selected persistent edit is a backend revision. |
+| M6 | Retire the old authority | Retire Qt persistence authority and close evidence gates. | Source/install/boundary/audit gates pass; screenshot tracking and native launch receipt remain. |
 
 ### Milestone M0: Lock the contract
 
@@ -438,14 +596,14 @@ Qt may not:
 ### Milestone M4: Bounded presentation hypotheses
 
 - Depends on: WP-D1 -- the arrow proves the common transaction path.
-- Status: M4-0 is accepted infrastructure. It supplies the generic immutable
-  request/outcome boundary, pure multi-entry backend revision history,
-  construction-time mode discovery and clear, one exact-session non-mode
-  capability, and Arrow integration. Creation-only plain Text, creation-only
-  Plus, and creation-only Wavy are accepted bounded WP-E1 hypotheses: each
-  commits complete CDML, receives a backend-issued ID, and canonically
-  reprojects. M4 overall remains incomplete while the remaining selected
-  hypotheses and deferred work remain pending.
+- Status: complete for the release-selected presentation set. M4-0 supplies
+  the immutable request/outcome boundary, backend revision history,
+  construction-time mode discovery and clear, exact-session non-mode
+  capability, and Arrow integration. The accepted Text, Plus, Wavy, Bracket,
+  Vector, paper, translation, deletion, and stacking routes commit canonical
+  CDML and reproject the backend result. Historical variants outside those
+  bounded grammars remain explicitly unsupported rather than pending release
+  work.
 - Deliverables: small, evidence-led production hypotheses only: selected Text,
   Plus, Bracket, Vector, or Wavy creation one at a time; presentation-only
   configure/move/delete behind an explicit eligibility gate; Paper Properties
@@ -454,23 +612,25 @@ Qt may not:
 - Workstreams: WS-E1, WS-E2, and WS-E3.
 - Entry criteria: M3 arrow gate passes.
 - Exit criteria:
-  - M4-0 remains the only accepted shared seam. Normal Arrow, creation-only
-    plain Text, creation-only Plus, and creation-only Wavy are accepted
-    production operations; M4 remains incomplete until later bounded
-    hypotheses have their own evidence.
+  - M4-0 remains the shared seam. The release-selected presentation routes
+    have observed call sites, bounded requests, canonical reprojection, and
+    semantic preservation evidence.
   - Each later claimed route has one observed call site, a bounded complete-CDML
     candidate, canonical reprojection, a uniform outcome, and semantic
     preservation evidence.
-  - Atom-attached marks remain M5 until the backend recognizes durable
-    atom/mark identity. Groups, reactions, external data, unknown XML,
-    template markers, and unsupported envelope records remain preserve/project-
-    only throughout M4. Any editing operation for these families is deferred to
-    M5 after the appropriate pre-M5 capability disposition and its own bounded
-    authority design and evidence; that disposition need not select or ship the
-    operation.
-  - Mixed chemistry/presentation delete, move, template/group expansion,
-    molecule/atom/bond/fragment work, and mixed clipboard/order remain M5,
-    except for the accepted bounded whole-root Cut and Paste routes below.
+  - Atom-attached marks are an M5 capability, not an M4 presentation route.
+    OASA accepts the bounded `atom.mark.apply` add/remove operation using the
+    durable parent molecule and atom IDs, exact mark type, and direct-child
+    order for deterministic removal; mark IDs are not required for that
+    completed backend contract. MarkMode routing, canonical projection,
+    exact-session lifecycle, backend history, and parent-atom selection are
+    accepted in M5. Mark move, configure, and broader Delete behavior are
+    explicitly unsupported. Groups, reactions, external data, unknown XML,
+    template markers, and unsupported envelope records retain their stated
+    preservation-only or separately supported dispositions.
+  - Mixed chemistry/presentation operations, template/group expansion,
+    molecule/atom/bond/fragment work, and mixed clipboard/order are governed
+    by their accepted M5 request grammars or remain explicitly unsupported.
 - Parallel-plan ready: only after M4-0 -- max parallel doers: 2 for disjoint
   small hypotheses; stacking waits for durable presentation-target evidence.
 
@@ -480,7 +640,8 @@ Qt may not:
   hypothesis is a dependency only when an M5 slice actually consumes its
   accepted artifact; unfinished M4 preserve-only routes do not block chemistry
   authority work.
-- Status: WP-F0's independently accepted inventory now fixes the bounded
+- Status: complete for the release-selected chemistry, worker, and history
+  set. WP-F0's independently accepted inventory fixes the bounded
   release dispositions below. The backend-only molecule-insertion prerequisite
   is accepted and Interactive SMILES, explicit PubChem Insert, and Haworth H6a
   use it through the backend session. Their shared producer-side placement
@@ -509,14 +670,21 @@ Qt may not:
   and atomic canonical acceptance. Blank and atom-click placement each add a
   separate root molecule and do not attach or fuse the clicked source. The
   accepted root correlation maps provisional to durable identity for selection
-  after canonical reprojection; unavailable correlation clears selection
-  without altering or retrying the accepted commit. Focused evidence is 8
-  OASA placement tests, 10 session correlation tests, 5 offscreen TemplateMode
-  authority/undo tests, 2 pure scale-parity tests, and focused lint/whitespace
-  checks, with final independent review accepted. Attachment, fusion, markers,
-  BioTemplate, and user catalogs remain separately scoped. These completed
-  consumers do not close the remaining required M5 action families; M5 remains
-  incomplete.
+  after canonical reprojection. Focused evidence covers OASA placement,
+  low-level session validation and stale rejection, public offscreen
+  TemplateMode authority/undo, cross-tab origin binding, disposal-safe retained
+  actions, scale parity, and focused hygiene checks. Attachment, fusion,
+  markers, user catalogs remain separately scoped. BioTemplate placement is complete
+  for the packaged OASA catalog through the same backend-owned detached-
+  insertion contract: Qt sends a catalog key, current revision, and finite
+  scene anchor, while OASA resolves the packaged entry, prepares its geometry,
+  accepts canonical insertion, and returns durable selection correlation.
+  Focused coverage includes source-plus-opaque preservation, atom-area
+  detached placement, cross-tab origin binding, disposed-port unavailability,
+  and accepted-snapshot retry without preparation or commit replay. These completed
+  consumers close the release-selected M5 action families. Generic graph
+  editing, cross-molecule merging, attachment/fusion, and other historical
+  variants remain explicitly unsupported rather than open M5 work.
 - Deliverables: the required or already-supported structural, worker, and
   revision-history slices selected by WP-F0; excluded families are disabled or
   removed from current release claims.
@@ -544,6 +712,14 @@ Qt may not:
   Qt package build and installed smoke, and documentation close-out.
 - Workstreams: WS-G0, WS-G1, WS-G1a, WS-G1b, and WS-G2.
 - Entry criteria: M5 integration gate passes.
+- Status: source authority retirement, Qt-only packaging/documentation, clean
+  dependency-isolated installation, installed round-trip, composition boundary,
+  direct frozen-process evidence, managed screenshots, and six-perspective
+  audit are complete. A post-closure modularity audit also moved projection
+  delivery values into a dependency-light session port with public ownership
+  checks and moved molecule wrapper construction out of File Actions into a
+  dedicated canvas projection module. These cuts preserve the accepted
+  backend contract while reducing Qt-internal lifecycle and layer coupling.
 - Exit criteria:
   - `bkchem_qt.io.cdml_document_io` only adapts backend CDML to projections or
     is removed.
@@ -745,6 +921,12 @@ Qt may not:
   projection or enters an explicit unavailable state that refuses persistent
   operations and can retry the current backend snapshot. Selection restoration
   uses durable IDs rather than old wrapper identities.
+  An independently accepted 2026-08-02 repair extends that lifetime boundary
+  to legacy graphics-owning undo commands and generic selection/model
+  traversal: one captured-scene helper validates wrappers before scene, parent,
+  selection, removal, attachment, reparenting, or target traversal calls. The
+  ordinary no-parent sentinel ends traversal before wrapper access, and a stale
+  or replaced projection becomes inert before it can mutate a replacement scene.
 - Acceptance criteria:
   - Replace only model/item projections while retaining tab/view/session.
   - Dispose old callbacks/items before wrapper destruction.
@@ -787,28 +969,37 @@ Qt may not:
   path at a time; presentation-only configure/move/delete only after an
   explicit eligibility gate; and focused tests.
 - Depends on: WP-D1.
-- Implementation status: normal plain Text, normal Plus, normal Wavy, bounded
-  Vector creation, and rectangular Bracket creation are accepted. One
+- Implementation status: normal plain Text creation and Configure, normal Plus
+  creation and root size/color Configure,
+  normal Wavy, bounded Vector creation, rectangular Bracket creation, and
+  presentation-only EditMode translation are accepted. One
   `bracket.add` request constructs two top-level polylines in one complete
   candidate, while Qt retains only bounds selection and preview state. Each
   accepted creation route submits a complete-CDML candidate, receives one or
   more backend-issued durable IDs, and canonically reprojects. Wavy additionally
   has independent creation-only acceptance evidence in
   [wavy_public_tests_final_acceptance_2026_07_28.md](../audits/wavy_public_tests_final_acceptance_2026_07_28.md).
-  Text configure,
-  move, delete, and rich text; Plus configure, move, delete, background or
-  font customization, and other operations; Wavy configure, move, delete, and
-  other presentation editing; Round Bracket and bracket attachment/container
-  semantics remain outside this bounded route.
+  Generic direct-root move and delete now cover durable Text. Rich Text editing
+  and Wavy root width/color Configure are accepted bounded routes. Plus family,
+  background color, child-font semantics, and other operations; remaining Wavy
+  editing; Round Bracket; and bracket attachment/container semantics remain
+  outside this bounded route.
 - Acceptance criteria:
   - One selected presentation operation changes only its bounded target in a
     backend snapshot candidate, commits it, and reprojects the accepted
     response.
-  - Configure, move, and delete submit only after the eligibility gate proves
-    the target is presentation-only; mixed chemistry/presentation paths return
-    to M5 without an M4 request.
-  - Atom-attached marks remain preserve/project-only and move to M5 until the
-    backend recognizes durable atom/mark identity.
+  - The completed presentation-only Move route submits only after the
+    eligibility gate proves current supported durable direct-root bindings and
+    one common translation delta. Configure and Delete remain separate
+    operations; mixed chemistry/presentation paths return to M5 without an M4
+    request.
+  - Atom-attached mark add/remove is an accepted bounded M5 backend operation:
+    durable parent molecule and atom IDs, exact type, and direct-child order
+    define its deterministic operation identity even though CDML marks remain
+    ID-less. Qt MarkMode routing and its canonical reprojection, lifecycle,
+    backend-history, and parent-atom selection evidence are accepted M5 work.
+    Mark move, configure, and broader Delete behavior retain separate deferred
+    identity and operation-grammar decisions.
 - Evidence or review, when useful:
   - One focused behavior/undo/save test for the selected route; another route
     is not claimed until the prior evidence is reviewed.
@@ -925,7 +1116,7 @@ evidence only.
 | Haworth layouts | A -- chemistry-backend engineer; WP-F6/WP-F2 | Multi-ring save/reopen plus backend undo; stale/cancelled delivery is inert. |
 | PubChem lookup Insert | A -- integration engineer; WP-F7/WP-F2 | Offline accepted insertion, save/reopen, undo; failed/stale delivery is inert. |
 | Native CDML Open/Save/Save As and Recovery Export | B -- document-session owner; existing route | Exact-snapshot and no-baseline-mutation/session-capture checks. |
-| Save As Template | B -- document-session owner; existing route | Canonical backend-snapshot export leaves the current document saved baseline unchanged. |
+| Save As Template | B -- Qt window/session delivery | Validated detached single-molecule templates publish exact backend snapshots to the explicit frontend-owned catalog directory without changing saved baseline; rescan updates all live sessions. |
 | Non-native imports (Molfile, SDF, SMILES, CDXML, CML) | A -- import-export engineer; WP-F8/WP-F2 | Each declared converter atomically commits or leaves the origin tab unchanged. |
 | Full-page SVG, PNG, and PDF export | B -- snapshot-render adapter | One immutable backend snapshot produces each artifact without session mutation. |
 | Cropped SVG export | B -- snapshot-render adapter | Captured CDML paper crop metadata controls detached SVG bounds. |
@@ -954,9 +1145,27 @@ lexical no-ops create neither a revision nor history. Accepted results replace
 Qt's disposable projection, retain selection through durable molecule IDs, and
 use backend history, undo/redo, dirty state, and Save. If projection
 replacement fails, recovery reprojects only the exact current backend snapshot.
-Normalize Rings and Straighten Bonds remain local Qt repair routes with local
-undo. Canvas drag snapping is a separate transient interaction-preview
-behavior, not the persistent Repair action.
+Normalize Rings now uses the same revision-bound `geometry.repair` route from
+both its Repair menu and its durable-ID Repair-mode click path. The backend
+accepts a ring-free semantic no-op or one simple independent cycle with
+uniquely anchored acyclic substituent components. A durable-ID ordered ring
+walk preserves the ring centroid, creates a regular polygon at the requested
+spacing, and translates each component with its anchor. Fused, bridged, spiro,
+multi-cycle, malformed, duplicate-ID, and multi-anchor inputs reject atomically
+before any target changes. Its accepted result uses backend history and exact
+snapshot projection recovery, not a Qt undo command. Straighten Bonds now uses
+the same revision-bound `geometry.repair` route from
+both its Repair menu action and its durable-ID Repair-mode click path. OASA
+implements the backend contract for
+`straighten-bonds`: it validates every selected direct-root molecule before
+detached mutation, moves only nondegenerate degree-one endpoints to canonical
+30-degree slots, uses increasing-angle exact-half ties, fixes the lexically
+smaller durable atom ID in a two-atom component, and preserves all other CDML
+content. Its common finite-positive spacing value is intentionally unused.
+Accepted Qt results replace the disposable projection, restore durable
+selection, and use backend history; a no-op keeps the existing projection and
+history, while retry uses only the exact accepted/current snapshot. Canvas drag snapping is a separate transient
+interaction-preview behavior, not the persistent Repair action.
 
 A backend-only timing pass (five warm-ups and 31 samples after session load)
 measured changed-operation p95 values of 0.810 ms for ethanol, 3.737 ms for
@@ -1000,6 +1209,9 @@ only the durable root without fabricating a child ID. Backend-issued core IDs
 continue to drive normal child selection, Draw, AtomMode, context-menu,
 template, and numbering routes. A backend ID-normalization transaction remains
 outside this bounded projection/session repair.
+Child actionability additionally requires one unique durable direct-root
+molecule ID; duplicate or otherwise ambiguous atom endpoints remain display-only
+and never hydrate a visible bond by choosing one duplicate.
 
 **2026-07-30 Export InChI removal.** The Qt-only release removes the visible
 `chemistry.gen_inchi` action, its menu item, and the projection-derived
@@ -1048,14 +1260,24 @@ molecule-only proposal, and accepts it through the existing atomic insertion
 path. Blank and atom-click gestures each create a separate direct-root
 molecule; atom anchoring does not mutate, bond to, attach, or fuse the source
 molecule. The accepted provisional root-to-durable ID mapping is the only
-post-reprojection selection source. A missing, dangling, or wrong-kind
-correlation reports `selection-unavailable` and clears selection; it does not
-alter, reject, or resubmit the accepted result. Exact-snapshot retry preserves
-valid durable selection correlation. Pointed evidence passed 8 OASA placement
-tests, 10 session correlation tests, 5 offscreen TemplateMode authority/undo
-tests, and 2 pure scale-parity tests, with focused lint and whitespace checks
-and independent final review accepted. Attachment/fusion, markers, BioTemplate,
-and user catalogs remain separately scoped.
+post-reprojection selection source. Exact-snapshot retry preserves valid
+durable selection correlation without replaying the placement. Pointed evidence
+covers OASA placement, low-level session validation and stale rejection,
+public offscreen TemplateMode authority/undo, cross-tab origin binding,
+disposal-safe retained actions, scale parity, and focused hygiene checks.
+Attachment/fusion, markers, and user catalogs remain separately scoped.
+The 2026-08-03 evidence gate keeps system-template atom attachment out of this
+migration: the current `Me` catalog entry is the one-atom SMILES `C`, whereas
+the legacy attachment path used different marked CDML templates and depended
+on Tk canvas overlap merging. Turning `Me` into a retained-target C-C insertion
+would therefore be a new product operation with its own explicit gesture,
+topology, valence, geometry, and identity contract, not completion of the
+detached placement route.
+BioTemplate placement is complete for the
+packaged OASA catalog as a separate-root insertion; it has no attachment or
+fusion behavior. Its authority evidence proves source and opaque-root
+preservation, atom-area event anchoring, durable selected-root correlation,
+cross-tab origin binding, lifecycle unavailability, and exact-snapshot retry.
 
 **Mixed top-level Paste.** Qt reads raw clipboard CDML, captures and rechecks
 one live session, submits one top-level insertion request, records accepted
@@ -1087,6 +1309,38 @@ binding, callback staleness, and isolation handling.
 `packages/bkchem-qt.app/tests/test_clipboard_top_level_objects.py` passed 18
 focused tests.
 
+**Backend-owned whole-root clipboard extraction.** OASA now supplies one
+revision-bound read-only query for unique durable direct roots. It resolves
+only insertion-supported roots in canonical source order, clones the complete
+selected subtrees with namespace context, and proves the detached result through
+the existing top-level Paste preparation path. Synchronized whole-root Copy and
+Cut now publish that OASA result rather than reconstructing a fragment from Qt
+models; Cut freezes its delete capability and revision before native clipboard
+publication. Unsupported, ambiguous, stale, ID-less, or insertion-invalid
+content remains typed and read-only. This completes only the bounded
+whole-root clipboard authority seam; broader clipboard and action-family
+migration remains open.
+
+**Partial structural Cut M0.** OASA now exposes a read-only revision-bound
+structural-fragment extraction query for one eligible direct-root molecule.
+It validates the structural-delete source grammar, then sends a detached clone
+through the complete shared Paste preparation and acceptance path while
+preserving the exact returned source-order fragment. It closes selected bonds
+over endpoints and rejects disconnected, missing, or insertion-unsupported
+selections without state/history mutation. Qt resolves every selected wrapper
+through the current disposable-projection APIs before reading durable fields;
+mixed structural/presentation, mark, foreign, ID-less, multi-molecule, and
+unsupported selections are inert rather than promoting to whole-root Cut. Qt
+publishes the returned raw fragment before submitting the frozen explicit
+`structure.delete` request to the captured origin session. Endpoint closure is
+clipboard-only. Partial structural Copy now uses the same read-only OASA
+extraction query without the Delete request: it freezes only revision and
+plain durable IDs, publishes the returned CDML after wrappers leave scope, and
+keeps backend/Qt history and projection unchanged. Invalid structural Copy
+preserves prior clipboard content, while legitimate root, mixed, and
+multi-molecule Copy keeps the established top-level route. Rich/template
+structures and broader Cut semantics remain separate decisions.
+
 **PubChem lookup Insert.** PubChem is independently accepted as one bounded
 WP-F7/WP-F2 consumer; this does not complete M5 or WP-F6. Its worker performs
 backend-owned preparation and returns frozen display facts plus a frozen
@@ -1109,6 +1363,23 @@ never dereferences a retired source session. Acceptance evidence is recorded in
 terminal lifetime correction and test-teardown evidence in
 `tmp/authority_m5/pubchem_worker_terminal_lifetime_correction_v3.md` and
 `tmp/authority_m5/pubchem_terminal_test_teardown_fix_v5.md`.
+
+**Worker retirement clarification.** Session-wide request tokens now
+invalidate delivery across all asynchronous import families in one session.
+Tab replacement and close transfer invalidated workers and GUI relays to
+MainWindow rather than joining native work. Application shutdown obtains its
+save/recovery/discard approvals before entering a Qt event-loop drain, which
+retains those workers until `QThread.finished`; interruption is therefore
+truthful delivery cancellation rather than preemption. Clean Geometry remains
+synchronous pending a separate measured experiment.
+
+**Clean Geometry measurement decision.** The production public path on a
+ring-plus-tail representative measured end-to-end p95 of 16.279, 27.886,
+43.821, and 61.631 ms for 10, 30, 60, and 100 atoms respectively (three warmups
+and 15 samples; 100-atom maximum 61.631 ms), with no Qt lifetime anomaly.
+Current evidence does not justify an asynchronous redesign. Revisit chemically
+diverse, fused, and multi-molecule inputs only after a user-visible stall or
+approximately 100 ms p95 evidence.
 
 **Haworth H6a and shared insertion placement.** H6a is independently accepted
 for the existing monosaccharide pyranose and furanose actions only; it does
@@ -1188,6 +1459,27 @@ and splits components. A durable backend grammar therefore waits for an
 explicit decision on isolated atoms, disconnected-component root and order
 semantics, references, and mixed selections.
 
+**Partial structural Delete decision (2026-07-30).** OASA now supplies the
+frontend-neutral `structure.delete` authority slice for one durable direct-root
+core molecule. It removes selected direct atoms/bonds plus incident bonds,
+retains unselected isolated atoms, and reports source-ordered removals and
+components with one accepted canonical snapshot. Components follow earliest
+surviving direct-atom order; one retains the original root, while split roots
+use collision-safe backend molecule IDs reserved against the complete
+pre-delete document and appear immediately after it. A recognized reaction
+reference permits only a one-component result. Invalid topology, unsupported
+molecule content, malformed or ambiguous targets, reaction split/removal, and
+stale requests remain atomically inert. Qt now routes exact current-projection
+partial atom/bond selections from one durable molecule through this operation.
+It releases its references to wrappers before submission, records accepted
+backend history before canonical reprojection, clears deleted selection, and
+never resubmits accepted intent after projection failure. Synchronized
+unavailable, ID-less, foreign, multi-molecule, mark, presentation, mixed, or
+unsupported structural selections are inert; exact eligible selected marks use
+the dedicated atom-mark operation above. Only intentionally legacy-isolated or
+standalone canvases retain local undo. Partial Cut, multi-molecule structural
+deletion, and wider molecule grammar remain separate capabilities.
+
 Broad lxml conversion is a separate low-priority parser-maintenance track, not
 an M5 authority slice.
 
@@ -1242,19 +1534,60 @@ change.
   at a captured expected revision, atomically appends detached proposal
   molecules, and returns canonical state with durable-ID/token semantics. An
   OASA-only provisional serializer supplies the proposal without exposing graph
-  IDs. Interactive SMILES is the accepted first Qt consumer of this seam;
-  PubChem, Haworth, file imports, repair, and other chemistry consumers remain
-  separate M5 slices. M5 remains incomplete.
+  IDs. Interactive SMILES, PubChem, Haworth, file imports, and repair consume
+  this seam through accepted release-selected M5 routes. Historical consumers
+  outside the inventory remain explicitly unsupported.
 - Acceptance criteria:
   - Persistent chemistry and depiction fields change only after backend commit.
-  - Group expansion may return a detached, nonpersistent backend proposal. Its
-    only persistent effect occurs when OASA accepts the resulting complete CDML
-    candidate atomically; Qt then reprojects the canonical response and never
-    directly mutates durable group or graph state.
+  - Implicit-group expansion M0 accepts one direct implicit group with one
+    exterior bond. OASA creates attachment-aware detached geometry, splices it
+    into a candidate, and accepts one canonical atomic snapshot; Qt then
+    reprojects that response and never mutates durable group or graph state.
+    Builtin, explicit, rich, zero-attachment, and multi-attachment groups are
+    later operations.
 - Evidence or review, when useful:
   - Delete/undo/redo and CDML semantic round-trip through backend.
 - Obvious follow-ons:
   - Remove local graph-authority fallbacks.
+
+#### Completed ordinary fragment metadata slice
+
+#### Completed direct atom-mark observation slice
+
+#### Completed direct group observation slice
+
+- Exact-revision OASA group observation now supplies synchronized Qt and
+  snapshot rendering with visible label/style facts, selectable durable
+  addresses only when unambiguous, and exact implicit-expansion eligibility.
+  Synchronized molecule source clones remove every direct local-name group and
+  its incident group bond, including foreign lookalikes; standalone loading
+  retains its compatibility decoder. Molecule/atom/bond projection decoding is
+  the remaining WP-G1 boundary.
+
+- Exact-revision OASA atom-mark observation now provides synchronized Qt and
+  snapshot rendering with normalized display facts and unambiguous deletion
+  ordinals. Direct atom source clones remove every local-name `mark` child
+  after hydration, including foreign lookalikes; standalone compatibility
+  loading retains its old decoder. Molecule, atom, and bond decoding remain
+  the WP-G1 projection boundary.
+
+- `fragment.create` and `fragment.delete` now use revision-bound OASA
+  operations for the narrow ordinary `explicit`/`implicit` grammar. The
+  backend allocates fragment IDs and preserves richer imported fragments as
+  read-only content.
+- Exact-revision OASA fragment observation now supplies synchronized Qt and
+  snapshot rendering with plain ordinary eligibility and read-only notices.
+  Synchronized molecule source clones retain no direct fragment XML. Molecule,
+  atom, and bond decoding remain the next WP-G1 projection boundary.
+
+#### Completed linear-form conversion slice
+
+- `linear-form.convert` accepts only expected revision, a durable direct-root
+  molecule ID, and ordered selected direct atom IDs. OASA derives the path,
+  owns fixed 10-point geometry, explicit-mark and uniquely anchored external
+  component translation, hydrogen display, collision-free narrow metadata, and
+  semantic no-op detection. Qt submits one origin-bound plain request and uses
+  backend history plus canonical reprojection; local macros remain legacy-only.
 
 ### Work package WP-F2: Migrate asynchronous chemistry
 
@@ -1371,8 +1704,9 @@ change.
     history, and recovers only by exact current-snapshot reprojection. Its
     common pre-serialization placement operation makes canonical CDML carry
     scene-scale Haworth coordinates and durable q/w/n/`haworth_position`
-    annotations. H6b is accepted only for the named fixed sucrose preset;
-    wider multi-ring behavior and the remaining M5 families remain incomplete.
+    annotations. The named fixed sucrose preset and the bounded direct-
+    glycosidic two-ring profile are accepted; broader carbohydrate semantics
+    remain explicitly outside the release set.
 - Success criteria:
   - Each supported multi-ring input has deterministic Haworth depiction,
     coordinates, and durable CDML persistence after insertion; current
@@ -1407,7 +1741,8 @@ change.
     atomically through `molecule.insert`, exact-snapshot recovery follows any
     projection failure, and backend undo/redo owns accepted history. Window-
     owned terminal delivery never dereferences a retired source session. This
-    accepts WP-F7's PubChem consumer only; M5 and WP-F6 remain incomplete.
+    accepts WP-F7's PubChem consumer. Other historical capability families
+    retain their explicit inventory dispositions rather than open M5 work.
 
 ### Work package WP-F8: Define supported import and export paths
 
@@ -1505,6 +1840,127 @@ gates succeed.
 - Validation:
   - Deterministic AST/import-boundary tests, a headless serialized-client test,
     and a projection-disposal/rebuild test.
+- Completed bounded import-result retirement: file workers now deliver only
+  immutable `PreparedCompleteCDML` or `None`; the obsolete graph-valued reader
+  and relay conversion path are removed. AtomModel live-OASA ownership and
+  renderer cleanup remain later WP-G1a slices; BondModel is now scalar-only.
+
+- Independently accepted WP-G1a decoder boundary: synchronized hydration
+  receives one frozen backend projection snapshot envelope containing all seven
+  exact-revision observations and uses separately named hydrator/prepared-projection APIs. Both entry
+  points require complete portable render coverage before they create a Qt
+  document. The named compatibility CDML string/file decoders retain standalone
+  raw parsing and rendering, while `DocumentSession` and snapshot rendering
+  use only the synchronized route. Focused behavior verifies missing or
+  cross-revision facts reject before replacement and compatibility fallbacks
+  remain unavailable to synchronized staging and painting.
+
+- Accepted WP-G1a paint seam: exact-revision molecule render observations
+  carry portable primitive batches for synchronized atom/bond painting. The
+  bounded implementation now uses source-order association, transient
+  Qt-local drag transforms, closed primitive validation, and focused semantic
+  tests. Independent acceptance also verified conservative Qt bounds,
+  foreign/nested-lookalike exclusion, duplicate-ID inertness, exact-revision
+  rejection, and the Qt-free OASA import boundary. Live OASA ownership inside
+  AtomModel remains the next WP-G1a boundary; BondModel is now scalar-only.
+
+- Independently accepted WP-G1a render-batch gate: synchronized detached
+  projection now requires one and only one portable atom or bond batch for
+  every hydrated core child, keyed by exact direct molecule/child source
+  position and kind. Missing, duplicate, wrong-kind, foreign, and ambiguous
+  coverage fails before live scene retirement or installation, so synchronized
+  item painting cannot fall back to temporary OASA rendering. The named
+  standalone compatibility load/render route remains available; broader
+  renderer retirement is still separate work.
+
+- Independently accepted: the bounded `MoleculeModel` topology slice
+  replaces its retained OASA molecule and graph-object-keyed maps with ordered
+  Qt atom/bond wrappers and endpoint relationships. Its connectivity and
+  independent-cycle queries now operate on projection topology; the historical
+  cycle-query name remains compatible without promising a canonical SSSR. OASA
+  values materialize only in bridge conversion. Legacy bond painting borrows
+  the current Qt endpoints for one synchronous compatibility calculation and
+  releases them immediately, including after a rendering failure. AtomModel
+  still retains its transitional OASA value; its cleanup and the legacy
+  renderer retirement remain later WP-G1a work. BondModel is scalar-only.
+
+- Independently accepted: the bounded BondModel scalar slice removes
+  the retained OASA Bond from the Qt projection. Bond IDs, chemistry,
+  endpoints, Haworth metadata, effective depiction values, and exact authored
+  CDML-field presence are scalar Qt state. The bridge materializes a fresh
+  OASA Bond only for one synchronous legacy rendering/export calculation and
+  discards it afterwards. Exact-revision core hydration installs its record
+  directly, preserving source-position association and ID eligibility.
+  Focused acceptance covers public OASA-to-Qt-to-OASA depiction behavior,
+  bounded legacy-render failure recovery, portable exact-revision rendering,
+  retained durable-ID context-menu order/type commits across reprojection,
+  backend properties commits, and the AST import boundary. AtomModel's
+  transitional OASA atom remains the explicit next WP-G1a
+  chemistry-observation prerequisite.
+
+- Independently accepted: the Qt-free exact-revision backend atom-chemistry
+  observation derives valency, implicit-hydrogen, atomic number, and
+  OASA-derived oxidation facts from the complete direct molecule graph using
+  durable IDs plus explicit source-position association. Synchronized
+  Chemistry Check and Oxidation Number consume that observation once per
+  selected authoritative snapshot, leaving history, dirty state, and the
+  projection untouched. Plain backend element and charge display facts keep
+  user-facing results independent of stale projection chemistry. AtomModel
+  retains its transitional OASA atom; this observation is the prerequisite
+  for, not completion of, that later removal. BondModel remains scalar-only.
+
+- Independently accepted WP-G1a slice: AtomModel now stores
+  only scalar identity, chemistry, coordinates, depiction presence, numbering,
+  and backend binding facts. OASA-to-Qt conversion copies scalar facts and the
+  named bridge creates fresh OASA atoms and complete temporary graphs for
+  standalone export, painting, and compatibility chemistry. Synchronized
+  Chemistry Check and Oxidation remain exact-revision backend observations.
+  The later aggregate acceptance records the remaining renderer/import
+  composition evidence for this work package.
+
+- Independently accepted WP-G1a renderer boundary: the bounded standalone
+  renderer boundary now makes `AtomItem` and `BondItem` pure Qt consumers of
+  either exact backend portable batches or opaque compatibility operations.
+  `oasa_bridge` owns one-shot atom/bond materialization, per-endpoint clipping
+  targets, and legacy bond context construction; `render_ops_painter` owns
+  legacy paint dispatch and behavior-level bounds/text measurement. Focused
+  endpoint-mask, styled/aromatic/wavy, atom-label/charge, raised-render
+  recovery, portable-preview, and static import-boundary checks pass. This preserves the
+  separately named standalone compatibility route and does not retire it.
+
+- Independently accepted WP-G1a text-layout and codec-boundary cleanup: OASA exposes immutable,
+  frontend-neutral legacy text-layout runs for the isolated compatibility
+  painter. The Qt painter uses those public baseline/font-scale values while
+  retaining Qt-local measurement and drawing; malformed legacy markup keeps
+  its literal-text fallback. The format bridge now relies on the public codec
+  lookup to initialize codecs. This bounded cleanup leaves synchronized
+  portable painting unchanged. Independently accepted: the Haworth
+  inactive-origin projection blocker exposes atom font sizes through
+  molecule-core observations only as positive integers. Fractional,
+  non-decimal, non-positive, and otherwise malformed compatibility values
+  stay preserved source content with a display-only diagnostic. The later
+  aggregate acceptance records the composition and projection-disposal
+  evidence required to close WP-G1a.
+
+- Independently accepted: synchronized molecule
+  hydration leaves compatibility-only raw molecule XML unset. Public
+  whole-root Copy/Cut continues to query the exact backend snapshot, and the
+  backend now treats foreign molecule descendants as literal persistent content
+  while translating only recognized CDML geometry during insertion. The
+  separately named compatibility decoder remains the sole raw-XML producer
+  for legacy-isolated clipboard/export handling; that builder rejects a
+  synchronized molecule deterministically.
+
+- Independently accepted WP-G1a aggregate closure: the backend now returns one
+  immutable projection snapshot envelope containing the canonical CDML snapshot
+  and all rendering observations from one document state. Qt sessions and
+  snapshot rendering consume that envelope as a unit, so a same-revision
+  snapshot cannot be combined with independently obtained observations. The
+  envelope rejects missing, mistyped, and cross-revision facts before Qt model
+  or scene construction. Focused headless authority, synchronized hydration,
+  compatibility, and projection-disposal evidence passes; the static exception
+  list is empty. WP-G1a is complete. M6 remains active for its separate
+  authority-retirement, clean-install, and release gates.
 
 ### Work package WP-G1b: Record the Qt-only capability disposition
 
@@ -1539,6 +1995,21 @@ gates succeed.
   - No Qt model owns unknown XML, canonical object order, or persistent IDs.
 - Evidence or review, when useful:
   - Static authority scan and independent multi-reviewer audit.
+- Completed bounded evidence: OASA now publishes a revision-bound, Qt-free
+  direct-root presentation description for supported drawable roots. Qt
+  rebuilds synchronized presentation models from those values without raw
+  presentation XML; snapshot rendering follows the same route. The bounded
+  paper/header projection follow-on is also complete: an exact-revision OASA
+  paper/layout observation supplies first direct-core paper/viewport facts and
+  absent-paper defaults to live and detached projections, while synchronized
+  Qt envelopes retain no root/header/paper/reaction/external-data XML. This
+  retires paper/header/reaction retention only. Accepted fragment, direct
+  atom-mark, group, and molecule-core observations now rebuild synchronized
+  Qt state from one matching backend revision and remove their persistent XML
+  from retained projection sources. The later WP-G1a aggregate acceptance
+  closes the Qt composition and import-cleanup boundary around those disposable
+  models.
+
 - Obvious follow-ons:
   - Delete obsolete tests or recast them as projection tests.
 
@@ -1563,6 +2034,20 @@ gates succeed.
     `tests/e2e/e2e_qt_projection_disposal.py`, offline artifact inspection,
     isolated Qt install/launch/edit/save/reopen smoke, and
     `tests/test_markdown_links.py`.
+- Independently accepted installed-wheel runner: the dedicated
+  `tests/e2e/e2e_installed_qt_authoritative_roundtrip.py` starts one
+  QApplication-owned deadline, verifies installed OASA and Qt origins, uses
+  native Open plus the public Arrow operation and authoritative Save, closes
+  and reopens the saved tab, and drains production QObject retirement. Its
+  caller-owned paths must be fresh locations beneath repo `tmp/`; its atomic
+  receipt truthfully records completion, timeout, Python exception, or
+  semantic failure without environment contents or source-tree imports. The
+  two-session stage exercises supported non-final tab retirement, and then the
+  runner closes the remaining clean sole tab through `close_session_at(0)`, so
+  it cannot mask that production close branch. Two fresh retained isolated-venv
+  executions completed without a native crash. This is isolated-wheel evidence
+  only; controlled PyInstaller build, inspection, smoke, and clean-install
+  gates remain required for M6.
 - Evidence or review, when useful:
   - Run that named list once after pointed development checks pass; it is not
     routine repository-wide pytest, a new giant fixture, a networked pytest,
@@ -1692,37 +2177,71 @@ independent acceptance.
 - [x] Route native Open through backend snapshots with atomic rollback.
 - [x] Gate backend-snapshot Save on exact projection provenance while retaining
   an explicit transitional route for unmigrated Qt edits.
-- [ ] Route each persistent action family through candidate commit and
-  canonical reprojection.
+- [x] Route each release-selected persistent action family through its bounded
+  backend request or complete candidate commit and canonical reprojection.
 - [x] Pass the arrow commit/reproject/undo vertical slice.
 - [x] Accept M4-0 generic request/outcome, history, mode lifetime, exact-tab
   non-mode capability, and Arrow integration; no new editor is accepted by it.
-- [ ] Test only the selected M4 presentation, paper, and stacking hypotheses;
-  keep all other presentation and envelope records preserve/project-only.
+- [x] Complete the selected M4 presentation, paper, and stacking routes; keep
+  excluded presentation and envelope records preservation-only or explicitly
+  unsupported.
   - [x] Accept the first bounded WP-E1 hypothesis: normal plain Text creation
     commits complete CDML, receives a backend-issued ID, and canonically
-    reprojects; broader Text operations remain pending.
+    reprojects.
+  - [x] Accept plain Text Configure for one durable direct root through a
+    revision-bound explicit property patch, backend history, canonical
+    reprojection, durable selection recovery, and snapshot-only retry. Generic
+    move and delete already cover durable Text.
+  - [x] Accept the bounded Rich Text M0: OASA owns one direct-root Text's
+    formatted CDML 26.07 run patch, canonical authored markup, atomic history,
+    and preservation-only rejection for legacy/direct ftext markup and foreign
+    ftext content. Qt now consumes supported runs as disposable cursor-format
+    projections and supplies separate Object > Edit Rich Text with captured
+    origin/revision/ID capability, one atomic backend patch, durable selection,
+    typed stale/unavailable outcomes, and snapshot-only retry. Family, size,
+    color, rich Plus, atom labels, legacy migration, and broader text grammar
+    were retained as separate work at this checkpoint.
+  - [x] Accept Rich Text root-font M1: the same atomic request now carries
+    unique explicit family, size, and color intent while untouched root fields
+    remain absent or unchanged. Qt captures visible root values before its
+    dialog, applies only authored run styles in disposable projections, and
+    inherits refreshed root family, size, and color. Noncanonical persisted
+    colors remain visible but preservation-only. Inline fonts, root weight and
+    style, rich Plus, atom labels, legacy migration, and broader text grammar
+    remain separate work.
   - [x] Accept the second bounded WP-E1 hypothesis: normal Plus creation
     commits complete CDML, receives a backend-issued ID, and canonically
-    reprojects; broader Plus operations and the remaining hypotheses remain
-    pending.
+    reprojects. Plain direct-root Plus Configure now patches only portable root
+    size/color through origin-bound backend history, durable selection recovery,
+    and snapshot-only retry. Family, background color, child-font semantics,
+    rich Plus records, and broader operations remain pending.
   - [x] Accept the third bounded WP-E1 hypothesis: normal Wavy creation
     commits complete CDML, records backend history and dirty state, canonically
     reprojects, and uses authoritative Save. Independent evidence:
     [wavy_public_tests_final_acceptance_2026_07_28.md](../audits/wavy_public_tests_final_acceptance_2026_07_28.md);
     Wavy configure,
     move, delete, and other presentation editing remain pending.
-- [ ] Migrate every chemistry and worker family.
+- [x] Migrate every release-selected chemistry and worker family.
 - [x] Record the independently accepted WP-F0 capability dispositions before
   M5; close only the required RDKit, rendering, Haworth, PubChem, and
   import/export slices.
-- [ ] Replace persistent Qt undo ownership with backend revisions.
-- [ ] Remove Qt full-document authority and raw re-merge.
-- [ ] Enforce the frontend composition boundary with no release exceptions.
-- [ ] Produce a Qt-only package and current-user documentation.
-- [ ] Run the one-time named M6 authority, lifecycle, boundary, capability,
-  package, and clean-install checks.
-- [ ] Complete a fresh multi-reviewer audit before release claims.
+- [x] Replace release-selected persistent Qt undo ownership with backend
+  revisions; the Qt action/stack adapter projects revision navigation.
+- [x] Remove Qt full-document authority and raw re-merge from release paths.
+- [x] Enforce the frontend composition boundary with no release exceptions.
+- [x] Produce Qt-only package metadata and current-user documentation.
+- [x] Complete the M6 source gate: authority, lifecycle, capability, and
+  documentation checks pass with the accepted backend/Qt boundary.
+- [x] Complete the M6 installed gate: clean dependency-isolated installation
+  and installed authoritative round-trip pass.
+- [x] Complete the M6 delivery/boundary gate: Qt-only package inspection and
+  direct frozen-bundle lifecycle smoke pass.
+- [x] Complete the fresh six-perspective M6 audit and accept its material
+  plan, test, style, documentation, legacy, and comment repairs.
+- [x] Add the managed README screenshot PNG to version control so its retained
+  Markdown reference is a release-valid asset.
+- [x] Keep the frozen-process gate tied to the app-owned bounded lifecycle
+  receipt; treat Finder registration as separate distribution integration.
 
 ## Documentation close-out requirements
 

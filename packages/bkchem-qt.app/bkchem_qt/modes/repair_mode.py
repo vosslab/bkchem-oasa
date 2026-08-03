@@ -26,7 +26,7 @@ _REPAIR_HANDLERS = {
 }
 
 _BACKEND_REPAIR_KEYS = frozenset((
-	"normalize-angles", "normalize-lengths", "snap-hex", "clean",
+	"normalize-angles", "normalize-lengths", "normalize-rings", "straighten", "snap-hex", "clean",
 ))
 
 

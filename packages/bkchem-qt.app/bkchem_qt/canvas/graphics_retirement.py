@@ -18,10 +18,121 @@ import shiboken6
 #============================================
 def is_valid_native_wrapper(item: object) -> bool:
 	"""Return whether a PySide/Shiboken wrapper may cross one native boundary."""
+	# Shiboken reports ``None`` as valid, but it is the normal terminal parent
+	# sentinel rather than a wrapper that may receive native method calls.
+	if item is None:
+		return False
 	try:
 		return shiboken6.isValid(item)
 	except TypeError:
 		return False
+
+
+#============================================
+def native_scene_for_item(
+		item: PySide6.QtWidgets.QGraphicsItem,
+		) -> PySide6.QtWidgets.QGraphicsScene | None:
+	"""Return an item's live scene without entering C++ through a stale wrapper."""
+	if not is_valid_native_wrapper(item):
+		return None
+	scene = item.scene()
+	return scene if is_valid_native_wrapper(scene) else None
+
+
+#============================================
+def native_parent_for_item(
+		item: PySide6.QtWidgets.QGraphicsItem,
+		) -> PySide6.QtWidgets.QGraphicsItem | None:
+	"""Return an item's live parent without traversing an invalid wrapper."""
+	if not is_valid_native_wrapper(item):
+		return None
+	parent = item.parentItem()
+	return parent if parent is None or is_valid_native_wrapper(parent) else None
+
+
+#============================================
+def selected_items_from_captured_scene(
+		scene: PySide6.QtWidgets.QGraphicsScene | None,
+		) -> list[PySide6.QtWidgets.QGraphicsItem]:
+	"""Return selected items only from one still-live scene wrapper.
+
+	Selection is a native call. A retired scene therefore has no observable
+	selection, rather than a later caller entering C++ through its stale wrapper.
+	"""
+	if not is_valid_native_wrapper(scene):
+		return []
+	return list(scene.selectedItems())
+
+
+#============================================
+def item_belongs_to_scene(
+		scene: PySide6.QtWidgets.QGraphicsScene,
+		item: PySide6.QtWidgets.QGraphicsItem,
+		) -> bool:
+	"""Return whether a live item still belongs to one captured live scene."""
+	return is_valid_native_wrapper(scene) and native_scene_for_item(item) is scene
+
+
+#============================================
+def remove_item_from_captured_scene(
+		scene: PySide6.QtWidgets.QGraphicsScene,
+		item: PySide6.QtWidgets.QGraphicsItem,
+		) -> bool:
+	"""Remove one live item only when it still belongs to its captured scene."""
+	if not item_belongs_to_scene(scene, item):
+		return False
+	scene.removeItem(item)
+	return True
+
+
+#============================================
+def add_item_to_captured_scene(
+		scene: PySide6.QtWidgets.QGraphicsScene,
+		item: PySide6.QtWidgets.QGraphicsItem,
+		) -> bool:
+	"""Attach one detached live item to its captured scene without stealing it."""
+	if not can_add_item_to_captured_scene(scene, item):
+		return False
+	item_scene = native_scene_for_item(item)
+	if item_scene is scene:
+		return True
+	scene.addItem(item)
+	return True
+
+
+#============================================
+def can_add_item_to_captured_scene(
+		scene: PySide6.QtWidgets.QGraphicsScene,
+		item: PySide6.QtWidgets.QGraphicsItem,
+		) -> bool:
+	"""Return whether a live item may join its captured scene without reassignment."""
+	if not is_valid_native_wrapper(scene) or not is_valid_native_wrapper(item):
+		return False
+	item_scene = native_scene_for_item(item)
+	return item_scene is None or item_scene is scene
+
+
+#============================================
+def set_item_parent_in_captured_scene(
+		item: PySide6.QtWidgets.QGraphicsItem,
+		parent: PySide6.QtWidgets.QGraphicsItem | None,
+		scene: PySide6.QtWidgets.QGraphicsScene | None = None,
+		) -> bool:
+	"""Set a live item's parent only inside its captured graphics ownership tree."""
+	if not is_valid_native_wrapper(item):
+		return False
+	if parent is not None and not is_valid_native_wrapper(parent):
+		return False
+	if scene is not None:
+		if not is_valid_native_wrapper(scene):
+			return False
+		if parent is not None and native_scene_for_item(parent) is not scene:
+			return False
+		item_scene = native_scene_for_item(item)
+		if item_scene is not None and item_scene is not scene:
+			return False
+	item.setParentItem(parent)
+	return True
 
 
 #============================================

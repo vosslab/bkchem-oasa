@@ -1,12 +1,9 @@
-"""Qt composition wrapper around an OASA Molecule with change signals."""
+"""Qt-only molecule topology projection with change signals."""
 
 # PIP3 modules
 import PySide6.QtCore
 
 # local repo modules
-import oasa.atom_lib
-import oasa.bond_lib
-import oasa.molecule_lib
 import bkchem_qt.models.atom_model
 import bkchem_qt.models.bond_model
 import bkchem_qt.models.fragment_model
@@ -15,18 +12,11 @@ import bkchem_qt.models.group_model
 
 #============================================
 class MoleculeModel(PySide6.QtCore.QObject):
-	"""Composition wrapper that owns an OASA Molecule and emits Qt signals.
+	"""Own one disposable Qt molecule topology and emit projection changes.
 
-	Maintains parallel tracking dicts that map OASA atoms/bonds to their
-	AtomModel/BondModel wrappers. Graph queries (connectivity, cycles) are
-	delegated to the internal ``oasa.molecule_lib.Molecule``. Mutation methods
-	emit ``atom_added``, ``atom_removed``, ``bond_added``, or ``bond_removed``
-	signals so the scene can react.
-
-	Args:
-		oasa_mol: Existing OASA Molecule to wrap. A new empty molecule is
-			created when ``None``.
-		parent: Optional parent QObject.
+	The model stores ordered AtomModel and BondModel wrappers with endpoint
+	relationships.  OASA values enter or leave only through bridge conversions;
+	this projection never retains a graph object from the backend.
 	"""
 
 	# signals for structural changes
@@ -36,29 +26,28 @@ class MoleculeModel(PySide6.QtCore.QObject):
 	bond_removed = PySide6.QtCore.Signal(object)
 
 	#============================================
-	def __init__(self, oasa_mol: oasa.molecule_lib.Molecule | None = None,
-			parent: PySide6.QtCore.QObject | None = None) -> None:
+	def __init__(self, parent: PySide6.QtCore.QObject | None = None) -> None:
 		"""Initialize the molecule model.
 
 		Args:
-			oasa_mol: Existing OASA Molecule to wrap, or None for a new
-				empty molecule.
 			parent: Optional parent QObject.
 		"""
 		super().__init__(parent)
-		# chemistry backend
-		self._chem_mol = oasa_mol or oasa.molecule_lib.Molecule()
-		# tracking dicts: oasa object -> Qt model wrapper
-		self._atom_models = {}
-		self._bond_models = {}
+		# Ordered wrapper storage is the complete Qt topology source of truth.
+		self._atom_models: list[bkchem_qt.models.atom_model.AtomModel] = []
+		self._bond_models: list[bkchem_qt.models.bond_model.BondModel] = []
 		# metadata properties
 		self._name = ""
 		self._mol_id = ""
-		self._cdml_source_xml = None
+		# Only the explicitly named compatibility decoder retains source XML.
+		# Synchronized projections receive durable backend observations instead,
+		# so rebuilding or discarding them cannot make Qt a document authority.
+		self._compatibility_source_xml = None
 		# Fragments are presentation metadata, but their atom/bond references
 		# are stable CDML IDs rather than live OASA graph objects.
 		self._fragments: list[bkchem_qt.models.fragment_model.FragmentModel] = []
 		self._unsupported_fragment_xml: list[str] = []
+		self._fragment_notices: list[str] = []
 		# CDML groups are pseudo-vertices owned by the frontend.  They remain
 		# outside OASA until an explicit future expansion command converts them.
 		self._groups: list[bkchem_qt.models.group_model.GroupModel] = []
@@ -79,7 +68,7 @@ class MoleculeModel(PySide6.QtCore.QObject):
 		Returns:
 			List of AtomModel instances.
 		"""
-		return list(self._atom_models.values())
+		return list(self._atom_models)
 
 	#============================================
 	@property
@@ -89,7 +78,7 @@ class MoleculeModel(PySide6.QtCore.QObject):
 		Returns:
 			List of BondModel instances.
 		"""
-		return list(self._bond_models.values())
+		return list(self._bond_models)
 
 	#============================================
 	@property
@@ -115,15 +104,20 @@ class MoleculeModel(PySide6.QtCore.QObject):
 
 	#============================================
 	@property
-	def cdml_source_xml(self) -> str | None:
-		"""Original molecule XML retained for CDML fidelity checks."""
-		return self._cdml_source_xml
+	def compatibility_source_xml(self) -> str | None:
+		"""Return XML retained only for the legacy-isolated compatibility route.
+
+		Synchronized backend projections leave this value unset.  Their saved
+		molecule XML, including unknown extensions, remains owned by OASA and is
+		retrieved through an authoritative fragment query when needed.
+		"""
+		return self._compatibility_source_xml
 
 	#============================================
-	@cdml_source_xml.setter
-	def cdml_source_xml(self, value: str | None) -> None:
-		"""Store the original molecule XML, or clear the retained source."""
-		self._cdml_source_xml = value
+	@compatibility_source_xml.setter
+	def compatibility_source_xml(self, value: str | None) -> None:
+		"""Store compatibility-only XML for legacy clipboard/export handling."""
+		self._compatibility_source_xml = value
 
 	#============================================
 	@property
@@ -136,6 +130,12 @@ class MoleculeModel(PySide6.QtCore.QObject):
 	def unsupported_fragment_xml(self) -> tuple[str, ...]:
 		"""Return retained fragment XML that cannot safely become editable."""
 		return tuple(self._unsupported_fragment_xml)
+
+	#============================================
+	@property
+	def fragment_notices(self) -> tuple[str, ...]:
+		"""Return backend-described read-only fragment notices for this projection."""
+		return tuple(self._fragment_notices)
 
 	#============================================
 	@property
@@ -202,6 +202,11 @@ class MoleculeModel(PySide6.QtCore.QObject):
 		self._unsupported_fragment_xml.append(raw_xml)
 
 	#============================================
+	def add_fragment_notice(self, notice: str) -> None:
+		"""Retain one plain backend fragment notice without retaining XML."""
+		self._fragment_notices.append(notice)
+
+	#============================================
 	def fragment_snapshot(self) -> tuple[bkchem_qt.models.fragment_model.FragmentModel, ...]:
 		"""Return a durable ordered fragment snapshot for structural undo."""
 		return tuple(self._fragments)
@@ -243,8 +248,8 @@ class MoleculeModel(PySide6.QtCore.QObject):
 	#============================================
 	def _fragment_is_valid(self, fragment: bkchem_qt.models.fragment_model.FragmentModel) -> bool:
 		"""Return whether all fragment references target present stable IDs."""
-		atom_ids = {str(getattr(atom._chem_atom, "id", "")) for atom in self.atoms}
-		bond_ids = {str(getattr(bond._chem_bond, "id", "")) for bond in self.bonds}
+		atom_ids = {str(atom.atom_id or "") for atom in self.atoms}
+		bond_ids = {str(bond.bond_id or "") for bond in self.bonds}
 		return set(fragment.atom_ids).issubset(atom_ids) and set(fragment.bond_ids).issubset(bond_ids)
 
 	#============================================
@@ -268,14 +273,8 @@ class MoleculeModel(PySide6.QtCore.QObject):
 			return False
 		if bond_length <= 0.0:
 			return False
-		atoms_by_id = {
-			str(getattr(atom._chem_atom, "id", "")): atom
-			for atom in self.atoms
-		}
-		bonds_by_id = {
-			str(getattr(bond._chem_bond, "id", "")): bond
-			for bond in self.bonds
-		}
+		atoms_by_id = {str(atom.atom_id or ""): atom for atom in self.atoms}
+		bonds_by_id = {str(bond.bond_id or ""): bond for bond in self.bonds}
 		if len(fragment.atom_ids) != len(set(fragment.atom_ids)):
 			return False
 		if len(fragment.bond_ids) != len(set(fragment.bond_ids)):
@@ -330,18 +329,22 @@ class MoleculeModel(PySide6.QtCore.QObject):
 
 	#============================================
 	def add_atom(self, atom_model: bkchem_qt.models.atom_model.AtomModel) -> None:
-		"""Add an atom to the molecule.
-
-		Registers the AtomModel's underlying OASA atom with the backend
-		molecule and stores the mapping.
+		"""Add an atom to this Qt topology projection.
 
 		Args:
 			atom_model: AtomModel to add.
 		"""
-		oasa_atom = atom_model._chem_atom
-		self._chem_mol.add_vertex(oasa_atom)
-		self._atom_models[id(oasa_atom)] = atom_model
-		atom_model._molecule_model = self
+		if not isinstance(atom_model, bkchem_qt.models.atom_model.AtomModel):
+			raise TypeError("atom_model must be an AtomModel")
+		if any(existing is atom_model for existing in self._atom_models):
+			raise ValueError("atom_model already belongs to this molecule")
+		if atom_model.molecule_model is not None:
+			raise ValueError("atom_model already belongs to a molecule")
+		if atom_model.parent() is not None:
+			raise ValueError("atom_model already has a QObject owner")
+		self._atom_models.append(atom_model)
+		atom_model.setParent(self)
+		atom_model.set_molecule_model(self)
 		self.atom_added.emit(atom_model)
 
 	#============================================
@@ -353,18 +356,20 @@ class MoleculeModel(PySide6.QtCore.QObject):
 		Args:
 			atom_model: AtomModel to remove.
 		"""
-		oasa_atom = atom_model._chem_atom
+		if not isinstance(atom_model, bkchem_qt.models.atom_model.AtomModel):
+			raise TypeError("atom_model must be an AtomModel")
+		if not any(existing is atom_model for existing in self._atom_models):
+			raise ValueError("atom_model does not belong to this molecule")
 		# remove bonds connected to this atom first
 		bonds_to_remove = []
-		for bond_id, bond_model in list(self._bond_models.items()):
+		for bond_model in list(self._bond_models):
 			if bond_model.atom1 is atom_model or bond_model.atom2 is atom_model:
 				bonds_to_remove.append(bond_model)
 		for bond_model in bonds_to_remove:
 			self.remove_bond(bond_model)
-		# remove the atom from the backend
-		self._chem_mol.remove_vertex(oasa_atom)
-		self._atom_models.pop(id(oasa_atom), None)
-		atom_model._molecule_model = None
+		self._atom_models.remove(atom_model)
+		atom_model.set_molecule_model(None)
+		atom_model.setParent(None)
 		self.prune_invalid_fragments()
 		self.atom_removed.emit(atom_model)
 
@@ -372,44 +377,59 @@ class MoleculeModel(PySide6.QtCore.QObject):
 	def add_bond(self, atom1_model: bkchem_qt.models.atom_model.AtomModel,
 					atom2_model: bkchem_qt.models.atom_model.AtomModel,
 					bond_model: bkchem_qt.models.bond_model.BondModel) -> None:
-		"""Add a bond between two atoms.
-
-		Registers the BondModel's underlying OASA bond as an edge in the
-		backend molecule and updates the BondModel's endpoint references.
+		"""Add a bond between two atom wrappers in this projection.
 
 		Args:
 			atom1_model: First endpoint AtomModel.
 			atom2_model: Second endpoint AtomModel.
 			bond_model: BondModel to add as the connecting edge.
 		"""
-		oasa_atom1 = atom1_model._chem_atom
-		oasa_atom2 = atom2_model._chem_atom
-		oasa_bond = bond_model._chem_bond
-		# add the edge to the backend graph
-		self._chem_mol.add_edge(oasa_atom1, oasa_atom2, e=oasa_bond)
+		if not isinstance(atom1_model, bkchem_qt.models.atom_model.AtomModel):
+			raise TypeError("atom1_model must be an AtomModel")
+		if not isinstance(atom2_model, bkchem_qt.models.atom_model.AtomModel):
+			raise TypeError("atom2_model must be an AtomModel")
+		if not isinstance(bond_model, bkchem_qt.models.bond_model.BondModel):
+			raise TypeError("bond_model must be a BondModel")
+		if atom1_model is atom2_model:
+			raise ValueError("bond endpoints must be distinct atoms")
+		if not any(existing is atom1_model for existing in self._atom_models):
+			raise ValueError("atom1_model does not belong to this molecule")
+		if not any(existing is atom2_model for existing in self._atom_models):
+			raise ValueError("atom2_model does not belong to this molecule")
+		if any(existing is bond_model for existing in self._bond_models):
+			raise ValueError("bond_model already belongs to this molecule")
+		if bond_model.atom1 is not None or bond_model.atom2 is not None:
+			raise ValueError("bond_model already has projection endpoints")
+		if bond_model.parent() is not None:
+			raise ValueError("bond_model already has a QObject owner")
+		if any(
+				{existing.atom1, existing.atom2} == {atom1_model, atom2_model}
+				for existing in self._bond_models
+				):
+			raise ValueError("projection already contains a bond between these atoms")
 		# set endpoint references on the bond model
 		bond_model._atom1 = atom1_model
 		bond_model._atom2 = atom2_model
-		# store the mapping
-		self._bond_models[id(oasa_bond)] = bond_model
+		self._bond_models.append(bond_model)
+		bond_model.setParent(self)
 		self.bond_added.emit(bond_model)
 
 	#============================================
 	def remove_bond(self, bond_model: bkchem_qt.models.bond_model.BondModel) -> None:
-		"""Remove a bond from the molecule.
-
-		Disconnects the OASA edge and clears the BondModel's endpoint
-		references.
+		"""Remove a bond from this Qt topology projection.
 
 		Args:
 			bond_model: BondModel to remove.
 		"""
-		oasa_bond = bond_model._chem_bond
-		self._chem_mol.disconnect_edge(oasa_bond)
-		self._bond_models.pop(id(oasa_bond), None)
+		if not isinstance(bond_model, bkchem_qt.models.bond_model.BondModel):
+			raise TypeError("bond_model must be a BondModel")
+		if not any(existing is bond_model for existing in self._bond_models):
+			raise ValueError("bond_model does not belong to this molecule")
+		self._bond_models.remove(bond_model)
 		# clear endpoint references
 		bond_model._atom1 = None
 		bond_model._atom2 = None
+		bond_model.setParent(None)
 		self.prune_invalid_fragments()
 		self.bond_removed.emit(bond_model)
 
@@ -454,22 +474,185 @@ class MoleculeModel(PySide6.QtCore.QObject):
 		return tuple(connections)
 
 	#============================================
+	def _projection_neighbors(
+			self,
+			) -> dict[
+				bkchem_qt.models.atom_model.AtomModel,
+				list[tuple[
+					bkchem_qt.models.atom_model.AtomModel,
+					bkchem_qt.models.bond_model.BondModel,
+					]],
+				]:
+		"""Build the ordered wrapper adjacency used by projection graph queries."""
+		neighbors = {atom: [] for atom in self._atom_models}
+		for bond in self._bond_models:
+			atom1 = bond.atom1
+			atom2 = bond.atom2
+			if atom1 not in neighbors or atom2 not in neighbors:
+				raise ValueError("bond endpoints do not belong to this molecule")
+			neighbors[atom1].append((atom2, bond))
+			neighbors[atom2].append((atom1, bond))
+		return neighbors
+
+	#============================================
+	def _breadth_first_parents(
+			self,
+			root: bkchem_qt.models.atom_model.AtomModel,
+			neighbors: dict[
+				bkchem_qt.models.atom_model.AtomModel,
+				list[tuple[
+					bkchem_qt.models.atom_model.AtomModel,
+					bkchem_qt.models.bond_model.BondModel,
+					]],
+				],
+			atom_positions: dict[bkchem_qt.models.atom_model.AtomModel, int],
+			) -> dict[
+				bkchem_qt.models.atom_model.AtomModel,
+				tuple[
+					bkchem_qt.models.atom_model.AtomModel | None,
+					bkchem_qt.models.bond_model.BondModel | None,
+					],
+				]:
+		"""Build one deterministic shortest-path tree from wrapper topology."""
+		parents = {root: (None, None)}
+		pending = [root]
+		while pending:
+			atom = pending.pop(0)
+			ordered_neighbors = sorted(
+				neighbors[atom], key=lambda item: atom_positions[item[0]],
+			)
+			for neighbor, bond in ordered_neighbors:
+				if neighbor in parents:
+					continue
+				parents[neighbor] = (atom, bond)
+				pending.append(neighbor)
+		return parents
+
+	#============================================
+	def _cycle_from_tree_edge(
+			self,
+			atom1: bkchem_qt.models.atom_model.AtomModel,
+			atom2: bkchem_qt.models.atom_model.AtomModel,
+			parents: dict[
+				bkchem_qt.models.atom_model.AtomModel,
+				tuple[
+					bkchem_qt.models.atom_model.AtomModel | None,
+					bkchem_qt.models.bond_model.BondModel | None,
+					],
+				],
+			) -> tuple[
+				list[bkchem_qt.models.atom_model.AtomModel],
+				list[bkchem_qt.models.bond_model.BondModel],
+				]:
+		"""Return the tree path closed by one non-tree bond."""
+		path1 = [atom1]
+		path2 = [atom2]
+		while parents[path1[-1]][0] is not None:
+			path1.append(parents[path1[-1]][0])
+		while parents[path2[-1]][0] is not None:
+			path2.append(parents[path2[-1]][0])
+		positions1 = {atom: position for position, atom in enumerate(path1)}
+		for position2, atom in enumerate(path2):
+			if atom in positions1:
+				position1 = positions1[atom]
+				break
+		else:
+			raise ValueError("tree edge endpoints do not share a projection root")
+		cycle = path1[:position1 + 1] + list(reversed(path2[:position2]))
+		tree_bonds = [parents[atom][1] for atom in path1[:position1]]
+		tree_bonds.extend(parents[atom][1] for atom in path2[:position2])
+		if any(bond is None for bond in tree_bonds):
+			raise ValueError("tree path is not present in projection topology")
+		return cycle, tree_bonds
+
+	#============================================
+	def _cycle_edge_mask(
+			self,
+			tree_bonds: list[bkchem_qt.models.bond_model.BondModel],
+			closing_bond: bkchem_qt.models.bond_model.BondModel,
+			bond_positions: dict[bkchem_qt.models.bond_model.BondModel, int],
+			) -> int:
+		"""Encode one cycle's projection bonds as a GF(2) vector."""
+		edge_mask = 1 << bond_positions[closing_bond]
+		for bond in tree_bonds:
+			edge_mask ^= 1 << bond_positions[bond]
+		return edge_mask
+
+	#============================================
+	def _add_independent_cycle(self, edge_mask: int, basis: dict[int, int]) -> bool:
+		"""Add one independent cycle vector to an in-place GF(2) basis."""
+		current = edge_mask
+		while current:
+			pivot = current.bit_length() - 1
+			if pivot not in basis:
+				basis[pivot] = current
+				return True
+			current ^= basis[pivot]
+		return False
+
+	#============================================
 	def is_connected(self) -> bool:
 		"""Check whether the molecule graph is connected.
 
 		Returns:
 			True if all atoms are reachable from any other atom.
 		"""
-		return self._chem_mol.is_connected()
+		if not self._atom_models:
+			return False
+		neighbors = self._projection_neighbors()
+		pending = [self._atom_models[0]]
+		visited = set()
+		while pending:
+			atom = pending.pop()
+			if atom in visited:
+				continue
+			visited.add(atom)
+			pending.extend(neighbor for neighbor, unused_bond in neighbors[atom])
+		return len(visited) == len(self._atom_models)
 
 	#============================================
-	def get_smallest_independent_cycles(self) -> list:
-		"""Return the smallest set of independent cycles (SSSR).
+	def get_smallest_independent_cycles(
+			self,
+			) -> list[tuple[bkchem_qt.models.atom_model.AtomModel, ...]]:
+		"""Return a deterministic independent cycle basis.
 
 		Returns:
-			List of cycle vertex lists from the OASA backend.
+			Ordered Qt-wrapper tuples. Each tuple names an independent cycle
+			without repeating its closing atom. The historical method name is
+			retained for callers; it does not promise a canonical SSSR.
 		"""
-		return self._chem_mol.get_smallest_independent_cycles()
+		if len(self._atom_models) < 3:
+			return []
+		neighbors = self._projection_neighbors()
+		atom_positions = {atom: position for position, atom in enumerate(self._atom_models)}
+		bond_positions = {bond: position for position, bond in enumerate(self._bond_models)}
+		candidates = []
+		for root in self._atom_models:
+			parents = self._breadth_first_parents(root, neighbors, atom_positions)
+			for bond in self._bond_models:
+				atom1 = bond.atom1
+				atom2 = bond.atom2
+				if atom1 is None or atom2 is None:
+					raise ValueError("bond endpoints do not belong to this molecule")
+				if atom1 not in parents or atom2 not in parents:
+					continue
+				if parents[atom1][0] is atom2 or parents[atom2][0] is atom1:
+					continue
+				cycle, tree_bonds = self._cycle_from_tree_edge(atom1, atom2, parents)
+				if len(cycle) < 3:
+					continue
+				edge_mask = self._cycle_edge_mask(tree_bonds, bond, bond_positions)
+				candidates.append(
+						(len(cycle), tuple(atom_positions[atom] for atom in cycle),
+						edge_mask, cycle),
+						)
+		candidates.sort(key=lambda candidate: (candidate[0], candidate[1]))
+		basis: dict[int, int] = {}
+		cycles = []
+		for unused_length, unused_positions, edge_mask, cycle in candidates:
+			if self._add_independent_cycle(edge_mask, basis):
+				cycles.append(tuple(cycle))
+		return cycles
 
 	#============================================
 	def contains_cycle(self) -> bool:
@@ -478,7 +661,7 @@ class MoleculeModel(PySide6.QtCore.QObject):
 		Returns:
 			True if the molecule contains at least one cycle.
 		"""
-		return self._chem_mol.contains_cycle()
+		return bool(self.get_smallest_independent_cycles())
 
 	# ------------------------------------------------------------------
 	# Factory methods
@@ -497,12 +680,13 @@ class MoleculeModel(PySide6.QtCore.QObject):
 		Returns:
 			A new AtomModel instance.
 		"""
-		oasa_atom = oasa.atom_lib.Atom(symbol=symbol)
-		atom_model = bkchem_qt.models.atom_model.AtomModel(oasa_atom=oasa_atom)
+		atom_model = bkchem_qt.models.atom_model.AtomModel.create(symbol=symbol)
 		return atom_model
 
 	#============================================
-	def create_bond(self, order: int = 1, bond_type: str = 'n') -> bkchem_qt.models.bond_model.BondModel:
+	def create_bond(
+			self, order: int = 1, bond_type: str = 'n',
+			) -> bkchem_qt.models.bond_model.BondModel:
 		"""Create a new BondModel with the given order and type.
 
 		The bond is not automatically added to the molecule; call
@@ -515,8 +699,9 @@ class MoleculeModel(PySide6.QtCore.QObject):
 		Returns:
 			A new BondModel instance.
 		"""
-		oasa_bond = oasa.bond_lib.Bond(order=order, type=bond_type)
-		bond_model = bkchem_qt.models.bond_model.BondModel(oasa_bond=oasa_bond)
+		bond_model = bkchem_qt.models.bond_model.BondModel.create(
+			order=order, bond_type=bond_type,
+		)
 		return bond_model
 
 	# ------------------------------------------------------------------

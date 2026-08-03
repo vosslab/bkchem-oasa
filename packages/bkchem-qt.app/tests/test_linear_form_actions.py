@@ -11,7 +11,7 @@ import PySide6.QtWidgets
 import bkchem_qt.actions.chemistry_actions
 import bkchem_qt.canvas.items.atom_item
 import bkchem_qt.canvas.items.bond_item
-import bkchem_qt.io.cdml_io
+import bkchem_qt.io.cdml_document_io
 import bkchem_qt.undo.commands
 
 
@@ -66,7 +66,7 @@ def _document_from_xml(molecule_xml: str) -> object:
 	xml = """<cdml version="0.15" xmlns="http://www.freesoftware.fsf.org/bkchem/cdml">"""
 	xml += molecule_xml
 	xml += "</cdml>"
-	document = bkchem_qt.io.cdml_io.load_cdml_document_string(xml)
+	document = bkchem_qt.io.cdml_document_io.decode_compatibility_cdml_string(xml)
 	return document
 
 
@@ -290,7 +290,7 @@ def test_linear_form_rejects_multi_molecule_selection_without_mutation(
 		monkeypatch: object,
 		) -> None:
 	"""One conversion never joins independent document molecules."""
-	document = bkchem_qt.io.cdml_io.load_cdml_document_string("""<cdml version="0.15"
+	document = bkchem_qt.io.cdml_document_io.decode_compatibility_cdml_string("""<cdml version="0.15"
 		xmlns="http://www.freesoftware.fsf.org/bkchem/cdml"><molecule id="m1"><atom id="a1" name="C"><point x="1cm" y="1cm"/></atom></molecule>
 		<molecule id="m2"><atom id="a2" name="O"><point x="2cm" y="1cm"/></atom></molecule></cdml>""")
 	scene = PySide6.QtWidgets.QGraphicsScene()

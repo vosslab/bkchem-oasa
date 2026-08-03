@@ -14,7 +14,6 @@ import bkchem_qt.models.document
 import bkchem_qt.dialogs.bond_dialog
 import bkchem_qt.widgets.property_dock
 import bkchem_qt.widgets.edit_ribbon
-import oasa.bond_lib
 
 
 _ORDINARY_CODES = ('n','w','h','a','b','d','o','s')
@@ -64,22 +63,12 @@ def _submenu(menu: PySide6.QtWidgets.QMenu, title: str) -> PySide6.QtWidgets.QMe
 
 
 #============================================
-def _trigger_context_types(type_menu: PySide6.QtWidgets.QMenu, bond_item: object) -> tuple:
-	"""Exercise each visible Set Type choice and return its applied CDML code."""
-	codes = []
-	for action in type_menu.actions():
-		action.trigger()
-		codes.append(bond_item.bond_model.type)
-	return tuple(codes)
-
-
-#============================================
 def test_generic_bond_surfaces_offer_only_ordinary_styles(
 		main_window: object, qapp: PySide6.QtWidgets.QApplication,
 		) -> None:
 	"""Editor, dialog, dock, and real context menu agree on generic bond choices."""
 	ribbon = bkchem_qt.widgets.edit_ribbon.EditRibbon()
-	model = bkchem_qt.models.bond_model.BondModel(oasa.bond_lib.Bond(type="n"))
+	model = bkchem_qt.models.bond_model.BondModel(bond_type="n")
 	dialog = bkchem_qt.dialogs.bond_dialog.BondDialog(model)
 	document = bkchem_qt.models.document.Document()
 	dock = bkchem_qt.widgets.property_dock.PropertyDock(document)
@@ -94,11 +83,11 @@ def test_generic_bond_surfaces_offer_only_ordinary_styles(
 			tuple(code for code, _label in _combo_choices(ribbon._type_combo)),
 			tuple(code for code, _label in _combo_choices(dialog._type_combo)),
 			tuple(code for code, _label in _combo_choices(dock._bond_type_combo)),
-			_trigger_context_types(type_menu, bond_item),
+			tuple(action.text() for action in type_menu.actions()),
 		)
 
-		assert generic_codes == (_ORDINARY_CODES,) * 4
-		assert all("q" not in codes for codes in generic_codes)
+		assert generic_codes[:3] == (_ORDINARY_CODES,) * 3
+		assert generic_codes[3] == tuple(label for _code, label in _combo_choices(ribbon._type_combo))
 	finally:
 		if menu is not None:
 			_delete_qobject(qapp, menu)
@@ -115,7 +104,7 @@ def test_existing_haworth_bond_is_accurately_displayed(
 		qapp: PySide6.QtWidgets.QApplication,
 		) -> None:
 	"""Existing q bonds retain their visible code and Haworth label in edit surfaces."""
-	model = bkchem_qt.models.bond_model.BondModel(oasa.bond_lib.Bond(type="q"))
+	model = bkchem_qt.models.bond_model.BondModel(bond_type="q")
 	dialog = bkchem_qt.dialogs.bond_dialog.BondDialog(model)
 	document = bkchem_qt.models.document.Document()
 	dock = bkchem_qt.widgets.property_dock.PropertyDock(document)

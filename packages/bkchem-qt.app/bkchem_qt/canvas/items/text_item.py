@@ -65,6 +65,35 @@ class TextItem(PySide6.QtWidgets.QGraphicsTextItem):
 		self.setPlainText(text)
 
 	#============================================
+	def set_formatted_text_runs(
+			self, runs: tuple[tuple[str, tuple[str, ...]], ...],
+			) -> None:
+		"""Build this disposable item's document from plain authored run values."""
+		if type(runs) is not tuple:
+			raise TypeError("Formatted Text runs must be an immutable tuple")
+		document = self.document()
+		document.clear()
+		document.setDefaultFont(self.font())
+		cursor = PySide6.QtGui.QTextCursor(document)
+		for text, styles in runs:
+			if type(text) is not str or type(styles) is not tuple:
+				raise TypeError("Formatted Text runs must contain plain text/style tuples")
+			format = PySide6.QtGui.QTextCharFormat()
+			if "b" in styles:
+				format.setFontWeight(PySide6.QtGui.QFont.Weight.Bold)
+			if "i" in styles:
+				format.setFontItalic(True)
+			if "sub" in styles:
+				format.setVerticalAlignment(
+					PySide6.QtGui.QTextCharFormat.VerticalAlignment.AlignSubScript,
+				)
+			if "sup" in styles:
+				format.setVerticalAlignment(
+					PySide6.QtGui.QTextCharFormat.VerticalAlignment.AlignSuperScript,
+				)
+			cursor.insertText(text, format)
+
+	#============================================
 	def set_font_size(self, size: int) -> None:
 		"""Set the font size.
 

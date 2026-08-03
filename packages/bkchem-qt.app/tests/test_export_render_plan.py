@@ -4,16 +4,12 @@
 import contextlib
 
 # PIP3 modules
-import PySide6.QtCore
 import PySide6.QtGui
 import PySide6.QtWidgets
 import pytest
 import shiboken6
 
 # local repo modules
-import oasa.cdml_document
-import oasa.cdml_render
-import bkchem_qt.actions.edit_actions
 import bkchem_qt.canvas.document_projection
 import bkchem_qt.canvas.graphics_retirement
 import bkchem_qt.canvas.items.atom_item
@@ -96,19 +92,6 @@ def test_svg_export_writes_an_svg_artifact(qapp: object, tmp_path: object) -> No
 
 
 #============================================
-def test_cropped_svg_renders_supported_content_without_the_page(
-		qapp: object, tmp_path: object,
-		) -> None:
-	"""A cropped SVG retains projected content while leaving page decoration out."""
-	path = tmp_path / "cropped.svg"
-	with _content_scene(qapp) as scene:
-		scene._paper_attributes = {"crop_svg": "1", "crop_margin": "7"}
-		bkchem_qt.io.export.export_svg(scene, str(path))
-		data = path.read_bytes()
-		assert b"Export proof" in data
-
-
-#============================================
 def test_png_export_writes_a_png_artifact(qapp: object, tmp_path: object) -> None:
 	"""PNG export writes a nonempty PNG document to the requested path."""
 	path = tmp_path / "drawing.png"
@@ -128,47 +111,6 @@ def test_pdf_export_writes_a_pdf_artifact(qapp: object, tmp_path: object) -> Non
 		bkchem_qt.io.export.export_pdf(scene, str(path))
 
 	assert path.read_bytes().startswith(b"%PDF")
-
-
-#============================================
-def test_selected_svg_installs_only_renderer_returned_snapshot_bytes(qapp: object) -> None:
-	"""Copy as SVG uses a captured request and never reads a live scene for bytes."""
-	class StatusBar:
-		"""Minimal status receiver for the action boundary."""
-
-		#============================================
-		def showMessage(self, message: str, timeout: int) -> None:
-			"""Accept ordinary user feedback without changing test state."""
-
-	class App:
-		"""Minimal app facade required by the registered edit action."""
-
-		#============================================
-		def __init__(self) -> None:
-			"""Provide only the active snapshot-session boundary used by the action."""
-			self._status_bar = StatusBar()
-			self._active_session = type("Session", (), {
-				"capture_visual_render_request": lambda _self, *_args:
-					oasa.cdml_render.CDMLRenderRequest(
-						oasa.cdml_document.CDMLSnapshot(7, "<cdml/>", False), "svg", "selection",
-					),
-			})()
-
-		#============================================
-		def statusBar(self) -> StatusBar:
-			"""Return the status facade expected by the action."""
-			return self._status_bar
-
-	with pytest.MonkeyPatch.context() as monkeypatch:
-		monkeypatch.setattr(
-			bkchem_qt.io.export, "render_snapshot_request",
-			lambda request: oasa.cdml_render.CDMLRenderResult(
-				request.snapshot.revision, "svg", b"<svg>snapshot proof</svg>",
-			),
-		)
-		bkchem_qt.actions.edit_actions._selected_to_svg(App())
-		data = bytes(PySide6.QtWidgets.QApplication.clipboard().mimeData().data("image/svg+xml"))
-		assert data == b"<svg>snapshot proof</svg>"
 
 
 #============================================

@@ -28,6 +28,7 @@ import PySide6.QtTest
 # local repo modules
 import bkchem_qt.themes.theme_manager
 import bkchem_qt.main_window
+import tests.graphics_test_retirement
 
 
 #============================================
@@ -98,11 +99,7 @@ def qapp() -> PySide6.QtWidgets.QApplication:
 	# owner while both Qt and Python are still live; otherwise its wrapped
 	# QMimeData can be destroyed during interpreter shutdown.
 	app.clipboard().clear()
-	for widget in list(app.topLevelWidgets()):
-		widget.close()
-		if isinstance(widget, bkchem_qt.main_window.MainWindow):
-			assert _drain_deferred_deletes(app, widget)
-		assert bkchem_qt.main_window.delete_qobject_and_wait(app, widget)
+	tests.graphics_test_retirement.retire_terminal_top_level_widgets(app)
 
 
 #============================================
@@ -181,9 +178,20 @@ def _normalize_main_window(main_window: bkchem_qt.main_window.MainWindow) -> Non
 #============================================
 @pytest.fixture(autouse=True)
 def _reset_main_window(
-		main_window: bkchem_qt.main_window.MainWindow,
+		request: pytest.FixtureRequest,
 		) -> None:
-	"""Normalize the shared window and drain terminal session ownership."""
+	"""Normalize and drain a shared window only for tests that request it.
+
+	Standalone Qt tests frequently need only ``qapp`` or a bare scene.  Obtaining
+	the window through the public pytest request API keeps those tests free of
+	the window's document/session ownership while retaining the established
+	normalization and visual-test behavior for every test whose fixture closure
+	requires ``main_window``.
+	"""
+	if "main_window" not in request.fixturenames:
+		yield
+		return
+	main_window = request.getfixturevalue("main_window")
 	_normalize_main_window(main_window)
 	yield
 	assert _drain_deferred_deletes(

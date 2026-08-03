@@ -10,6 +10,8 @@ import pytest
 
 # local repo modules
 import oasa.cdml_document as cdml_document
+import oasa.cdml_ftext
+import oasa.cdml_linear_form
 import oasa.cdml_xml
 import oasa.cdml_writer
 import oasa.coords_generator
@@ -313,10 +315,12 @@ def test_stale_revision_is_typed_and_atomic() -> None:
 
 #============================================
 def test_backend_authority_module_has_no_qt_imports() -> None:
-	"""The backend CDML authority module remains independent of Qt imports."""
-	source_path = pathlib.Path(cdml_document.__file__)
-	tree = ast.parse(source_path.read_text(encoding="utf-8"))
-	module_names = _imported_module_names(tree)
+	"""The backend CDML authority modules remain independent of Qt imports."""
+	module_names = set()
+	for backend_module in (cdml_document, oasa.cdml_ftext, oasa.cdml_linear_form):
+		source_path = pathlib.Path(backend_module.__file__)
+		tree = ast.parse(source_path.read_text(encoding="utf-8"))
+		module_names.update(_imported_module_names(tree))
 	assert not any(name == "PySide6" or name.startswith("PySide6.") for name in module_names)
 
 

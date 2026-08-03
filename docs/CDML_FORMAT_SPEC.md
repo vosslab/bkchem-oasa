@@ -157,9 +157,13 @@ frontier rather than silently adding authored-profile enforcement.
 ### Complete-CDML XML safety and preservation
 
 Complete CDML input must not declare a `DOCTYPE`, use entity expansion, or
-refer to external entities. Parsing disables network access, recovery, and
-huge-tree mode. A rejected XML source produces the backend's typed parse
-failure and cannot become a document snapshot or committed revision.
+refer to external entities. The complete-CDML policy gate uses an isolated
+`lxml.etree.XMLParser` with entity resolution, DTD loading, network access,
+recovery, and huge-tree mode disabled; it retains comments, processing
+instructions, CDATA character data, and whitespace for preservation. Other
+legacy XML remains behind its owning hardened parser until it is migrated to a
+dedicated lxml boundary. A rejected XML source produces the backend's typed
+parse failure and cannot become a document snapshot or committed revision.
 
 For accepted CDML, comments, processing instructions, namespaces, attributes,
 text, tail text, and element sequence are persistent preservation content.
@@ -598,6 +602,24 @@ These are only written when their values differ from the document `<standard>`.
 | `wavy_style` | enum | -- | For `s*` bonds: `"sine"`, `"half-circle"`, `"box"`, `"triangle"` |
 | `haworth_position` | enum | -- | `"front"` or `"back"`; Haworth depth metadata used with established Haworth styles |
 
+### Direct-glycosidic Haworth profile
+
+The supported 26.07 direct-glycosidic Haworth authoring route is a bounded
+two-ring drawing profile, not a general carbohydrate stereochemistry model. It
+accepts exactly two vertex-disjoint five- or six-member C/O rings joined by one
+single, degree-two exterior oxygen bridge. The durable output records the
+ordinary bond type plus the established `q`, `w`, or `n` depiction style and
+the `haworth_position="front"` or `"back"` attribute where applicable.
+Coordinates, ordered endpoints, style, and these depiction attributes persist
+through normal CDML insertion, Save, reload, and backend round trips.
+
+This profile describes an unambiguous two-dimensional Haworth drawing
+convention. It does not infer, validate, or claim alpha/beta anomeric state,
+tetrahedral configuration, or a general reaction/carbohydrate semantics model.
+Fused, spiro, bridged, indirect-link, non-single-bridge, and other multi-ring
+topologies are outside this authoring route; compatible imported CDML retains
+its content through ordinary opaque/compatibility preservation.
+
 For `a*`, `d*`, and `o*`, the selected style always occupies the primary bond
 axis. Their additional lanes use the following matrix:
 
@@ -657,6 +679,12 @@ when the object's font differs from the standard.
 | `family` | string | Font family name |
 | `color` | hex color | Font color; only when different from standard line_color |
 
+Atom font `size` uses a positive decimal integer grammar. A compatibility
+document with a fractional, non-decimal, non-positive, or otherwise malformed
+atom font size remains authoritative source content, but its affected atom is
+display-only in a synchronized projection and carries a backend diagnostic. A
+frontend never rounds or repairs that source value.
+
 ### `<ftext>` -- rich text
 
 Rich text content stored as an escaped XML text node (since version 0.16).
@@ -672,6 +700,26 @@ Tags may be nested. Example:
 ```xml
 <ftext>&lt;i&gt;n&lt;/i&gt;-butanol</ftext>
 ```
+
+CDML 26.07 authored rich text has one deliberately small fragment grammar.
+The ftext character-data value contains only literal rendered text plus nested,
+unqualified `b`, `i`, `sub`, and `sup` tags. Tags have no attributes or
+namespace declarations; comments, processing instructions, DTDs, entity
+declarations, custom entity references, unknown tags, and other elements are
+outside the authored grammar. In the
+canonical run representation, styles use the stable order `b`, `i`, `sub`,
+`sup`; duplicate styles and a combined `sub` plus `sup` are rejected. Adjacent
+runs with identical styles join; empty runs are omitted. Literal
+rendered `<`, `>`, and `&` use ordinary XML character references inside the
+authored value, for example `&lt;`, `&gt;`, and `&amp;` before the complete CDML
+serializer applies its outer escaping.
+
+An authored direct-root Text may carry at most one simple direct `<font>` before
+its `<ftext>`. Rich Text patches replace complete canonical runs and may name
+only `family`, `size`, or `color` root-font attributes. Named values are
+canonical nonblank family text, integer size 4--144, and lowercase six-digit
+hex color. An absent font remains absent unless a named font change requires
+one; unmentioned attributes, including unknown font attributes, are preserved.
 
 In versions before 0.16, rich text was stored as direct XML children of
 `<ftext>` rather than escaped text. Those direct child nodes are
@@ -714,6 +762,37 @@ orbital indicators, text labels).
 | `oxidation_number` | Oxidation state | `refname`: string |
 | `pz_orbital` | p-orbital lobes | -- |
 
+#### Authored atom-mark operation profile (26.07)
+
+The revision-bound `atom.mark.apply` backend operation authors only `plus`,
+`minus`, `radical`, `biradical`, `electronpair`, `dotted_electronpair`, and
+`pz_orbital` through exact `add` and `remove` intent. It appends a new direct
+`<mark>` as the final atom child; it does not assign a mark `id`.
+Removal without a selector identifies the first direct matching type in child
+order, so later duplicate compatible marks remain persistent content. A
+selected-mark remove may use `matching_mark_index`, a nonnegative exact
+integer ordinal among direct core same-type mark children; malformed or
+out-of-range selectors reject atomically. The operation always
+writes `auto="0"` and paired `x`/`y` centimetre coordinates derived from the
+authoritative atom's one direct core point. Plus and minus use a 12-point
+45-degree offset, size `10`, and `draw_circle="yes"`; radical and biradical
+use a 12-point 90-degree offset and size `4`; electronpair and
+dotted_electronpair use a 12-point 180-degree offset and sizes `10` and `4`;
+electronpair additionally writes `line_width="2"`. `pz_orbital` uses the atom
+point itself and size `40`; its renderer retains the established default
+orientation when no separate orientation attribute is present.
+
+Adding/removing plus, minus, radical, or biradical also applies the matching
+atom `charge` or `multiplicity` delta in the same atomic document operation.
+Plus/minus validate only their addressed `charge` scalar within -9 through 9;
+radical/biradical validate only their addressed `multiplicity` scalar within 1
+through 3. The other scalar is preserved verbatim even when legacy or
+incompatible, and presentation-only marks preserve both scalars.
+This authored behavior adds to, rather than normalizes, accepted legacy CDML:
+older documents may retain omitted coordinates, legacy scalar spelling, extra
+attributes, unsupported mark types, or duplicate direct marks as compatible
+preservation content until an operation explicitly addresses them.
+
 ---
 
 ## `<template>`
@@ -746,6 +825,21 @@ Named substructure within a molecule.
 | `bond` | `id` (IDREF) | References a bond in the molecule |
 | `vertex` | `id` (IDREF) | References a vertex in the molecule |
 | `property` | `name`, `value`, `type` | Arbitrary key-value property |
+
+The backend ordinary-fragment metadata operations author and edit only the
+narrow `explicit`/`implicit` form with one direct nonblank `name`, followed by
+direct `bond` and `vertex` IDREF children. They preserve richer compatible
+fragment XML, including `linear_form`, properties, extension content, and
+ambiguous historical shapes, as read-only document content.
+
+The backend-authored narrow `linear_form` grammar is exactly a `fragment` with
+only `id` and `type="linear_form"`, a direct `<name>linear_form</name>`, path-
+ordered direct `bond` IDREF children, path-ordered direct `vertex` IDREF
+children, and one final `<property name="bond_length" value="10"
+type="IntType"/>`. Only whitespace character data may surround direct child
+elements. This fixed 10 PostScript-point layout is persistent molecule geometry,
+not a renderer spacing promise. Richer or differently shaped imported linear
+forms remain preservation-only.
 
 ---
 
@@ -1124,6 +1218,61 @@ behavior for `<molecule>` content, and rendering pipelines consume typed
 chemistry data; neither substitutes for the complete-document session. BKChem
 projects the canonical backend response and must not restore, merge, or
 reconstruct omitted persistent content after a backend round-trip.
+
+### Portable render primitives
+
+The backend may describe a renderable molecule with an immutable,
+frontend-neutral primitive batch: finite geometry and explicit colors or
+semantic foreground/background roles for lines, polygons, circles, paths, and
+structured text runs. A frontend maps that batch to its own painter and
+metrics. Render primitives are an observation of one snapshot, not a second
+document format: they neither replace CDML persistence nor carry frontend
+objects, scene items, callbacks, or lifecycle state. An unsupported persistent
+record remains in CDML and produces an explicit rendering diagnostic rather
+than being removed.
+
+### Top-level transform geometry
+
+The backend transform operation uses only durable direct-root CDML geometry.
+For molecules, every direct `atom`, `group`, `text`, and `query` vertex has one
+direct core point; explicit direct mark `x`/`y` pairs follow their parent
+vertex, while an implicit mark has neither coordinate. Arrows use at least two
+points; standalone text and plus records use one; polygons use at least three;
+polylines use at least two. Rectangles, squares, ovals, and circles use
+`x1`, `y1`, `x2`, and `y2`. Bounds are persistent geometry, not font, Qt, or
+rendered visual bounds. A selected root with ambiguous or partial core
+coordinate geometry is rejected without changing the document.
+
+### Structural deletion components
+
+The CDML 26.07 backend structural-deletion profile acts on one durable direct
+root `<molecule>` without changing the CDML element grammar. The eligible
+molecule has only `id`, `name`, and namespace declarations, and its direct
+children are only core `<atom>` and `<bond>` records with whitespace text or
+CDATA character data between them. Comments, processing instructions,
+non-whitespace character data, and every other direct node are unsupported.
+The molecule, direct atoms, and direct bonds require unique durable IDs
+containing at least one non-whitespace character. Each bond has distinct
+nonempty `start` and `end` values that resolve to direct atoms in the same
+molecule. Unknown attributes and descendants inside an eligible atom or bond
+remain part of that node's preserved XML.
+
+Removing atoms also removes their incident bonds. Remaining atoms are retained
+even when isolated. The backend partitions surviving direct atoms and bonds
+into connected components ordered by the earliest surviving atom in original
+child order; records inside a component retain their original atom and bond
+order. No surviving atom removes the original root. One component retains its
+original root identity, attributes, name, and root position. A split retains
+the original root for the first component and inserts shallow-cloned later
+roots immediately after it. Later roots retain namespace declarations, receive
+collision-safe molecule IDs reserved against all IDs in the pre-delete
+document, and omit `name`.
+
+A direct-core reaction role may keep referencing a molecule only if deletion
+leaves exactly one component. The backend rejects a referenced root removal or
+split without changing the complete CDML snapshot. This is operation behavior,
+not a generic permission to normalize, split, or repair molecules during a
+CDML round trip.
 
 | Concern | OASA document backend | OASA molecule codecs and renderers | BKChem Qt frontend |
 |---------|-----------------------|------------------------------------|--------------------|

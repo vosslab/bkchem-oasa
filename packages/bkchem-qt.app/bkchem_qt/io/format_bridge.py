@@ -89,7 +89,6 @@ def get_supported_export_formats() -> dict:
 	Returns:
 		Dict mapping file extension strings to human-readable descriptions.
 	"""
-	oasa.codec_registry._ensure_defaults_registered()
 	supported = {}
 	for extension, description in _EXPORT_DESCRIPTIONS.items():
 		codec_name = _EXPORT_FORMAT_MAP[extension]

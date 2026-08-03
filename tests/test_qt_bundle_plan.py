@@ -35,6 +35,20 @@ def test_plan_uses_qt_entrypoint_and_backend_owned_data() -> None:
 		"bkchem_qt.cli", ("bkchem_qt/resources", "oasa_data", "."), "BKChem", "BKChem.app",
 		"org.bkchem.BKChem", "bkchem-qt", "bkchem-qt.app",
 	)
+	assert {"tkinter", "_tkinter"}.issubset(plan.excluded_modules)
+
+
+#============================================
+@pytest.mark.parametrize("required_module", ("tkinter", "_tkinter", "PIL.ImageTk"))
+def test_plan_rejects_removing_required_tcl_tk_exclusions(required_module: str) -> None:
+	"""The frozen Qt plan preserves exclusions that prevent optional PIL Tk hooks."""
+	plan = qt_bundle_plan.make_qt_bundle_plan(REPO_ROOT)
+	reduced_plan = dataclasses.replace(
+		plan, excluded_modules=tuple(module for module in plan.excluded_modules if module != required_module),
+	)
+
+	with pytest.raises(ValueError, match="Tcl/Tk"):
+		qt_bundle_plan.validate_qt_bundle_plan(reduced_plan)
 
 
 #============================================

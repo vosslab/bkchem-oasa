@@ -1,27 +1,15 @@
-"""Qt composition wrapper around an OASA Bond with change signals."""
+"""Qt scalar projection of one bond with change signals."""
 
 # PIP3 modules
 import PySide6.QtCore
 
-# local repo modules
-import oasa.bond_lib
-import oasa.cdml_bond_io
-import oasa.render_lib.data_types
-
-
 #============================================
 class BondModel(PySide6.QtCore.QObject):
-	"""Composition wrapper that owns an OASA Bond and emits Qt signals on changes.
+	"""Qt-only scalar projection of one bond.
 
-	Delegates chemistry properties (order, type, aromatic) to an internal
-	``oasa.bond_lib.Bond`` instance. Stores endpoint references (AtomModel
-	pairs) and display properties (line width, wedge width, centering, etc.)
-	locally. Every setter emits ``property_changed(name, new_value)``.
-
-	Args:
-		oasa_bond: Existing OASA Bond to wrap. A default single bond is
-			created when ``None``.
-		parent: Optional parent QObject.
+	The model owns only scalar chemistry, endpoint, and depiction facts.  The
+	bridge materializes a short-lived OASA edge when a legacy calculation needs
+	one; no OASA object crosses or remains in this Qt model.
 	"""
 
 	# signal emitted whenever a property changes: (property_name, new_value)
@@ -29,18 +17,15 @@ class BondModel(PySide6.QtCore.QObject):
 
 	#============================================
 	def __init__(
-			self, oasa_bond: oasa.bond_lib.Bond | None = None,
+			self, order: int = 1, bond_type: str = "n",
 			parent: PySide6.QtCore.QObject | None = None,
 			) -> None:
-		"""Initialize the bond model.
-
-		Args:
-			oasa_bond: Existing OASA Bond to wrap, or None for default single bond.
-			parent: Optional parent QObject.
-		"""
+		"""Initialize a scalar bond projection."""
 		super().__init__(parent)
-		# chemistry backend
-		self._chem_bond = oasa_bond or oasa.bond_lib.Bond()
+		self._bond_id: str | None = None
+		self._order = int(order)
+		self._type = str(bond_type)
+		self._aromatic: bool | None = None
 		# Local projection linkage for ID-less legacy bonds is intentionally not a
 		# backend operation target.  Only a source-snapshot ID is durable.
 		self._backend_durable_id: str | None = None
@@ -58,25 +43,44 @@ class BondModel(PySide6.QtCore.QObject):
 		self._double_length_ratio = 0.75
 		self._equithick = False
 		self._wavy_style = None
+		self._haworth_position: str | None = None
 		# Effective display values are separate from authoritative lexical
 		# presence, so a projection does not author absent CDML attributes.
 		self._cdml_display_fields: set[str] = set()
 
+	#============================================
+	@classmethod
+	def create(
+			cls, order: int = 1, bond_type: str = "n", bond_id: str | None = None,
+			parent: PySide6.QtCore.QObject | None = None,
+			) -> "BondModel":
+		"""Create one new Qt bond wrapper from scalar topology values."""
+		bond_model = cls(order=order, bond_type=bond_type, parent=parent)
+		bond_model.bond_id = bond_id
+		return bond_model
+
 	# ------------------------------------------------------------------
-	# Chemistry properties delegated to _chem_bond
+	# Scalar chemistry properties
 	# ------------------------------------------------------------------
 
 	#============================================
 	@property
 	def bond_id(self) -> str | None:
-		"""Return the persisted CDML bond identifier without exposing OASA state."""
-		return self._chem_bond.id
+		"""Return this projected CDML bond identifier."""
+		return self._bond_id
+
+	#============================================
+	@bond_id.setter
+	def bond_id(self, value: str | None) -> None:
+		"""Set a scalar local identifier used by standalone compatibility paths."""
+		self._bond_id = str(value) if value else None
+		self.property_changed.emit("bond_id", self._bond_id)
 
 	#============================================
 	@property
 	def backend_durable_id(self) -> str | None:
 		"""Return an authoritative bond ID only while local linkage agrees."""
-		if self._backend_durable_id and self.bond_id == self._backend_durable_id:
+		if self._backend_durable_id and self._bond_id == self._backend_durable_id:
 			return self._backend_durable_id
 		return None
 
@@ -89,37 +93,37 @@ class BondModel(PySide6.QtCore.QObject):
 	@property
 	def order(self) -> int:
 		"""Bond order: 1 (single), 2 (double), 3 (triple), 4 (aromatic)."""
-		return self._chem_bond.order
+		return self._order
 
 	#============================================
 	@order.setter
 	def order(self, value: int) -> None:
-		self._chem_bond.order = value
-		self.property_changed.emit("order", value)
+		self._order = int(value)
+		self.property_changed.emit("order", self._order)
 
 	#============================================
 	@property
 	def type(self) -> str:
 		"""Bond type character: 'n','w','h','a','b','d','o','s','q'."""
-		return self._chem_bond.type
+		return self._type
 
 	#============================================
 	@type.setter
 	def type(self, value: str) -> None:
-		self._chem_bond.type = value
-		self.property_changed.emit("type", value)
+		self._type = str(value)
+		self.property_changed.emit("type", self._type)
 
 	#============================================
 	@property
 	def aromatic(self) -> bool | None:
 		"""Aromatic flag: None (not set), True, or False."""
-		return self._chem_bond.aromatic
+		return self._aromatic
 
 	#============================================
 	@aromatic.setter
 	def aromatic(self, value: bool | None) -> None:
-		self._chem_bond.aromatic = value
-		self.property_changed.emit("aromatic", value)
+		self._aromatic = value
+		self.property_changed.emit("aromatic", self._aromatic)
 
 	# ------------------------------------------------------------------
 	# Endpoint properties
@@ -227,7 +231,6 @@ class BondModel(PySide6.QtCore.QObject):
 		self._center = value
 		if value is None:
 			self._cdml_display_fields.discard("center")
-			self._sync_chem_bond_depiction()
 		else:
 			self._record_cdml_display_field("center")
 		self.property_changed.emit("center", self._center)
@@ -296,85 +299,74 @@ class BondModel(PySide6.QtCore.QObject):
 		self._wavy_style = value
 		if value is None:
 			self._cdml_display_fields.discard("wavy_style")
-			self._sync_chem_bond_depiction()
 		else:
 			self._record_cdml_display_field("wavy_style")
 		self.property_changed.emit("wavy_style", self._wavy_style)
 
 	#============================================
-	def install_projected_depiction(
-			self, depiction: oasa.render_lib.data_types.BondDepiction,
+	@property
+	def haworth_position(self) -> str | None:
+		"""Return the optional scalar Haworth position metadata."""
+		return self._haworth_position
+
+	#============================================
+	@haworth_position.setter
+	def haworth_position(self, value: str | None) -> None:
+		"""Set optional Haworth metadata and retain its authored presence."""
+		self._haworth_position = str(value) if value is not None else None
+		if value is None:
+			self._cdml_display_fields.discard("haworth_position")
+		else:
+			self._record_cdml_display_field("haworth_position")
+		self.property_changed.emit("haworth_position", self._haworth_position)
+
+	#============================================
+	@property
+	def cdml_display_fields(self) -> frozenset[str]:
+		"""Return the exact authored depiction-field presence."""
+		return frozenset(self._cdml_display_fields)
+
+	#============================================
+	def install_projection(
+			self, *, bond_id: str | None, order: int, bond_type: str,
+			aromatic: bool | None, line_width: float | None,
+			bond_width: float | None, wedge_width: float | None,
+			double_ratio: float | None, center: bool | None,
+			auto_sign: int | None, equithick: bool | None,
+			simple_double: bool | None, line_color: str | None,
+			wavy_style: str | None, haworth_position: str | None,
+			explicit_fields: frozenset[str] | set[str],
 			) -> None:
-		"""Install one OASA-resolved projection without inventing presence."""
-		if depiction.line_width is not None:
-			self._line_width = depiction.line_width
-		if depiction.bond_width is not None:
-			self._bond_width = depiction.bond_width
-		if depiction.wedge_width is not None:
-			self._wedge_width = depiction.wedge_width
-		self._double_length_ratio = depiction.double_ratio
-		self._center = depiction.center
-		self._auto_bond_sign = depiction.auto_sign
-		self._equithick = depiction.equithick
-		self._simple_double = depiction.simple_double
-		if depiction.color is not None:
-			self._line_color = depiction.color
-		self._wavy_style = depiction.wavy_style
-		self._cdml_display_fields = set(depiction.explicit_fields)
-		if depiction.haworth_position is not None:
-			self._chem_bond.properties_["haworth_position"] = depiction.haworth_position
-		self._sync_chem_bond_depiction()
+		"""Install backend/bridge scalar facts without inventing XML presence."""
+		self._bond_id = str(bond_id) if bond_id else None
+		self._order = int(order)
+		self._type = str(bond_type)
+		self._aromatic = aromatic
+		if line_width is not None:
+			self._line_width = float(line_width)
+		if bond_width is not None:
+			self._bond_width = float(bond_width)
+		if wedge_width is not None:
+			self._wedge_width = float(wedge_width)
+		if double_ratio is not None:
+			self._double_length_ratio = float(double_ratio)
+		self._center = center
+		if auto_sign is not None:
+			self._auto_bond_sign = int(auto_sign)
+		if equithick is not None:
+			self._equithick = bool(equithick)
+		if simple_double is not None:
+			self._simple_double = bool(simple_double)
+		if line_color is not None:
+			self._line_color = str(line_color)
+		self._wavy_style = wavy_style
+		self._haworth_position = haworth_position
+		self._cdml_display_fields = set(explicit_fields)
 
 	#============================================
 	def _record_cdml_display_field(self, name: str) -> None:
-		"""Mark one explicit Qt depiction edit and synchronize its render edge."""
+		"""Mark one explicit Qt depiction edit for later bridge materialization."""
 		self._cdml_display_fields.add(name)
-		self._sync_chem_bond_depiction()
-
-	#============================================
-	def _sync_chem_bond_depiction(self) -> None:
-		"""Copy effective values and explicit presence to the composed OASA edge."""
-		edge = self._chem_bond
-		edge.line_color = self._line_color
-		edge.line_width = self._line_width
-		edge.bond_width = self._bond_width
-		edge.wedge_width = self._wedge_width
-		edge.center = self._center
-		edge.simple_double = int(self._simple_double)
-		edge.auto_bond_sign = self._auto_bond_sign
-		edge.double_length_ratio = self._double_length_ratio
-		edge.equithick = int(self._equithick)
-		edge.wavy_style = self._wavy_style
-		properties = edge.properties_
-		for name in (
-				"line_width", "bond_width", "wedge_width", "center",
-				"simple_double", "auto_sign", "double_ratio", "equithick",
-				"line_color", "color", "wavy_style",
-				):
-			properties.pop(name, None)
-		if "line_width" in self._cdml_display_fields:
-			properties["line_width"] = str(self._line_width)
-		if "bond_width" in self._cdml_display_fields:
-			properties["bond_width"] = str(self._bond_width)
-		if "wedge_width" in self._cdml_display_fields:
-			properties["wedge_width"] = str(self._wedge_width)
-		if "center" in self._cdml_display_fields and self._center is not None:
-			properties["center"] = "yes" if self._center else "no"
-		if "simple_double" in self._cdml_display_fields:
-			properties["simple_double"] = str(int(self._simple_double))
-		if "auto_sign" in self._cdml_display_fields:
-			properties["auto_sign"] = str(self._auto_bond_sign)
-		if "double_ratio" in self._cdml_display_fields:
-			properties["double_ratio"] = str(self._double_length_ratio)
-		if "equithick" in self._cdml_display_fields:
-			properties["equithick"] = str(int(self._equithick))
-		if "color" in self._cdml_display_fields:
-			properties["line_color"] = self._line_color
-		if "wavy_style" in self._cdml_display_fields and self._wavy_style is not None:
-			properties["wavy_style"] = self._wavy_style
-		oasa.cdml_bond_io.set_cdml_bond_explicit_fields(
-			edge, self._cdml_display_fields,
-		)
 
 	#============================================
 	def __repr__(self) -> str:

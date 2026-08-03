@@ -5,6 +5,7 @@ import bkchem_qt.geometry
 import bkchem_qt.models.document_object
 import bkchem_qt.models.molecule_model
 import bkchem_qt.undo.commands
+import bkchem_qt.actions.top_level_transform_actions
 from bkchem_qt.actions.action_registry import MenuAction
 
 
@@ -75,8 +76,8 @@ def _align_target(direction: str, bounds: list[tuple[float, float, float, float]
 
 
 #============================================
-def _align_selection(app: object, direction: str) -> None:
-	"""Align selected top-level document objects by persistent bounding boxes."""
+def _align_selection_locally(app: object, direction: str) -> None:
+	"""Align legacy-isolated selected top-level objects through local undo."""
 	objects = app.document.selected_top_level_objects
 	objects_and_bounds = [
 		(object_model, bkchem_qt.geometry.top_level_bounds(object_model))
@@ -120,6 +121,28 @@ def _align_selection(app: object, direction: str) -> None:
 		app.statusBar().showMessage("Items already aligned", 3000)
 		return
 	app.statusBar().showMessage(f"Aligned {direction}", 2000)
+
+
+#============================================
+def _align_selection(app: object, direction: str) -> None:
+	"""Route alignment through backend authority or isolated local undo."""
+	mode_by_direction = {
+		"top": "align-top",
+		"bottom": "align-bottom",
+		"left": "align-left",
+		"right": "align-right",
+		"center_h": "align-center-x",
+		"center_v": "align-center-y",
+	}
+	mode = mode_by_direction.get(direction)
+	if mode is None:
+		app.statusBar().showMessage(f"Unknown align direction: {direction}", 3000)
+		return
+	session = bkchem_qt.actions.top_level_transform_actions.active_transform_session(app)
+	if session is not None and session.legacy_isolated:
+		_align_selection_locally(app, direction)
+		return
+	bkchem_qt.actions.top_level_transform_actions.submit_backend_transform(app, mode)
 
 
 #============================================

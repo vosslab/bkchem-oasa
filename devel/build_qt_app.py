@@ -11,6 +11,7 @@ import os
 import pathlib
 import platform
 import plistlib
+import re
 import shutil
 import stat
 import struct
@@ -24,6 +25,7 @@ from email.policy import default
 
 # PIP3 modules
 from packaging.version import InvalidVersion, Version
+from PyInstaller.archive import readers as pyinstaller_archive_readers
 
 # local repo modules
 import oasa.version_registry as release_version_registry
@@ -114,7 +116,7 @@ class SmokePathError(RuntimeError):
 #============================================
 @dataclasses.dataclass(frozen=True)
 class MacSmokePaths:
-	"""Describe validated resolved paths for one macOS smoke observation."""
+	"""Describe validated resolved paths for one frozen-app lifecycle smoke."""
 
 	root: pathlib.Path
 	stdout_path: pathlib.Path
@@ -261,6 +263,8 @@ def make_pyinstaller_args(
 	arguments.extend(("--add-data", f"{staged_metadata}:{staged_metadata.name}"))
 	for hidden_import in plan.hidden_imports:
 		arguments.extend(("--hidden-import", hidden_import))
+	for module_name in plan.excluded_modules:
+		arguments.extend(("--exclude-module", module_name))
 	for package_name in plan.collect_binaries:
 		arguments.extend(("--collect-binaries", package_name))
 	arguments.extend(("--icon", str(layout.icon_path), plan.entry_script))
@@ -638,7 +642,7 @@ def stage_frontend_metadata(
 def make_smoke_args(
 		app_path: pathlib.Path, seconds: float, smoke_root: pathlib.Path,
 		) -> tuple[str, ...]:
-	"""Return the macOS LaunchServices timer-exit command for one built app.
+	"""Return the direct timer-exit command for one built macOS app.
 
 	Args:
 		app_path: Expected ``BKChem.app`` location.
@@ -654,10 +658,8 @@ def make_smoke_args(
 	if not math.isfinite(seconds) or seconds <= 0.0:
 		raise ValueError("--smoke-exit must be a finite positive number of seconds")
 	command = (
-		"/usr/bin/open", "-W", "-n", "-F", "-g",
-		"--stdout", str(smoke_root / "stdout.log"),
-		"--stderr", str(smoke_root / "stderr.log"),
-		str(app_path), "--args", "--smoke-exit", str(seconds),
+		str(app_path / "Contents" / "MacOS" / "BKChem"),
+		"--smoke-exit", str(seconds),
 		"--smoke-receipt", str(smoke_root / "completion.json"),
 	)
 	return command
@@ -740,16 +742,24 @@ def _fatal_smoke_diagnostic(stderr_path: pathlib.Path) -> str | None:
 
 
 #============================================
+def _write_smoke_logs(
+		paths: MacSmokePaths, result: subprocess.CompletedProcess[str],
+		) -> None:
+	"""Retain frozen-app output next to its lifecycle receipt."""
+	try:
+		paths.stdout_path.write_text(result.stdout, encoding="utf-8")
+		paths.stderr_path.write_text(result.stderr, encoding="utf-8")
+	except OSError as error:
+		raise RuntimeError(f"Could not retain macOS smoke output: {error}") from error
+
+
+#============================================
 def run_macos_smoke(
 		app_path: pathlib.Path, seconds: float, smoke_root: pathlib.Path,
 		build_run_root: pathlib.Path, repo_root: pathlib.Path,
 		runner: Callable[[tuple[str, ...], pathlib.Path, float], subprocess.CompletedProcess[str]],
 		) -> None:
-	"""Run one bounded macOS app smoke and require independent completion proof.
-
-	The LaunchServices result, app-owned lifecycle receipt, and retained fatal
-	diagnostics are deliberately independent observations.
-	"""
+	"""Run one bounded frozen app and require app-owned completion proof."""
 	smoke_paths = resolve_macos_smoke_paths(smoke_root, build_run_root)
 	if smoke_paths.root.exists():
 		raise RuntimeError(f"macOS smoke root must be fresh: {smoke_paths.root}")
@@ -759,14 +769,14 @@ def run_macos_smoke(
 		result = runner(command, repo_root, seconds + SMOKE_STARTUP_ALLOWANCE_SECONDS)
 	except subprocess.TimeoutExpired as error:
 		raise RuntimeError(
-			f"macOS smoke launcher timed out after {seconds + SMOKE_STARTUP_ALLOWANCE_SECONDS:g}s: "
-			f"{_format_command(command)}\nstdout: {smoke_paths.stdout_path}\n"
-			f"stderr: {smoke_paths.stderr_path}"
+			f"macOS smoke timed out after {seconds + SMOKE_STARTUP_ALLOWANCE_SECONDS:g}s: "
+			f"{_format_command(command)}"
 		) from error
+	_write_smoke_logs(smoke_paths, result)
 	if result.returncode != 0:
 		raise RuntimeError(
-			f"macOS smoke launcher failed ({result.returncode}): {_format_command(command)}\n"
-			f"stdout: {smoke_paths.stdout_path}\nstderr: {smoke_paths.stderr_path}"
+			f"macOS smoke failed ({result.returncode}): {_format_command(command)}\n"
+			f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
 		)
 	_validate_smoke_receipt(smoke_paths.receipt_path)
 	fatal_diagnostic = _fatal_smoke_diagnostic(smoke_paths.stderr_path)
@@ -926,11 +936,147 @@ def _require_native_capability(
 
 
 #============================================
+def _forbidden_frozen_runtime_label(member_name: str) -> str | None:
+	"""Return the delivery rule violated by one filesystem or archive member name."""
+	lower_name = member_name.replace("\\", "/").lower()
+	components = tuple(
+		component.replace("-", "_")
+		for component in re.split(r"[/.!]+", lower_name)
+		if component
+	)
+	if "addons" in components:
+		return "legacy add-on payload"
+	if (
+		"bkchem_app" in components
+		or lower_name.startswith("bkchem/")
+		or "/bkchem/" in lower_name
+		or "!bkchem." in lower_name
+	):
+		return "legacy BKChem application"
+	if "bkchem_data" in components:
+		return "legacy BKChem data"
+	if lower_name.endswith(".tcl") or any(
+		component in {"tk", "tcl", "imagetk"}
+		or component.startswith(("_tk", "_tcl", "libtk", "libtcl"))
+		or component.startswith("tcl") and component[3:].isdigit()
+		or component.startswith("tk") and component[2:].isdigit()
+		or "tkinter" in component
+		for component in components
+	):
+		return "Tk/Tcl runtime"
+	return None
+
+
+#============================================
+def _normalized_frozen_member_name(member_name: str) -> str:
+	"""Return one safe normalized filesystem or nested-archive member name.
+
+	Every archive level is relative to its owning container. Rejecting absolute
+	or parent-traversing names makes a copied checkout or escaped archive member
+	visible at the artifact boundary instead of trusting PyInstaller's layout.
+	"""
+	levels = member_name.replace("\\", "/").split("!")
+	normalized_levels: list[str] = []
+	for level in levels:
+		path = pathlib.PurePosixPath(level)
+		if level in {"", "."} or path.is_absolute() or any(
+				part in {"", ".", ".."} for part in path.parts
+				):
+			raise RuntimeError(
+			"Qt-only frozen bundle contains an unsafe or checkout-leaking member path: "
+			f"{member_name}"
+		)
+		normalized_levels.append(path.as_posix())
+	return "!".join(normalized_levels)
+
+
+#============================================
+def _reject_forbidden_frozen_runtime_members(
+		member_names: tuple[str, ...], source_label: str,
+		) -> None:
+	"""Reject one artifact source that contains a forbidden delivery payload."""
+	for member_name in sorted(member_names):
+		normalized_name = _normalized_frozen_member_name(member_name)
+		label = _forbidden_frozen_runtime_label(normalized_name)
+		if label is not None:
+			raise RuntimeError(
+				f"Qt-only frozen bundle contains forbidden {label} in {source_label}: {normalized_name}"
+			)
+
+
+#============================================
+def _reject_bundle_filesystem_escapes(contents_root: pathlib.Path) -> None:
+	"""Require every filesystem payload link to resolve inside ``Contents``."""
+	resolved_contents = contents_root.resolve(strict=True)
+	for path in contents_root.rglob("*"):
+		try:
+			resolved_path = path.resolve(strict=True)
+		except OSError as error:
+			raise RuntimeError(f"dangling frozen bundle payload: {path}: {error}") from error
+		if not resolved_path.is_relative_to(resolved_contents):
+			raise RuntimeError(
+				"Required application payload escapes Contents (checkout-source leakage): "
+				f"{path} -> {resolved_path}"
+			)
+
+
+#============================================
+def _bundle_filesystem_member_names(contents_root: pathlib.Path) -> tuple[str, ...]:
+	"""Return every direct bundle payload path for Qt-only delivery inspection."""
+	return tuple(
+		path.relative_to(contents_root).as_posix()
+		for path in contents_root.rglob("*")
+	)
+
+
+#============================================
+def _walk_pyinstaller_archive_members(archive: object, prefix: str) -> tuple[str, ...]:
+	"""Return archive members and recursively inspect embedded PyInstaller archives."""
+	toc = getattr(archive, "toc", None)
+	if not isinstance(toc, dict):
+		raise RuntimeError("PyInstaller archive has no readable member table")
+	member_names: list[str] = []
+	for member_name in sorted(toc):
+		qualified_name = f"{prefix}!{member_name}" if prefix else member_name
+		member_names.append(qualified_name)
+		if not isinstance(archive, pyinstaller_archive_readers.CArchiveReader):
+			continue
+		try:
+			embedded_archive = archive.open_embedded_archive(member_name)
+		except pyinstaller_archive_readers.NotAnArchiveError:
+			continue
+		except pyinstaller_archive_readers.ArchiveReadError as error:
+			raise RuntimeError(
+				f"Could not inspect embedded PyInstaller archive {qualified_name}: {error}"
+			) from error
+		member_names.extend(_walk_pyinstaller_archive_members(embedded_archive, qualified_name))
+	return tuple(member_names)
+
+
+#============================================
+def _pyinstaller_archive_member_names(executable_path: pathlib.Path) -> tuple[str, ...]:
+	"""Return every member stored in a frozen executable and its embedded archives."""
+	try:
+		archive = pyinstaller_archive_readers.CArchiveReader(executable_path)
+	except (OSError, pyinstaller_archive_readers.ArchiveReadError) as error:
+		raise RuntimeError(f"Could not inspect PyInstaller executable archive: {executable_path}: {error}") from error
+	return _walk_pyinstaller_archive_members(archive, "")
+
+
+#============================================
 def _inspect_bundle_payloads(
 		plan: qt_bundle_plan.QtBundlePlan, layout: MacAppLayout,
 		release: release_version_registry.ReleaseVersion,
+		archive_member_reader: Callable[[pathlib.Path], tuple[str, ...]],
 		) -> None:
 	"""Validate the frontend, backend, metadata, Python, Qt, and native capabilities."""
+	_reject_bundle_filesystem_escapes(layout.contents_root)
+	_reject_forbidden_frozen_runtime_members(
+		_bundle_filesystem_member_names(layout.contents_root), "bundle filesystem payload",
+	)
+	_reject_forbidden_frozen_runtime_members(
+		archive_member_reader(layout.executable_path), "PyInstaller archive member",
+	)
 	for relative_path in (
 		"bkchem_qt/resources/menus.yaml",
 		"bkchem_qt/resources/modes.yaml",
@@ -1048,12 +1194,39 @@ def patch_built_app_metadata(
 
 
 #============================================
+def make_adhoc_codesign_args(app_path: pathlib.Path) -> tuple[str, ...]:
+	"""Return the local-delivery signature command for one complete app bundle."""
+	return ("codesign", "--force", "--deep", "--sign", "-", str(app_path))
+
+
+#============================================
+def make_codesign_verify_args(app_path: pathlib.Path) -> tuple[str, ...]:
+	"""Return the strict recursive signature-verification command for one bundle."""
+	return ("codesign", "--verify", "--deep", "--strict", "--verbose=2", str(app_path))
+
+
+#============================================
+def finalize_built_app_signature(app_path: pathlib.Path, repo_root: pathlib.Path) -> None:
+	"""Ad-hoc sign and verify final metadata after PyInstaller assembles the app.
+
+	PyInstaller signs its initial bundle. The builder then writes authoritative
+	version metadata, which changes the signed Info.plist. Finalization makes the
+	final metadata and the local-delivery signature one build stage.
+	"""
+	if shutil.which("codesign") is None:
+		raise RuntimeError("codesign is required to finalize a macOS application bundle")
+	_run_checked(make_adhoc_codesign_args(app_path), repo_root)
+	_run_checked(make_codesign_verify_args(app_path), repo_root)
+
+
+#============================================
 def inspect_built_app(
 		plan: qt_bundle_plan.QtBundlePlan, app_path: pathlib.Path,
 		release: release_version_registry.ReleaseVersion, bundle_build: str,
-		version_runner: Callable[
-			[tuple[str, ...], pathlib.Path, float], subprocess.CompletedProcess[str]
-			] = _run_version_command,
+	version_runner: Callable[
+		[tuple[str, ...], pathlib.Path, float], subprocess.CompletedProcess[str]
+		] = _run_version_command,
+	archive_member_reader: Callable[[pathlib.Path], tuple[str, ...]] = _pyinstaller_archive_member_names,
 		) -> None:
 	"""Validate a completed BKChem application before its smoke launch.
 
@@ -1096,7 +1269,7 @@ def inspect_built_app(
 				f"Unexpected {version_key}: {info.get(version_key)!r}; "
 				f"expected {expected_value!r}"
 			)
-	_inspect_bundle_payloads(plan, layout, release)
+	_inspect_bundle_payloads(plan, layout, release, archive_member_reader)
 	command = make_version_args(app_path)
 	try:
 		result = version_runner(command, app_path, VERSION_CHECK_TIMEOUT_SECONDS)
@@ -1124,9 +1297,11 @@ def run_post_build_checks(
 		release: release_version_registry.ReleaseVersion, bundle_build: str,
 		smoke_seconds: float, smoke_root: pathlib.Path, build_run_root: pathlib.Path,
 		repo_root: pathlib.Path,
-		smoke_runner: Callable[[tuple[str, ...], pathlib.Path, float], subprocess.CompletedProcess[str]] = None,
+		smoke_runner: Callable[
+			[tuple[str, ...], pathlib.Path, float], subprocess.CompletedProcess[str]
+			] | None = None,
 		) -> None:
-	"""Inspect a built application and then run its platform-launched smoke.
+	"""Inspect a built application, then retain one bounded lifecycle smoke.
 
 	Args:
 		plan: Validated immutable Qt bundle plan.
@@ -1137,9 +1312,10 @@ def run_post_build_checks(
 		smoke_root: Fresh builder-owned directory for smoke logs and completion.
 		build_run_root: Selected fresh retained root that owns smoke artifacts.
 		repo_root: Working directory for the smoke child process.
-		smoke_runner: Optional injected bounded launcher runner for focused tests.
+		smoke_runner: Optional injected bounded executable runner for focused tests.
 	"""
 	patch_built_app_metadata(plan, app_path, release, bundle_build)
+	finalize_built_app_signature(app_path, repo_root)
 	inspect_built_app(plan, app_path, release, bundle_build)
 	runner = smoke_runner or _run_macos_smoke_command
 	run_macos_smoke(app_path, smoke_seconds, smoke_root, build_run_root, repo_root, runner)
@@ -1429,6 +1605,8 @@ def _require_macos_build_tools() -> None:
 		raise RuntimeError("The Python build package is required for frontend metadata staging")
 	if not QT_ICON_RENDERER.is_file():
 		raise RuntimeError(f"Missing controlled Qt icon renderer: {QT_ICON_RENDERER}")
+	if shutil.which("codesign") is None:
+		raise RuntimeError("codesign is required for a real Qt app build")
 
 
 #============================================
@@ -1461,9 +1639,12 @@ def _run_checked(
 def _run_macos_smoke_command(
 		command: tuple[str, ...], cwd: pathlib.Path, timeout_seconds: float,
 		) -> subprocess.CompletedProcess[str]:
-	"""Run one bounded LaunchServices command without treating its status as app proof."""
+	"""Run the frozen executable directly with an offscreen Qt platform."""
+	environment = dict(os.environ)
+	environment["QT_QPA_PLATFORM"] = "offscreen"
 	return subprocess.run(
-		command, cwd=cwd, capture_output=True, text=True, check=False, timeout=timeout_seconds,
+		command, cwd=cwd, env=environment, capture_output=True, text=True, check=False,
+		timeout=timeout_seconds,
 	)
 
 
@@ -1552,6 +1733,7 @@ def main() -> None:
 		raise RuntimeError(f"Root VERSION is outside the Qt bundle CalVer profile: {error}") from error
 	wheel_args = make_frontend_wheel_args(plan, layout)
 	planned_metadata = layout.metadata_dir / _expected_dist_info_name(plan, release)
+	planned_pyinstaller_args = make_pyinstaller_args(plan, layout, planned_metadata)
 	planned_config_parent = _planned_pyinstaller_config_parent(layout)
 	smoke_args = make_smoke_args(layout.app_path, args.smoke_exit, layout.run_root / "smoke")
 	icon_commands = make_icon_commands(plan, layout)
@@ -1570,7 +1752,7 @@ def main() -> None:
 	print(f"Frontend wheel command: {_format_command(wheel_args)}")
 	print(f"Frontend metadata stage: {planned_metadata}")
 	print(f"PyInstaller config parent: {planned_config_parent}")
-	print("PyInstaller stage: generated after validated frontend metadata staging")
+	print(f"Planned PyInstaller command: {_format_command(planned_pyinstaller_args)}")
 	print(f"Future smoke command: {_format_command(smoke_args)}")
 	if args.dry_run:
 		return

@@ -1,8 +1,8 @@
 """Pure planning for expanding one legacy CDML group into an OASA graph.
 
-This module deliberately stops before document mutation.  A frontend command
-can use the returned detached graph, placements, and rewires as one atomic
-operation while retaining the original group if planning fails.
+This module deliberately stops before document mutation.  A backend document
+transaction can use the returned detached graph, placements, and rewires while
+retaining the original group if planning fails.
 """
 
 # Standard Library
@@ -180,7 +180,7 @@ def _plan_implicit(
 		raise ValueError("implicit group formula is required")
 	if molecule_factory is None:
 		raise ValueError("implicit group expansion requires a molecule factory")
-	occupied_valency = len(attachments)
+	occupied_valency = sum(attachment.bond_order for attachment in attachments)
 	graph = molecule_factory()
 	parsed = oasa.linear_formula.linear_formula(
 		text,
@@ -188,8 +188,17 @@ def _plan_implicit(
 		root_molecule=graph,
 	)
 	if parsed.molecule is None:
+		graph = molecule_factory()
+		parsed = oasa.linear_formula.linear_formula(
+			text,
+			end_valency=occupied_valency,
+			root_molecule=graph,
+		)
+	if parsed.molecule is None:
 		raise ValueError("cannot parse implicit group formula: " + text)
-	replacement = parsed.first_atom
+	replacement = getattr(parsed, "first_atom", None)
+	if replacement is None:
+		replacement = getattr(parsed, "last_atom", None)
 	if replacement is None:
 		replacement = parsed.molecule.vertices[0]
 	return parsed.molecule, replacement

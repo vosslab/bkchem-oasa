@@ -12,6 +12,7 @@ import bkchem_qt.modes.config
 import bkchem_qt.modes.mode_manager
 import bkchem_qt.modes.template_mode
 import bkchem_qt.modes.biotemplate_mode
+import bkchem_qt.modes.user_template_mode
 import bkchem_qt.modes.arrow_mode
 import bkchem_qt.modes.text_mode
 import bkchem_qt.modes.mark_mode
@@ -39,8 +40,21 @@ def setup_modes(
 		atom_translate_action: object | None = None,
 		atom_rotate_action: object | None = None,
 		atom_translate_authority: object | None = None,
+		presentation_translate_action: object | None = None,
+		presentation_translate_context: object | None = None,
+		selection_translate_action: object | None = None,
+		selection_translate_context: object | None = None,
+		top_level_delete_context: object | None = None,
+		structure_delete_context: object | None = None,
+		atom_mark_delete_context: object | None = None,
 		atom_number_context: object | None = None,
+		atom_mark_revision: object | None = None,
 		template_names: tuple[str, ...] | None = None,
+		template_action: object | None = None,
+		biomolecule_catalog: tuple[object, ...] | None = None,
+		biotemplate_action: object | None = None,
+		user_template_catalog: tuple[object, ...] | None = None,
+		user_template_action: object | None = None,
 		graphics_retirement_reaper: object | None = None,
 		) -> object:
 	"""Create and register all interaction modes.
@@ -61,10 +75,39 @@ def setup_modes(
 			durable atom target pairs, a plain scene-point center, and an angle.
 		atom_translate_authority: Narrow frontend-only callback returning the
 			current drag authority: backend, local, or unavailable.
+		presentation_translate_action: Narrow session-owned callback accepting a
+			captured revision, durable presentation root keys, and a plain scene-point
+			delta for one backend-owned top-level translation.
+		presentation_translate_context: Narrow frontend-only callback returning the
+			current presentation-drag authority plus its captured backend revision.
+		selection_translate_action: Narrow session-owned callback accepting a
+			captured revision, durable atom pairs, presentation root keys, and one
+			plain scene-point delta for one mixed backend-owned translation.
+		selection_translate_context: Narrow frontend-only callback returning the
+			current mixed-drag authority plus its captured backend revision.
+		top_level_delete_context: Narrow frontend-only callback returning the
+			current complete-root Delete authority plus its captured backend revision.
+		structure_delete_context: Narrow frontend-only callback returning the
+			current partial atom/bond Delete authority plus its captured backend
+			revision.
+		atom_mark_delete_context: Narrow frontend-only callback returning the
+			current selected-mark Delete authority plus its captured backend revision.
 		atom_number_context: Narrow plain-data callback from the session-owned
 			backend snapshot for Misc atom-number presentation state.
+		atom_mark_revision: Narrow plain-data callback returning the exact backend
+			revision captured for one MarkMode gesture.
 		template_names: Immutable OASA-owned system-template selection names for
 			TemplateMode.  The session supplies them as plain data.
+		template_action: Session-owned callback accepting one system-template name
+			and finite anchor for backend-authoritative placement.
+		biomolecule_catalog: Immutable OASA-owned biomolecule descriptors for
+			BioTemplateMode.  The session supplies them as plain data.
+		biotemplate_action: Session-owned callback accepting one catalog key and
+			finite anchor for backend-authoritative biomolecule placement.
+		user_template_catalog: Immutable plain user-template descriptors for
+			UserTemplateMode. The session supplies them without filesystem state.
+		user_template_action: Session-owned callback accepting one opaque user
+			template catalog key and finite anchor for detached placement.
 		graphics_retirement_reaper: Frontend-only session owner for failed terminal
 			preview retirement.
 
@@ -88,7 +131,15 @@ def setup_modes(
 	)
 	mode_manager.register_mode(
 		"biotemplate",
-		bkchem_qt.modes.biotemplate_mode.BioTemplateMode(view),
+		bkchem_qt.modes.biotemplate_mode.BioTemplateMode(
+			view, catalog=biomolecule_catalog,
+		),
+	)
+	mode_manager.register_mode(
+		"usertemplate",
+		bkchem_qt.modes.user_template_mode.UserTemplateMode(
+			view, catalog=user_template_catalog if user_template_catalog is not None else (),
+		),
 	)
 	mode_manager.register_mode(
 		"arrow",
@@ -158,9 +209,42 @@ def setup_modes(
 		translate_authority_installer = getattr(mode, "set_atom_translate_authority", None)
 		if callable(translate_authority_installer):
 			translate_authority_installer(atom_translate_authority)
+		presentation_translate_installer = getattr(mode, "set_presentation_translate_operation", None)
+		if callable(presentation_translate_installer):
+			presentation_translate_installer(presentation_translate_action)
+		presentation_context_installer = getattr(mode, "set_presentation_translate_context", None)
+		if callable(presentation_context_installer):
+			presentation_context_installer(presentation_translate_context)
+		selection_translate_installer = getattr(mode, "set_selection_translate_operation", None)
+		if callable(selection_translate_installer):
+			selection_translate_installer(selection_translate_action)
+		selection_context_installer = getattr(mode, "set_selection_translate_context", None)
+		if callable(selection_context_installer):
+			selection_context_installer(selection_translate_context)
+		delete_context_installer = getattr(mode, "set_top_level_delete_context", None)
+		if callable(delete_context_installer):
+			delete_context_installer(top_level_delete_context)
+		structure_delete_installer = getattr(mode, "set_structure_delete_context", None)
+		if callable(structure_delete_installer):
+			structure_delete_installer(structure_delete_context)
+		atom_mark_delete_installer = getattr(mode, "set_atom_mark_delete_context", None)
+		if callable(atom_mark_delete_installer):
+			atom_mark_delete_installer(atom_mark_delete_context)
 		candidate_installer = getattr(mode, "set_atom_number_context", None)
 		if callable(candidate_installer):
 			candidate_installer(atom_number_context)
+		mark_revision_installer = getattr(mode, "set_atom_mark_revision", None)
+		if callable(mark_revision_installer):
+			mark_revision_installer(atom_mark_revision)
+		template_installer = getattr(mode, "set_template_action", None)
+		if callable(template_installer):
+			template_installer(template_action)
+		biotemplate_installer = getattr(mode, "set_biotemplate_action", None)
+		if callable(biotemplate_installer):
+			biotemplate_installer(biotemplate_action)
+		user_template_installer = getattr(mode, "set_user_template_action", None)
+		if callable(user_template_installer):
+			user_template_installer(user_template_action)
 		retirement_installer = getattr(mode, "set_graphics_retirement_reaper", None)
 		if callable(retirement_installer):
 			retirement_installer(graphics_retirement_reaper)

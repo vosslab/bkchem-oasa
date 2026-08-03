@@ -10,11 +10,14 @@ import pytest
 
 # local repo modules
 import bkchem_qt.actions.pubchem_actions
+import bkchem_qt.bridge.chemistry_preparation
 import bkchem_qt.bridge.worker
 import bkchem_qt.models.document_session
+import bkchem_qt.models.projection_lifecycle
 import oasa.cdml_xml
 import oasa.cdml_document
 import oasa.cdml
+import oasa.pubchem
 import oasa.safe_xml
 
 
@@ -22,16 +25,16 @@ import oasa.safe_xml
 #============================================
 def _install_projection_port(session: object, deliver: object) -> None:
 	"""Install one fresh typed projection lifecycle port for this session."""
-	port = bkchem_qt.models.document_session.SessionProjectionLifecyclePort(session, deliver)
+	port = bkchem_qt.models.projection_lifecycle.SessionProjectionLifecyclePort(session, deliver)
 	session.install_projection_lifecycle_port(port)
 
 
 #============================================
 def _projection_unavailable(snapshot: object) -> object:
 	"""Report one deliberately unavailable typed projection outcome."""
-	return bkchem_qt.models.document_session.ProjectionLifecycleResult(
-		bkchem_qt.models.document_session.ProjectionLifecycleStatus.PREPARATION_UNAVAILABLE,
-		bkchem_qt.models.document_session.ProjectionLifecyclePhase.PREPARATION,
+	return bkchem_qt.models.projection_lifecycle.ProjectionLifecycleResult(
+		bkchem_qt.models.projection_lifecycle.ProjectionLifecycleStatus.PREPARATION_UNAVAILABLE,
+		bkchem_qt.models.projection_lifecycle.ProjectionLifecyclePhase.PREPARATION,
 	)
 
 
@@ -51,6 +54,12 @@ def _pubchem_transport(url: str) -> dict:
 		"InChI": "InChI=1S/CH4/h1H4",
 		"InChIKey": "VNWKTOKETHGBQD-UHFFFAOYSA-N",
 	}]}}
+
+
+#============================================
+def _offline_pubchem_transport(url: str) -> dict:
+	"""Raise one deterministic transport failure without making a request."""
+	raise OSError("offline transport")
 
 
 #============================================
@@ -88,7 +97,7 @@ def _undo_and_close(main_window: object, session: object) -> None:
 #============================================
 def _prepared(session: object, token: int) -> object:
 	"""Build one deterministic prepared PubChem result without a Qt worker."""
-	return bkchem_qt.actions.pubchem_actions._prepare_pubchem_lookup(
+	return bkchem_qt.bridge.chemistry_preparation.prepare_pubchem_lookup(
 		"Name", "methane", _pubchem_transport, session.backend_snapshot.revision,
 		"pubchem-r%s-i%s" % (session.backend_snapshot.revision, token),
 		40.0, (2000.0, 1500.0),
@@ -166,7 +175,7 @@ def test_pubchem_worker_returns_frozen_plain_display_and_proposal(
 		) -> None:
 	"""The worker emits display facts and CDML, never a live molecule graph."""
 	worker = bkchem_qt.bridge.worker.OasaWorker(
-		bkchem_qt.actions.pubchem_actions._prepare_pubchem_lookup,
+		bkchem_qt.bridge.chemistry_preparation.prepare_pubchem_lookup,
 		"Name", "methane", _pubchem_transport, 7, "pubchem-r7-i1",
 		40.0, (2000.0, 1500.0),
 	)
@@ -180,12 +189,22 @@ def test_pubchem_worker_returns_frozen_plain_display_and_proposal(
 		prepared.insertion = prepared.insertion
 	plain = (
 		dataclasses.is_dataclass(prepared)
-		and prepared.compound.cid == 297
+		and prepared.display.cid == 297
 		and prepared.insertion.expected_revision == 7
 		and isinstance(prepared.insertion.proposal_cdml, str)
 	)
 
 	assert plain and _methane_in_cdml(prepared.insertion.proposal_cdml)
+
+
+#============================================
+def test_pubchem_preparation_preserves_oasa_transport_failure_type() -> None:
+	"""The bridge retains OASA's typed offline outcome for worker delivery."""
+	with pytest.raises(oasa.pubchem.PubChemTransportError):
+		bkchem_qt.bridge.chemistry_preparation.prepare_pubchem_lookup(
+			"Name", "methane", _offline_pubchem_transport, 7, "pubchem-r7-i1",
+			40.0, (2000.0, 1500.0),
+		)
 
 
 #============================================
@@ -224,7 +243,7 @@ def test_pubchem_preparation_persists_captured_cco_geometry() -> None:
 			result["PropertyTable"]["Properties"][0]["SMILES"] = "CCO"
 		return result
 
-	prepared = bkchem_qt.actions.pubchem_actions._prepare_pubchem_lookup(
+	prepared = bkchem_qt.bridge.chemistry_preparation.prepare_pubchem_lookup(
 		"Name", "ethanol", ethanol_transport, 0, "pubchem-geometry", 30.0,
 		(123.0, 456.0),
 	)

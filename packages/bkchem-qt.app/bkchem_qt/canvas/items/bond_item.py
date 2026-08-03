@@ -1,4 +1,4 @@
-"""QGraphicsItem subclass for rendering a bond using OASA render ops."""
+"""QGraphicsItem subclass consuming portable bond render primitives."""
 
 # PIP3 modules
 import PySide6.QtCore
@@ -6,13 +6,10 @@ import PySide6.QtGui
 import PySide6.QtWidgets
 
 # local repo modules
+from bkchem_qt.canvas.items import primitive_ops_painter
 from bkchem_qt.canvas.items import render_ops_painter
-from bkchem_qt.models.atom_model import AtomModel
+from bkchem_qt.bridge import oasa_bridge
 from bkchem_qt.models.bond_model import BondModel
-import oasa.render_ops
-import oasa.render_lib.molecule_ops
-import oasa.render_lib.bond_ops
-import oasa.render_lib.data_types
 
 # -- visual constants --
 # extra padding around bounding rect for hit testing
@@ -31,16 +28,16 @@ BOND_Z_VALUE = 5
 class BondItem(PySide6.QtWidgets.QGraphicsItem):
 	"""Visual representation of a single bond on the chemistry canvas.
 
-	Renders the bond by calling ``oasa.render_lib.bond_ops.build_bond_ops()``
-	on the underlying OASA edge and painting the resulting render ops via
-	``render_ops_painter.paint_ops()``.
+	Consumes either an exact backend primitive batch or a bridge-normalized
+	standalone compatibility batch and delegates every paint path to the same
+	portable Qt painter.
 
 	The bond item uses scene coordinates directly (it is not parented to
 	an atom item) so that it can span between two atom positions.
 
 	Args:
 		bond_model: An object exposing ``atom1``, ``atom2`` (each with x, y),
-			``order``, ``type``, and ``_chem_bond`` (the underlying OASA bond).
+			``order``, ``type``, and scalar depiction facts.
 		parent: Optional parent QGraphicsItem.
 	"""
 
@@ -65,8 +62,11 @@ class BondItem(PySide6.QtWidgets.QGraphicsItem):
 		"""
 		super().__init__(parent)
 		self._bond_model = bond_model
-		# cached render ops from OASA
-		self._ops: list = []
+		# cached portable primitives from the backend/session or compatibility bridge
+		self._ops: tuple[object, ...] = ()
+		# A synchronized batch is immutable.  This Qt-local cache is replaced on
+		# every endpoint update during a transient drag and never reaches OASA.
+		self._backend_preview_operations: tuple[object, ...] = ()
 		# cached bounding rectangle
 		self._bounding_rect = PySide6.QtCore.QRectF()
 		# hover state
@@ -129,8 +129,11 @@ class BondItem(PySide6.QtWidgets.QGraphicsItem):
 				PySide6.QtCore.QPointF(start[0], start[1]),
 				PySide6.QtCore.QPointF(end[0], end[1]),
 			)
-		# paint OASA render ops
-		render_ops_painter.paint_ops(self._ops, painter)
+		operations = self._backend_preview_operations or self._ops
+		primitive_ops_painter.paint(
+			operations, painter,
+			render_ops_painter._default_area_color, render_ops_painter._default_color,
+		)
 
 	#============================================
 	def shape(self) -> PySide6.QtGui.QPainterPath:
@@ -183,44 +186,40 @@ class BondItem(PySide6.QtWidgets.QGraphicsItem):
 	def update_from_model(self) -> None:
 		"""Regenerate render ops from the bond model and update geometry.
 
-		Reads atom endpoint positions from the bond model, builds render
-		ops via ``build_bond_ops()``, and recomputes the bounding rect.
-		Computes label attach targets for both endpoint atoms so bonds
-		clip at atom label boundaries instead of drawing through them.
+		Uses an exact backend primitive batch when supplied.  Otherwise it passes
+		scalar endpoint models and finite positions to the compatibility bridge,
+		which owns OASA context and label clipping construction.
 		"""
 		self.prepareGeometryChange()
+		batch = getattr(self._bond_model, "_backend_render_batch", None)
+		if batch is not None:
+			self._ops = ()
+			self._backend_preview_operations = self._backend_drag_operations(batch)
+			bounds = primitive_ops_painter.bounds(
+				self._backend_preview_operations, _BOUNDS_PADDING,
+			)
+			self._bounding_rect = _interaction_bounds(bounds, self._endpoint_positions())
+			self.update()
+			return
 		start, end = self._endpoint_positions()
-		chem_bond = self._bond_model._chem_bond
-		# compute label attach targets for endpoint atoms
 		a1_model = self._bond_model.atom1
 		a2_model = self._bond_model.atom2
-		shown_vertices, label_targets, attach_targets = _endpoint_label_targets(
-			(a1_model, a2_model),
+		self._ops = oasa_bridge.legacy_bond_render_operations(
+			self._bond_model, a1_model, a2_model, start, end,
 		)
-		context = oasa.render_lib.data_types.BondRenderContext(
-			molecule=None,
-			line_width=self._bond_model.line_width,
-			bond_width=self._bond_model.bond_width,
-			wedge_width=self._bond_model.wedge_width,
-			bold_line_width_multiplier=1.2,
-			bond_second_line_shortening=0.0,
-			color_bonds=True,
-			atom_colors=None,
-			shown_vertices=shown_vertices,
-			bond_coords={chem_bond: (start, end)},
-			bond_coords_provider={chem_bond: (start, end)}.get,
-			point_for_atom=None,
-			label_targets=label_targets,
-			attach_targets=attach_targets,
-			attach_constraints=oasa.render_lib.data_types.make_attach_constraints(
-			),
-		)
-		self._ops = oasa.render_lib.bond_ops.build_bond_ops(
-			chem_bond, start, end, context,
-		)
-		# recompute bounding rect from ops
-		self._bounding_rect = _bounding_rect_from_ops(self._ops, start, end)
+		bounds = primitive_ops_painter.bounds(self._ops, _BOUNDS_PADDING)
+		self._bounding_rect = _interaction_bounds(bounds, (start, end))
+		self._backend_preview_operations = ()
 		self.update()
+
+	#============================================
+	def _backend_drag_operations(self, batch: object) -> tuple[object, ...]:
+		"""Derive the live Qt drag geometry from immutable accepted bond facts."""
+		if batch.endpoint_positions is None:
+			return batch.operations
+		return primitive_ops_painter.transformed_operations(
+			batch.operations, batch.endpoint_positions, self._endpoint_positions(),
+		)
 
 	#============================================
 	def _connect_endpoint_signals(self) -> None:
@@ -283,6 +282,7 @@ class BondItem(PySide6.QtWidgets.QGraphicsItem):
 		except (RuntimeError, TypeError):
 			pass
 		self._connected_endpoint_models.clear()
+		self._backend_preview_operations = ()
 		self._model_signals_connected = False
 
 	#============================================
@@ -312,81 +312,20 @@ class BondItem(PySide6.QtWidgets.QGraphicsItem):
 
 
 #============================================
-def _endpoint_label_targets(
-		atom_models: tuple[AtomModel, AtomModel],
-		) -> tuple[set[object], dict[object, object], dict[object, object]]:
-	"""Build clipping targets with each endpoint's own display typography.
-
-	The OASA target builder accepts one typography configuration per call.  A
-	bond can join independently styled atoms, so calculate each endpoint
-	separately and merge their model-keyed targets for the shared bond context.
-	"""
-	shown_vertices = set()
-	label_targets = {}
-	attach_targets = {}
-	for atom_model in atom_models:
-		# AtomModel.show is a frontend display override.  A hidden atom has no
-		# visible label, so its bond endpoint must remain at the atom position.
-		if not atom_model.show:
-			continue
-		shown, labels, attaches = (
-			oasa.render_lib.molecule_ops.build_label_attach_targets(
-				vertices=[atom_model._chem_atom],
-				show_hydrogens_on_hetero=bool(atom_model.show_hydrogens),
-				font_name=atom_model.font_family,
-				font_size=float(atom_model.font_size),
-			)
-		)
-		shown_vertices.update(shown)
-		label_targets.update(labels)
-		attach_targets.update(attaches)
-	return shown_vertices, label_targets, attach_targets
+def _interaction_bounds(
+		bounds: PySide6.QtCore.QRectF,
+		endpoints: tuple[tuple[float, float], tuple[float, float]],
+		) -> PySide6.QtCore.QRectF:
+	"""Include the full selection/hover axis in one conservative item bound."""
+	start, end = endpoints
+	half_width = _HIT_PATH_WIDTH / 2.0
+	axis_bounds = PySide6.QtCore.QRectF(
+		min(start[0], end[0]) - half_width,
+		min(start[1], end[1]) - half_width,
+		abs(end[0] - start[0]) + _HIT_PATH_WIDTH,
+		abs(end[1] - start[1]) + _HIT_PATH_WIDTH,
+	)
+	return bounds.united(axis_bounds)
 
 
 #============================================
-def _bounding_rect_from_ops(ops: list, start: tuple, end: tuple) -> PySide6.QtCore.QRectF:
-	"""Compute a bounding rectangle from render ops and bond endpoints.
-
-	Falls back to the bond endpoint line if ops produce no geometry.
-
-	Args:
-		ops: List of OASA render op dataclass instances.
-		start: (x, y) tuple for the first atom.
-		end: (x, y) tuple for the second atom.
-
-	Returns:
-		QRectF enclosing all ops and endpoints with padding.
-	"""
-	xs = [start[0], end[0]]
-	ys = [start[1], end[1]]
-	for op in ops:
-		if isinstance(op, oasa.render_ops.LineOp):
-			xs.extend([op.p1[0], op.p2[0]])
-			ys.extend([op.p1[1], op.p2[1]])
-		elif isinstance(op, oasa.render_ops.PolygonOp):
-			for px, py in op.points:
-				xs.append(px)
-				ys.append(py)
-		elif isinstance(op, oasa.render_ops.CircleOp):
-			xs.extend([op.center[0] - op.radius, op.center[0] + op.radius])
-			ys.extend([op.center[1] - op.radius, op.center[1] + op.radius])
-		elif isinstance(op, oasa.render_ops.PathOp):
-			for cmd, payload in op.commands:
-				if payload is None:
-					continue
-				if cmd in ("M", "L"):
-					xs.append(payload[0])
-					ys.append(payload[1])
-				elif cmd == "ARC":
-					cx, cy, r = payload[0], payload[1], payload[2]
-					xs.extend([cx - r, cx + r])
-					ys.extend([cy - r, cy + r])
-		elif isinstance(op, oasa.render_ops.TextOp):
-			xs.append(op.x)
-			ys.extend([op.y - op.font_size, op.y + op.font_size * 0.3])
-	x_min = min(xs) - _BOUNDS_PADDING
-	y_min = min(ys) - _BOUNDS_PADDING
-	x_max = max(xs) + _BOUNDS_PADDING
-	y_max = max(ys) + _BOUNDS_PADDING
-	rect = PySide6.QtCore.QRectF(x_min, y_min, x_max - x_min, y_max - y_min)
-	return rect

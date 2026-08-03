@@ -1,5 +1,9 @@
 """Focused application event-loop shutdown coverage."""
 
+# Standard Library
+import pathlib
+import threading
+
 # PIP3 modules
 import pytest
 import PySide6.QtCore
@@ -9,6 +13,7 @@ import PySide6.QtWidgets
 import bkchem_qt.app
 import bkchem_qt.main_window
 import bkchem_qt.themes.theme_manager
+import bkchem_qt.bridge.worker
 
 
 #============================================
@@ -47,7 +52,50 @@ def test_programmatic_event_loop_exit_retires_live_session_through_window_bounda
 
 
 #============================================
-def test_successful_smoke_receipt_is_published_atomically_after_timer_success(tmp_path) -> None:
+def test_shutdown_drains_retired_worker_through_a_nested_qt_event_loop(
+		qapp: PySide6.QtWidgets.QApplication,
+		theme_manager: bkchem_qt.themes.theme_manager.ThemeManager,
+		qtbot: object,
+		) -> None:
+	"""Shutdown retains native work until its queued finished signal releases it."""
+	window = bkchem_qt.main_window.MainWindow(theme_manager)
+	session = window.sessions[0]
+	started = threading.Event()
+	release = threading.Event()
+
+	def controlled_call() -> str:
+		"""Hold native completion until shutdown has entered draining."""
+		started.set()
+		release.wait()
+		return "prepared"
+
+	worker = bkchem_qt.bridge.worker.OasaWorker(controlled_call)
+	session.track_import_worker(worker)
+	worker.finished.connect(lambda: window._release_import_worker(worker))
+	worker.start()
+	try:
+		qtbot.waitUntil(started.is_set)
+		assert window.prepare_application_shutdown()
+		assert window.shutdown_state is bkchem_qt.main_window.ShutdownState.DRAINING
+		assert window.retiring_worker_count == 1 and not window.sessions
+		PySide6.QtCore.QTimer.singleShot(0, release.set)
+		assert bkchem_qt.main_window.drain_pending_session_deletions(qapp, window)
+		assert window.shutdown_state is bkchem_qt.main_window.ShutdownState.READY
+		assert session.is_disposed
+	finally:
+		release.set()
+		try:
+			if worker.isRunning():
+				worker.wait()
+		except RuntimeError:
+			pass
+		bkchem_qt.main_window.delete_qobject_and_wait(qapp, window)
+
+
+#============================================
+def test_successful_smoke_receipt_is_published_atomically_after_timer_success(
+		tmp_path: pathlib.Path,
+		) -> None:
 	"""A zero controlled-shutdown result publishes only the fixed receipt schema."""
 	receipt_path = tmp_path / "completion.json"
 
@@ -57,7 +105,7 @@ def test_successful_smoke_receipt_is_published_atomically_after_timer_success(tm
 
 
 #============================================
-def test_failed_smoke_shutdown_does_not_publish_a_receipt(tmp_path) -> None:
+def test_failed_smoke_shutdown_does_not_publish_a_receipt(tmp_path: pathlib.Path) -> None:
 	"""A failed retirement result cannot be mistaken for completed Qt lifecycle."""
 	receipt_path = tmp_path / "completion.json"
 
@@ -68,7 +116,7 @@ def test_failed_smoke_shutdown_does_not_publish_a_receipt(tmp_path) -> None:
 
 
 #============================================
-def test_smoke_receipt_requires_a_delivered_timer(tmp_path) -> None:
+def test_smoke_receipt_requires_a_delivered_timer(tmp_path: pathlib.Path) -> None:
 	"""Receipt publication refuses a clean result without timer delivery evidence."""
 	receipt_path = tmp_path / "completion.json"
 
@@ -81,7 +129,7 @@ def test_smoke_receipt_requires_a_delivered_timer(tmp_path) -> None:
 #============================================
 @pytest.mark.parametrize("timer_seconds", (None, 0.0, float("nan")))
 def test_app_rejects_a_receipt_configuration_without_a_valid_timer(
-		timer_seconds: float | None, tmp_path,
+		timer_seconds: float | None, tmp_path: pathlib.Path,
 		) -> None:
 	"""The app entry boundary requires a finite positive timer for a smoke receipt."""
 
@@ -91,7 +139,8 @@ def test_app_rejects_a_receipt_configuration_without_a_valid_timer(
 
 #============================================
 def test_early_clean_exit_does_not_publish_a_smoke_receipt(
-		monkeypatch: pytest.MonkeyPatch, qapp: PySide6.QtWidgets.QApplication, tmp_path,
+		monkeypatch: pytest.MonkeyPatch, qapp: PySide6.QtWidgets.QApplication,
+		tmp_path: pathlib.Path,
 		) -> None:
 	"""An ordinary early close is clean but cannot certify timer-driven smoke."""
 	receipt_path = tmp_path / "completion.json"
@@ -107,7 +156,8 @@ def test_early_clean_exit_does_not_publish_a_smoke_receipt(
 
 #============================================
 def test_timer_fired_clean_exit_publishes_a_smoke_receipt(
-		monkeypatch: pytest.MonkeyPatch, qapp: PySide6.QtWidgets.QApplication, tmp_path,
+		monkeypatch: pytest.MonkeyPatch, qapp: PySide6.QtWidgets.QApplication,
+		tmp_path: pathlib.Path,
 		) -> None:
 	"""A delivered timer plus successful finalization publishes the fixed receipt."""
 	receipt_path = tmp_path / "completion.json"
@@ -123,7 +173,7 @@ def test_timer_fired_clean_exit_publishes_a_smoke_receipt(
 
 #============================================
 def test_scheduled_smoke_callback_records_delivery_before_quit_and_publishes_receipt(
-		monkeypatch: pytest.MonkeyPatch, tmp_path,
+		monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path,
 		) -> None:
 	"""The captured Qt timer callback proves delivery before controlled quit and receipt."""
 	receipt_path = tmp_path / "completion.json"

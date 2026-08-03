@@ -1,5 +1,10 @@
 """Export scene to SVG, PNG, and PDF formats."""
 
+# Standard Library
+import os
+import tempfile
+import dataclasses
+
 # PIP3 modules
 import PySide6.QtCore
 import PySide6.QtGui
@@ -17,37 +22,175 @@ _DEFAULT_PNG_SCALE = 2.0
 
 
 #============================================
-def render_snapshot_request(
-		request: oasa.cdml_render.CDMLRenderRequest,
-		) -> oasa.cdml_render.CDMLRenderResult | oasa.cdml_render.CDMLRenderFailure:
-	"""Render one backend-owned snapshot without consulting a retained scene."""
-	return bkchem_qt.io.snapshot_render.render_request(request)
+@dataclasses.dataclass(frozen=True)
+class SnapshotExportOutcome:
+	"""One immutable frontend result from an exact backend snapshot export.
+
+	The explicit export adapter translates backend request, result, and failure
+	objects into built-in values before ordinary Qt actions observe the outcome.
+	"""
+
+	status: str
+	error_code: str | None
+	message: str
+	snapshot_revision: int | None
+	format_name: str
+	artifact: bytes | None = None
+	artifact_path: str | None = None
+	warnings: tuple[str, ...] = ()
+
+	#============================================
+	@property
+	def succeeded(self) -> bool:
+		"""Return whether the adapter produced a nonempty exact-snapshot artifact."""
+		return self.status == "success" and self.artifact is not None and bool(self.artifact)
 
 
 #============================================
-def write_snapshot_artifact(
-		request: oasa.cdml_render.CDMLRenderRequest, file_path: str,
-		) -> oasa.cdml_render.CDMLRenderResult | oasa.cdml_render.CDMLRenderFailure:
-	"""Render one snapshot request and publish only its returned bytes to a path."""
-	result = render_snapshot_request(request)
+def _warning_messages(warnings: object) -> tuple[str, ...]:
+	"""Freeze backend warning detail as human-readable plain values."""
+	messages = []
+	for warning in warnings:
+		message = getattr(warning, "message", None)
+		if not isinstance(message, str) or not message:
+			message = str(warning)
+		messages.append(message)
+	return tuple(messages)
+
+
+#============================================
+def _failure_outcome(failure: oasa.cdml_render.CDMLRenderFailure,
+		format_name: str) -> SnapshotExportOutcome:
+	"""Translate one backend typed failure into the frontend result vocabulary."""
+	return SnapshotExportOutcome(
+		"failure", failure.code, failure.message, failure.snapshot_revision,
+		format_name, warnings=_warning_messages(failure.diagnostics),
+	)
+
+
+#============================================
+def render_snapshot_capture(capture: object, format_name: str) -> SnapshotExportOutcome:
+	"""Render one opaque session capture and return only frozen plain data."""
+	if isinstance(capture, oasa.cdml_render.CDMLRenderFailure):
+		return _failure_outcome(capture, format_name)
+	if not isinstance(capture, oasa.cdml_render.CDMLRenderRequest):
+		return SnapshotExportOutcome(
+			"failure", "invalid-render-request",
+			"Visual export did not receive an exact backend snapshot request",
+			None, format_name,
+		)
+	result = bkchem_qt.io.snapshot_render.render_request(capture)
 	if isinstance(result, oasa.cdml_render.CDMLRenderFailure):
+		return _failure_outcome(result, format_name)
+	artifact = result.artifact
+	if not isinstance(artifact, bytes) or not artifact:
+		return SnapshotExportOutcome(
+			"failure", "empty-artifact",
+			"Snapshot render did not return a nonempty artifact",
+			result.snapshot_revision, result.format_name,
+			warnings=_warning_messages(result.warnings),
+		)
+	return SnapshotExportOutcome(
+		"success", None, "Snapshot rendered", result.snapshot_revision,
+		result.format_name, artifact, warnings=_warning_messages(result.warnings),
+	)
+
+
+#============================================
+def render_session_snapshot(
+		session: object, format_name: str, scope: str = "page",
+		) -> SnapshotExportOutcome:
+	"""Capture and render one session snapshot without leaking backend values."""
+	try:
+		capture = session.capture_visual_render_request(format_name, scope)
+	except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
+		return SnapshotExportOutcome(
+			"failure", "session-unavailable", str(exc), None, format_name,
+		)
+	return render_snapshot_capture(capture, format_name)
+
+
+#============================================
+def _discard_staged_artifact(staged_path: str) -> str | None:
+	"""Retire one unpublished staged artifact and preserve any cleanup diagnostic."""
+	try:
+		os.unlink(staged_path)
+	except OSError as exc:
+		return "Could not remove unpublished staged artifact: %s" % exc
+	return None
+
+
+#============================================
+def _stage_artifact(
+		artifact: bytes, file_path: str,
+		) -> tuple[str | None, str | None, str | None]:
+	"""Write bytes beside their destination before atomic publication."""
+	directory = os.path.dirname(os.path.abspath(file_path))
+	staged_path = None
+	try:
+		file_descriptor, staged_path = tempfile.mkstemp(
+			prefix=".bkchem-export-", dir=directory,
+		)
+		with os.fdopen(file_descriptor, "wb") as destination:
+			destination.write(artifact)
+	except OSError as exc:
+		cleanup_warning = None
+		if staged_path is not None:
+			cleanup_warning = _discard_staged_artifact(staged_path)
+		return None, str(exc), cleanup_warning
+	return staged_path, None, None
+
+
+#============================================
+def write_snapshot_artifact(capture: object, format_name: str,
+		file_path: str) -> SnapshotExportOutcome:
+	"""Render one opaque capture and publish only a successful exact artifact."""
+	result = render_snapshot_capture(capture, format_name)
+	if not result.succeeded:
 		return result
-	if result.artifact is None:
-		return oasa.cdml_render.CDMLRenderFailure(
-			"render-failed", "Snapshot render did not return an artifact",
-			result.snapshot_revision,
+	artifact = result.artifact
+	if not isinstance(artifact, bytes) or not artifact:
+		return SnapshotExportOutcome(
+			"failure", "empty-artifact", "Snapshot render did not return a nonempty artifact",
+			result.snapshot_revision, result.format_name, warnings=result.warnings,
+		)
+	staged_path, stage_error, cleanup_warning = _stage_artifact(artifact, file_path)
+	if staged_path is None:
+		warnings = result.warnings
+		if cleanup_warning is not None:
+			warnings += (cleanup_warning,)
+		return SnapshotExportOutcome(
+			"failure", "artifact-write-failed", stage_error or "Could not stage artifact",
+			result.snapshot_revision, result.format_name, warnings=warnings,
 		)
 	try:
-		with open(file_path, "wb") as destination:
-			destination.write(result.artifact)
+		os.replace(staged_path, file_path)
 	except OSError as exc:
-		return oasa.cdml_render.CDMLRenderFailure(
-			"artifact-write-failed", str(exc), result.snapshot_revision,
+		cleanup_warning = _discard_staged_artifact(staged_path)
+		warnings = result.warnings
+		if cleanup_warning is not None:
+			warnings += (cleanup_warning,)
+		return SnapshotExportOutcome(
+			"failure", "artifact-write-failed", str(exc), result.snapshot_revision,
+			result.format_name, warnings=warnings,
 		)
-	return oasa.cdml_render.CDMLRenderResult(
-		result.snapshot_revision, result.format_name, result.artifact,
-		artifact_path=file_path, warnings=result.warnings,
+	return dataclasses.replace(
+		result, artifact_path=file_path, message="Snapshot artifact exported",
 	)
+
+
+#============================================
+def write_session_snapshot_artifact(
+		session: object, format_name: str, file_path: str,
+		) -> SnapshotExportOutcome:
+	"""Capture, render, and write one exact snapshot through the explicit adapter."""
+	try:
+		capture = session.capture_visual_render_request(format_name)
+	except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
+		return SnapshotExportOutcome(
+			"failure", "session-unavailable", str(exc), None, format_name,
+		)
+	return write_snapshot_artifact(capture, format_name, file_path)
 
 
 #============================================

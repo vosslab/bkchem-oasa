@@ -1,15 +1,21 @@
 """Bridge between OASA chemistry objects and BKChem-Qt model wrappers."""
 
 # Standard Library
+import dataclasses
 import math
 
 # local repo modules
 import oasa.atom_lib
 import oasa.bond_lib
 import oasa.molecule_lib
+import oasa.periodic_table
 import oasa.codec_registry
 import oasa.cdml_bond_io
 import oasa.cdml_document
+import oasa.cdml_ftext
+import oasa.render_lib.bond_ops
+import oasa.render_lib.data_types
+import oasa.render_lib.molecule_ops
 from oasa import coords_generator
 from oasa import transform3d_lib
 from oasa.cdml_writer import CPK_COLORS
@@ -22,6 +28,153 @@ import bkchem_qt.models.molecule_model
 DEFAULT_CENTER_X = 2000.0
 DEFAULT_CENTER_Y = 1500.0
 DEFAULT_BOND_LENGTH_PT = 40.0
+_BACKEND_DOCUMENT_BACKGROUND = "__backend_document_background__"
+_BACKEND_FOREGROUND = "__backend_foreground__"
+_LEGACY_DEFAULT_LINE_COLOR = "#000000"
+
+
+@dataclasses.dataclass(frozen=True)
+class MoleculeSummaryFacts:
+	"""Plain formula and molecular-weight facts for a frontend information view."""
+
+	formula: str
+	molecular_weight: float
+
+
+@dataclasses.dataclass(frozen=True)
+class BackendQueryFailure:
+	"""Typed display-safe failure returned by a read-only backend observation."""
+
+	kind: str
+	message: str
+
+
+@dataclasses.dataclass(frozen=True)
+class BackendQueryResult:
+	"""One backend observation result or its typed presentation-safe failure."""
+
+	value: object | None
+	failure: BackendQueryFailure | None
+
+
+#============================================
+def atom_creation_facts(symbol: str) -> tuple[str, int]:
+	"""Return the canonical element and its default valency as plain values."""
+	if type(symbol) is not str or not symbol:
+		raise TypeError("symbol must be a nonempty string")
+	try:
+		valency = oasa.periodic_table.periodic_table[symbol]["valency"][0]
+	except KeyError as error:
+		raise ValueError(f"unsupported element symbol: {symbol!r}") from error
+	return symbol, int(valency)
+
+
+#============================================
+def molecule_summary_facts(symbols: tuple[str, ...]) -> MoleculeSummaryFacts:
+	"""Calculate stable formula and mass facts from scalar atom symbols.
+
+	The frontend supplies only its projected element symbols.  OASA retains the
+	periodic-table lookup and returns display data, not mutable element records.
+	Unknown compatibility symbols retain the long-standing zero-mass behavior.
+	"""
+	counts: dict[str, int] = {}
+	for symbol in symbols:
+		if not isinstance(symbol, str):
+			raise TypeError("Molecule summary symbols must be strings")
+		counts[symbol] = counts.get(symbol, 0) + 1
+	formula_parts = []
+	for symbol in ("C", "H"):
+		count = counts.pop(symbol, 0)
+		if count:
+			formula_parts.append(symbol if count == 1 else "%s%s" % (symbol, count))
+	for symbol in sorted(counts):
+		count = counts[symbol]
+		formula_parts.append(symbol if count == 1 else "%s%s" % (symbol, count))
+	weight = 0.0
+	for symbol in symbols:
+		entry = oasa.periodic_table.periodic_table.get(symbol)
+		if entry is not None:
+			weight += float(entry.get("weight", 0.0))
+	return MoleculeSummaryFacts("".join(formula_parts), weight)
+
+
+#============================================
+def observe_atom_chemistry_facts(
+		session: object, expected_revision: int,
+		) -> BackendQueryResult:
+	"""Read one exact-revision chemistry observation through a session port.
+
+	The Qt action receives either the immutable backend observation or a typed
+	plain failure.  Concrete OASA failure classes and session implementation
+	details remain inside this adapter.
+	"""
+	try:
+		observation = session.observe_atom_chemistry_facts(expected_revision)
+	except Exception as error:
+		failure = _backend_observation_failure(error, "atom-chemistry")
+		if failure is None:
+			raise
+		return BackendQueryResult(None, failure)
+	return BackendQueryResult(observation, None)
+
+
+#============================================
+def query_molecule_smiles(
+		session: object, expected_revision: int, molecule_id: str,
+		) -> BackendQueryResult:
+	"""Read one exact-revision SMILES observation through a session port."""
+	try:
+		result = session.query_molecule_smiles(expected_revision, molecule_id)
+	except Exception as error:
+		failure = _backend_observation_failure(error, "molecule-smiles")
+		if failure is None:
+			raise
+		return BackendQueryResult(None, failure)
+	return BackendQueryResult(result, None)
+
+
+#============================================
+def _backend_observation_failure(
+		error: Exception, operation: str,
+		) -> BackendQueryFailure | None:
+	"""Map declared backend observation failures to frontend-neutral facts."""
+	if error.__class__.__name__ == "BackendProjectionOutOfSyncError":
+		return BackendQueryFailure("projection-unavailable", str(error))
+	if isinstance(error, oasa.cdml_document.CDMLRevisionConflictError):
+		return BackendQueryFailure("revision-conflict", str(error))
+	if operation == "atom-chemistry" and isinstance(
+			error, oasa.cdml_document.CDMLAtomChemistryFactsError,
+		):
+		return BackendQueryFailure("validation", str(error))
+	if operation == "molecule-smiles" and isinstance(
+			error, oasa.cdml_document.CDMLMoleculeSmilesUnavailableError,
+		):
+		return BackendQueryFailure("unavailable", str(error))
+	if isinstance(error, (oasa.cdml_document.CDMLDocumentError, ValueError)):
+		return BackendQueryFailure("validation", str(error))
+	if operation == "molecule-smiles" and isinstance(error, RuntimeError):
+		return BackendQueryFailure("backend-error", str(error))
+	return None
+
+
+#============================================
+def decode_authored_ftext_runs(
+		authored: str,
+		) -> tuple[tuple[str, tuple[str, ...]], ...] | None:
+	"""Decode authored ftext character data into frontend-only plain runs.
+
+	The OASA codec owns the compact CDML grammar.  This bridge deliberately
+	returns only immutable strings and tuples, so a disposable Qt projection
+	never retains an OASA ftext object.
+	"""
+	if type(authored) is not str:
+		raise TypeError("Authored ftext must be a string")
+	try:
+		runs = oasa.cdml_ftext.decode(authored)
+	except oasa.cdml_ftext.CDMLFTextCodecError:
+		return None
+	plain_runs = tuple((run.text, run.styles) for run in runs)
+	return plain_runs
 
 
 #============================================
@@ -50,9 +203,9 @@ def oasa_mol_to_qt_mol(
 	Returns:
 		MoleculeModel wrapping the converted atoms and bonds.
 	"""
-	mol_model = bkchem_qt.models.molecule_model.MoleculeModel(
-		oasa_mol=oasa.molecule_lib.Molecule()
-	)
+	# The bridge copies backend values into a new disposable Qt projection.
+	# MoleculeModel deliberately retains no OASA molecule after this boundary.
+	mol_model = bkchem_qt.models.molecule_model.MoleculeModel()
 	mol_model.mol_id = str(getattr(mol, "id", "") or "")
 	mol_model.name = str(getattr(mol, "name", "") or "")
 
@@ -154,33 +307,37 @@ def oasa_atom_to_qt_atom(
 	Returns:
 		AtomModel with chemistry and display properties populated.
 	"""
-	atom_model = bkchem_qt.models.atom_model.AtomModel(
-		oasa_atom=oasa.atom_lib.Atom(symbol=oasa_atom.symbol)
+	properties = oasa_atom.properties_
+	explicit_fields = frozenset(
+		field for field in ("show", "show_hydrogens", "font_size", "font_family", "line_color")
+		if field in properties
 	)
-	atom_id = getattr(oasa_atom, "id", None)
-	if atom_id:
-		atom_model._chem_atom.id = str(atom_id)
-
-	# copy coordinates (may be None for unpositioned atoms)
-	x = oasa_atom.x if oasa_atom.x is not None else 0.0
-	y = oasa_atom.y if oasa_atom.y is not None else 0.0
-	z = oasa_atom.z if oasa_atom.z is not None else 0.0
-	atom_model.set_xyz(x, y, z)
-
-	# copy chemistry properties
-	atom_model.charge = oasa_atom.charge
-	atom_model.valency = oasa_atom.valency
-	atom_model.multiplicity = oasa_atom.multiplicity
-	atom_model.free_sites = oasa_atom.free_sites
-	atom_model.explicit_hydrogens = oasa_atom.explicit_hydrogens
-	if oasa_atom.isotope is not None:
-		atom_model.isotope = oasa_atom.isotope
-	_display_atom_properties_to_qt(oasa_atom, atom_model)
+	atom_model = bkchem_qt.models.atom_model.AtomModel()
+	atom_model.install_projection(
+		atom_id=str(getattr(oasa_atom, "id", "") or "") or None,
+		symbol=oasa_atom.symbol,
+		charge=oasa_atom.charge,
+		valency=oasa_atom.valency,
+		authored_valency=oasa_atom.valency,
+		isotope=oasa_atom.isotope,
+		multiplicity=oasa_atom.multiplicity,
+		free_sites=oasa_atom.free_sites,
+		explicit_hydrogens=oasa_atom.explicit_hydrogens,
+		x=oasa_atom.x if oasa_atom.x is not None else 0.0,
+		y=oasa_atom.y if oasa_atom.y is not None else 0.0,
+		z=oasa_atom.z if oasa_atom.z is not None else 0.0,
+		show=properties.get("show", "yes") == "yes",
+		show_hydrogens=properties.get("show_hydrogens", "on") == "on",
+		font_size=int(properties.get("font_size", 12)),
+		font_family=properties.get("font_family", "Arial"),
+		line_color=properties.get("line_color", "#000000"),
+		explicit_fields=explicit_fields,
+	)
 
 	# apply CPK color for non-carbon heteroatoms
 	symbol = oasa_atom.symbol
 	cpk_color = CPK_COLORS.get(symbol)
-	if cpk_color and symbol != "C" and "line_color" not in atom_model._cdml_display_fields:
+	if cpk_color and symbol != "C" and "line_color" not in atom_model.cdml_display_fields:
 		atom_model._line_color = cpk_color
 
 	return atom_model
@@ -192,6 +349,7 @@ def _display_atom_properties_to_qt(
 		atom_model: bkchem_qt.models.atom_model.AtomModel,
 		) -> None:
 	"""Copy supported CDML atom depiction fields into the Qt atom model."""
+	# Retained for callers that intentionally apply a local compatibility edit.
 	properties = oasa_atom.properties_
 	if "show" in properties:
 		atom_model.show = properties["show"] == "yes"
@@ -220,21 +378,30 @@ def oasa_bond_to_qt_bond(
 	Returns:
 		BondModel with chemistry properties populated.
 	"""
-	bond_model = bkchem_qt.models.bond_model.BondModel(
-		oasa_bond=oasa.bond_lib.Bond(
-			order=oasa_bond.order,
-			type=oasa_bond.type,
-		)
+	depiction = oasa.cdml_bond_io.resolve_bond_depiction(oasa_bond)
+	bond_model = bkchem_qt.models.bond_model.BondModel.create(
+		order=oasa_bond.order,
+		bond_type=oasa_bond.type,
+		bond_id=str(getattr(oasa_bond, "id", "") or "") or None,
 	)
-	# Haworth layout owns these semantic depiction tags. Keep the scalar tag
-	# alongside the ``q``/``w`` bond types without retaining OASA references.
-	haworth_position = oasa_bond.properties_.get("haworth_position")
-	if haworth_position:
-		bond_model._chem_bond.properties_["haworth_position"] = haworth_position
-	bond_id = getattr(oasa_bond, "id", None)
-	if bond_id:
-		bond_model._chem_bond.id = str(bond_id)
-	_display_bond_properties_to_qt(oasa_bond, bond_model)
+	bond_model.install_projection(
+		bond_id=bond_model.bond_id,
+		order=oasa_bond.order,
+		bond_type=oasa_bond.type,
+		aromatic=oasa_bond.aromatic,
+		line_width=depiction.line_width,
+		bond_width=depiction.bond_width,
+		wedge_width=depiction.wedge_width,
+		double_ratio=depiction.double_ratio,
+		center=depiction.center,
+		auto_sign=depiction.auto_sign,
+		equithick=depiction.equithick,
+		simple_double=depiction.simple_double,
+		line_color=depiction.color,
+		wavy_style=depiction.wavy_style,
+		haworth_position=depiction.haworth_position,
+		explicit_fields=depiction.explicit_fields,
+	)
 	return bond_model
 
 
@@ -245,7 +412,185 @@ def _display_bond_properties_to_qt(
 		) -> None:
 	"""Copy supported CDML depiction fields from OASA to a Qt bond model."""
 	depiction = oasa.cdml_bond_io.resolve_bond_depiction(oasa_bond)
-	bond_model.install_projected_depiction(depiction)
+	bond_model.install_projection(
+		bond_id=str(getattr(oasa_bond, "id", "") or "") or None,
+		order=oasa_bond.order,
+		bond_type=oasa_bond.type,
+		aromatic=oasa_bond.aromatic,
+		line_width=depiction.line_width,
+		bond_width=depiction.bond_width,
+		wedge_width=depiction.wedge_width,
+		double_ratio=depiction.double_ratio,
+		center=depiction.center,
+		auto_sign=depiction.auto_sign,
+		equithick=depiction.equithick,
+		simple_double=depiction.simple_double,
+		line_color=depiction.color,
+		wavy_style=depiction.wavy_style,
+		haworth_position=depiction.haworth_position,
+		explicit_fields=depiction.explicit_fields,
+	)
+
+
+#============================================
+def materialize_oasa_bond(
+		bond_model: bkchem_qt.models.bond_model.BondModel,
+		) -> oasa.bond_lib.Bond:
+	"""Create one detached OASA edge from current scalar Qt bond facts."""
+	oasa_bond = oasa.bond_lib.Bond(order=bond_model.order, type=bond_model.type)
+	oasa_bond.aromatic = bond_model.aromatic
+	if bond_model.bond_id:
+		oasa_bond.id = bond_model.bond_id
+	_display_bond_properties_to_oasa(bond_model, oasa_bond)
+	return oasa_bond
+
+
+#============================================
+def materialize_oasa_atom(
+		atom_model: bkchem_qt.models.atom_model.AtomModel,
+		) -> oasa.atom_lib.Atom:
+	"""Create one detached OASA atom from public scalar projection facts.
+
+	The returned atom is bridge-local.  Callers that need connected chemistry
+	must add it to a fresh complete molecule before asking OASA for a result.
+	"""
+	oasa_atom = oasa.atom_lib.Atom(symbol=atom_model.symbol)
+	oasa_atom.x, oasa_atom.y, oasa_atom.z = atom_model.get_xyz()
+	oasa_atom.charge = atom_model.charge
+	oasa_atom.valency = atom_model.valency
+	oasa_atom.multiplicity = atom_model.multiplicity
+	oasa_atom.free_sites = atom_model.free_sites
+	oasa_atom.explicit_hydrogens = atom_model.explicit_hydrogens
+	if atom_model.isotope is not None:
+		oasa_atom.isotope = atom_model.isotope
+	if atom_model.atom_id is not None:
+		oasa_atom.id = atom_model.atom_id
+	_display_atom_properties_to_oasa(atom_model, oasa_atom)
+	return oasa_atom
+
+
+#============================================
+def legacy_atom_render_operations(
+		atom_model: bkchem_qt.models.atom_model.AtomModel,
+		) -> tuple[oasa.cdml_document.CDMLRenderPrimitive, ...]:
+	"""Build portable atom primitives from scalar compatibility display facts.
+
+	Temporary OASA operation classes remain inside this bridge.  The returned
+	primitive coordinates are local to an AtomItem whose scene position owns the
+	atom's scalar coordinates.
+	"""
+	atom = materialize_oasa_atom(atom_model)
+	atom.x = 0.0
+	atom.y = 0.0
+	properties = atom.properties_
+	if properties.get("show") == "no":
+		return ()
+	added_label = False
+	if properties.get("show") == "yes" and atom.symbol == "C" and not properties.get("label"):
+		properties["label"] = atom.symbol
+		added_label = True
+	try:
+		operations = oasa.render_lib.molecule_ops.build_vertex_ops(
+			atom,
+			transform_xy=None,
+			show_hydrogens_on_hetero=atom_model.show_hydrogens,
+			color_atoms=True,
+			atom_colors={atom.symbol: _compatibility_color(atom_model.line_color)},
+			font_name=atom_model.font_family,
+			font_size=atom_model.font_size,
+			background_color=_BACKEND_DOCUMENT_BACKGROUND,
+		)
+		return oasa.cdml_document.normalize_render_operations(operations)
+	finally:
+		if added_label:
+			del properties["label"]
+
+
+#============================================
+def legacy_atom_text_bounds(
+		atom_model: bkchem_qt.models.atom_model.AtomModel,
+		) -> tuple[float, float]:
+	"""Return Qt-measured horizontal label bounds from portable primitives."""
+	from bkchem_qt.canvas.items import primitive_ops_painter
+	operations = legacy_atom_render_operations(atom_model)
+	return primitive_ops_painter.text_horizontal_bounds(operations)
+
+
+#============================================
+def legacy_bond_render_operations(
+		bond_model: bkchem_qt.models.bond_model.BondModel,
+		atom1: bkchem_qt.models.atom_model.AtomModel,
+		atom2: bkchem_qt.models.atom_model.AtomModel,
+		start: tuple[float, float], end: tuple[float, float],
+		) -> tuple[oasa.cdml_document.CDMLRenderPrimitive, ...]:
+	"""Build portable bond primitives from scalar endpoint intent.
+
+	This compatibility bridge owns fresh OASA endpoint materialization, each
+	endpoint's label/attach targets, and the render context.  It returns only
+	opaque operations; no temporary vertex, edge, or graph escapes to Qt items.
+	"""
+	if not all(math.isfinite(value) for point in (start, end) for value in point):
+		raise ValueError("legacy bond rendering requires finite endpoints")
+	edge = materialize_oasa_bond(bond_model)
+	# Preserve the historical theme sentinel as a portable semantic role.  The
+	# temporary OASA edge remains bridge-local and is discarded after depiction.
+	edge.properties_["line_color"] = _compatibility_color(bond_model.line_color)
+	vertices = (materialize_oasa_atom(atom1), materialize_oasa_atom(atom2))
+	edge.vertices = list(vertices)
+	shown_vertices, label_targets, attach_targets = _legacy_bond_label_targets(
+		(atom1, atom2), vertices,
+	)
+	render_context = oasa.render_lib.data_types.BondRenderContext(
+		molecule=None,
+		line_width=bond_model.line_width,
+		bond_width=bond_model.bond_width,
+		wedge_width=bond_model.wedge_width,
+		bold_line_width_multiplier=1.2,
+		bond_second_line_shortening=0.0,
+		color_bonds=True,
+		atom_colors=None,
+		shown_vertices=shown_vertices,
+		bond_coords={edge: (start, end)},
+		bond_coords_provider={edge: (start, end)}.get,
+		point_for_atom=None,
+		label_targets=label_targets,
+		attach_targets=attach_targets,
+		attach_constraints=oasa.render_lib.data_types.make_attach_constraints(),
+	)
+	operations = oasa.render_lib.bond_ops.build_bond_ops(edge, start, end, render_context)
+	return oasa.cdml_document.normalize_render_operations(operations)
+
+
+#============================================
+def _compatibility_color(value: str) -> str:
+	"""Map the historical default line sentinel to a frontend-neutral role."""
+	if value.lower() == _LEGACY_DEFAULT_LINE_COLOR:
+		return _BACKEND_FOREGROUND
+	return value
+
+
+#============================================
+def _legacy_bond_label_targets(
+		atom_models: tuple[bkchem_qt.models.atom_model.AtomModel, bkchem_qt.models.atom_model.AtomModel],
+		vertices: tuple[oasa.atom_lib.Atom, oasa.atom_lib.Atom],
+		) -> tuple[set[object], dict[object, object], dict[object, object]]:
+	"""Build OASA clipping targets using each endpoint's own display facts."""
+	shown_vertices = set()
+	label_targets = {}
+	attach_targets = {}
+	for atom_model, vertex in zip(atom_models, vertices, strict=True):
+		if not atom_model.show:
+			continue
+		shown, labels, attaches = oasa.render_lib.molecule_ops.build_label_attach_targets(
+			vertices=[vertex],
+			show_hydrogens_on_hetero=bool(atom_model.show_hydrogens),
+			font_name=atom_model.font_family,
+			font_size=float(atom_model.font_size),
+		)
+		shown_vertices.update(shown)
+		label_targets.update(labels)
+		attach_targets.update(attaches)
+	return shown_vertices, label_targets, attach_targets
 
 
 #============================================
@@ -263,55 +608,58 @@ def qt_mol_to_oasa_mol(
 	Returns:
 		oasa.molecule_lib.Molecule with atoms and bonds.
 	"""
+	oasa_mol, unused_atom_by_model_identity = _materialize_oasa_molecule(mol_model)
+	return oasa_mol
+
+
+#============================================
+def _materialize_oasa_molecule(
+		mol_model: bkchem_qt.models.molecule_model.MoleculeModel,
+		) -> tuple[oasa.molecule_lib.Molecule, dict[int, oasa.atom_lib.Atom]]:
+	"""Create a complete disposable OASA graph and scalar-wrapper association."""
 	oasa_mol = oasa.molecule_lib.Molecule()
 	if mol_model.mol_id:
 		oasa_mol.id = mol_model.mol_id
 	if mol_model.name:
 		oasa_mol.name = mol_model.name
 
-	# build mapping from AtomModel id to OASA atom for bond wiring
-	qt_to_oasa_atom = {}
+	# Build a complete fresh OASA graph.  The Qt projection retains none of it.
+	atom_by_model_identity = {}
 	for am in mol_model.atoms:
-		oasa_atom = oasa.atom_lib.Atom(symbol=am.symbol)
-		oasa_atom.x = am.x
-		oasa_atom.y = am.y
-		oasa_atom.z = am.z
-		oasa_atom.charge = am.charge
-		oasa_atom.valency = am.valency
-		oasa_atom.multiplicity = am.multiplicity
-		oasa_atom.free_sites = am.free_sites
-		oasa_atom.explicit_hydrogens = am.explicit_hydrogens
-		_display_atom_properties_to_oasa(am, oasa_atom)
-		atom_id = getattr(am._chem_atom, "id", None)
-		if atom_id:
-			oasa_atom.id = str(atom_id)
-		if am.isotope is not None:
-			oasa_atom.isotope = am.isotope
+		oasa_atom = materialize_oasa_atom(am)
 		oasa_mol.add_vertex(oasa_atom)
-		qt_to_oasa_atom[id(am)] = oasa_atom
+		atom_by_model_identity[id(am)] = oasa_atom
 
 	# create bonds
 	for bm in mol_model.bonds:
-		oasa_bond = oasa.bond_lib.Bond(order=bm.order, type=bm.type)
-		if "haworth_position" in bm._chem_bond.properties_:
-			oasa_bond.properties_["haworth_position"] = (
-				bm._chem_bond.properties_["haworth_position"]
-			)
-		_display_bond_properties_to_oasa(bm, oasa_bond)
-		bond_id = getattr(bm._chem_bond, "id", None)
-		if bond_id:
-			oasa_bond.id = str(bond_id)
+		oasa_bond = materialize_oasa_bond(bm)
 		a1 = bm.atom1
 		a2 = bm.atom2
 		if a1 is None or a2 is None:
 			continue
-		v1 = qt_to_oasa_atom.get(id(a1))
-		v2 = qt_to_oasa_atom.get(id(a2))
+		v1 = atom_by_model_identity.get(id(a1))
+		v2 = atom_by_model_identity.get(id(a2))
 		if v1 is None or v2 is None:
 			continue
 		oasa_mol.add_edge(v1, v2, e=oasa_bond)
 
-	return oasa_mol
+	return oasa_mol, atom_by_model_identity
+
+
+#============================================
+def standalone_atom_chemistry(
+		mol_model: bkchem_qt.models.molecule_model.MoleculeModel,
+		) -> dict[int, tuple[int, int]]:
+	"""Calculate connected-graph compatibility facts in one disposable graph.
+
+	The keys are ephemeral ``id(AtomModel)`` values used only by the caller's
+	synchronous loop.  No OASA vertex survives the bridge call.
+	"""
+	unused_oasa_mol, atom_by_model_identity = _materialize_oasa_molecule(mol_model)
+	return {
+		model_identity: (oasa_atom.free_valency, oasa_atom.oxidation_number)
+		for model_identity, oasa_atom in atom_by_model_identity.items()
+	}
 
 
 #============================================
@@ -321,7 +669,7 @@ def _display_atom_properties_to_oasa(
 		) -> None:
 	"""Copy explicit Qt atom display edits into OASA's CDML property carrier."""
 	properties = oasa_atom.properties_
-	fields = atom_model._cdml_display_fields
+	fields = atom_model.cdml_display_fields
 	if "show" in fields:
 		properties["show"] = "yes" if atom_model.show else "no"
 	if "show_hydrogens" in fields:
@@ -340,29 +688,41 @@ def _display_bond_properties_to_oasa(
 		oasa_bond: oasa.bond_lib.Bond,
 		) -> None:
 	"""Copy supported Qt depiction fields into OASA/CDML writer fields."""
-	bond_model._sync_chem_bond_depiction()
-	source = bond_model._chem_bond
-	depiction = oasa.cdml_bond_io.resolve_bond_depiction(source)
-	oasa_bond.line_color = depiction.color
-	oasa_bond.wavy_style = depiction.wavy_style
-	oasa_bond.center = depiction.center
+	oasa_bond.line_color = bond_model.line_color
+	oasa_bond.wavy_style = bond_model.wavy_style
+	oasa_bond.center = bond_model.center
 	oasa_bond.line_width = bond_model.line_width
 	oasa_bond.bond_width = bond_model.bond_width
 	oasa_bond.wedge_width = bond_model.wedge_width
-	oasa_bond.double_length_ratio = depiction.double_ratio
-	oasa_bond.auto_bond_sign = depiction.auto_sign
-	oasa_bond.equithick = int(depiction.equithick)
-	oasa_bond.simple_double = int(depiction.simple_double)
-	for name in depiction.explicit_fields:
-		if name in source.properties_:
-			oasa_bond.properties_[name] = source.properties_[name]
-	if "color" in depiction.explicit_fields and "line_color" in source.properties_:
-		oasa_bond.properties_["line_color"] = source.properties_["line_color"]
-	haworth_position = source.properties_.get("haworth_position")
-	if haworth_position:
-		oasa_bond.properties_["haworth_position"] = haworth_position
+	oasa_bond.double_length_ratio = bond_model.double_length_ratio
+	oasa_bond.auto_bond_sign = bond_model.auto_bond_sign
+	oasa_bond.equithick = int(bond_model.equithick)
+	oasa_bond.simple_double = int(bond_model.simple_double)
+	fields = bond_model.cdml_display_fields
+	if "line_width" in fields:
+		oasa_bond.properties_["line_width"] = str(bond_model.line_width)
+	if "bond_width" in fields:
+		oasa_bond.properties_["bond_width"] = str(bond_model.bond_width)
+	if "wedge_width" in fields:
+		oasa_bond.properties_["wedge_width"] = str(bond_model.wedge_width)
+	if "center" in fields and bond_model.center is not None:
+		oasa_bond.properties_["center"] = "yes" if bond_model.center else "no"
+	if "simple_double" in fields:
+		oasa_bond.properties_["simple_double"] = str(int(bond_model.simple_double))
+	if "auto_sign" in fields:
+		oasa_bond.properties_["auto_sign"] = str(bond_model.auto_bond_sign)
+	if "double_ratio" in fields:
+		oasa_bond.properties_["double_ratio"] = str(bond_model.double_length_ratio)
+	if "equithick" in fields:
+		oasa_bond.properties_["equithick"] = str(int(bond_model.equithick))
+	if "color" in fields:
+		oasa_bond.properties_["line_color"] = bond_model.line_color
+	if "wavy_style" in fields and bond_model.wavy_style is not None:
+		oasa_bond.properties_["wavy_style"] = bond_model.wavy_style
+	if "haworth_position" in fields and bond_model.haworth_position is not None:
+		oasa_bond.properties_["haworth_position"] = bond_model.haworth_position
 	oasa.cdml_bond_io.set_cdml_bond_explicit_fields(
-		oasa_bond, depiction.explicit_fields,
+		oasa_bond, fields,
 	)
 
 

@@ -16,20 +16,25 @@ class TextDialog(PySide6.QtWidgets.QDialog):
 		text: Initial text content.
 		font_size: Initial font size in points.
 		parent: Optional parent widget.
+		font_family: Initial font-family name.
+		font_color: Initial six-digit hexadecimal font color.
 	"""
 
 	#============================================
 	def __init__(self, text: str = "", font_size: int = 12,
-			parent: object | None = None) -> None:
+			parent: object | None = None, font_family: str = "Arial",
+			font_color: str = "#000000") -> None:
 		"""Initialize the text dialog.
 
 		Args:
 			text: Initial text content.
 			font_size: Initial font size in points.
 			parent: Optional parent widget.
+			font_family: Initial font-family name.
+			font_color: Initial six-digit hexadecimal font color.
 		"""
 		super().__init__(parent)
-		self._color = "#000000"
+		self._color = font_color.lower()
 		self.setWindowTitle("Text Annotation")
 		self.setMinimumWidth(350)
 		self.setMinimumHeight(250)
@@ -37,6 +42,12 @@ class TextDialog(PySide6.QtWidgets.QDialog):
 		# populate initial values
 		self._text_edit.setPlainText(text)
 		self._font_spin.setValue(font_size)
+		self._font_combo.setCurrentFont(PySide6.QtGui.QFont(font_family))
+		self._update_color_button()
+		# Qt may clamp the spin value or resolve a font alias/fallback.  The
+		# populated widgets are the dialog's real baseline, so accepting an
+		# untouched dialog never manufactures a backend field change.
+		self._initial_values = self.get_values()
 
 	#============================================
 	def _build_ui(self) -> None:
@@ -115,6 +126,35 @@ class TextDialog(PySide6.QtWidgets.QDialog):
 		return self._font_spin.value()
 
 	#============================================
+	def get_font_family(self) -> str:
+		"""Return the selected plain font-family name."""
+		return self._font_combo.currentFont().family()
+
+	#============================================
+	def get_font_color(self) -> str:
+		"""Return the selected six-digit hexadecimal font color."""
+		return self._color
+
+	#============================================
+	def get_values(self) -> dict[str, object]:
+		"""Return every current plain Text property value."""
+		values = {
+			"text": self.get_text(),
+			"font_family": self.get_font_family(),
+			"font_size": self.get_font_size(),
+			"font_color": self.get_font_color(),
+		}
+		return values
+
+	#============================================
+	def changes(self) -> tuple[tuple[str, object], ...]:
+		"""Return only changed immutable plain backend field/value pairs."""
+		return tuple(
+			(name, value) for name, value in self.get_values().items()
+			if value != self._initial_values[name]
+		)
+
+	#============================================
 	@staticmethod
 	def get_text_input(text: str = "", font_size: int = 12,
 			parent: object | None = None) -> dict:
@@ -133,10 +173,11 @@ class TextDialog(PySide6.QtWidgets.QDialog):
 		result = dialog.exec()
 		if result != PySide6.QtWidgets.QDialog.DialogCode.Accepted:
 			return None
+		current = dialog.get_values()
 		values = {
-			"text": dialog.get_text(),
-			"font_size": dialog.get_font_size(),
-			"font_family": dialog._font_combo.currentFont().family(),
-			"color": dialog._color,
+			"text": current["text"],
+			"font_size": current["font_size"],
+			"font_family": current["font_family"],
+			"color": current["font_color"],
 		}
 		return values

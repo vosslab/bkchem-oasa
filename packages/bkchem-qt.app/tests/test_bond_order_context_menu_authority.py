@@ -71,7 +71,7 @@ def test_retained_set_order_action_uses_durable_ids_after_reprojection(
 		menu = bkchem_qt.actions.context_menu._bond_context_menu(_bond_item(session), session.view)
 		order_menu = next(
 			(child for child in menu.findChildren(PySide6.QtWidgets.QMenu)
-			 if child.title() == "Set Order"),
+				if child.title() == "Set Order"),
 			None,
 		)
 		if order_menu is None:
@@ -108,7 +108,7 @@ def test_retained_set_type_action_uses_durable_ids_backend_history_and_noop(
 		menu = bkchem_qt.actions.context_menu._bond_context_menu(_bond_item(session), session.view)
 		type_menu = next(
 			(child for child in menu.findChildren(PySide6.QtWidgets.QMenu)
-			 if child.title() == "Set Type"),
+				if child.title() == "Set Type"),
 			None,
 		)
 		if type_menu is None:

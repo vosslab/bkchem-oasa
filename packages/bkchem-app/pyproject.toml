@@ -11,19 +11,16 @@ license = "GPL-2.0-only"
 license-files = ["LICENSE"]
 authors = [{name = "Beda Kosata", email = "beda@zirael.org"}]
 maintainers = [{name = "Reinis Danne", email = "rei4dan@gmail.com"}]
-version = "26.07"
+version = "26.08"
 dependencies = [
     "defusedxml",
     "pyyaml",
-    "oasa>=26.07",
+    "oasa>=26.08",
 ]
 
 [project.urls]
 Homepage = "https://github.com/vosslab/bkchem"
 Issues = "https://github.com/vosslab/bkchem/issues"
-
-[project.scripts]
-bkchem = "bkchem.cli:main"
 
 [tool.setuptools]
 include-package-data = true

@@ -11,7 +11,7 @@ license = "GPL-2.0-only"
 license-files = ["LICENSE"]
 authors = [{name = "Beda Kosata", email = "beda@zirael.org"}]
 maintainers = [{name = "Reinis Danne", email = "rei4dan@gmail.com"}]
-version = "26.07"
+version = "26.08"
 dependencies = [
     "defusedxml",
     "lxml",

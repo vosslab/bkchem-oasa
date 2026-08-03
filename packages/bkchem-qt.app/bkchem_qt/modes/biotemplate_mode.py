@@ -1,364 +1,129 @@
-"""Biomolecule template mode for placing biomolecule SMILES templates."""
+"""Qt projection client for OASA-owned biomolecule template placement."""
 
 # Standard Library
-import logging
+import math
+import numbers
 
 # PIP3 modules
 import PySide6.QtCore
 
 # local repo modules
 import bkchem_qt.modes.base_mode
-import bkchem_qt.canvas.items.atom_item
-import bkchem_qt.canvas.items.bond_item
-import bkchem_qt.undo.commands
-from bkchem_qt.models.molecule_model import MoleculeModel
-
-# module-level logger
-_log = logging.getLogger(__name__)
 
 
 #============================================
 class BioTemplateMode(bkchem_qt.modes.base_mode.BaseMode):
-	"""Mode for placing biomolecule templates from YAML SMILES data.
-
-	Loads biomolecule entries via biomolecule_loader and organizes
-	them into category and template submode groups. Selecting a
-	category filters the template grid to show matching molecules.
-
-	Args:
-		view: The ChemView widget that dispatches events.
-		parent: Optional parent QObject.
-	"""
+	"""Select a packaged biomolecule and submit one detached placement intent."""
 
 	#============================================
-	def __init__(self, view: object, parent: PySide6.QtCore.QObject | None = None) -> None:
-		"""Initialize biomolecule template mode.
-
-		Args:
-			view: The ChemView widget that dispatches events.
-			parent: Optional parent QObject.
-		"""
+	def __init__(
+			self, view: object, parent: PySide6.QtCore.QObject | None = None,
+			catalog: tuple[object, ...] | None = None,
+			) -> None:
+		"""Initialize the mode from immutable OASA-owned catalog descriptors."""
 		super().__init__(view, parent)
 		self._name = "biomolecule templates"
 		self._cursor = PySide6.QtCore.Qt.CursorShape.CrossCursor
-		self._current_smiles = None
-		self._current_template_name = None
-
-		# biomolecule data structures
-		self._category_keys = []
-		self._category_labels = []
-		self._category_label_to_key = {}
-		self._category_template_names = {}
-		self._category_template_labels = {}
-		self._category_template_smiles = {}
-
-		# load biomolecule entries and build categorized submodes
-		self._load_biomolecules()
-
-	# ------------------------------------------------------------------
-	# Biomolecule loading
-	# ------------------------------------------------------------------
+		self._biotemplate_action = None
+		self._catalog = self._validate_catalog(catalog)
+		self._by_key = {entry.catalog_key: entry for entry in self._catalog}
+		self._category_keys = tuple(dict.fromkeys(entry.category for entry in self._catalog))
+		self._category_labels = tuple(key.replace("_", " ").strip() for key in self._category_keys)
+		self._category_label_to_key = dict(zip(self._category_labels, self._category_keys))
+		self._current_catalog_key = self._catalog[0].catalog_key
+		self._install_submodes(self._category_keys[0])
 
 	#============================================
-	def _load_biomolecules(self) -> None:
-		"""Load biomolecule entries and build categorized submode data.
-
-		Uses the Qt biomolecule loader to read OASA's packaged YAML file, then
-		groups entries by category for the two-level submode system.
-		"""
-		entries = self._load_entries()
-		if not entries:
-			_log.warning("No biomolecule entries loaded")
-			return
-		self._build_categorized_submodes(entries)
+	def set_biotemplate_action(self, action: object | None) -> None:
+		"""Install the plain session-owned biomolecule placement action."""
+		if action is not None and not callable(action):
+			raise TypeError("Biomolecule placement action must be callable")
+		self._biotemplate_action = action
 
 	#============================================
-	def _load_entries(self) -> list:
-		"""Load biomolecule entries from the YAML file.
-
-		Returns:
-			List of entry dicts with category, name, label, smiles keys.
-		"""
-		import bkchem_qt.biomolecule_loader
-		return bkchem_qt.biomolecule_loader.load_biomolecule_entries()
+	def _validate_catalog(self, catalog: object) -> tuple[object, ...]:
+		"""Validate plain descriptors without importing OASA's implementation type."""
+		if not isinstance(catalog, tuple) or not catalog:
+			raise ValueError("Biomolecule mode requires a nonempty immutable catalog")
+		for entry in catalog:
+			if any(
+				not isinstance(getattr(entry, field, None), str)
+				or not getattr(entry, field).strip()
+				for field in ("catalog_key", "category", "subcategory", "name", "label")
+			):
+				raise ValueError("Biomolecule mode received an invalid catalog")
+		if len({entry.catalog_key for entry in catalog}) != len(catalog):
+			raise ValueError("Biomolecule mode catalog keys must be unique")
+		return catalog
 
 	#============================================
-	def _build_categorized_submodes(self, entries: list) -> None:
-		"""Build category and template submode groups from entries.
+	def _entries_for_category(self, category: str) -> tuple[object, ...]:
+		"""Return catalog entries in one selected category."""
+		return tuple(entry for entry in self._catalog if entry.category == category)
 
-		Group 0 is the category row. Group 1 is the template grid
-		filtered by the selected category.
-
-		Args:
-			entries: List of biomolecule entry dicts.
-		"""
-		# group entries by category, preserving insertion order
-		category_order = []
-		category_entries = {}
+	#============================================
+	def _install_submodes(self, category: str) -> None:
+		"""Render categories and labels while retaining only durable catalog keys."""
+		entries = self._entries_for_category(category)
+		self.submodes = [list(self._category_labels), [entry.catalog_key for entry in entries]]
+		self.submodes_names = [list(self._category_labels), [entry.label for entry in entries]]
+		self.submode = [self._category_keys.index(category), 0]
+		self.group_layouts = ["row", "grid"]
+		self.group_labels = ["Category", "Templates"]
 		for entry in entries:
-			cat = entry['category']
-			if cat not in category_entries:
-				category_order.append(cat)
-				category_entries[cat] = []
-			category_entries[cat].append(entry)
-
-		self._category_keys = category_order
-		# build display labels from category keys
-		self._category_labels = [
-			k.replace('_', ' ').strip() for k in self._category_keys
-		]
-		self._category_label_to_key = dict(
-			zip(self._category_labels, self._category_keys)
-		)
-
-		# build per-category template data
-		for key in self._category_keys:
-			cat_entries = category_entries[key]
-			names = []
-			labels = []
-			smiles_list = []
-			for entry in cat_entries:
-				names.append(entry['name'])
-				labels.append(entry['label'])
-				smiles_list.append(entry['smiles'])
-			self._category_template_names[key] = names
-			self._category_template_labels[key] = labels
-			self._category_template_smiles[key] = smiles_list
-
-		# apply initial category selection
-		initial_names = []
-		initial_labels = []
-		if self._category_keys:
-			first_key = self._category_keys[0]
-			initial_names = list(
-				self._category_template_names.get(first_key, [])
-			)
-			initial_labels = list(
-				self._category_template_labels.get(first_key, [])
-			)
-
-		# set submode data for the ribbon widget
-		# group 0 = categories, group 1 = templates
-		self.submodes = [list(self._category_labels), initial_names]
-		self.submodes_names = [
-			list(self._category_labels), initial_labels
-		]
-		self.submode = [0, 0]
-		self.group_layouts = ['row', 'grid']
-		self.group_labels = ['Category', 'Templates']
-
-		# build tooltip map for template names
-		for key in self._category_keys:
-			for mol_name in self._category_template_names.get(key, []):
-				self.tooltip_map[mol_name] = mol_name.replace('_', ' ')
-
-		# set initial template SMILES from first entry
-		if initial_names and self._category_keys:
-			first_key = self._category_keys[0]
-			smiles = self._category_template_smiles.get(first_key, [])
-			if smiles:
-				self._current_smiles = smiles[0]
-				self._current_template_name = initial_names[0]
-
-	# ------------------------------------------------------------------
-	# Submode switching
-	# ------------------------------------------------------------------
+			self.tooltip_map[entry.catalog_key] = entry.name.replace("_", " ")
+		if entries:
+			self._current_catalog_key = entries[0].catalog_key
 
 	#============================================
 	def on_submode_switch(self, submode_index: int, name: str) -> None:
-		"""Handle submode selection changes.
-
-		When group 0 (category) changes, rebuild group 1 templates.
-		When group 1 (template) changes, set the active SMILES.
-
-		Args:
-			submode_index: Group index of the changed submode.
-			name: Key string of the newly selected submode.
-		"""
+		"""Select a category or one immutable OASA catalog key."""
 		if submode_index == 0:
-			# category changed: update template list for group 1
-			self._apply_category_selection(name)
-			# refresh the ribbon widget for group 1
-			main_window = self._env.window
-			if hasattr(main_window, '_submode_ribbon'):
-				main_window._submode_ribbon.refresh_group(1)
-		elif submode_index == 1:
-			# template selected: resolve SMILES for placement
-			self._apply_template_selection(name)
-
-	#============================================
-	def _apply_category_selection(self, label: str) -> None:
-		"""Update template lists for the selected category label.
-
-		Args:
-			label: Display label of the selected category.
-		"""
-		key = self._category_label_to_key.get(label)
-		if not key and self._category_keys:
-			key = self._category_keys[0]
-		if not key:
-			return
-
-		# update group 1 submode data in place
-		new_names = list(
-			self._category_template_names.get(key, [])
-		)
-		new_labels = list(
-			self._category_template_labels.get(key, [])
-		)
-		self.submodes[1] = new_names
-		self.submodes_names[1] = new_labels
-		# reset template selection to first entry
-		if new_names:
-			self.submode[1] = 0
-			smiles = self._category_template_smiles.get(key, [])
-			if smiles:
-				self._current_smiles = smiles[0]
-				self._current_template_name = new_names[0]
-		else:
-			self._current_smiles = None
-			self._current_template_name = None
-
-	#============================================
-	def _apply_template_selection(self, name: str) -> None:
-		"""Set the current template SMILES from the selected name.
-
-		Args:
-			name: Template name key from the submode.
-		"""
-		# find which category contains this template
-		for key in self._category_keys:
-			names = self._category_template_names.get(key, [])
-			if name in names:
-				idx = names.index(name)
-				smiles = self._category_template_smiles.get(key, [])
-				if idx < len(smiles):
-					self._current_smiles = smiles[idx]
-					self._current_template_name = name
-					self.status_message.emit(
-						f"Template: {name}"
-					)
+			category = self._category_label_to_key.get(name)
+			if category is None:
+				self.status_message.emit("Unknown biomolecule category")
 				return
-		_log.warning("Unknown template name: %s", name)
-
-	# ------------------------------------------------------------------
-	# Event handlers
-	# ------------------------------------------------------------------
+			self._install_submodes(category)
+			main_window = self._env.window
+			if hasattr(main_window, "_submode_ribbon"):
+				main_window._submode_ribbon.refresh_group(1)
+		elif submode_index == 1 and name in self._by_key:
+			self._current_catalog_key = name
+			self.status_message.emit("Template: %s" % self._by_key[name].name)
 
 	#============================================
 	def activate(self) -> None:
-		"""Called when this mode becomes active."""
+		"""Describe the currently selected backend-owned template."""
 		super().activate()
-		if self._current_template_name:
-			msg = f"Biomolecule mode: {self._current_template_name}"
-		else:
-			msg = "Biomolecule mode: no template selected"
-		self.status_message.emit(msg)
-
-	#============================================
-	def mouse_press(
-		self, scene_pos: PySide6.QtCore.QPointF, event: object
-	) -> None:
-		"""Handle a mouse press to place a biomolecule template.
-
-		Args:
-			scene_pos: Position in scene coordinates.
-			event: The mouse event.
-		"""
-		if self._current_smiles is None:
-			self.status_message.emit("No template selected")
-			return
-		# check if an atom is under the cursor
-		item = self._item_at(scene_pos)
-		if isinstance(
-			item, bkchem_qt.canvas.items.atom_item.AtomItem
-		):
-			self._place_template(
-				item.atom_model.x, item.atom_model.y
-			)
-		else:
-			self._place_template(scene_pos.x(), scene_pos.y())
-
-	# ------------------------------------------------------------------
-	# Placement helpers
-	# ------------------------------------------------------------------
-
-	#============================================
-	def _place_template(self, x: float, y: float) -> None:
-		"""Load and place a biomolecule template at the given position.
-
-		Parses the current SMILES to an OASA molecule, generates
-		coordinates, converts to a Qt MoleculeModel, repositions
-		to (x, y), and adds to the scene with undo.
-
-		Args:
-			x: Target X coordinate in scene units.
-			y: Target Y coordinate in scene units.
-		"""
-		import oasa.smiles_lib
-		import bkchem_qt.bridge.oasa_bridge
-		import bkchem_qt.models.molecule_model
-
-		# parse SMILES to OASA molecule with coordinate generation
-		oasa_mol = oasa.smiles_lib.text_to_mol(self._current_smiles)
-		if oasa_mol is None:
-			self.status_message.emit(
-				f"Failed to parse: {self._current_template_name}"
-			)
-			return
-
-		# convert to Qt model (rescales and centers automatically)
-		mol_model = bkchem_qt.bridge.oasa_bridge.oasa_mol_to_qt_mol(
-			oasa_mol
-		)
-
-		# compute centroid and translate to target position
-		atoms = mol_model.atoms
-		if not atoms:
-			return
-		cx = sum(a.x for a in atoms) / len(atoms)
-		cy = sum(a.y for a in atoms) / len(atoms)
-		dx = x - cx
-		dy = y - cy
-		for a in atoms:
-			a.set_xyz(a.x + dx, a.y + dy, a.z)
-
-		# add to scene and document with undo support
-		self._add_template_to_scene(mol_model)
+		entry = self._by_key.get(self._current_catalog_key)
 		self.status_message.emit(
-			f"Placed: {self._current_template_name}"
+			"Biomolecule mode: %s" % entry.name if entry is not None
+			else "Biomolecule mode: no template selected",
 		)
 
 	#============================================
-	def _add_template_to_scene(self, mol_model: MoleculeModel) -> None:
-		"""Add a template MoleculeModel to the scene with undo.
+	def mouse_press(self, scene_pos: PySide6.QtCore.QPointF, event: object) -> None:
+		"""Submit one detached placement at the event's finite scene anchor."""
+		self._submit_biomolecule((scene_pos.x(), scene_pos.y()))
 
-		Creates AtomItem and BondItem graphics, then pushes one command
-		that owns both the document and scene insertion.
-
-		Args:
-			mol_model: The MoleculeModel to add.
-		"""
-		scene = self._env.scene
-		if scene is None:
+	#============================================
+	def _submit_biomolecule(self, anchor: tuple[object, object]) -> None:
+		"""Send exactly one plain revision-bound biomolecule request to the session."""
+		if self._biotemplate_action is None:
+			self.status_message.emit("Document cannot accept a persistent edit")
 			return
-		doc = self._env.document
-		if doc is None:
+		if self._current_catalog_key not in self._by_key:
+			self.status_message.emit("No biomolecule template selected")
 			return
-		template_name = self._current_template_name or "biomolecule"
-		graphics_items = [
-			bkchem_qt.canvas.items.bond_item.BondItem(bond_model)
-			for bond_model in mol_model.bonds
-		]
-		graphics_items.extend(
-			bkchem_qt.canvas.items.atom_item.AtomItem(atom_model)
-			for atom_model in mol_model.atoms
+		if (
+			len(anchor) != 2 or any(
+				isinstance(value, bool) or not isinstance(value, numbers.Real)
+				or not math.isfinite(value) for value in anchor
+			)
+		):
+			self.status_message.emit("Biomolecule anchor must use finite coordinates")
+			return
+		outcome = self._biotemplate_action(
+			self._current_catalog_key, (float(anchor[0]), float(anchor[1])),
 		)
-		command = bkchem_qt.undo.commands.AddMoleculeCommand(
-			doc,
-			scene,
-			mol_model,
-			graphics_items,
-			f"Place {template_name}",
-		)
-		self._env.undo_stack.push(command)
+		self.status_message.emit(outcome.message)

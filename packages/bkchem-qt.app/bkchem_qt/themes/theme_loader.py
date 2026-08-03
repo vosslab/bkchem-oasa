@@ -1,8 +1,7 @@
-"""Load theme colors from shared YAML theme files in bkchem_data/themes/.
+"""Load the delivered Qt frontend's theme colors from package YAML data.
 
-The Tk and Qt versions share the same YAML theme files so colors stay
-in sync. Each YAML file defines four color layers: gui, chemistry,
-paper, and grid.
+Each YAML file defines the GUI, chemistry, paper, and grid color layers used
+by the sole shipped BKChem frontend.
 """
 
 # PIP3 modules

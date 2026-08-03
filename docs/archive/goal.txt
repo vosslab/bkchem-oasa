@@ -1,0 +1,19 @@
+codex resume 019fa52f-ad2d-7062-816c-f714be4a2286
+
+• Goal paused Objective: Take a deep look at the two primary components of this monorepo: the OASA chemistry backend and the
+BKChem frontends. Over the past several months we have made substantial architectural progress, but many improvements remain
+only partially completed or inconsistently integrated. The GUI is being rewritten from Tk to PySide6, and the new bkchem-qt.app
+package already has real document sessions, tabs, modes, undo commands, and CDML round trips, but feature parity with the
+classic BKChem application is still incomplete. Several dialog and configure paths continue to bypass the command and dirty-
+state layer, and the legacy bkchem-app serves as the behavioral reference for completing the remaining functionality. The
+backend/frontend boundary described in CDML_BACKEND_TO_FRONTEND_CONTRACT.md is likewise only partially migrated: OASA is
+intended to own chemistry, the authoritative persistent document, and backend operations, while BKChem owns presentation,
+interaction, and scene projection, with composition replacing inheritance. That boundary should become a clean, frontend-
+agnostic contract based on stable document and chemistry interfaces rather than frontend-specific implementation details.
+However, documented contract violations-including direct _vertices access, oasa.* classes in BKChem base types, and isinstance
+checks against OASA graph classes-remain in the code. Coordinate generation has been consolidated onto the RDKit bridge, while
+the Haworth renderer, render-operation unification, glyph-bond alignment, and packaging validation all remain partially
+completed. The objective is to finish what we started and deliver a codebase that is clean, cohesive, contract-aligned, fully
+validated, and at feature parity with the classic BKChem application, with new capabilities-including PubChem lookup, broader
+import and export support, CDML-backed undo history, hex-grid alignment, and multi-ring Haworth rendering-built on that
+completed foundation rather than around it. Time: 9h 9m.

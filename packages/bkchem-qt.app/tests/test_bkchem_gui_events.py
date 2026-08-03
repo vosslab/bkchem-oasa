@@ -47,7 +47,7 @@ def _find_atom_item(scene: object, atom_model: object) -> object | None:
 
 
 #============================================
-def test_qt_gui_event_simulation(main_window: object) -> None:
+def test_qt_gui_event_simulation_delete(main_window: object) -> None:
 	"""Simulate draw/edit/delete/undo/redo/mode-switch flow in Qt."""
 	scene = main_window.scene
 
@@ -93,7 +93,10 @@ def test_qt_gui_event_simulation(main_window: object) -> None:
 	# delete a terminal atom (single neighbor) for stable undo/redo behavior
 	target_atom = None
 	for atom_model in main_window.document.molecules[0].atoms:
-		if len(atom_model._chem_atom.neighbors) == 1:
+		if sum(
+			atom_model in (bond.atom1, bond.atom2)
+			for bond in main_window.document.molecules[0].bonds
+		) == 1:
 			target_atom = atom_model
 			break
 	assert target_atom is not None, "expected a terminal atom for delete step"
@@ -106,7 +109,13 @@ def test_qt_gui_event_simulation(main_window: object) -> None:
 	scene.clearSelection()
 	target_item = _find_atom_item(scene, target_atom)
 	assert target_item is not None, "target atom item should exist before delete"
+	target_atom_id = target_atom.backend_durable_id
+	assert isinstance(target_atom_id, str) and target_atom_id
 	target_item.setSelected(True)
+	# Delete accepts through the backend and synchronously replaces the native
+	# projection.  Preserve only the durable ID before crossing that boundary.
+	target_item = None
+	target_atom = None
 
 	pre_delete_atoms = after_extend_atoms
 	delete_event = PySide6.QtGui.QKeyEvent(
@@ -118,14 +127,17 @@ def test_qt_gui_event_simulation(main_window: object) -> None:
 	_flush_events()
 
 	after_delete_atoms = _count_atoms(scene)
+	fresh_atom_ids = {
+		item.atom_model.backend_durable_id
+		for item in scene.items()
+		if isinstance(item, bkchem_qt.canvas.items.atom_item.AtomItem)
+	}
+	backend_snapshot = main_window._active_session.backend_snapshot
 	assert after_delete_atoms < pre_delete_atoms, (
 		"Delete key should remove the selected atom"
 	)
-	assert not any(
-		atom is target_atom
-		for mol in main_window.document.molecules
-		for atom in mol.atoms
-	), "target atom should be absent after delete"
+	assert f'id="{target_atom_id}"' not in backend_snapshot.cdml
+	assert target_atom_id not in fresh_atom_ids
 
 	# undo the delete through the public MainWindow handler
 	main_window.on_undo()

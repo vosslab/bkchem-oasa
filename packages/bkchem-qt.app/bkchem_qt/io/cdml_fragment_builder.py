@@ -241,7 +241,11 @@ def _serialize_molecule(
 		document: bkchem_qt.models.document.Document,
 		) -> dom.Element:
 	"""Write chemistry, then merge the loaded presentation envelope by ID."""
-	source = mol_model.cdml_source_xml
+	source = mol_model.compatibility_source_xml
+	if source is None:
+		raise ValueError(
+			"legacy fragment builder requires compatibility-decoded molecule XML",
+		)
 	source_el = None
 	if source:
 		source_el = _import_raw(result, source)
@@ -274,9 +278,9 @@ def _apply_atom_number_attributes(
 	"""
 	atom_elements = _direct_children(element, "atom")
 	models_by_id = {
-			str(atom_model._chem_atom.id): atom_model
+			str(atom_model.atom_id): atom_model
 			for atom_model in mol_model.atoms
-			if getattr(atom_model._chem_atom, "id", None)
+			if atom_model.atom_id is not None
 		}
 	if len(atom_elements) == len(mol_model.atoms):
 		atom_pairs = zip(atom_elements, mol_model.atoms)
@@ -314,14 +318,14 @@ def _serialization_reserved_ids(
 	"""
 	external_ids = _document_cdml_ids(document, exclude_molecule=mol_model)
 	reserved = set(external_ids)
-	reserved.update(_source_cdml_ids(mol_model.cdml_source_xml))
+	reserved.update(_source_cdml_ids(mol_model.compatibility_source_xml))
 	reserved.update(_molecule_metadata_ids(mol_model))
 	active_ids = {
-			str(getattr(atom._chem_atom, "id", "") or "")
+			str(atom.atom_id or "")
 			for atom in mol_model.atoms
 		}
 	active_ids.update(
-			str(getattr(bond._chem_bond, "id", "") or "")
+			str(bond.bond_id or "")
 			for bond in mol_model.bonds
 		)
 	active_ids.discard("")
@@ -345,11 +349,11 @@ def _document_cdml_ids(
 		if molecule.mol_id:
 			identifiers.add(molecule.mol_id)
 		for atom_model in molecule.atoms:
-			atom_id = getattr(atom_model._chem_atom, "id", None)
+			atom_id = atom_model.atom_id
 			if atom_id:
 				identifiers.add(str(atom_id))
 		for bond_model in molecule.bonds:
-			bond_id = getattr(bond_model._chem_bond, "id", None)
+			bond_id = bond_model.bond_id
 			if bond_id:
 				identifiers.add(str(bond_id))
 	for object_model in document.presentation_objects:
@@ -404,10 +408,9 @@ def _template_marker_ids(molecule: object) -> set[str]:
 			getattr(molecule, "t_bond_first", None),
 			getattr(molecule, "t_bond_second", None),
 		):
-		chemistry = getattr(marker, "_chem_atom", None)
-		if chemistry is None:
-			chemistry = getattr(marker, "_chem_bond", None)
-		identifier = getattr(chemistry, "id", None)
+		identifier = getattr(marker, "bond_id", None)
+		if identifier is None:
+			identifier = getattr(marker, "atom_id", None)
 		if identifier:
 			identifiers.add(str(identifier))
 	return identifiers
@@ -636,7 +639,7 @@ def _merge_marks(
 		) -> None:
 	"""Regenerate supported marks from the model layer by atom wrapper identity."""
 	marks = document.marks
-	source = mol_model.cdml_source_xml
+	source = mol_model.compatibility_source_xml
 	source_atoms_by_id: dict[str, dom.Element] = {}
 	if source is not None:
 		source_atoms = _direct_children(_import_raw(result, source), "atom")

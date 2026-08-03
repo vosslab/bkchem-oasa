@@ -191,6 +191,75 @@ def normalize_bond_angles_in_document(
 
 
 #============================================
+def normalize_rings_in_document(
+		document: object, molecule_ids: tuple[str, ...], target_spacing_pt: float,
+		) -> None:
+	"""Regularize one simple ring per selected molecule without losing CDML.
+
+	All target graphs complete bounded-topology validation before the detached
+	document receives any coordinate patch.  Ring-free targets intentionally
+	remain semantic no-ops.
+	"""
+	targets = _selected_molecules(document, molecule_ids, allow_foreign_children=True)
+	for _molecule, _points_by_atom_id, oasa_molecule in targets:
+		oasa.repair_ops.validate_single_ring_normalization_topology(oasa_molecule)
+	for _molecule, points_by_atom_id, oasa_molecule in targets:
+		oasa.repair_ops.normalize_single_ring(oasa_molecule, target_spacing_pt)
+		if any(
+				getattr(atom, "id", None) not in points_by_atom_id
+				or not math.isfinite(atom.x) or not math.isfinite(atom.y)
+				for atom in oasa_molecule.atoms
+			):
+			raise ValueError("ring normalization produced invalid direct atom coordinates")
+		for atom in oasa_molecule.atoms:
+			point = points_by_atom_id[atom.id]
+			new_x = _point_to_cdml(atom.x)
+			new_y = _point_to_cdml(atom.y)
+			old_x = _point_to_cdml(_coordinate_to_points(point.getAttribute("x"), "x"))
+			old_y = _point_to_cdml(_coordinate_to_points(point.getAttribute("y"), "y"))
+			if old_x != new_x:
+				point.setAttribute("x", new_x)
+			if old_y != new_y:
+				point.setAttribute("y", new_y)
+
+
+#============================================
+def straighten_bonds_in_document(
+		document: object, molecule_ids: tuple[str, ...], target_spacing_pt: float,
+		) -> None:
+	"""Straighten selected terminal bonds while preserving complete CDML content.
+
+	``target_spacing_pt`` is the common geometry-repair request envelope.  This
+	kind preserves every nondegenerate terminal bond length and therefore does
+	not use it.  All direct-root target validation and detached graph repair
+	finish before any direct CDML point receives an x/y patch.
+	"""
+	# Keep the public request envelope uniform while documenting this unused value.
+	del target_spacing_pt
+	targets = _selected_molecules(document, molecule_ids, allow_foreign_children=True)
+	for _molecule, _points_by_atom_id, oasa_molecule in targets:
+		oasa.repair_ops.straighten_bonds(oasa_molecule)
+	if any(
+			getattr(atom, "id", None) not in points_by_atom_id
+			or not math.isfinite(atom.x) or not math.isfinite(atom.y)
+			for _molecule, points_by_atom_id, oasa_molecule in targets
+			for atom in oasa_molecule.atoms
+		):
+		raise ValueError("straighten bonds produced invalid direct atom coordinates")
+	for _molecule, points_by_atom_id, oasa_molecule in targets:
+		for atom in oasa_molecule.atoms:
+			point = points_by_atom_id[atom.id]
+			new_x = _point_to_cdml(atom.x)
+			new_y = _point_to_cdml(atom.y)
+			old_x = _point_to_cdml(_coordinate_to_points(point.getAttribute("x"), "x"))
+			old_y = _point_to_cdml(_coordinate_to_points(point.getAttribute("y"), "y"))
+			if old_x != new_x:
+				point.setAttribute("x", new_x)
+			if old_y != new_y:
+				point.setAttribute("y", new_y)
+
+
+#============================================
 def clean_geometry_in_document(
 		document: object, molecule_ids: tuple[str, ...], target_bond_length_pt: float,
 		) -> None:

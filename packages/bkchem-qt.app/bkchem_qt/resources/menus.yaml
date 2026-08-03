@@ -13,6 +13,7 @@ menus:
       - action: file.save_as
       - action: file.recovery_export
       - action: file.save_as_template
+      - action: file.refresh_user_templates
       - action: file.load
       - action: file.load_same_tab
       - cascade: recent_files
@@ -52,6 +53,7 @@ menus:
       - action: insert.haworth_pyranose
       - action: insert.haworth_furanose
       - action: insert.verified_sucrose_haworth
+      - action: insert.direct_glycosidic_haworth
 
   - name: align
     label_key: "Align"
@@ -81,6 +83,7 @@ menus:
       - action: object.horizontal_mirror
       - separator: true
       - action: object.configure
+      - action: object.edit_rich_text
 
   - name: view
     label_key: "View"
@@ -138,10 +141,7 @@ menus:
     help_key: "Settings that affect how BKChem works"
     side: "left"
     items:
-      - action: options.standard
-      - action: options.language
       - action: options.logging
-      - action: options.inchi_path
       - separator: true
       - action: options.theme
       - separator: true

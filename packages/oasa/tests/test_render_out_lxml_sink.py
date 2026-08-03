@@ -49,7 +49,7 @@ def _all_operation_forms() -> object:
 		render_ops.CircleOp((4.0, 5.0), 1.5, "#fff", stroke="#123456", z=1),
 		render_ops.PathOp(
 			(("M", (0.0, 0.0)), ("L", (2.0, 2.0)),
-			 ("ARC", (2.0, 2.0, 1.0, 0.0, math.pi)), ("Z", None)),
+				("ARC", (2.0, 2.0, 1.0, 0.0, math.pi)), ("Z", None)),
 			fill="none",
 			stroke="#000",
 			z=0,

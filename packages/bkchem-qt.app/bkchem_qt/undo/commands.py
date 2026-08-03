@@ -7,6 +7,7 @@ import PySide6.QtWidgets
 # local repo modules
 import bkchem_qt.canvas.items.atom_item
 import bkchem_qt.canvas.items.bond_item
+import bkchem_qt.canvas.graphics_retirement
 import bkchem_qt.models.atom_model
 import bkchem_qt.models.bond_model
 import bkchem_qt.models.document
@@ -83,11 +84,9 @@ class AddFragmentCommand(PySide6.QtGui.QUndoCommand):
 	def _apply_ids(self, after: bool) -> None:
 		"""Apply the captured ID plan without changing graph topology."""
 		for model, before, after_value in self._atom_id_changes:
-			chemistry = model._chem_atom
-			chemistry.id = after_value if after else before
+			model.atom_id = after_value if after else before
 		for model, before, after_value in self._bond_id_changes:
-			chemistry = model._chem_bond
-			chemistry.id = after_value if after else before
+			model.bond_id = after_value if after else before
 
 
 #============================================
@@ -154,19 +153,35 @@ class AddMoleculeCommand(PySide6.QtGui.QUndoCommand):
 	#============================================
 	def redo(self) -> None:
 		"""Add the molecule model and all of its graphics items."""
+		if not all(
+				bkchem_qt.canvas.graphics_retirement.can_add_item_to_captured_scene(
+					self._scene, item,
+				) for item in self._graphics_items
+				):
+			return
 		self._document.add_molecule(
 			self._molecule_model,
 			mark_dirty=False,
 			index=self._stack_index,
 		)
 		for item in self._graphics_items:
-			self._scene.addItem(item)
+			bkchem_qt.canvas.graphics_retirement.add_item_to_captured_scene(
+				self._scene, item,
+			)
 
 	#============================================
 	def undo(self) -> None:
 		"""Remove all graphics items and the molecule model."""
+		if not all(
+				bkchem_qt.canvas.graphics_retirement.item_belongs_to_scene(
+					self._scene, item,
+				) for item in self._graphics_items
+				):
+			return
 		for item in reversed(self._graphics_items):
-			self._scene.removeItem(item)
+			bkchem_qt.canvas.graphics_retirement.remove_item_from_captured_scene(
+				self._scene, item,
+			)
 		self._document.remove_molecule(self._molecule_model, mark_dirty=False)
 
 	#============================================
@@ -198,23 +213,41 @@ class RemoveMoleculeCommand(PySide6.QtGui.QUndoCommand):
 	#============================================
 	def redo(self) -> None:
 		"""Detach molecule graphics and remove the model from its document."""
+		if not self._document.is_current_projection_scene(self._scene):
+			return
+		if not all(
+				bkchem_qt.canvas.graphics_retirement.item_belongs_to_scene(
+					self._scene, item,
+				) for item in self._graphics_items
+				):
+			return
 		for item in reversed(self._graphics_items):
-			if item.scene() is self._scene:
-				self._scene.removeItem(item)
+			bkchem_qt.canvas.graphics_retirement.remove_item_from_captured_scene(
+				self._scene, item,
+			)
 		self._document.remove_molecule(self._molecule_model, mark_dirty=False)
 		self._document._synchronize_scene_object_stack()
 
 	#============================================
 	def undo(self) -> None:
 		"""Restore molecule ownership, graphics, and its original stack slot."""
+		if not self._document.is_current_projection_scene(self._scene):
+			return
+		if not all(
+				bkchem_qt.canvas.graphics_retirement.can_add_item_to_captured_scene(
+					self._scene, item,
+				) for item in self._graphics_items
+				):
+			return
 		self._document.insert_molecule(
 			self._molecule_model,
 			index=self._stack_index,
 			mark_dirty=False,
 		)
 		for item in self._graphics_items:
-			if item.scene() is not self._scene:
-				self._scene.addItem(item)
+			bkchem_qt.canvas.graphics_retirement.add_item_to_captured_scene(
+				self._scene, item,
+			)
 		self._document._synchronize_scene_object_stack()
 
 	#============================================
@@ -246,17 +279,31 @@ class AddPresentationObjectCommand(PySide6.QtGui.QUndoCommand):
 	#============================================
 	def redo(self) -> None:
 		"""Add the persistent model and its scene projection."""
+		if not self._document.is_current_projection_scene(self._scene):
+			return
+		if not bkchem_qt.canvas.graphics_retirement.can_add_item_to_captured_scene(
+				self._scene, self._graphics_item,
+				):
+			return
 		self._document.add_presentation_object(
 			self._object_model, mark_dirty=False,
 		)
-		if self._graphics_item.scene() is not self._scene:
-			self._scene.addItem(self._graphics_item)
+		bkchem_qt.canvas.graphics_retirement.add_item_to_captured_scene(
+			self._scene, self._graphics_item,
+		)
 
 	#============================================
 	def undo(self) -> None:
 		"""Remove the scene projection and its persistent model."""
-		if self._graphics_item.scene() is self._scene:
-			self._scene.removeItem(self._graphics_item)
+		if not self._document.is_current_projection_scene(self._scene):
+			return
+		if not bkchem_qt.canvas.graphics_retirement.item_belongs_to_scene(
+				self._scene, self._graphics_item,
+				):
+			return
+		bkchem_qt.canvas.graphics_retirement.remove_item_from_captured_scene(
+			self._scene, self._graphics_item,
+		)
 		self._document.remove_presentation_object(
 			self._object_model, mark_dirty=False,
 		)
@@ -299,8 +346,15 @@ class RemovePresentationObjectCommand(PySide6.QtGui.QUndoCommand):
 	#============================================
 	def redo(self) -> None:
 		"""Detach the projection and remove the persistent object."""
-		if self._graphics_item.scene() is self._scene:
-			self._scene.removeItem(self._graphics_item)
+		if not self._document.is_current_projection_scene(self._scene):
+			return
+		if not bkchem_qt.canvas.graphics_retirement.item_belongs_to_scene(
+				self._scene, self._graphics_item,
+				):
+			return
+		bkchem_qt.canvas.graphics_retirement.remove_item_from_captured_scene(
+			self._scene, self._graphics_item,
+		)
 		self._document.remove_presentation_object(
 			self._object_model, mark_dirty=False,
 		)
@@ -309,13 +363,20 @@ class RemovePresentationObjectCommand(PySide6.QtGui.QUndoCommand):
 	#============================================
 	def undo(self) -> None:
 		"""Restore the same model and projection at their original position."""
+		if not self._document.is_current_projection_scene(self._scene):
+			return
+		if not bkchem_qt.canvas.graphics_retirement.can_add_item_to_captured_scene(
+				self._scene, self._graphics_item,
+				):
+			return
 		self._document.insert_presentation_object(
 			self._object_model,
 			index=self._stack_index,
 			mark_dirty=False,
 		)
-		if self._graphics_item.scene() is not self._scene:
-			self._scene.addItem(self._graphics_item)
+		bkchem_qt.canvas.graphics_retirement.add_item_to_captured_scene(
+			self._scene, self._graphics_item,
+		)
 		self._document._synchronize_scene_object_stack()
 
 	#============================================
@@ -546,16 +607,29 @@ class AddAtomMarkCommand(PySide6.QtGui.QUndoCommand):
 	#============================================
 	def redo(self) -> None:
 		"""Attach the mark model and projection to its atom."""
+		scene = bkchem_qt.canvas.graphics_retirement.native_scene_for_item(
+			self._parent_atom_item,
+		)
+		if not bkchem_qt.canvas.graphics_retirement.set_item_parent_in_captured_scene(
+				self._mark_item, self._parent_atom_item, scene,
+				):
+			return
 		self._document.add_mark(self._mark_model, mark_dirty=False)
-		self._mark_item.setParentItem(self._parent_atom_item)
 
 	#============================================
 	def undo(self) -> None:
 		"""Detach the mark projection and remove its persistent model."""
-		scene = self._mark_item.scene()
-		self._mark_item.setParentItem(None)
+		scene = bkchem_qt.canvas.graphics_retirement.native_scene_for_item(
+			self._mark_item,
+		)
+		if not bkchem_qt.canvas.graphics_retirement.set_item_parent_in_captured_scene(
+				self._mark_item, None, scene,
+				):
+			return
 		if scene is not None:
-			scene.removeItem(self._mark_item)
+			bkchem_qt.canvas.graphics_retirement.remove_item_from_captured_scene(
+				scene, self._mark_item,
+			)
 		self._document.remove_mark(self._mark_model, mark_dirty=False)
 
 	#============================================
@@ -587,17 +661,30 @@ class RemoveAtomMarkCommand(PySide6.QtGui.QUndoCommand):
 	#============================================
 	def redo(self) -> None:
 		"""Detach the mark projection and remove its persistent model."""
-		scene = self._mark_item.scene()
-		self._mark_item.setParentItem(None)
+		scene = bkchem_qt.canvas.graphics_retirement.native_scene_for_item(
+			self._mark_item,
+		)
+		if not bkchem_qt.canvas.graphics_retirement.set_item_parent_in_captured_scene(
+				self._mark_item, None, scene,
+				):
+			return
 		if scene is not None:
-			scene.removeItem(self._mark_item)
+			bkchem_qt.canvas.graphics_retirement.remove_item_from_captured_scene(
+				scene, self._mark_item,
+			)
 		self._document.remove_mark(self._mark_model, mark_dirty=False)
 
 	#============================================
 	def undo(self) -> None:
 		"""Restore the mark model and attach its projection to the atom."""
+		scene = bkchem_qt.canvas.graphics_retirement.native_scene_for_item(
+			self._parent_atom_item,
+		)
+		if not bkchem_qt.canvas.graphics_retirement.set_item_parent_in_captured_scene(
+				self._mark_item, self._parent_atom_item, scene,
+				):
+			return
 		self._document.add_mark(self._mark_model, mark_dirty=False)
-		self._mark_item.setParentItem(self._parent_atom_item)
 
 	#============================================
 	def graphics_items(self) -> list:
@@ -647,14 +734,23 @@ class AddAtomCommand(PySide6.QtGui.QUndoCommand):
 	#============================================
 	def redo(self) -> None:
 		"""Add the atom to the molecule model and scene."""
+		if not bkchem_qt.canvas.graphics_retirement.can_add_item_to_captured_scene(
+				self._scene, self._atom_item,
+				):
+			return
 		self._molecule_model.add_atom(self._atom_model)
 		self._molecule_model.restore_fragment_snapshot(self._fragments_before)
-		self._scene.addItem(self._atom_item)
+		bkchem_qt.canvas.graphics_retirement.add_item_to_captured_scene(
+			self._scene, self._atom_item,
+		)
 
 	#============================================
 	def undo(self) -> None:
 		"""Remove the atom from the molecule model and scene."""
-		self._scene.removeItem(self._atom_item)
+		if not bkchem_qt.canvas.graphics_retirement.remove_item_from_captured_scene(
+				self._scene, self._atom_item,
+				):
+			return
 		self._molecule_model.remove_atom(self._atom_model)
 
 	#============================================
@@ -719,27 +815,49 @@ class RemoveAtomCommand(PySide6.QtGui.QUndoCommand):
 	#============================================
 	def redo(self) -> None:
 		"""Remove connected bonds first, then the atom."""
+		items = [self._atom_item, *(item for _model, item in self._connected_bonds)]
+		if not all(
+				bkchem_qt.canvas.graphics_retirement.item_belongs_to_scene(
+					self._scene, item,
+				) for item in items
+				):
+			return
 		# remove connected bonds from scene and model
 		for bond_model, bond_item in self._connected_bonds:
-			self._scene.removeItem(bond_item)
+			bkchem_qt.canvas.graphics_retirement.remove_item_from_captured_scene(
+				self._scene, bond_item,
+			)
 			self._molecule_model.remove_bond(bond_model)
 		# remove the atom
-		self._scene.removeItem(self._atom_item)
+		bkchem_qt.canvas.graphics_retirement.remove_item_from_captured_scene(
+			self._scene, self._atom_item,
+		)
 		self._molecule_model.remove_atom(self._atom_model)
 
 	#============================================
 	def undo(self) -> None:
 		"""Restore the atom and its connected bonds."""
+		items = [self._atom_item, *(item for _model, item in self._connected_bonds)]
+		if not all(
+				bkchem_qt.canvas.graphics_retirement.can_add_item_to_captured_scene(
+					self._scene, item,
+				) for item in items
+				):
+			return
 		# restore the atom
 		self._molecule_model.add_atom(self._atom_model)
-		self._scene.addItem(self._atom_item)
+		bkchem_qt.canvas.graphics_retirement.add_item_to_captured_scene(
+			self._scene, self._atom_item,
+		)
 		# restore connected bonds
 		for (bond_model, bond_item), (atom1, atom2) in zip(
 				self._connected_bonds, self._bond_endpoints, strict=True,
 		):
 			if atom1 is not None and atom2 is not None:
 				self._molecule_model.add_bond(atom1, atom2, bond_model)
-			self._scene.addItem(bond_item)
+			bkchem_qt.canvas.graphics_retirement.add_item_to_captured_scene(
+				self._scene, bond_item,
+			)
 		self._molecule_model.restore_fragment_snapshot(self._fragments_before)
 
 	#============================================
@@ -805,16 +923,25 @@ class AddBondCommand(PySide6.QtGui.QUndoCommand):
 		if self._first_redo:
 			self._first_redo = False
 			return
+		if not bkchem_qt.canvas.graphics_retirement.can_add_item_to_captured_scene(
+				self._scene, self._bond_item,
+				):
+			return
 		self._molecule_model.add_bond(
 			self._atom1, self._atom2, self._bond_model,
 		)
 		self._molecule_model.restore_fragment_snapshot(self._fragments_before)
-		self._scene.addItem(self._bond_item)
+		bkchem_qt.canvas.graphics_retirement.add_item_to_captured_scene(
+			self._scene, self._bond_item,
+		)
 
 	#============================================
 	def undo(self) -> None:
 		"""Remove the bond from the molecule model and scene."""
-		self._scene.removeItem(self._bond_item)
+		if not bkchem_qt.canvas.graphics_retirement.remove_item_from_captured_scene(
+				self._scene, self._bond_item,
+				):
+			return
 		self._molecule_model.remove_bond(self._bond_model)
 
 	#============================================
@@ -868,18 +995,27 @@ class RemoveBondCommand(PySide6.QtGui.QUndoCommand):
 	#============================================
 	def redo(self) -> None:
 		"""Remove the bond from the molecule model and scene."""
-		self._scene.removeItem(self._bond_item)
+		if not bkchem_qt.canvas.graphics_retirement.remove_item_from_captured_scene(
+				self._scene, self._bond_item,
+				):
+			return
 		self._molecule_model.remove_bond(self._bond_model)
 
 	#============================================
 	def undo(self) -> None:
 		"""Restore the bond in the molecule model and scene."""
+		if not bkchem_qt.canvas.graphics_retirement.can_add_item_to_captured_scene(
+				self._scene, self._bond_item,
+				):
+			return
 		if self._atom1 is not None and self._atom2 is not None:
 			self._molecule_model.add_bond(
 				self._atom1, self._atom2, self._bond_model,
 			)
 		self._molecule_model.restore_fragment_snapshot(self._fragments_before)
-		self._scene.addItem(self._bond_item)
+		bkchem_qt.canvas.graphics_retirement.add_item_to_captured_scene(
+			self._scene, self._bond_item,
+		)
 
 	#============================================
 	def graphics_items(self) -> list:

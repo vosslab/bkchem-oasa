@@ -238,6 +238,133 @@ def _order_ring_atoms(ring_set: set, mol: object) -> list:
 
 
 #============================================
+def _durable_ring_atom_id(atom: object) -> str:
+	"""Return one validated durable atom identity for deterministic ring repair."""
+	identifier = getattr(atom, "id", None)
+	if not isinstance(identifier, str) or not identifier:
+		raise ValueError("ring normalization requires durable atom IDs")
+	return identifier
+
+
+#============================================
+def _single_ring_walk(mol: object) -> list:
+	"""Return one deterministic walk around exactly one simple ring.
+
+	The lexically smallest durable ID is the start.  Its lexically smallest
+	ring neighbor fixes the positive walk direction, and every later step follows
+	the only ring edge which does not return to the prior atom.
+	"""
+	cycles = mol.get_smallest_independent_cycles()
+	if not cycles:
+		return []
+	if len(cycles) != 1:
+		raise ValueError("ring normalization requires exactly one independent cycle")
+	ring_atoms = set(cycles[0])
+	if len(ring_atoms) < 3:
+		raise ValueError("ring normalization requires a simple cycle with at least three atoms")
+	identifiers = [_durable_ring_atom_id(atom) for atom in ring_atoms]
+	if len(set(identifiers)) != len(identifiers):
+		raise ValueError("ring normalization requires unique durable atom IDs")
+	for atom in ring_atoms:
+		ring_neighbors = [neighbor for neighbor in atom.neighbors if neighbor in ring_atoms]
+		if len(ring_neighbors) != 2:
+			raise ValueError("ring normalization requires a simple unbranched ring")
+	start = min(ring_atoms, key=_durable_ring_atom_id)
+	first = min(
+		(neighbor for neighbor in start.neighbors if neighbor in ring_atoms),
+		key=_durable_ring_atom_id,
+	)
+	walk = [start, first]
+	while len(walk) < len(ring_atoms):
+		current = walk[-1]
+		previous = walk[-2]
+		next_atoms = [
+			neighbor for neighbor in current.neighbors
+			if neighbor in ring_atoms and neighbor is not previous
+		]
+		if len(next_atoms) != 1 or next_atoms[0] in walk:
+			raise ValueError("ring normalization could not form one unambiguous ring walk")
+		walk.append(next_atoms[0])
+	if start not in walk[-1].neighbors:
+		raise ValueError("ring normalization could not close the ring walk")
+	return walk
+
+
+#============================================
+def _ring_substituent_components(mol: object, ring_atoms: set) -> list[tuple[list, object]]:
+	"""Return every acyclic component with exactly one owning ring anchor."""
+	components = []
+	visited = set()
+	for start in mol.atoms:
+		if start in ring_atoms or start in visited:
+			continue
+		component = []
+		anchors = set()
+		queue = collections.deque([start])
+		visited.add(start)
+		while queue:
+			atom = queue.popleft()
+			component.append(atom)
+			for neighbor in atom.neighbors:
+				if neighbor in ring_atoms:
+					anchors.add(neighbor)
+				elif neighbor not in visited:
+					visited.add(neighbor)
+					queue.append(neighbor)
+		if len(anchors) != 1:
+			raise ValueError(
+				"ring normalization requires every non-ring component to have one ring anchor",
+			)
+		components.append((component, next(iter(anchors))))
+	return components
+
+
+#============================================
+def validate_single_ring_normalization_topology(mol: object) -> None:
+	"""Validate the bounded one-simple-ring topology before coordinate mutation."""
+	ring_walk = _single_ring_walk(mol)
+	if ring_walk:
+		_ring_substituent_components(mol, set(ring_walk))
+
+
+#============================================
+def normalize_single_ring(mol: object, bond_length: float) -> None:
+	"""Place one simple durable-ID ordered ring without changing its centroid.
+
+	A ring-free molecule is a semantic no-op.  Eligible non-ring connected
+	components retain their internal geometry and translate by their unique ring
+	anchor's displacement.
+	"""
+	ring_walk = _single_ring_walk(mol)
+	if not ring_walk:
+		return
+	if not math.isfinite(bond_length) or bond_length <= 0:
+		raise ValueError("ring normalization requires a finite positive bond length")
+	ring_atoms = set(ring_walk)
+	components = _ring_substituent_components(mol, ring_atoms)
+	ring_count = len(ring_walk)
+	center_x = sum(atom.x for atom in ring_walk) / ring_count
+	center_y = sum(atom.y for atom in ring_walk) / ring_count
+	first = ring_walk[0]
+	start_dx = first.x - center_x
+	start_dy = first.y - center_y
+	start_angle = math.atan2(start_dy, start_dx) if math.hypot(start_dx, start_dy) > 1e-9 else 0.0
+	radius = bond_length / (2.0 * math.sin(math.pi / ring_count))
+	old_positions = {atom: (atom.x, atom.y) for atom in ring_walk}
+	for index, atom in enumerate(ring_walk):
+		angle = start_angle + (2.0 * math.pi * index / ring_count)
+		atom.x = center_x + radius * math.cos(angle)
+		atom.y = center_y + radius * math.sin(angle)
+	for component, anchor in components:
+		old_x, old_y = old_positions[anchor]
+		shift_x = anchor.x - old_x
+		shift_y = anchor.y - old_y
+		for atom in component:
+			atom.x += shift_x
+			atom.y += shift_y
+
+
+#============================================
 def _normalize_lengths_bfs(mol: object, bond_length: float) -> None:
 	"""BFS-based bond length normalization for a single molecule.
 
@@ -429,32 +556,107 @@ def _normalize_rings_for_mol(mol: object, bond_length: float) -> None:
 
 #============================================
 def _straighten_bonds_for_mol(mol: object) -> None:
-	"""Straighten terminal bonds in a single molecule.
+	"""Straighten only terminal bond endpoints in a single molecule.
 
-	For each degree-1 atom, snap the bond to its neighbor to the
-	nearest 30-degree multiple.
+	Each nondegenerate terminal vector keeps its existing length and snaps to a
+	canonical 30-degree direction.  Exact half slots advance toward increasing
+	angle.  A disconnected two-atom component is special because both atoms are
+	terminals: a durable lexical atom-ID order fixes one endpoint so source order
+	does not decide which coordinate changes.
 
 	Args:
 		mol: An OASA-compatible molecule object.
 	"""
+	source_indices = {atom: index for index, atom in enumerate(mol.atoms)}
+	components = _connected_atom_components(mol)
+	for component in components:
+		if len(component) == 2 and all(atom.degree == 1 for atom in component):
+			first, second = sorted(
+				component,
+				key=lambda atom: _straighten_atom_order_key(atom, component, source_indices),
+			)
+			_straighten_terminal_atom(second)
+			continue
+		for atom in component:
+			if atom.degree == 1:
+				_straighten_terminal_atom(atom)
+
+
+#============================================
+def _connected_atom_components(mol: object) -> list[list]:
+	"""Return molecule components while retaining authored atom traversal order."""
+	components = []
+	visited = set()
 	for atom in mol.atoms:
-		if atom.degree != 1:
+		if atom in visited:
 			continue
-		# this is a terminal atom
-		neighbor = atom.neighbors[0]
-		dx = atom.x - neighbor.x
-		dy = atom.y - neighbor.y
-		dist = math.sqrt(dx * dx + dy * dy)
-		if dist < 1e-6:
-			continue
-		# current angle from neighbor to atom
-		angle = math.atan2(dy, dx)
-		# snap to nearest 30-degree (pi/6) multiple
-		step = math.pi / 6.0
-		snapped = round(angle / step) * step
-		# reposition the terminal atom
-		atom.x = neighbor.x + dist * math.cos(snapped)
-		atom.y = neighbor.y + dist * math.sin(snapped)
+		component = []
+		queue = collections.deque([atom])
+		visited.add(atom)
+		while queue:
+			current = queue.popleft()
+			component.append(current)
+			for neighbor in current.neighbors:
+				if neighbor not in visited:
+					visited.add(neighbor)
+					queue.append(neighbor)
+		components.append(component)
+	return components
+
+
+#============================================
+def _straighten_atom_order_key(
+		atom: object, component: list, source_indices: dict,
+		) -> tuple[int, str | int]:
+	"""Return durable lexical order, or the authored atom order when unavailable."""
+	identifier = getattr(atom, "id", None)
+	component_ids = [getattr(candidate, "id", None) for candidate in component]
+	if (
+			isinstance(identifier, str)
+			and identifier
+			and all(isinstance(candidate_id, str) and candidate_id for candidate_id in component_ids)
+			and len(set(component_ids)) == len(component_ids)
+			):
+		return (0, identifier)
+	return (1, source_indices[atom])
+
+
+#============================================
+def _straighten_terminal_atom(atom: object) -> None:
+	"""Move one nondegenerate terminal atom to its canonical 30-degree slot."""
+	neighbor = atom.neighbors[0]
+	dx = atom.x - neighbor.x
+	dy = atom.y - neighbor.y
+	distance = math.hypot(dx, dy)
+	if distance < 1e-6:
+		return
+	slot = _canonical_30_degree_slot(math.atan2(dy, dx))
+	snapped = slot * math.pi / 6.0
+	atom.x = neighbor.x + distance * math.cos(snapped)
+	atom.y = neighbor.y + distance * math.sin(snapped)
+
+
+#============================================
+def _canonical_30_degree_slot(angle: float) -> int:
+	"""Return the nearest canonical 30-degree slot with upward exact-half ties.
+
+	The zero-relative absolute tolerance is deliberately one trillionth of a
+	30-degree slot.  It accommodates binary representations of exact
+	trigonometric half slots without making the boundary scale with the slot
+	magnitude.  Inputs farther than that angle-equivalent margin remain on their
+	mathematical side of the boundary.
+	"""
+	step = math.pi / 6.0
+	normalized = angle % (2.0 * math.pi)
+	ratio = normalized / step
+	lower = math.floor(ratio)
+	fraction = ratio - lower
+	# The ratio is dimensionless; 1e-12 is about 5e-13 radians at this step.
+	if math.isclose(fraction, 0.5, rel_tol=0.0, abs_tol=1e-12):
+		return (lower + 1) % 12
+	if fraction < 0.5:
+		return lower % 12
+	return (lower + 1) % 12
 
 
 #============================================
@@ -510,7 +712,7 @@ def normalize_rings(mol: object, bond_length: float) -> None:
 
 #============================================
 def straighten_bonds(mol: object) -> None:
-	"""Snap terminal and chain bond angles to nearest 30-degree direction.
+	"""Snap terminal bond angles to deterministic 30-degree directions.
 
 	For degree-1 atoms (terminals), the bond angle is adjusted to
 	the nearest multiple of 30 degrees.
