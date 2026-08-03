@@ -1,6 +1,6 @@
 codex resume 019fa52f-ad2d-7062-816c-f714be4a2286
 
-• Goal paused Objective: Take a deep look at the two primary components of this monorepo: the OASA chemistry backend and the
+* Goal paused Objective: Take a deep look at the two primary components of this monorepo: the OASA chemistry backend and the
 BKChem frontends. Over the past several months we have made substantial architectural progress, but many improvements remain
 only partially completed or inconsistently integrated. The GUI is being rewritten from Tk to PySide6, and the new bkchem-qt.app
 package already has real document sessions, tabs, modes, undo commands, and CDML round trips, but feature parity with the
