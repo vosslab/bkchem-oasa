@@ -50,13 +50,13 @@ discardable/rebuildable without raw CDML or OASA graph ownership. Copy as SVG,
 chemistry observations and text imports, preferences/logging, Rotate, Bond
 Align, repair, PubChem, detached templates, file import/export, portable
 render batches, direct-glycosidic Haworth preparation, installed-wheel
-round-trip, clean-install, and direct frozen-bundle gates have focused
+round-trip, clean-install, direct frozen-lifecycle, and native-launch gates have
 implementation evidence. The action-parity audit records each delivered
 capability and its explicit unsupported disposition.
 
 M6 is therefore release closure rather than another document-ownership
-migration. Its completed source, installed, composition-boundary, direct
-frozen-process, and six-perspective audit gates are recorded in the rollout
+migration. Its completed source, installed, composition-boundary, dual-route
+frozen-app, and six-perspective audit gates are recorded in the rollout
 checklist. The managed README screenshot is retained in version control, and
 the reproducible capabilities gallery expands that evidence with persistent
 drawing objects and a verified sucrose Haworth projection. Finder registration
@@ -714,7 +714,7 @@ Qt may not:
 - Entry criteria: M5 integration gate passes.
 - Status: source authority retirement, Qt-only packaging/documentation, clean
   dependency-isolated installation, installed round-trip, composition boundary,
-  direct frozen-process evidence, managed screenshots, and six-perspective
+  dual-route frozen-app evidence, managed screenshots, and six-perspective
   audit are complete. A post-closure modularity audit also moved projection
   delivery values into a dependency-light session port with public ownership
   checks and moved molecule wrapper construction out of File Actions into a
@@ -1122,7 +1122,7 @@ evidence only.
 | Cropped SVG export | B -- snapshot-render adapter | Captured CDML paper crop metadata controls detached SVG bounds. |
 | Copy as SVG | B -- snapshot-render adapter | Captured durable selection IDs resolve against the same backend snapshot. |
 | Export SMILES | A -- chemistry-backend engineer; WP-F4/WP-F8 | Selected durable ID query represents the exact backend molecule without mutation. |
-| Export InChI | C -- release integrator; no migration slice | Focused menu/action absence check after UI/release removal. |
+| Export InChI | A -- chemistry backend and Qt identifier action; completed | Exact-revision SMILES observation yields OASA InChI/InChIKey without mutation. |
 
 **2026-07-30 repair progress.** Normalize Bond Lengths, Normalize Bond Angles,
 Clean Geometry, and Snap to Hex Grid now use the revision-bound
@@ -1213,14 +1213,13 @@ Child actionability additionally requires one unique durable direct-root
 molecule ID; duplicate or otherwise ambiguous atom endpoints remain display-only
 and never hydrate a visible bond by choosing one duplicate.
 
-**2026-07-30 Export InChI removal.** The Qt-only release removes the visible
-`chemistry.gen_inchi` action, its menu item, and the projection-derived
-`format_bridge.export_inchi` adapter. The removed route converted a disposable
-Qt `MoleculeModel` back into OASA chemistry, so it could not satisfy backend
-document authority. InChI import remains on its existing backend-authoritative
-text-insertion route. Focused action/menu coverage keeps the supported
-backend-observed SMILES export while proving the Qt menu exposes no InChI
-export route.
+**2026-08-11 Export InChI completion.** The projection-derived adapter remains
+retired. Qt now exposes `chemistry.gen_inchi` for one exact-revision durable
+molecule selection, obtains canonical SMILES only from OASA's document query,
+and asks OASA's RDKit codec for standard InChI and InChIKey scalar facts.
+Clipboard and dialog presentation remain frontend-owned while the observation
+leaves revision, history, dirty state, projection, and selection unchanged.
+Bundled RDKit means no external executable or path preference is required.
 
 **2026-07-30 molecule display names.** Set molecule name is now a revision-bound
 backend operation for one direct-root durable molecule ID and exact string
@@ -1898,23 +1897,24 @@ gates succeed.
   transitional OASA atom remains the explicit next WP-G1a
   chemistry-observation prerequisite.
 
-- Independently accepted: the Qt-free exact-revision backend atom-chemistry
-  observation derives valency, implicit-hydrogen, atomic number, and
-  OASA-derived oxidation facts from the complete direct molecule graph using
-  durable IDs plus explicit source-position association. Synchronized
-  Chemistry Check and Oxidation Number consume that observation once per
-  selected authoritative snapshot, leaving history, dirty state, and the
-  projection untouched. Plain backend element and charge display facts keep
-  user-facing results independent of stale projection chemistry. AtomModel
-  retains its transitional OASA atom; this observation is the prerequisite
-  for, not completion of, that later removal. BondModel remains scalar-only.
+- Independently accepted: Qt-free exact-revision backend chemistry
+  observations derive atom valency, implicit-hydrogen, atomic number,
+  OASA-derived oxidation, molecular formula, average/monoisotopic mass, and
+  elemental composition from complete direct molecule graphs using durable
+  IDs. Chemistry Check and Oxidation Number consume atom facts; Chemistry Info
+  consumes one ordered batch with per-molecule and combined facts. All leave
+  history, dirty state, selection, and projection untouched. Plain backend
+  display facts keep user-facing results independent of stale projection
+  chemistry. AtomModel's later removal remains separate; BondModel is
+  scalar-only.
 
 - Independently accepted WP-G1a slice: AtomModel now stores
   only scalar identity, chemistry, coordinates, depiction presence, numbering,
-  and backend binding facts. OASA-to-Qt conversion copies scalar facts and the
-  named bridge creates fresh OASA atoms and complete temporary graphs for
-  standalone export, painting, and compatibility chemistry. Synchronized
-  Chemistry Check and Oxidation remain exact-revision backend observations.
+  and backend binding facts. Numbering derives its next transient candidate
+  from exact-revision molecule-core facts rather than Qt parsing snapshot CDML.
+  The named bridge alone creates temporary OASA graphs for standalone export,
+  painting, and compatibility chemistry; synchronized Chemistry Check and Oxidation
+  remain exact-revision backend observations.
   The later aggregate acceptance records the remaining renderer/import
   composition evidence for this work package.
 
@@ -2182,9 +2182,9 @@ independent acceptance.
 - [x] Pass the arrow commit/reproject/undo vertical slice.
 - [x] Accept M4-0 generic request/outcome, history, mode lifetime, exact-tab
   non-mode capability, and Arrow integration; no new editor is accepted by it.
-- [x] Complete the selected M4 presentation, paper, and stacking routes; keep
-  excluded presentation and envelope records preservation-only or explicitly
-  unsupported.
+- [x] Complete selected M4 presentation, paper, and stacking routes.
+- [x] Route drawing defaults, selected/all object overrides, and clean personal
+  defaults through OASA observation, atomic history, and canonical reprojection.
   - [x] Accept the first bounded WP-E1 hypothesis: normal plain Text creation
     commits complete CDML, receives a backend-issued ID, and canonically
     reprojects.
@@ -2234,14 +2234,14 @@ independent acceptance.
   documentation checks pass with the accepted backend/Qt boundary.
 - [x] Complete the M6 installed gate: clean dependency-isolated installation
   and installed authoritative round-trip pass.
-- [x] Complete the M6 delivery/boundary gate: Qt-only package inspection and
-  direct frozen-bundle lifecycle smoke pass.
+- [x] Complete the M6 delivery/boundary gate: Qt-only package inspection plus
+  direct lifecycle and native LaunchServices smoke passes.
 - [x] Complete the fresh six-perspective M6 audit and accept its material
   plan, test, style, documentation, legacy, and comment repairs.
 - [x] Add the managed README screenshot PNG to version control so its retained
   Markdown reference is a release-valid asset.
-- [x] Keep the frozen-process gate tied to the app-owned bounded lifecycle
-  receipt; treat Finder registration as separate distribution integration.
+- [x] Require independent app-owned receipts for direct lifecycle and native
+  launch routes; keep signing, notarization, and DMG delivery out of scope.
 
 ## Documentation close-out requirements
 

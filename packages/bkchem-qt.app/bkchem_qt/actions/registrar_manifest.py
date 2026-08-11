@@ -6,6 +6,7 @@
 ACTION_REGISTRAR_MODULES = (
 	"bkchem_qt.actions.align_actions",
 	"bkchem_qt.actions.chemistry_actions",
+	"bkchem_qt.actions.identifier_actions",
 	"bkchem_qt.actions.edit_actions",
 	"bkchem_qt.actions.file_actions",
 	"bkchem_qt.actions.haworth_actions",

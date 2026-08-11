@@ -18,6 +18,7 @@
 """RDKit-backed file format codecs for Molfile V2000/V3000, SDF, SMILES, SMARTS, and InChI."""
 
 # Standard Library
+import dataclasses
 import io
 import math
 
@@ -30,6 +31,17 @@ import rdkit.Geometry
 # local repo modules
 from oasa import coords_generator
 from oasa import rdkit_bridge
+
+
+#============================================
+@dataclasses.dataclass(frozen=True)
+class MoleculeIdentifierFacts:
+	"""Stable standard identifiers derived by the backend chemistry layer."""
+
+	smiles: str
+	inchi: str
+	inchikey: str
+	warnings: tuple[str, ...]
 
 
 #============================================
@@ -704,3 +716,25 @@ def generate_inchi_and_inchikey(mol: object, fixed_hs: bool = True) -> tuple:
 	key = rdkit.Chem.inchi.InchiToInchiKey(inchi_str)
 	warnings = []
 	return inchi_str, key, warnings
+
+
+#============================================
+def identifiers_from_smiles(smiles: str) -> MoleculeIdentifierFacts:
+	"""Return standard InChI identifiers for one canonical SMILES value.
+
+	This is a pure backend chemistry operation. It accepts no frontend model or
+	persistent document object and uses RDKit's bundled standard InChI support,
+	so callers do not need the legacy external executable preference.
+	"""
+	if type(smiles) is not str or not smiles.strip():
+		raise ValueError("Molecule identifier generation requires nonempty SMILES.")
+	rmol = rdkit.Chem.MolFromSmiles(smiles, sanitize=True)
+	if rmol is None:
+		raise ValueError("RDKit could not parse SMILES for identifier generation.")
+	inchi = rdkit.Chem.inchi.MolToInchi(rmol)
+	if not inchi:
+		raise ValueError("RDKit could not generate InChI for this molecule.")
+	inchikey = rdkit.Chem.inchi.InchiToInchiKey(inchi)
+	if not inchikey:
+		raise ValueError("RDKit could not generate InChIKey for this molecule.")
+	return MoleculeIdentifierFacts(smiles, inchi, inchikey, ())

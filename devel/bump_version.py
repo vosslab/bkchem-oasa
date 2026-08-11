@@ -22,6 +22,12 @@ ACTION_BUMPS = {
 ADVANCED_HELP = argparse.SUPPRESS
 
 
+# Public compatibility surface retained while implementation lives in focused modules.
+parse_versions = version_files.parse_versions
+update_pyproject = version_lib.update_pyproject
+update_release_metadata = version_files.update_release_metadata
+
+
 def parse_args() -> argparse.Namespace:
 	"""Parse command line arguments.
 

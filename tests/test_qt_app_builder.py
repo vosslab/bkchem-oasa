@@ -822,222 +822,6 @@ def test_icon_encoder_uses_qt_png_chunk_route_after_self_test_fails(
 
 
 #============================================
-def test_smoke_command_runs_the_bundled_executable_with_bounded_arguments(
-		tmp_path: pathlib.Path,
-		) -> None:
-	"""A macOS smoke invokes the bundled executable with timer and receipt args."""
-	smoke_root = tmp_path / "smoke"
-	command = build_qt_app.make_smoke_args(tmp_path / "BKChem.app", 2.0, smoke_root)
-
-	assert command == (
-		str(tmp_path / "BKChem.app" / "Contents" / "MacOS" / "BKChem"),
-		"--smoke-exit", "2.0", "--smoke-receipt", str(smoke_root / "completion.json"),
-	)
-
-
-#============================================
-def test_smoke_receipt_validator_requires_the_fixed_success_schema(tmp_path: pathlib.Path) -> None:
-	"""Only an exact zero-exit app receipt proves controlled lifecycle completion."""
-	receipt_path = tmp_path / "completion.json"
-	receipt_path.write_text('{"schema":"bkchem-smoke-1","exit_code":0}', encoding="utf-8")
-
-	build_qt_app._validate_smoke_receipt(receipt_path)
-
-
-#============================================
-@pytest.mark.parametrize("payload", ('{}', '{"schema":"bkchem-smoke-1","exit_code":1}'))
-def test_smoke_receipt_validator_rejects_non_success_payloads(
-		tmp_path: pathlib.Path, payload: str,
-		) -> None:
-	"""A malformed or nonzero receipt cannot turn an incomplete smoke into success."""
-	receipt_path = tmp_path / "completion.json"
-	receipt_path.write_text(payload, encoding="utf-8")
-
-	with pytest.raises(RuntimeError, match="Invalid smoke receipt"):
-		build_qt_app._validate_smoke_receipt(receipt_path)
-
-
-#============================================
-def test_macos_smoke_rejects_missing_receipt_after_process_success(tmp_path: pathlib.Path) -> None:
-	"""A zero process status alone is not application lifecycle completion."""
-	def successful_process(
-			_command: tuple[str, ...], _cwd: pathlib.Path, _timeout: float,
-			) -> subprocess.CompletedProcess[str]:
-		"""Return success without creating an app-owned lifecycle receipt."""
-		return subprocess.CompletedProcess(_command, 0, "", "")
-
-	with pytest.raises(RuntimeError, match="Missing or invalid smoke receipt"):
-		build_qt_app.run_macos_smoke(
-			tmp_path / "BKChem.app", 2.0, tmp_path / "smoke", tmp_path, tmp_path,
-			successful_process,
-		)
-
-
-#============================================
-def test_macos_smoke_reports_process_timeout(tmp_path: pathlib.Path) -> None:
-	"""A bounded frozen-app process reports its timeout."""
-	def timed_out_process(
-			command: tuple[str, ...], _cwd: pathlib.Path, timeout: float,
-			) -> subprocess.CompletedProcess[str]:
-		"""Raise the controlled timeout used by the dedicated smoke runner."""
-		raise subprocess.TimeoutExpired(command, timeout)
-
-	with pytest.raises(RuntimeError, match="macOS smoke timed out"):
-		build_qt_app.run_macos_smoke(
-			tmp_path / "BKChem.app", 2.0, tmp_path / "smoke", tmp_path, tmp_path,
-			timed_out_process,
-		)
-
-
-#============================================
-def test_macos_smoke_rejects_process_failure_and_retains_output(tmp_path: pathlib.Path) -> None:
-	"""A failed frozen process is terminal and keeps its diagnostic output."""
-	smoke_root = tmp_path / "smoke"
-
-	def failed_process(
-			command: tuple[str, ...], _cwd: pathlib.Path, _timeout: float,
-			) -> subprocess.CompletedProcess[str]:
-		"""Return the controlled nonzero frozen-app result."""
-		return subprocess.CompletedProcess(command, 1, "app stdout", "app stderr")
-
-	with pytest.raises(RuntimeError, match="macOS smoke failed") as error:
-		build_qt_app.run_macos_smoke(
-			tmp_path / "BKChem.app", 2.0, smoke_root, tmp_path, tmp_path,
-			failed_process,
-		)
-
-	assert all(text in str(error.value) for text in ("app stdout", "app stderr"))
-	assert (smoke_root / "stdout.log").read_text(encoding="utf-8") == "app stdout"
-	assert (smoke_root / "stderr.log").read_text(encoding="utf-8") == "app stderr"
-
-
-#============================================
-def test_macos_smoke_retains_successful_frozen_lifecycle_output(tmp_path: pathlib.Path) -> None:
-	"""Direct execution retains its output and app-owned lifecycle receipt."""
-	run_root = tmp_path / "run"
-	run_root.mkdir()
-	smoke_root = run_root / "smoke"
-
-	def process_runner(
-			command: tuple[str, ...], _cwd: pathlib.Path, _timeout: float,
-			) -> subprocess.CompletedProcess[str]:
-		"""Return frozen-app evidence after publishing its receipt."""
-		(smoke_root / "completion.json").write_text(
-			'{"schema":"bkchem-smoke-1","exit_code":0}', encoding="utf-8",
-		)
-		return subprocess.CompletedProcess(command, 0, "app output", "")
-
-	build_qt_app.run_macos_smoke(
-		tmp_path / "BKChem.app", 2.0, smoke_root, run_root, tmp_path, process_runner,
-	)
-
-	assert (smoke_root / "stdout.log").read_text(encoding="utf-8") == "app output"
-
-
-#============================================
-def test_macos_smoke_rejects_fatal_diagnostic_after_valid_receipt(tmp_path: pathlib.Path) -> None:
-	"""A late fatal app diagnostic remains terminal even after controlled completion."""
-	def process_runner(
-			_command: tuple[str, ...], _cwd: pathlib.Path, _timeout: float,
-			) -> subprocess.CompletedProcess[str]:
-		"""Create controlled completion evidence plus a retained fatal diagnostic."""
-		smoke_root = tmp_path / "smoke"
-		(smoke_root / "completion.json").write_text(
-			'{"schema":"bkchem-smoke-1","exit_code":0}', encoding="utf-8",
-		)
-		return subprocess.CompletedProcess(_command, 0, "", "Abort trap: 6")
-
-	with pytest.raises(RuntimeError, match="fatal application diagnostic"):
-		build_qt_app.run_macos_smoke(
-			tmp_path / "BKChem.app", 2.0, tmp_path / "smoke", tmp_path, tmp_path,
-			process_runner,
-		)
-
-
-#============================================
-def test_macos_smoke_rejects_traversal_before_creating_or_launching(
-		tmp_path: pathlib.Path,
-		) -> None:
-	"""A relative traversal cannot place smoke artifacts outside its retained run."""
-	run_root = tmp_path / "run"
-	run_root.mkdir()
-	process_calls: list[tuple[str, ...]] = []
-
-	def process_runner(
-			command: tuple[str, ...], _cwd: pathlib.Path, _timeout: float,
-			) -> subprocess.CompletedProcess[str]:
-		"""Record an unexpected frozen-process request."""
-		process_calls.append(command)
-		return subprocess.CompletedProcess(command, 0, "", "")
-
-	with pytest.raises(build_qt_app.SmokePathError, match="escapes selected build run root"):
-		build_qt_app.run_macos_smoke(
-			tmp_path / "BKChem.app", 2.0, run_root / "smoke" / ".." / ".." / "outside",
-			run_root, tmp_path, process_runner,
-		)
-
-	assert process_calls == []
-	assert not (tmp_path / "outside").exists()
-
-
-#============================================
-def test_macos_smoke_rejects_escaping_symlink_before_creating_or_launching(
-		tmp_path: pathlib.Path,
-		) -> None:
-	"""A smoke directory symlink must resolve below the selected retained run."""
-	run_root = tmp_path / "run"
-	run_root.mkdir()
-	external_root = tmp_path / "external"
-	external_root.mkdir()
-	(run_root / "escape").symlink_to(external_root, target_is_directory=True)
-	process_calls: list[tuple[str, ...]] = []
-
-	def process_runner(
-			command: tuple[str, ...], _cwd: pathlib.Path, _timeout: float,
-			) -> subprocess.CompletedProcess[str]:
-		"""Record an unexpected frozen-process request."""
-		process_calls.append(command)
-		return subprocess.CompletedProcess(command, 0, "", "")
-
-	with pytest.raises(build_qt_app.SmokePathError, match="escapes selected build run root"):
-		build_qt_app.run_macos_smoke(
-			tmp_path / "BKChem.app", 2.0, run_root / "escape" / "smoke",
-			run_root, tmp_path, process_runner,
-		)
-
-	assert process_calls == []
-	assert not (external_root / "smoke").exists()
-
-
-#============================================
-def test_macos_smoke_uses_contained_resolved_paths_for_its_process(
-		tmp_path: pathlib.Path,
-		) -> None:
-	"""A valid nested smoke root creates and launches only its contained artifact paths."""
-	run_root = tmp_path / "run"
-	run_root.mkdir()
-	smoke_root = run_root / "checks" / "smoke"
-	commands: list[tuple[str, ...]] = []
-
-	def process_runner(
-			command: tuple[str, ...], _cwd: pathlib.Path, _timeout: float,
-			) -> subprocess.CompletedProcess[str]:
-		"""Publish the controlled app observations through the supplied fixed paths."""
-		commands.append(command)
-		(smoke_root / "completion.json").write_text(
-			'{"schema":"bkchem-smoke-1","exit_code":0}', encoding="utf-8",
-		)
-		(smoke_root / "stderr.log").write_text("", encoding="utf-8")
-		return subprocess.CompletedProcess(command, 0, "", "")
-
-	build_qt_app.run_macos_smoke(
-		tmp_path / "BKChem.app", 2.0, smoke_root, run_root, tmp_path, process_runner,
-	)
-
-	assert commands == [build_qt_app.make_smoke_args(tmp_path / "BKChem.app", 2.0, smoke_root)]
-
-
-#============================================
 def test_dry_run_prints_commands_without_creating_requested_output(
 		monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path, capsys: pytest.CaptureFixture,
 		) -> None:
@@ -1077,7 +861,9 @@ def test_dry_run_prints_commands_without_creating_requested_output(
 	assert "Frontend wheel command:" in output_text
 	assert "Frontend metadata stage:" in output_text
 	assert "PyInstaller config parent:" in output_text
-	assert "Planned PyInstaller command:" in output_text and "Future smoke command:" in output_text
+	assert "Planned PyInstaller command:" in output_text
+	assert "Future direct smoke command:" in output_text
+	assert "Future native LaunchServices smoke command:" in output_text
 	assert not output.exists()
 
 
@@ -1478,21 +1264,18 @@ def test_post_build_smoke_starts_only_after_successful_inspection(
 		"""Raise the post-build failure used to prove smoke gating."""
 		raise RuntimeError("inspection failed")
 
-	def record_smoke(
-			command: tuple[str, ...], _cwd: pathlib.Path, _timeout: float,
-			) -> subprocess.CompletedProcess[str]:
-		"""Record a smoke command if the builder reaches the smoke phase."""
-		smoke_calls.append(command)
-		return subprocess.CompletedProcess(command, 0, "", "")
+	def record_smoke(*_arguments: object) -> None:
+		"""Record an unexpected smoke suite request."""
+		smoke_calls.append(("unexpected",))
 
 	monkeypatch.setattr(build_qt_app, "inspect_built_app", reject_inspection)
 	monkeypatch.setattr(build_qt_app, "finalize_built_app_signature", lambda *_arguments: None)
+	monkeypatch.setattr(build_qt_app.macos_app_smoke, "run_macos_smoke_suite", record_smoke)
 	app_path = _make_synthetic_bundle(tmp_path, plan, "26.07")
 
 	with pytest.raises(RuntimeError, match="inspection failed"):
 		build_qt_app.run_post_build_checks(
-			plan, app_path, _release("26.07"), "26.7.1", 2.0, tmp_path / "smoke", tmp_path,
-			tmp_path, record_smoke,
+			plan, app_path, _release("26.07"), "26.7.1", 2.0, tmp_path, tmp_path,
 		)
 
 	assert smoke_calls == []

@@ -1,5 +1,9 @@
 # isinstance audit for OASA types
 
+> Status (2026-08-11): resolved historical inventory. Production BKChem and Qt
+> contain no `isinstance` check against an OASA graph, atom, bond, or molecule
+> class. The tables below preserve the pre-composition migration evidence.
+
 Audit of every `isinstance(x, oasa.*)` check in the BKChem codebase.
 These checks must be replaced before the composition refactor removes
 OASA inheritance from BKChem classes.

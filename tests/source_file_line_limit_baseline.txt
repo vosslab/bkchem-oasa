@@ -1,0 +1,25 @@
+# Existing decomposition debt captured when the universal 1000-line gate arrived.
+# Counts are hard ceilings: files may shrink, but any growth fails the gate.
+1781 devel/build_qt_app.py
+1323 devel/submit_to_pypi.py
+1350 docs/CDML_FORMAT_SPEC.md
+6181 docs/CHANGELOG.md
+1054 docs/RELEASE_HISTORY.md
+2301 docs/active_plans/active/cdml_backend_authority_migration_2026-07-27.md
+1319 packages/bkchem-app/bkchem/dialogs.py
+1019 packages/bkchem-app/bkchem/molecule_lib.py
+1510 packages/bkchem-qt.app/bkchem_qt/actions/chemistry_actions.py
+1037 packages/bkchem-qt.app/bkchem_qt/canvas/document_projection.py
+1460 packages/bkchem-qt.app/bkchem_qt/io/cdml_document_io.py
+3839 packages/bkchem-qt.app/bkchem_qt/main_window.py
+1328 packages/bkchem-qt.app/bkchem_qt/models/document.py
+4922 packages/bkchem-qt.app/bkchem_qt/models/document_session.py
+1139 packages/bkchem-qt.app/bkchem_qt/modes/draw_mode.py
+1494 packages/bkchem-qt.app/bkchem_qt/modes/edit_mode.py
+1195 packages/bkchem-qt.app/bkchem_qt/undo/commands.py
+3626 packages/bkchem-qt.app/tests/test_qt_backend_session_adapter.py
+8234 packages/oasa/oasa/cdml_document.py
+2074 packages/oasa/oasa/haworth/renderer.py
+1105 packages/oasa/tests/test_cdml_geometry_repair.py
+1498 tests/test_qt_app_builder.py
+1291 tools/selftest_sheet.py

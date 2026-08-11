@@ -12,7 +12,7 @@ import pytest
 import bkchem_qt.models.document_session
 import bkchem_qt.models.projection_lifecycle
 import bkchem_qt.actions.context_menu
-import bkchem_qt.actions.file_actions
+import bkchem_qt.canvas.molecule_projection
 import bkchem_qt.io.clipboard_manager
 import bkchem_qt.models.atom_model
 import bkchem_qt.models.bond_model
@@ -70,11 +70,15 @@ def _molecule() -> bkchem_qt.models.molecule_model.MoleculeModel:
 
 #============================================
 def _add_molecule(main_window: object) -> bkchem_qt.models.molecule_model.MoleculeModel:
-	"""Add a molecule to the active test document without creating undo history."""
+	"""Create the deliberately local molecule required by one compatibility test."""
 	molecule = _molecule()
-	bkchem_qt.actions.file_actions._add_molecules_to_scene(
-		main_window, [molecule], undoable=False,
+	projections = bkchem_qt.canvas.molecule_projection.build_molecule_projections(
+		[molecule],
 	)
+	for molecule_model, graphics_items in projections:
+		main_window.document.add_molecule(molecule_model, mark_dirty=False)
+		for item in graphics_items:
+			main_window.scene.addItem(item)
 	return molecule
 
 

@@ -25,6 +25,17 @@ chemical structure and available coordinates, not a complete BKChem
 presentation document. Imported work therefore opens as a new, unsaved
 session and must be saved as CDML.
 
+## Molecular identifiers
+
+- Import SMILES or InChI text as editable molecular structure
+- Export one selected molecule as canonical SMILES
+- Export one selected molecule as standard InChI and InChIKey
+
+Identifier export observes the exact authoritative CDML revision and copies the
+result to the clipboard. OASA performs the chemistry with bundled RDKit support;
+no external InChI executable or path preference is required. Identifier export
+does not mutate the document, dirty state, undo history, or current selection.
+
 ## Scene exports
 
 - Scalable Vector Graphics: `.svg`
@@ -40,7 +51,7 @@ not editable BKChem documents and do not replace CDML saving.
 
 ## Backend codecs
 
-OASA also contains codecs for formats such as InChI, CD-SVG, and chemistry-only
+OASA also contains codecs for formats such as CD-SVG and chemistry-only
 exports. The CML backend retains a legacy `.xml` alias, but `bkchem-qt` does
 not advertise generic `.xml` because that extension is ambiguous. Backend
 availability does not imply that the PySide6 File menu supports the same

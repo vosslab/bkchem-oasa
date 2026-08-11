@@ -234,6 +234,25 @@ def test_inchi_and_key_generation() -> None:
 
 
 #============================================
+def test_standard_identifiers_are_derived_from_canonical_smiles() -> None:
+	"""One scalar backend input yields stable standard identifier facts."""
+	facts = rdkit_formats.identifiers_from_smiles("CC")
+
+	assert facts == rdkit_formats.MoleculeIdentifierFacts(
+		"CC", "InChI=1S/C2H6/c1-2/h1-2H3",
+		"OTMSDBZUPAUEDD-UHFFFAOYSA-N", (),
+	)
+
+
+#============================================
+@pytest.mark.parametrize("smiles", ("", "not-a-smiles"))
+def test_standard_identifier_generation_rejects_invalid_smiles(smiles: str) -> None:
+	"""Invalid scalar chemistry never becomes a partial identifier result."""
+	with pytest.raises(ValueError):
+		rdkit_formats.identifiers_from_smiles(smiles)
+
+
+#============================================
 def test_inchi_empty_raises() -> None:
 	with pytest.raises(ValueError):
 		rdkit_formats.inchi_text_to_mol("")

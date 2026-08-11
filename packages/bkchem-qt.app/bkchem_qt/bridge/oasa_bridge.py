@@ -13,6 +13,8 @@ import oasa.codec_registry
 import oasa.cdml_bond_io
 import oasa.cdml_document
 import oasa.cdml_ftext
+import oasa.cdml_molecule_summary
+import oasa.codecs.rdkit_formats
 import oasa.render_lib.bond_ops
 import oasa.render_lib.data_types
 import oasa.render_lib.molecule_ops
@@ -34,14 +36,6 @@ _LEGACY_DEFAULT_LINE_COLOR = "#000000"
 
 
 @dataclasses.dataclass(frozen=True)
-class MoleculeSummaryFacts:
-	"""Plain formula and molecular-weight facts for a frontend information view."""
-
-	formula: str
-	molecular_weight: float
-
-
-@dataclasses.dataclass(frozen=True)
 class BackendQueryFailure:
 	"""Typed display-safe failure returned by a read-only backend observation."""
 
@@ -57,6 +51,18 @@ class BackendQueryResult:
 	failure: BackendQueryFailure | None
 
 
+@dataclasses.dataclass(frozen=True)
+class MoleculeIdentifierObservation:
+	"""Exact-revision standard identifiers for one authoritative molecule."""
+
+	revision: int
+	molecule_id: str
+	smiles: str
+	inchi: str
+	inchikey: str
+	warnings: tuple[str, ...]
+
+
 #============================================
 def atom_creation_facts(symbol: str) -> tuple[str, int]:
 	"""Return the canonical element and its default valency as plain values."""
@@ -67,35 +73,6 @@ def atom_creation_facts(symbol: str) -> tuple[str, int]:
 	except KeyError as error:
 		raise ValueError(f"unsupported element symbol: {symbol!r}") from error
 	return symbol, int(valency)
-
-
-#============================================
-def molecule_summary_facts(symbols: tuple[str, ...]) -> MoleculeSummaryFacts:
-	"""Calculate stable formula and mass facts from scalar atom symbols.
-
-	The frontend supplies only its projected element symbols.  OASA retains the
-	periodic-table lookup and returns display data, not mutable element records.
-	Unknown compatibility symbols retain the long-standing zero-mass behavior.
-	"""
-	counts: dict[str, int] = {}
-	for symbol in symbols:
-		if not isinstance(symbol, str):
-			raise TypeError("Molecule summary symbols must be strings")
-		counts[symbol] = counts.get(symbol, 0) + 1
-	formula_parts = []
-	for symbol in ("C", "H"):
-		count = counts.pop(symbol, 0)
-		if count:
-			formula_parts.append(symbol if count == 1 else "%s%s" % (symbol, count))
-	for symbol in sorted(counts):
-		count = counts[symbol]
-		formula_parts.append(symbol if count == 1 else "%s%s" % (symbol, count))
-	weight = 0.0
-	for symbol in symbols:
-		entry = oasa.periodic_table.periodic_table.get(symbol)
-		if entry is not None:
-			weight += float(entry.get("weight", 0.0))
-	return MoleculeSummaryFacts("".join(formula_parts), weight)
 
 
 #============================================
@@ -119,6 +96,21 @@ def observe_atom_chemistry_facts(
 
 
 #============================================
+def query_molecule_summary(
+		session: object, expected_revision: int, molecule_ids: tuple[str, ...],
+		) -> BackendQueryResult:
+	"""Read one exact-revision molecular-composition batch through a session port."""
+	try:
+		result = session.query_molecule_summary(expected_revision, molecule_ids)
+	except Exception as error:
+		failure = _backend_observation_failure(error, "molecule-summary")
+		if failure is None:
+			raise
+		return BackendQueryResult(None, failure)
+	return BackendQueryResult(result, None)
+
+
+#============================================
 def query_molecule_smiles(
 		session: object, expected_revision: int, molecule_id: str,
 		) -> BackendQueryResult:
@@ -131,6 +123,28 @@ def query_molecule_smiles(
 			raise
 		return BackendQueryResult(None, failure)
 	return BackendQueryResult(result, None)
+
+
+#============================================
+def query_molecule_identifiers(
+		session: object, expected_revision: int, molecule_id: str,
+		) -> BackendQueryResult:
+	"""Derive standard identifiers from one authoritative CDML observation."""
+	response = query_molecule_smiles(session, expected_revision, molecule_id)
+	if response.failure is not None or response.value is None:
+		return response
+	result = response.value
+	try:
+		facts = oasa.codecs.rdkit_formats.identifiers_from_smiles(result.smiles)
+	except (RuntimeError, TypeError, ValueError) as error:
+		return BackendQueryResult(
+			None, BackendQueryFailure("unavailable", str(error)),
+		)
+	observation = MoleculeIdentifierObservation(
+		result.revision, result.molecule_id, facts.smiles, facts.inchi,
+		facts.inchikey, facts.warnings,
+	)
+	return BackendQueryResult(observation, None)
 
 
 #============================================
@@ -148,6 +162,10 @@ def _backend_observation_failure(
 		return BackendQueryFailure("validation", str(error))
 	if operation == "molecule-smiles" and isinstance(
 			error, oasa.cdml_document.CDMLMoleculeSmilesUnavailableError,
+		):
+		return BackendQueryFailure("unavailable", str(error))
+	if operation == "molecule-summary" and isinstance(
+			error, oasa.cdml_molecule_summary.CDMLMoleculeSummaryError,
 		):
 		return BackendQueryFailure("unavailable", str(error))
 	if isinstance(error, (oasa.cdml_document.CDMLDocumentError, ValueError)):

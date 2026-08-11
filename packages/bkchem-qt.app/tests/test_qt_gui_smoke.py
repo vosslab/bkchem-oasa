@@ -95,8 +95,31 @@ def test_qt_gui_launch_smoke(qapp: object, main_window: object) -> None:
 	# show the window and process events so Qt renders
 	main_window.show()
 	qapp.processEvents()
+	visible_scene = main_window.view.mapToScene(
+		main_window.view.viewport().rect()
+	).boundingRect()
+	assert visible_scene.contains(main_window.scene.paper_rect), (
+		"the blank document page should be fully visible on first launch"
+	)
 	# take screenshot for visual review
 	_save_screenshot(main_window, "launch")
+
+
+#============================================
+def test_qt_new_document_starts_with_page_in_view(
+		qapp: object, main_window: object,
+		) -> None:
+	"""A first-time user should see the drawable page without finding Page zoom."""
+	main_window.resize(1280, 800)
+	main_window.show()
+	assert main_window.on_new()
+	qapp.processEvents()
+
+	view = main_window.view
+	visible_scene = view.mapToScene(view.viewport().rect()).boundingRect()
+	assert visible_scene.contains(main_window.scene.paper_rect), (
+		"the blank document page should be fully visible when its tab is first shown"
+	)
 
 
 #============================================

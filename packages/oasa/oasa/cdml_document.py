@@ -19,6 +19,8 @@ import types
 import oasa.bond_semantics
 import oasa.cdml_bond_io
 import oasa.cdml_ftext
+import oasa.cdml_molecule_summary
+import oasa.cdml_standard
 import oasa.cdml_writer
 import oasa.cdml_xml
 import oasa.coords_generator
@@ -62,23 +64,6 @@ _EMPTY_CDML = (
 	'<cdml xmlns="http://www.freesoftware.fsf.org/bkchem/cdml" '
 	'version="26.07"></cdml>'
 )
-_CDML_PAPER_SIZES_MM = {
-	"A0": (841.0, 1189.0), "A1": (594.0, 841.0), "A2": (420.0, 594.0),
-	"A3": (297.0, 420.0), "A4": (210.0, 297.0), "A5": (148.0, 210.0),
-	"A6": (105.0, 148.0), "A7": (74.0, 105.0), "A8": (52.0, 74.0),
-	"A9": (37.0, 52.0), "A10": (26.0, 37.0),
-	"B0": (1000.0, 1414.0), "B1": (707.0, 1000.0), "B2": (500.0, 707.0),
-	"B3": (353.0, 500.0), "B4": (250.0, 353.0), "B5": (176.0, 250.0),
-	"B6": (125.0, 176.0), "B7": (88.0, 125.0), "B8": (62.0, 88.0),
-	"B9": (44.0, 62.0), "B10": (31.0, 44.0),
-	"C0": (917.0, 1297.0), "C1": (648.0, 917.0), "C2": (458.0, 648.0),
-	"C3": (324.0, 458.0), "C4": (229.0, 324.0), "C5": (162.0, 229.0),
-	"C6": (114.0, 162.0), "C7": (81.0, 114.0), "C8": (57.0, 81.0),
-	"C9": (40.0, 57.0), "C10": (28.0, 40.0),
-	"Ledger": (279.4, 431.8), "Legal": (215.9, 355.6),
-	"Letter": (215.9, 279.4), "Tabloid": (279.4, 431.8),
-	"custom": None,
-}
 _CDML_PAPER_PROPERTY_FIELDS = frozenset({
 	"type", "orientation", "crop_svg", "crop_margin", "use_real_minus",
 	"replace_minus", "dimensions",
@@ -95,20 +80,7 @@ _ATOM_MARK_SCALAR_DELTAS = {
 }
 
 
-#============================================
-def paper_catalog() -> dict[str, list[float] | None]:
-	"""Return a fresh plain-data catalog of the authored CDML paper names.
-
-	Standard pairs are portrait ``[width_mm, height_mm]`` values.  ``custom``
-	requires dimensions supplied by a document operation and therefore has no
-	standard pair.  A fresh result prevents a frontend from changing OASA's
-	catalog through a retained Python reference.
-	"""
-	return {
-		name: None if dimensions is None else list(dimensions)
-		for name, dimensions in _CDML_PAPER_SIZES_MM.items()
-	}
-
+paper_catalog = oasa.cdml_standard.paper_catalog
 
 class CDMLDocumentError(ValueError):
 	"""Base error for a complete CDML document operation."""
@@ -761,6 +733,7 @@ class CDMLAtomCoreObservationRecord:
 	line_color: str | None
 	number: int | None
 	show_number: bool | None
+	explicit_fields: tuple[str, ...]
 	disposition: str
 	renderable: bool
 	addressable: bool
@@ -1936,6 +1909,7 @@ def _molecule_core_observation(
 	records = []
 	issues = []
 	root = document._dom_document.documentElement
+	standard = oasa.cdml_standard.observe(root, revision)
 	identifier_counts = collections.Counter(
 		element.getAttribute("id") for element in _descendant_elements(root)
 		if _is_id_definition(element) and element.getAttribute("id")
@@ -2033,17 +2007,29 @@ def _molecule_core_observation(
 				and identifier_counts[identifier] == 1
 			)
 			address_reason = None if addressable else "atom has no unique durable ID"
+			explicit_fields = tuple(name for name, present in (
+				("show", bool(show_value)), ("show_hydrogens", bool(hydrogen_value)),
+				("font_family", font is not None and font.hasAttribute("family")),
+				("font_size", font is not None and font.hasAttribute("size")),
+				("line_color", font is not None and font.hasAttribute("color")),
+			) if present)
+			effective_hydrogens = {"on": True, "off": False}.get(hydrogen_value)
+			effective_family = font.getAttribute("family") or None if font else None
+			effective_color = font.getAttribute("color") or None if font else None
+			effective_hydrogens, effective_family, font_size, effective_color = (
+				oasa.cdml_standard.resolve_atom_values(
+					standard, effective_hydrogens, effective_family, font_size, effective_color,
+				)
+			)
 			atoms.append(CDMLAtomCoreObservationRecord(
 				identifier, source_position, symbol, x, y, z, integer("charge"),
 				integer("valency"), integer("isotope"), integer("multiplicity"),
 				integer("free_sites"), integer("explicit_hydrogens"),
 				{"yes": True, "no": False}.get(show_value),
-				{"on": True, "off": False}.get(hydrogen_value),
-				font.getAttribute("family") or None if font else None,
-				font_size,
-				font.getAttribute("color") or None if font else None,
+				effective_hydrogens, effective_family, font_size, effective_color,
 				integer("number"), {"yes": True, "true": True, "1": True, "on": True,
 					"no": False, "false": False, "0": False, "off": False}.get(atom.getAttribute("show_number")),
+				explicit_fields,
 				"actionable" if addressable else "display-only", renderable, addressable,
 				reason or molecule_reason or address_reason,
 			))
@@ -2112,15 +2098,24 @@ def _molecule_core_observation(
 				and identifier_counts[identifier] == 1
 			)
 			address_reason = None if addressable else "bond has no unique durable ID"
+			line_width = finite_attr("line_width")
+			bond_width = finite_attr("bond_width")
+			wedge_width = finite_attr("wedge_width")
+			double_ratio = finite_attr("double_ratio")
+			line_color = bond.getAttribute("color") or None
+			line_width, bond_width, wedge_width, double_ratio, line_color = (
+				oasa.cdml_standard.resolve_bond_values(
+					standard, line_width, bond_width, wedge_width, double_ratio, line_color,
+				)
+			)
 			bonds.append(CDMLBondCoreObservationRecord(
 				identifier, source_position, start, end, bond_type, order or None,
-				finite_attr("line_width"), finite_attr("bond_width"), finite_attr("wedge_width"),
-				finite_attr("double_ratio"),
+				line_width, bond_width, wedge_width, double_ratio,
 				True if bond.getAttribute("center") == "yes" else (False if bond.hasAttribute("center") else None),
 				int(bond.getAttribute("auto_sign")) if bond.getAttribute("auto_sign").lstrip("+-").isdigit() else None,
 				bool(int(bond.getAttribute("equithick"))) if bond.getAttribute("equithick") in ("0", "1") else None,
 				bool(int(bond.getAttribute("simple_double"))) if bond.getAttribute("simple_double") in ("0", "1") else None,
-				bond.getAttribute("color") or None, bond.getAttribute("wavy_style") or None,
+				line_color, bond.getAttribute("wavy_style") or None,
 				bond.getAttribute("haworth_position") or None, explicit,
 				"actionable" if addressable else "display-only", renderable, addressable,
 				reason or molecule_reason or address_reason,
@@ -2369,6 +2364,7 @@ def _molecule_render_observation(document: "CDMLDocument", revision: int) -> CDM
 	batches = []
 	issues = []
 	root = document._dom_document.documentElement
+	standard = oasa.cdml_standard.observe(root, revision)
 	for core_record in core.records:
 		if not core_record.renderable:
 			continue
@@ -2398,7 +2394,7 @@ def _molecule_render_observation(document: "CDMLDocument", revision: int) -> CDM
 							atom, transform_xy=None, show_hydrogens_on_hetero=bool(atom_record.show_hydrogens),
 							color_atoms=True, atom_colors={atom.symbol: color},
 							font_name=atom_record.font_family or "Arial", font_size=atom_record.font_size or 12.0,
-							background_color="__backend_document_background__",
+							background_color=standard.area_color or "__backend_document_background__",
 						)
 						if marks is not None:
 							atom.properties_["marks"] = marks
@@ -2432,21 +2428,21 @@ def _molecule_render_observation(document: "CDMLDocument", revision: int) -> CDM
 					None, bond_record.line_width if bond_record.line_width is not None else 2.0,
 					bond_record.bond_width if bond_record.bond_width is not None else 6.0,
 					bond_record.wedge_width if bond_record.wedge_width is not None else 9.2,
-					1.2, shown_vertices=shown,
+					1.2, bond_second_line_shortening=(
+						oasa.cdml_standard.bond_second_line_shortening(bond_record.double_ratio)
+					),
+					shown_vertices=shown,
 					bond_coords={bond: (start, end)}, bond_coords_provider={bond: (start, end)}.get,
 					label_targets=labels, attach_targets=attaches,
 					attach_constraints=oasa.render_lib.data_types.make_attach_constraints(),
 				)
-				previous_color = bond.properties_.get("line_color")
-				if bond_record.line_color is None:
-					bond.properties_["line_color"] = "__backend_foreground__"
+				previous = oasa.cdml_standard.install_bond_render_values(
+					bond, bond_record.double_ratio, bond_record.line_color,
+				)
 				try:
 					ops = oasa.render_lib.bond_ops.build_bond_ops(bond, start, end, context)
 				finally:
-					if previous_color is None:
-						bond.properties_.pop("line_color", None)
-					else:
-						bond.properties_["line_color"] = previous_color
+					oasa.cdml_standard.restore_bond_render_values(bond, previous)
 				batches.append(CDMLMoleculeRenderBatch("bond", core_record.source_position, bond_record.identifier,
 					bond_record.source_position, bond_record.addressable, None, (start, end),
 					tuple(_render_primitive(op) for op in ops)))
@@ -3371,17 +3367,7 @@ def _first_direct_core_child(document: "CDMLDocument", local_name: str) -> objec
 #============================================
 def _new_paper_defaults(document: "CDMLDocument") -> tuple[str, str]:
 	"""Read valid direct standard defaults or return the authored fallback."""
-	standard = _first_direct_core_child(document, "standard")
-	if standard is not None:
-		paper_type = standard.getAttribute("paper_type")
-		orientation = standard.getAttribute("paper_orientation")
-		if (
-			paper_type in _CDML_PAPER_SIZES_MM
-			and paper_type != "custom"
-			and orientation in ("portrait", "landscape")
-		):
-			return paper_type, orientation
-	return "A4", "portrait"
+	return oasa.cdml_standard.paper_defaults(document._dom_document.documentElement)
 
 
 #============================================
@@ -5539,7 +5525,7 @@ def _validate_paper_properties_patch(request: object) -> dict[str, object]:
 		changes[name] = value
 	if "type" in changes:
 		paper_type = changes["type"]
-		if type(paper_type) is not str or paper_type not in _CDML_PAPER_SIZES_MM:
+		if type(paper_type) is not str or paper_type not in oasa.cdml_standard.PAPER_SIZES_MM:
 			raise CDMLPaperPropertiesError("paper properties type is unsupported")
 	if "orientation" in changes:
 		orientation = changes["orientation"]
@@ -6360,6 +6346,13 @@ class CDMLDocumentSession:
 			raise CDMLPaperLayoutError("paper layout revision must be an int")
 		self._check_expected_revision(query.expected_revision)
 		return _paper_layout(self._document, self._revision)
+
+	#============================================
+	def drawing_standard(
+			self, query: oasa.cdml_standard.CDMLDrawingStandardQuery,
+			) -> oasa.cdml_standard.CDMLDrawingStandardObservation:
+		"""Observe effective drawing defaults without exposing header XML."""
+		return oasa.cdml_standard.query_session(self, query)
 
 	#============================================
 	def fragment_metadata(
@@ -7246,15 +7239,22 @@ class CDMLDocumentSession:
 		)
 
 	#============================================
+	def patch_drawing_standard(
+			self, request: oasa.cdml_standard.CDMLDrawingStandardRequest,
+			) -> CDMLCommit:
+		"""Apply explicit standard intent through one complete-CDML commit."""
+		return oasa.cdml_standard.patch_session(self, request, CDMLCommit)
+
+	#============================================
+	def molecule_summary(self, query: object) -> object:
+		"""Return exact authoritative chemistry facts without mutation."""
+		return oasa.cdml_molecule_summary.query_session(self, query)
+
+	#============================================
 	def query_molecule_smiles(
 			self, request: CDMLMoleculeSmilesQuery,
 			) -> CDMLMoleculeSmilesResult:
-		"""Return canonical isomeric SMILES for one direct-root molecule.
-
-		The query reads the current authoritative DOM in place. It does not build
-		a candidate, serialize CDML, or affect revision, history, or the saved
-		canonical-content baseline.
-		"""
+		"""Return canonical isomeric SMILES without changing session state."""
 		molecule_id = _validate_molecule_smiles_query(request)
 		self._check_expected_revision(request.expected_revision)
 		molecule = _direct_root_molecule(self._document, molecule_id)

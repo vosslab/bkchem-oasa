@@ -23,7 +23,7 @@ VIOLATIONS_BY_FILE: dict[str, list[str]] = {}
 #============================================
 def multiline_string_lines(path: pathlib.Path) -> set[int]:
 	"""
-	Collect lines that are part of multiline string tokens.
+	Collect lines that are part of multiline string and f-string tokens.
 
 	Args:
 		path: File path.
@@ -32,15 +32,29 @@ def multiline_string_lines(path: pathlib.Path) -> set[int]:
 		set[int]: Line numbers inside multiline strings.
 	"""
 	in_string: set[int] = set()
+	fstring_start_type = getattr(tokenize, "FSTRING_START", None)
+	fstring_end_type = getattr(tokenize, "FSTRING_END", None)
+	fstring_starts: list[int] = []
 	with tokenize.open(path) as handle:
 		tokens = tokenize.generate_tokens(handle.readline)
 		for token in tokens:
-			if token.type != tokenize.STRING:
+			if token.type == tokenize.STRING:
+				start_line = token.start[0]
+				end_line = token.end[0]
+				if end_line > start_line:
+					in_string.update(range(start_line, end_line + 1))
 				continue
-			start_line = token.start[0]
-			end_line = token.end[0]
-			if end_line > start_line:
-				in_string.update(range(start_line, end_line + 1))
+			if fstring_start_type is not None and token.type == fstring_start_type:
+				fstring_starts.append(token.start[0])
+				continue
+			if (
+				fstring_end_type is not None and token.type == fstring_end_type
+				and fstring_starts
+			):
+				start_line = fstring_starts.pop()
+				end_line = token.end[0]
+				if end_line > start_line:
+					in_string.update(range(start_line, end_line + 1))
 	return in_string
 
 
@@ -188,3 +202,19 @@ def test_indentation_style(path: str) -> None:
 	assert rel not in VIOLATIONS_BY_FILE, file_utils.format_violation_assert_message(
 		rel, VIOLATIONS_BY_FILE.get(rel, []), REPORT_NAME
 	)
+
+
+#============================================
+def test_multiline_fstring_contents_are_not_source_indentation(
+		tmp_path: pathlib.Path,
+		) -> None:
+	"""Python 3.12 f-string token interiors must not look like space indentation."""
+	path = tmp_path / "multiline_fstring.py"
+	path.write_text(
+		'def render() -> str:\n\tvalue = f"""\\\n <item>{1}</item>\n"""\n'
+		"\treturn value\n",
+		encoding="utf-8",
+	)
+
+	assert inspect_file(path) == []
+	assert summarize_indentation(path) is None

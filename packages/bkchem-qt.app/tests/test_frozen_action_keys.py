@@ -68,10 +68,12 @@ _KNOWN_KEYS = frozenset({
 	'chemistry.read_inchi',
 	'chemistry.read_peptide',
 	'chemistry.gen_smiles',
+	'chemistry.gen_inchi',
 	'chemistry.set_name',
 	'chemistry.create_fragment',
 	'chemistry.view_fragments',
 	'chemistry.convert_to_linear',
+	'options.standard',
 	'options.logging',
 	'options.theme',
 	'options.preferences',
@@ -209,24 +211,21 @@ def test_known_keys_count() -> None:
 
 
 #============================================
-def test_qt_menu_exposes_smiles_without_inchi_export() -> None:
-	"""The shipped Qt menu exposes SMILES without an InChI export action."""
+def test_qt_menu_exposes_authoritative_identifier_exports() -> None:
+	"""The shipped Qt menu exposes both backend-owned identifier exports."""
 	registry = bkchem_qt.actions.action_registry.register_all_actions(_FakeApp())
 	menu_path = bkchem_qt.resource_paths.get_resource_path("menus.yaml")
 	menu_action_ids = bkchem_qt.actions.menu_builder.required_menu_action_ids(
 		str(menu_path)
 	)
 
-	assert "chemistry.gen_smiles" in registry
-	assert (
-		"chemistry.gen_inchi" not in registry
-		and "chemistry.gen_inchi" not in menu_action_ids
-	)
+	assert {"chemistry.gen_smiles", "chemistry.gen_inchi"}.issubset(registry.all_actions())
+	assert {"chemistry.gen_smiles", "chemistry.gen_inchi"}.issubset(menu_action_ids)
 
 
 #============================================
-def test_format_bridge_exposes_no_projection_derived_inchi_export() -> None:
-	"""The Qt format boundary provides no model-to-InChI export adapter."""
+def test_inchi_export_does_not_use_a_projection_format_adapter() -> None:
+	"""InChI generation remains outside the disposable Qt projection codec."""
 	assert not hasattr(bkchem_qt.io.format_bridge, "export_inchi")
 
 
@@ -236,6 +235,7 @@ def test_registrar_manifest_is_ordered_and_complete() -> None:
 	assert bkchem_qt.actions.registrar_manifest.ACTION_REGISTRAR_MODULES == (
 		"bkchem_qt.actions.align_actions",
 		"bkchem_qt.actions.chemistry_actions",
+		"bkchem_qt.actions.identifier_actions",
 		"bkchem_qt.actions.edit_actions",
 		"bkchem_qt.actions.file_actions",
 		"bkchem_qt.actions.haworth_actions",

@@ -17,28 +17,22 @@ import bkchem_qt.setup.canvas_setup
 import bkchem_qt.setup.mode_setup
 import bkchem_qt.canvas.document_projection
 import bkchem_qt.canvas.graphics_retirement
+import bkchem_qt.config.drawing_standard_preferences as drawing_standard_preferences
 import bkchem_qt.io.cdml_candidate
 import bkchem_qt.io.user_template_catalog
 import bkchem_qt.models.backend_revision_history
 import bkchem_qt.models.document
+import bkchem_qt.models.document_header_operations
 import bkchem_qt.models.projection_lifecycle
 import bkchem_qt.undo.commands
 import bkchem_qt.wavy_geometry
 import oasa.cdml_document
 import oasa.cdml_ftext
+import oasa.cdml_molecule_summary
 import oasa.cdml_render
-import oasa.cdml_writer
-import oasa.safe_xml
+import oasa.cdml_standard
 import oasa.biomolecule_template_placement
 import oasa.template_placement
-
-
-_BLANK_CDML = (
-	'<cdml xmlns="%s" version="%s"></cdml>' % (
-		oasa.cdml_writer.CDML_NAMESPACE,
-		oasa.cdml_writer.DEFAULT_CDML_VERSION,
-	)
-)
 
 _ORPHANED_IMPORT_WORKERS: set[PySide6.QtCore.QThread] = set()
 
@@ -94,26 +88,6 @@ def _freeze_plain_payload(value: object) -> object:
 		frozen = tuple(_freeze_plain_payload(item) for item in value)
 		return frozen
 	raise TypeError("Persistent operation payload must contain immutable plain data")
-
-
-#============================================
-def _direct_core_cdml_children(parent: object, local_name: str) -> tuple[object, ...]:
-	"""Return direct legacy-or-canonical core children with one exact name."""
-	children = []
-	for child in parent.childNodes:
-		if getattr(child, "nodeType", None) != child.ELEMENT_NODE:
-			continue
-		child_name = getattr(child, "localName", None) or getattr(child, "tagName", "")
-		if ":" in child_name:
-			child_name = child_name.rsplit(":", 1)[1]
-		if (
-				child_name == local_name
-				and getattr(child, "namespaceURI", None) in (
-					None, "", oasa.cdml_document.CDML_NAMESPACE_URI,
-				)
-			):
-			children.append(child)
-	return tuple(children)
 
 
 #============================================
@@ -721,12 +695,24 @@ def build_paper_properties_request(
 	"""Build one immutable explicit-field paper-properties patch request."""
 	return PersistentOperationRequest(
 		"paper.properties.set", "Edit Paper Properties",
-		(
-			("expected_revision", expected_revision),
-			("changes", changes),
-		),
+		(("expected_revision", expected_revision), ("changes", changes)),
 	)
 
+#============================================
+def build_drawing_standard_request(
+		expected_revision: int, changes: tuple[tuple[str, object], ...],
+		apply_scope: str = "defaults", root_keys: tuple[tuple[str, str], ...] = (),
+		override_fields: tuple[str, ...] = (),
+		) -> PersistentOperationRequest:
+	"""Build one immutable standard patch plus optional object overrides."""
+	return PersistentOperationRequest(
+		"document.standard.set", "Edit Document Drawing Style",
+		(("expected_revision", expected_revision), ("changes", changes),
+			("apply_scope", apply_scope),
+			("root_ids", tuple(identifier for _kind, identifier in root_keys)),
+			("override_fields", override_fields)),
+		frozenset(root_keys),
+	)
 
 #============================================
 def build_presentation_stack_request(
@@ -1164,6 +1150,7 @@ class DocumentSession(PySide6.QtCore.QObject):
 			"atom.number.set": self._build_atom_number_edit,
 			"molecule.name.set": self._build_molecule_name_edit,
 			"paper.properties.set": self._build_paper_properties_patch,
+			"document.standard.set": self._build_drawing_standard_patch,
 			"presentation.stack.reorder": self._build_presentation_stack_reorder,
 			"top-level.delete": self._build_top_level_delete,
 			"structure.delete": self._build_structure_delete,
@@ -1196,6 +1183,7 @@ class DocumentSession(PySide6.QtCore.QObject):
 			"atom-number-edit": self._commit_atom_number_edit,
 			"molecule-name-edit": self._commit_molecule_name_edit,
 			"paper-properties-patch": self._commit_paper_properties_patch,
+			"drawing-standard-patch": self._commit_drawing_standard_patch,
 			"top-level-delete": self._commit_top_level_delete,
 			"structure-delete": self._commit_structure_delete,
 			"top-level-transform": self._commit_top_level_transform,
@@ -1209,24 +1197,22 @@ class DocumentSession(PySide6.QtCore.QObject):
 		self._mode_manager = None
 		staged_document = None
 		try:
-			bootstrap_backend_projection = True
 			if prepared_native_cdml is None and prepared_imported_cdml is None:
-				self._backend_session = oasa.cdml_document.CDMLDocumentSession.load(
-					_BLANK_CDML,
-				)
+				self._backend_session = drawing_standard_preferences.blank_backend_session(prefs)
+				from bkchem_qt.io import cdml_document_io
+				staged_document = cdml_document_io.hydrate_synchronized_cdml_document(
+					self._backend_session.projection_snapshot())
 			elif prepared_native_cdml is not None:
 				canonical_cdml, staged_document = prepared_native_cdml._peek()
 				self._backend_session = oasa.cdml_document.CDMLDocumentSession.load(
 					canonical_cdml,
 				)
-				bootstrap_backend_projection = True
 				# Keep this document detached until every new session root is viable.
 			else:
 				canonical_cdml, staged_document = prepared_imported_cdml._peek()
 				self._backend_session = oasa.cdml_document.CDMLDocumentSession.load_imported(
 					canonical_cdml,
 				)
-				bootstrap_backend_projection = True
 			self._document = (
 				staged_document
 				if staged_document is not None
@@ -1240,6 +1226,7 @@ class DocumentSession(PySide6.QtCore.QObject):
 			self._scene, self._view = bkchem_qt.setup.canvas_setup.create_canvas(
 				view_parent, theme_manager, prefs, self._document, owner=self,
 			)
+			self._scene.apply_paper_model(self._document.paper)
 			self._backend_history = (
 				bkchem_qt.models.backend_revision_history.BackendRevisionHistory.baseline(
 					"Document", self._backend_session.revision,
@@ -1281,10 +1268,9 @@ class DocumentSession(PySide6.QtCore.QObject):
 			self._document_modified_connected = True
 			self._document.persistent_mutated.connect(self._on_persistent_mutated)
 			self._document_persistent_mutation_connected = True
-			if bootstrap_backend_projection:
-				self._projected_backend_snapshot = self._backend_session.snapshot()
-				self._projected_persistent_generation = self._document.persistent_generation
-				self._backend_projection_synchronized = True
+			self._projected_backend_snapshot = self._backend_session.snapshot()
+			self._projected_persistent_generation = self._document.persistent_generation
+			self._backend_projection_synchronized = True
 			if prepared_native_cdml is not None:
 				prepared_native_cdml._finalize()
 			if prepared_imported_cdml is not None:
@@ -1315,15 +1301,32 @@ class DocumentSession(PySide6.QtCore.QObject):
 		return self._backend_session.paper_properties_context()
 
 	#============================================
+	def drawing_standard(self) -> oasa.cdml_standard.CDMLDrawingStandardObservation:
+		"""Return drawing defaults from this synchronized backend revision."""
+		self._require_live_persistent_operation()
+		if not self.can_write_authoritative_snapshot:
+			raise BackendProjectionOutOfSyncError("Cannot edit drawing style from a stale Qt projection")
+		return self._backend_session.drawing_standard(
+			oasa.cdml_standard.CDMLDrawingStandardQuery(self.backend_snapshot.revision),
+		)
+
+	#============================================
+	def query_molecule_summary(
+			self, expected_revision: int, molecule_ids: tuple[str, ...],
+			) -> object:
+		"""Observe selected authoritative molecules without changing the session."""
+		self._require_live_persistent_operation()
+		if not self.can_write_authoritative_snapshot:
+			raise BackendProjectionOutOfSyncError("Cannot summarize molecules from a stale Qt projection")
+		return self._backend_session.molecule_summary(
+			oasa.cdml_molecule_summary.CDMLMoleculeSummaryQuery(expected_revision, molecule_ids),
+		)
+
+	#============================================
 	def query_molecule_smiles(
 			self, expected_revision: int, molecule_id: str,
 			) -> oasa.cdml_document.CDMLMoleculeSmilesResult:
-		"""Observe one synchronized direct-root molecule through OASA CDML.
-
-		The Qt session supplies only immutable scalar revision and durable-ID
-		data.  This query creates no candidate, history entry, dirty transition,
-		or projection replacement.
-		"""
+		"""Observe one synchronized direct-root molecule through OASA CDML."""
 		self._require_live_persistent_operation()
 		if not self.can_write_authoritative_snapshot:
 			raise BackendProjectionOutOfSyncError(
@@ -1353,29 +1356,22 @@ class DocumentSession(PySide6.QtCore.QObject):
 
 	#============================================
 	def atom_number_context(self) -> tuple[int, int]:
-		"""Return revision and next transient candidate from backend CDML.
+		"""Return revision and next transient candidate from backend molecule facts.
 
-		The returned scalar is compatibility presentation state.  The canonical
-		snapshot remains the sole persistent source, including hidden numbers.
+		The returned scalar is compatibility presentation state. Hidden numbers
+		participate, while Qt never reparses the authoritative CDML snapshot.
 		"""
 		snapshot = self.backend_snapshot
-		# Accept the complete document at the CDML boundary before compatibility
-		# DOM inspection identifies direct core molecule/atom records.
-		oasa.cdml_document.CDMLDocument.parse(snapshot.cdml, validation="compat")
-		document = oasa.safe_xml.parse_dom_from_string(snapshot.cdml)
-		highest_number = 0
-		root = document.documentElement
-		for molecule in _direct_core_cdml_children(root, "molecule"):
-			for atom in _direct_core_cdml_children(molecule, "atom"):
-				number_text = atom.getAttribute("number")
-				if not number_text.isdecimal():
-					continue
-				number = int(number_text)
-				if number > highest_number:
-					highest_number = number
-		next_number = highest_number + 1
-		context = (snapshot.revision, next_number)
-		return context
+		observation = self._backend_session.molecule_core_observation(
+			oasa.cdml_document.CDMLMoleculeCoreObservationQuery(snapshot.revision),
+		)
+		highest = max((
+			atom.number
+			for molecule in observation.records for atom in molecule.atoms
+			if molecule.renderable and atom.renderable
+			and atom.number is not None and atom.number > 0
+		), default=0)
+		return observation.revision, highest + 1
 
 	#============================================
 	def atom_mark_revision(self) -> int:
@@ -2202,7 +2198,8 @@ class DocumentSession(PySide6.QtCore.QObject):
 		if not isinstance(start, tuple) or not isinstance(end, tuple):
 			raise ValueError("Arrow coordinates must be immutable coordinate tuples")
 		candidate = bkchem_qt.io.cdml_candidate.append_arrow_candidate(
-			snapshot.cdml, self._next_arrow_provisional_id(snapshot.revision), start, end,
+			snapshot.cdml, self._next_arrow_provisional_id(snapshot.revision),
+			start, end, self.drawing_standard(),
 		)
 		return self._prepare_complete_candidate(snapshot.revision, candidate)
 
@@ -2230,7 +2227,7 @@ class DocumentSession(PySide6.QtCore.QObject):
 			raise ValueError("Text position coordinates must be finite real numbers")
 		candidate = bkchem_qt.io.cdml_candidate.append_text_candidate(
 			snapshot.cdml, self._next_text_provisional_id(snapshot.revision),
-			position, text,
+			position, text, self.drawing_standard(),
 		)
 		return self._prepare_complete_candidate(snapshot.revision, candidate)
 
@@ -2254,7 +2251,8 @@ class DocumentSession(PySide6.QtCore.QObject):
 				):
 			raise ValueError("Plus position coordinates must be finite real numbers")
 		candidate = bkchem_qt.io.cdml_candidate.append_plus_candidate(
-			snapshot.cdml, self._next_plus_provisional_id(snapshot.revision), position,
+			snapshot.cdml, self._next_plus_provisional_id(snapshot.revision),
+			position, self.drawing_standard(),
 		)
 		return self._prepare_complete_candidate(snapshot.revision, candidate)
 
@@ -2286,7 +2284,7 @@ class DocumentSession(PySide6.QtCore.QObject):
 				raise ValueError("Vector %s coordinates must be finite real numbers" % name)
 		provisional_id = self._next_vector_provisional_id(snapshot.revision)
 		candidate = bkchem_qt.io.cdml_candidate.append_vector_candidate(
-			snapshot.cdml, provisional_id, shape, start, end,
+			snapshot.cdml, provisional_id, shape, start, end, self.drawing_standard(),
 		)
 		return self._prepare_complete_candidate(snapshot.revision, candidate)
 
@@ -2315,7 +2313,8 @@ class DocumentSession(PySide6.QtCore.QObject):
 		if not left < right or not top < bottom:
 			raise ValueError("Bracket bounds must have strict left-right and top-bottom order")
 		candidate = bkchem_qt.io.cdml_candidate.append_rectangular_bracket_candidate(
-			snapshot.cdml, self._next_bracket_provisional_ids(snapshot.revision), bounds,
+			snapshot.cdml, self._next_bracket_provisional_ids(snapshot.revision),
+			bounds, self.drawing_standard(),
 		)
 		prepared = self._prepare_complete_candidate(snapshot.revision, candidate)
 		return dataclasses.replace(prepared, preserve_existing_selection=True)
@@ -2337,7 +2336,8 @@ class DocumentSession(PySide6.QtCore.QObject):
 		if len(points) < 2:
 			raise ValueError("Wavy gesture must have nonzero length")
 		candidate = bkchem_qt.io.cdml_candidate.append_wavy_candidate(
-			snapshot.cdml, self._next_wavy_provisional_id(snapshot.revision), points,
+			snapshot.cdml, self._next_wavy_provisional_id(snapshot.revision),
+			points, self.drawing_standard(),
 		)
 		return self._prepare_complete_candidate(snapshot.revision, candidate)
 
@@ -2346,28 +2346,19 @@ class DocumentSession(PySide6.QtCore.QObject):
 			self, snapshot: oasa.cdml_document.CDMLSnapshot,
 			request: PersistentOperationRequest,
 			) -> _PreparedPersistentOperation:
-		"""Bind explicit dialog intent to OASA's paper-properties patch API."""
-		if request.target_keys:
-			raise ValueError("Paper properties does not accept persistent targets")
-		payload = dict(request.payload)
-		if set(payload) != {"expected_revision", "changes"}:
-			raise ValueError("Paper properties payload has unsupported fields")
-		expected_revision = payload["expected_revision"]
-		if type(expected_revision) is not int:
-			raise ValueError("Paper properties expected_revision must be an integer")
-		if expected_revision != snapshot.revision:
-			raise oasa.cdml_document.CDMLRevisionConflictError(
-				"Paper properties expected revision does not match the current snapshot",
-			)
-		changes = payload["changes"]
-		if type(changes) is not tuple:
-			raise ValueError("Paper properties changes must be an immutable tuple")
-		paper_patch = oasa.cdml_document.CDMLPaperPropertiesPatch(
-			expected_revision=expected_revision,
-			changes=changes,
+		"""Delegate paper intent to the frontend-neutral header adapter."""
+		return bkchem_qt.models.document_header_operations.prepare_paper_properties(
+			snapshot, request, _PreparedPersistentOperation,
 		)
-		return _PreparedPersistentOperation(
-			"paper-properties-patch", expected_revision, paper_patch,
+
+	#============================================
+	def _build_drawing_standard_patch(
+			self, snapshot: oasa.cdml_document.CDMLSnapshot,
+			request: PersistentOperationRequest,
+			) -> _PreparedPersistentOperation:
+		"""Delegate drawing-style intent to the backend header adapter."""
+		return bkchem_qt.models.document_header_operations.prepare_drawing_standard(
+			snapshot, request, _PreparedPersistentOperation,
 		)
 
 	#============================================
@@ -3749,9 +3740,18 @@ class DocumentSession(PySide6.QtCore.QObject):
 			self, prepared: _PreparedPersistentOperation,
 			) -> oasa.cdml_document.CDMLCommit:
 		"""Apply one backend-owned explicit paper-properties patch."""
-		if not isinstance(prepared.value, oasa.cdml_document.CDMLPaperPropertiesPatch):
-			raise ValueError("Paper properties requires a paper properties patch")
-		return self._backend_session.patch_paper_properties(prepared.value)
+		return bkchem_qt.models.document_header_operations.commit_paper_properties(
+			self._backend_session, prepared,
+		)
+
+	#============================================
+	def _commit_drawing_standard_patch(
+			self, prepared: _PreparedPersistentOperation,
+			) -> oasa.cdml_document.CDMLCommit:
+		"""Apply one backend-owned explicit drawing-standard patch."""
+		return bkchem_qt.models.document_header_operations.commit_drawing_standard(
+			self._backend_session, prepared,
+		)
 
 	#============================================
 	def _commit_top_level_delete(

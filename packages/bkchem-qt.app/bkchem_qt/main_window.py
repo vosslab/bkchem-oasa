@@ -115,6 +115,7 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 		self._pending_session_graphics_retry_scheduled = False
 		self._retired_import_workers = set()
 		self._shutdown_sessions_pending_disposal = []
+		self._initial_view_framing_scheduled = False
 		self._active_session = None
 		self._user_template_directory = (
 			pathlib.Path(user_template_directory)
@@ -146,6 +147,38 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 		self._apply_geometry_preferences()
 		self._apply_view_preferences()
 		self._show_user_template_catalog_status(self._user_template_catalog)
+
+	#============================================
+	def showEvent(self, event: PySide6.QtGui.QShowEvent) -> None:
+		"""Frame the active document after the first real window layout."""
+		super().showEvent(event)
+		if self._initial_view_framing_scheduled:
+			return
+		self._initial_view_framing_scheduled = True
+		self._schedule_initial_view_framing(self._active_session)
+
+	#============================================
+	def _schedule_initial_view_framing(
+			self, session: bkchem_qt.models.document_session.DocumentSession | None,
+			) -> None:
+		"""Queue one page fit after Qt has laid out a new tab."""
+		if session is None or session.is_disposed:
+			return
+		PySide6.QtCore.QTimer.singleShot(
+			0, functools.partial(self._frame_session_for_first_use, session),
+		)
+
+	#============================================
+	def _frame_session_for_first_use(
+			self, session: bkchem_qt.models.document_session.DocumentSession,
+			) -> None:
+		"""Make a new tab's complete drawable page immediately visible."""
+		if (
+			self._shutdown_prepared or not self.isVisible()
+			or session.is_disposed or session not in self._sessions
+		):
+			return
+		session.view.zoom_to_fit()
 
 	#============================================
 	@property
@@ -632,7 +665,6 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 			index = self._tab_widget.count()
 		if index < 0 or index > len(self._sessions):
 			raise IndexError("Session insertion index is out of range")
-
 		previous_session = self._active_session
 		previous_index = self._tab_widget.currentIndex()
 		title_connected = False
@@ -671,8 +703,11 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 				self._consume_session_projection_notice,
 			),
 		)
+		if session is self._active_session and hasattr(self, "_undo_action"):
+			self._refresh_document_actions()
+		if self.isVisible():
+			self._schedule_initial_view_framing(session)
 		return session
-
 	#============================================
 	def _consume_session_projection_notice(
 			self, session: bkchem_qt.models.document_session.DocumentSession,

@@ -8,6 +8,8 @@ import PySide6.QtWidgets
 import bkchem_qt.bridge.insertion_placement
 import bkchem_qt.bridge.chemistry_preparation
 import bkchem_qt.bridge.oasa_bridge
+import bkchem_qt.actions.identifier_actions
+import bkchem_qt.dialogs.molecule_info_dialog
 import bkchem_qt.models.fragment_model
 import bkchem_qt.models.document_session
 import bkchem_qt.undo.commands
@@ -21,87 +23,52 @@ _LINEAR_FORM_LABEL_PADDING = 2.0
 
 
 #============================================
-def _get_mols_for_info(app: object) -> list:
-	"""Return selected molecules, or all document molecules if none selected.
-
-	Args:
-		app: MainWindow instance with document attribute.
-
-	Returns:
-		List of MoleculeModel instances.
-	"""
-	mols = app.document.selected_mols
-	if not mols:
-		mols = app.document.molecules
-	return mols
-
-
-#============================================
-def _compute_formula(mol: object) -> str:
-	"""Compute the molecular formula string for a MoleculeModel.
-
-	Uses Hill system ordering: C first, H second, then alphabetical.
-
-	Args:
-		mol: MoleculeModel instance.
-
-	Returns:
-		Formula string, e.g. 'C6H12O6'.
-	"""
-	symbols = tuple(atom_model.symbol for atom_model in mol.atoms)
-	return bkchem_qt.bridge.oasa_bridge.molecule_summary_facts(symbols).formula
-
-
-#============================================
-def _compute_molecular_weight(mol: object) -> float:
-	"""Compute the molecular weight for a MoleculeModel.
-
-	Sums atomic weights from the OASA periodic table for each atom.
-
-	Args:
-		mol: MoleculeModel instance.
-
-	Returns:
-		Molecular weight as a float.
-	"""
-	symbols = tuple(atom_model.symbol for atom_model in mol.atoms)
-	return bkchem_qt.bridge.oasa_bridge.molecule_summary_facts(symbols).molecular_weight
-
-
-#============================================
 def _chemistry_info(app: object) -> None:
-	"""Display summary info on selected (or all) molecules.
-
-	Shows atom count, bond count, formula, and molecular weight for
-	each molecule in a QMessageBox.
-
-	Args:
-		app: MainWindow instance.
-	"""
-	mols = _get_mols_for_info(app)
-	if not mols:
-		PySide6.QtWidgets.QMessageBox.information(
-			app, "Molecule Info", "No molecules in the document."
+	"""Display exact OASA chemistry facts for selected authoritative molecules."""
+	session = _active_smiles_document_session(app)
+	if session is None:
+		PySide6.QtWidgets.QMessageBox.warning(
+			app, "Molecule Information",
+			"Molecule information requires an active synchronized document session.",
 		)
 		return
-	# build info text for each molecule
-	lines = []
-	for idx, mol in enumerate(mols, start=1):
-		n_atoms = len(mol.atoms)
-		n_bonds = len(mol.bonds)
-		formula = _compute_formula(mol)
-		mw = _compute_molecular_weight(mol)
-		mol_name = mol.name if mol.name else f"Molecule {idx}"
-		lines.append(f"--- {mol_name} ---")
-		lines.append(f"  Atoms: {n_atoms}")
-		lines.append(f"  Bonds: {n_bonds}")
-		lines.append(f"  Formula: {formula}")
-		lines.append(f"  Molecular weight: {mw:.2f}")
-		lines.append("")
-	info_text = "\n".join(lines)
-	PySide6.QtWidgets.QMessageBox.information(
-		app, "Molecule Info", info_text
+	if not session.can_write_authoritative_snapshot:
+		PySide6.QtWidgets.QMessageBox.warning(
+			app, "Molecule Information",
+			"Molecule information is unavailable until the document projection recovers.",
+		)
+		return
+	molecule_ids = session.document.selected_direct_root_molecule_ids
+	if not molecule_ids:
+		PySide6.QtWidgets.QMessageBox.information(
+			app, "Molecule Information",
+			"Select one or more molecules without artwork, then choose Chemistry > Info.",
+		)
+		return
+	response = bkchem_qt.bridge.oasa_bridge.query_molecule_summary(
+		session, session.backend_snapshot.revision, molecule_ids,
 	)
+	if response.failure is not None:
+		message = response.failure.message
+		if response.failure.kind == "revision-conflict":
+			message = "The document changed before calculation. Try again.\n\n" + message
+		elif response.failure.kind == "projection-unavailable":
+			message = "The document projection is unavailable. Recover it and try again."
+		else:
+			message = "OASA could not calculate the selected molecule information.\n\n" + message
+		PySide6.QtWidgets.QMessageBox.warning(
+			app, "Molecule Information", message,
+		)
+		return
+	if response.value is None:
+		PySide6.QtWidgets.QMessageBox.warning(
+			app, "Molecule Information", "OASA returned no molecule information.",
+		)
+		return
+	dialog = bkchem_qt.dialogs.molecule_info_dialog.MoleculeInfoDialog(
+		response.value, app,
+	)
+	dialog.exec()
 
 
 #============================================
@@ -672,68 +639,8 @@ def _active_smiles_document_session(app: object) -> object | None:
 
 #============================================
 def _gen_smiles(app: object) -> None:
-	"""Export one selected direct-root molecule through authoritative CDML.
-
-	A selected compatibility child may resolve its durable direct-root molecule,
-	but the request never contains a child identifier.
-
-	Copies the SMILES string to the clipboard and displays it
-	in a dialog.
-
-	Args:
-		app: MainWindow instance.
-	"""
-	session = _active_smiles_document_session(app)
-	if session is None:
-		PySide6.QtWidgets.QMessageBox.warning(
-			app, "Export SMILES",
-			"SMILES export requires an active synchronized document session.",
-		)
-		return
-	if not session.can_write_authoritative_snapshot:
-		PySide6.QtWidgets.QMessageBox.warning(
-			app, "Export SMILES",
-			"SMILES export is unavailable until the document projection recovers.",
-		)
-		return
-	molecule_ids = session.document.selected_direct_root_molecule_ids
-	if len(molecule_ids) != 1:
-		PySide6.QtWidgets.QMessageBox.warning(
-			app, "Export SMILES",
-			"Please select exactly one molecule and no presentation objects."
-		)
-		return
-	response = bkchem_qt.bridge.oasa_bridge.query_molecule_smiles(
-		session, session.backend_snapshot.revision, molecule_ids[0],
-	)
-	if response.failure is not None:
-		failure = response.failure
-		if failure.kind == "projection-unavailable":
-			title = "Export SMILES"
-			message = "SMILES export is unavailable until the document projection recovers."
-		elif failure.kind == "revision-conflict":
-			title = "Export SMILES"
-			message = "SMILES export used an older document revision. Please try again:\n%s" % failure.message
-		elif failure.kind == "unavailable":
-			title = "Export SMILES"
-			message = "SMILES export is unavailable for this molecule:\n%s" % failure.message
-		else:
-			title = "SMILES Export Error"
-			message = "Failed to generate SMILES:\n%s" % failure.message
-		PySide6.QtWidgets.QMessageBox.warning(app, title, message)
-		return
-	result = response.value
-	if result is None:
-		return
-	smiles_str = result.smiles
-	# copy to clipboard
-	clipboard = PySide6.QtWidgets.QApplication.clipboard()
-	clipboard.setText(smiles_str)
-	# show in dialog
-	PySide6.QtWidgets.QMessageBox.information(
-		app, "Export SMILES",
-		f"SMILES (copied to clipboard):\n\n{smiles_str}"
-	)
+	"""Retain the established test and extension seam for SMILES export."""
+	bkchem_qt.actions.identifier_actions._gen_smiles(app)
 
 
 #============================================
@@ -1370,6 +1277,15 @@ def register_chemistry_actions(registry: object, app: object) -> None:
 			and len(session.document.selected_direct_root_molecule_ids) == 1
 		)
 
+	def synchronized_direct_root_molecules_selected() -> bool:
+		"""Return whether Info has at least one authoritative molecule target."""
+		session = _active_smiles_document_session(app)
+		return bool(
+			session is not None
+			and session.can_write_authoritative_snapshot
+			and session.document.selected_direct_root_molecule_ids
+		)
+
 	def groups_selected() -> bool:
 		"""Return whether one current implicit group has a writable backend route."""
 		session = _active_smiles_document_session(app)
@@ -1396,7 +1312,7 @@ def register_chemistry_actions(registry: object, app: object) -> None:
 		help_key='Display summary formula and other info on all selected molecules',
 		accelerator=None,
 		handler=lambda: _chemistry_info(app),
-		enabled_when=None,
+		enabled_when=synchronized_direct_root_molecules_selected,
 	))
 
 	# check if selected objects have chemical meaning
@@ -1457,16 +1373,6 @@ def register_chemistry_actions(registry: object, app: object) -> None:
 		accelerator=None,
 		handler=lambda: _read_peptide(app),
 		enabled_when=None,
-	))
-
-	# export SMILES for the selected structure
-	registry.register(MenuAction(
-		id='chemistry.gen_smiles',
-		label_key='Export SMILES',
-		help_key='Export SMILES for the selected structure',
-		accelerator=None,
-		handler=lambda: _gen_smiles(app),
-		enabled_when=one_synchronized_direct_root_molecule_selected,
 	))
 
 	# set the name of the selected molecule

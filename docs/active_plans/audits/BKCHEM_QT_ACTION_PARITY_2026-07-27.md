@@ -3,7 +3,7 @@
 This is the WP-E1 release-facing inventory. It records the current Qt delivery and
 the frontend-neutral CDML boundary, using legacy behavior only as a feature reference.
 It is based on the action registry, toolbar-mode configuration, implementation, and
-pointed tests reconciled on 2026-08-03. Qt is the only delivered frontend.
+pointed tests reconciled on 2026-08-11. Qt is the only delivered frontend.
 
 See the active [BKCHEM_QT_COMPLETION_PLAN_2026-07-27.md](../active/BKCHEM_QT_COMPLETION_PLAN_2026-07-27.md).
 The exact-revision presentation, paper-layout, backend clipboard, fragment,
@@ -34,7 +34,8 @@ The supported set is: session/new/open/save/close; native CDML save/reopen for t
 implemented document path; molecule draw, atom placement, templates, basic edit and
 undo/redo; arrows, text, plus signs, brackets, vectors, and marks; mixed top-level
 clipboard operations; presentation edit/delete/stacking; atom, bond, plain Text, plain
-Plus, Wavy, and supported Rich Text editing; active-session keybindings;
+Plus, Wavy, supported Rich Text editing, and current-document drawing defaults;
+active-session keybindings;
 capability-driven file import; asynchronous imports; Haworth and PubChem insertion;
 and supported artifact export. M6 source, installed, boundary, and audit gates
 are complete. The managed README screenshot and reproducible capabilities
@@ -95,7 +96,7 @@ are not missing projection decoding.
 
 | Action/capability | Qt implementation | Status | Undo | CDML | Thread | Evidence or missing gate |
 | --- | --- | --- | --- | --- | --- | --- |
-| `chemistry.info` | formula/weight dialog | OK | n/a | n/a | GUI | action registry and OASA model path |
+| `chemistry.info` | exact-revision molecular-composition dialog | OK | no mutation | authoritative roots | GUI | `test_molecule_info_backend_authority.py`; implicit hydrogens, exact masses, combined selection, and recovery states |
 | `chemistry.check` | exact-revision atom-chemistry observation | OK | n/a | n/a | GUI | `test_atom_chemistry_backend_authority.py` |
 | `chemistry.expand_groups` | revision-bound OASA group expansion | OK | backend | molecule | GUI | `test_implicit_group_backend_authority.py`, `test_group_foundation.py`, and `test_cdml_implicit_group_expand.py`; synchronized groups use OASA observations |
 | `chemistry.oxidation_number` | exact-revision OASA-derived observation/display | OK | n/a | n/a | GUI | `test_atom_chemistry_backend_authority.py` |
@@ -103,6 +104,7 @@ are not missing projection decoding.
 | `chemistry.read_inchi` | immutable proposal through session-owned worker | OK | backend | molecule | worker | `test_smiles_import_worker.py`; external executable availability is a typed capability outcome |
 | `chemistry.read_peptide` | immutable proposal through session-owned worker | OK | backend | molecule | worker | `test_smiles_import_worker.py`; delivery is origin-bound and cancellation-safe |
 | `chemistry.gen_smiles` | exact-revision backend SMILES observation | OK | n/a | n/a | GUI | `test_smiles_export_backend_authority.py`; selected durable molecule only |
+| `chemistry.gen_inchi` | OASA standard InChI/InChIKey from exact-revision SMILES observation | OK | n/a | n/a | GUI | `test_inchi_export_backend_authority.py`; no external executable or document mutation |
 | `chemistry.set_name` | revision-bound molecule-name patch | OK | backend | molecule | GUI | `test_molecule_name_backend_authority.py` and `test_cdml_molecule_name_edit.py` |
 | `chemistry.create_fragment` | backend ordinary-fragment metadata operation | OK | backend | molecule metadata | GUI | `test_cdml_fragment_operations.py` |
 | `chemistry.view_fragments` | backend observation/delete operation | OK | backend delete | molecule metadata | GUI | `test_cdml_fragment_operations.py`; plain display-only notices |
@@ -120,10 +122,10 @@ are not missing projection decoding.
 
 | Action/capability | Qt implementation | Status | Undo | CDML | Thread | Evidence or missing gate |
 | --- | --- | --- | --- | --- | --- | --- |
-| `options.standard` | standard settings dialog | UNSUP | no | n/a | GUI | document-standard semantics are not specified; release excludes this preference path until it has a durable contract |
+| `options.standard` | backend-owned drawing-style, scope, and personal-default dialog | OK | backend | standard and object CDML | GUI | `test_drawing_standard_backend_authority.py` and `test_drawing_standard_preferences.py`; defaults, selected/all overrides, clean new-document preferences, reprojection, and undo |
 | `options.language` | omitted from the shipped menu | UNSUP | n/a | n/a | GUI | locale files are retained compatibility data; the delivered Qt application has no language-selection action |
 | `options.logging` | logging settings dialog | OK | n/a | preferences | GUI | `test_qt_menu_build.py` proves persisted level and immediate application |
-| `options.inchi_path` | InChI executable preference | UNSUP | no | n/a | GUI | the current delivered chemistry interface does not expose a configured external-InChI generation path; retain the preference only when paired with explicit executable validation and product support |
+| `options.inchi_path` | obsolete external executable preference | UNSUP | no | n/a | GUI | bundled RDKit owns standard InChI generation, so the delivered interface intentionally needs no executable path |
 | `options.theme` | theme chooser | OK | n/a | preferences | GUI | [theme chooser](../../../packages/bkchem-qt.app/tests/test_theme_chooser.py) |
 | `options.preferences` | main preferences dialog | OK | no | preferences | GUI | active keybinding configuration is shared with the manager |
 | `help.keyboard_shortcuts` | registry shortcut table | OK | n/a | n/a | GUI | [keybinding manager](../../../packages/bkchem-qt.app/tests/test_keybinding_manager.py) |
@@ -148,7 +150,7 @@ are not missing projection decoding.
 | rotate | `RotateMode` atom-only 2D rotation | OK | backend | direct atoms | GUI | `test_rotate_mode_undo.py` and backend rotate operation tests |
 | bondalign | `BondAlignMode` direct atom moves | OK | backend | molecule | GUI | `test_bondalign_mode_undo.py` and backend alignment tests |
 | repair | `RepairMode` invokes declared backend repair actions | OK | backend | molecule | GUI | `test_repair_actions.py` and focused backend geometry tests |
-| misc numbering | revision-bound atom-number operation plus derived label projection | OK | backend | yes | GUI | `test_persistent_atom_numbering.py` |
+| misc numbering | revision-bound atom-number operation plus exact-revision candidate facts | OK | backend | yes | GUI | `test_persistent_atom_numbering.py` |
 | misc wavy line | revision-bound Wavy insertion after transient drag preview | OK | backend | yes | GUI | `test_wavy_backend_authority.py` |
 | file-actions ribbon | new/open/save/save-as dispatch | OK | as action | as action | GUI/worker | toolbar action resolution test |
 
@@ -174,15 +176,15 @@ not release claims unless they appear as a supported row.
 | Geometry cleanup | repair action calls coordinate work directly | OK | backend | molecule | sync | accepted latency evidence keeps the bounded synchronous path under the current release budget |
 | Package data/runtime layout | package-owned menus, modes, themes, icons, and OASA data | OK build audit | n/a | n/a | n/a | wheel and direct frozen-process audit; Finder integration belongs to a separate distribution project |
 
-## Prioritized non-overlapping slices
+## Resolved and dispositioned slices
 
 1. **Template attachment disposition.** The delivered TemplateMode is authoritative
    detached placement. Atom fusion/attachment requires a future declared backend
    operation and is absent from the release claim.
-2. **Options disposition.** Standard and external-InChI preference routes remain
-   explicitly unsupported until a durable preference/executable contract exists.
+2. **Standard parity.** Document defaults, selected/all explicit overrides,
+   personal-default storage, new-document seeding, and future presentation
+   styling are complete; bundled RDKit needs no external-InChI path.
 
-The projection envelope and top-level clipboard extraction are accepted backend
-queries. They establish Qt's disposable-projection boundary; M6 now concerns
-integration, packaging, current-user documentation, and retained lifecycle
-evidence.
+The projection envelope and top-level clipboard extraction remain accepted
+backend queries. The M6 integration, packaging, current-user documentation,
+and retained lifecycle evidence described by the active plan are complete.

@@ -26,8 +26,14 @@ import PySide6.QtWidgets
 import PySide6.QtTest
 
 # local repo modules
+import bkchem_qt.bridge.chemistry_preparation
+import bkchem_qt.bridge.insertion_placement
 import bkchem_qt.themes.theme_manager
 import bkchem_qt.main_window
+import oasa.cdml_writer
+import oasa.coords_generator
+import oasa.insertion_geometry
+import oasa.smiles_lib
 import tests.graphics_test_retirement
 
 
@@ -201,3 +207,36 @@ def _reset_main_window(
 		main_window.repaint()
 		PySide6.QtWidgets.QApplication.processEvents()
 		PySide6.QtTest.QTest.qWait(VISUAL_HOLD_MS)
+
+
+#============================================
+@pytest.fixture
+def insert_smiles_through_backend() -> object:
+	"""Return a deterministic authoritative setup seam for unrelated GUI tests."""
+	def insert(main_window: object, smiles: str) -> object:
+		"""Parse in OASA, submit plain CDML, and return the projected molecule."""
+		session = main_window._active_session
+		molecule = oasa.smiles_lib.text_to_mol(smiles)
+		oasa.coords_generator.calculate_coords(molecule, bond_length=1.0, force=1)
+		bond_length, anchor = (
+			bkchem_qt.bridge.insertion_placement.capture_insertion_placement(session)
+		)
+		oasa.insertion_geometry.place_molecules_for_insertion(
+			[molecule], bond_length, anchor,
+		)
+		proposal = bkchem_qt.bridge.chemistry_preparation.MoleculeInsertionProposal(
+			oasa.cdml_writer.molecules_to_insertion_proposal(
+				[molecule], token_stem="gui-fixture-r%s" % session.backend_snapshot.revision,
+			),
+			session.backend_snapshot.revision,
+			"Insert GUI test molecule",
+		)
+		request = bkchem_qt.bridge.chemistry_preparation.build_molecule_insertion_request(
+			proposal, "Insert GUI test molecule",
+		)
+		outcome = session.submit_persistent_operation(request)
+		if outcome.status != "accepted":
+			raise AssertionError("Backend molecule setup failed: %s" % outcome.message)
+		return session.document.molecules[-1]
+
+	return insert

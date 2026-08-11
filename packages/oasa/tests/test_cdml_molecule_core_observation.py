@@ -32,6 +32,22 @@ def test_molecule_core_observation_rejects_stale_query_without_mutation() -> Non
 
 
 #============================================
+def test_molecule_core_observation_exposes_hidden_atom_numbers_as_plain_facts() -> None:
+	"""A frontend can continue numbering without inspecting authoritative XML."""
+	session = cdml_document.CDMLDocumentSession.load(
+		"<cdml><molecule id='m'><atom id='a' name='C' number='8' show_number='no'>"
+		"<point x='0cm' y='0cm'/></atom></molecule>"
+		"<v:molecule xmlns:v='urn:vendor'><v:atom number='999'/></v:molecule></cdml>",
+	)
+	observation = session.molecule_core_observation(
+		cdml_document.CDMLMoleculeCoreObservationQuery(session.revision),
+	)
+	atom = observation.records[0].atoms[0]
+
+	assert (observation.revision, atom.number, atom.show_number) == (0, 8, False)
+
+
+#============================================
 def test_molecule_core_observation_keeps_idless_geometry_displayable() -> None:
 	"""Legacy finite geometry can project without becoming an edit address."""
 	document = cdml_document.CDMLDocument.parse(

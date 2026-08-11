@@ -6,6 +6,7 @@ import xml.dom.minidom
 # local repo modules
 import oasa.cdml_writer
 import oasa.cdml_document
+import oasa.cdml_standard
 import oasa.safe_xml
 
 
@@ -31,9 +32,20 @@ def _cm_text(value: float) -> str:
 
 
 #============================================
+def _present_drawing_standard(value: object | None) -> object | None:
+	"""Validate one stable observation and return it only when authored."""
+	if value is None:
+		return None
+	if type(value) is not oasa.cdml_standard.CDMLDrawingStandardObservation:
+		raise TypeError("Presentation candidate requires an exact drawing-standard observation")
+	return value if value.present else None
+
+
+#============================================
 def append_arrow_candidate(
 		complete_cdml: str, provisional_id: str,
 		start: tuple[float, float], end: tuple[float, float],
+		drawing_standard: object | None = None,
 		) -> str:
 	"""Append one normal arrow to a complete authoritative CDML document.
 
@@ -43,6 +55,7 @@ def append_arrow_candidate(
 	"""
 	document = oasa.safe_xml.parse_dom_from_string(complete_cdml)
 	root = document.documentElement
+	standard = _present_drawing_standard(drawing_standard)
 	arrow_name = _qualified_child_name(root, "arrow")
 	point_name = _qualified_child_name(root, "point")
 	namespace = root.namespaceURI
@@ -55,8 +68,8 @@ def append_arrow_candidate(
 	arrow.setAttribute("start", "no")
 	arrow.setAttribute("end", "yes")
 	arrow.setAttribute("spline", "no")
-	arrow.setAttribute("width", "1.5")
-	arrow.setAttribute("color", "#000000")
+	arrow.setAttribute("width", "%g" % standard.line_width if standard else "1.5")
+	arrow.setAttribute("color", standard.line_color if standard else "#000000")
 	arrow.setAttribute("shape", "(8,10,3)")
 	for x_coord, y_coord in (start, end):
 		if namespace:
@@ -75,6 +88,7 @@ def append_arrow_candidate(
 def append_text_candidate(
 		complete_cdml: str, provisional_id: str,
 		position: tuple[float, float], text: str,
+		drawing_standard: object | None = None,
 		) -> str:
 	"""Append one plain-text annotation to complete authoritative CDML.
 
@@ -84,6 +98,7 @@ def append_text_candidate(
 	"""
 	document = oasa.safe_xml.parse_dom_from_string(complete_cdml)
 	root = document.documentElement
+	standard = _present_drawing_standard(drawing_standard)
 	text_name = _qualified_child_name(root, "text")
 	point_name = _qualified_child_name(root, "point")
 	font_name = _qualified_child_name(root, "font")
@@ -102,9 +117,11 @@ def append_text_candidate(
 	text_element.setAttribute("id", provisional_id)
 	point.setAttribute("x", _cm_text(position[0]))
 	point.setAttribute("y", _cm_text(position[1]))
-	font.setAttribute("family", "Arial")
-	font.setAttribute("size", "14")
-	font.setAttribute("color", "#000000")
+	font.setAttribute("family", standard.font_family if standard else "Arial")
+	font.setAttribute("size", str(standard.font_size) if standard else "14")
+	font.setAttribute("color", standard.line_color if standard else "#000000")
+	if standard is not None and standard.area_color:
+		text_element.setAttribute("background-color", standard.area_color)
 	# A DOM text node performs the one required XML escaping during serialization.
 	ftext.appendChild(document.createTextNode(text))
 	text_element.appendChild(point)
@@ -119,6 +136,7 @@ def append_text_candidate(
 def append_plus_candidate(
 		complete_cdml: str, provisional_id: str,
 		position: tuple[float, float],
+		drawing_standard: object | None = None,
 		) -> str:
 	"""Append one symbolic Plus record to complete authoritative CDML.
 
@@ -127,6 +145,7 @@ def append_plus_candidate(
 	"""
 	document = oasa.safe_xml.parse_dom_from_string(complete_cdml)
 	root = document.documentElement
+	standard = _present_drawing_standard(drawing_standard)
 	plus_name = _qualified_child_name(root, "plus")
 	point_name = _qualified_child_name(root, "point")
 	namespace = root.namespaceURI
@@ -138,7 +157,9 @@ def append_plus_candidate(
 		point = document.createElement(point_name)
 	plus.setAttribute("id", provisional_id)
 	plus.setAttribute("font_size", "18")
-	plus.setAttribute("color", "#000000")
+	plus.setAttribute("color", standard.line_color if standard else "#000000")
+	if standard is not None and standard.area_color:
+		plus.setAttribute("background-color", standard.area_color)
 	point.setAttribute("x", _cm_text(position[0]))
 	point.setAttribute("y", _cm_text(position[1]))
 	plus.appendChild(point)
@@ -151,6 +172,7 @@ def append_plus_candidate(
 def append_vector_candidate(
 		complete_cdml: str, provisional_id: str, shape: str,
 		start: tuple[float, float], end: tuple[float, float],
+		drawing_standard: object | None = None,
 		) -> str:
 	"""Append one bounded Vector presentation record to complete CDML.
 
@@ -163,6 +185,7 @@ def append_vector_candidate(
 		raise ValueError("Vector shape is unsupported")
 	document = oasa.safe_xml.parse_dom_from_string(complete_cdml)
 	root = document.documentElement
+	standard = _present_drawing_standard(drawing_standard)
 	namespace = root.namespaceURI
 	shape_name = _qualified_child_name(root, shape)
 	point_name = _qualified_child_name(root, "point")
@@ -172,8 +195,8 @@ def append_vector_candidate(
 		vector = document.createElement(shape_name)
 	vector.setAttribute("id", provisional_id)
 	if shape == "polyline":
-		vector.setAttribute("line_color", "#000000")
-		vector.setAttribute("width", "1.5")
+		vector.setAttribute("line_color", standard.line_color if standard else "#000000")
+		vector.setAttribute("width", "%g" % standard.line_width if standard else "1.5")
 		vector.setAttribute("spline", "no")
 		for x_coord, y_coord in (start, end):
 			if namespace:
@@ -192,9 +215,9 @@ def append_vector_candidate(
 		vector.setAttribute("y1", _cm_text(y1))
 		vector.setAttribute("x2", _cm_text(x2))
 		vector.setAttribute("y2", _cm_text(y2))
-		vector.setAttribute("area_color", "")
-		vector.setAttribute("line_color", "#000000")
-		vector.setAttribute("width", "1.5")
+		vector.setAttribute("area_color", standard.area_color if standard else "")
+		vector.setAttribute("line_color", standard.line_color if standard else "#000000")
+		vector.setAttribute("width", "%g" % standard.line_width if standard else "1.5")
 	root.appendChild(vector)
 	candidate = document.toxml()
 	return candidate
@@ -204,6 +227,7 @@ def append_vector_candidate(
 def append_rectangular_bracket_candidate(
 		complete_cdml: str, provisional_ids: tuple[str, str],
 		bounds: tuple[float, float, float, float],
+		drawing_standard: object | None = None,
 		) -> str:
 	"""Append one rectangular bracket pair as two direct core polylines.
 
@@ -219,6 +243,7 @@ def append_rectangular_bracket_candidate(
 	left, top, right, bottom = bounds
 	document = oasa.safe_xml.parse_dom_from_string(complete_cdml)
 	root = document.documentElement
+	standard = _present_drawing_standard(drawing_standard)
 	namespace = root.namespaceURI
 	polyline_name = _qualified_child_name(root, "polyline")
 	point_name = _qualified_child_name(root, "point")
@@ -232,8 +257,8 @@ def append_rectangular_bracket_candidate(
 		else:
 			polyline = document.createElement(polyline_name)
 		polyline.setAttribute("id", provisional_id)
-		polyline.setAttribute("line_color", "#000000")
-		polyline.setAttribute("width", "2.0")
+		polyline.setAttribute("line_color", standard.line_color if standard else "#000000")
+		polyline.setAttribute("width", "%g" % standard.line_width if standard else "2.0")
 		polyline.setAttribute("spline", "no")
 		for x_coord, y_coord in points:
 			if namespace:
@@ -251,6 +276,7 @@ def append_rectangular_bracket_candidate(
 def append_wavy_candidate(
 		complete_cdml: str, provisional_id: str,
 		points: tuple[tuple[float, float], ...],
+		drawing_standard: object | None = None,
 		) -> str:
 	"""Append one validated Wavy polyline to complete authoritative CDML.
 
@@ -260,6 +286,7 @@ def append_wavy_candidate(
 	"""
 	document = oasa.safe_xml.parse_dom_from_string(complete_cdml)
 	root = document.documentElement
+	standard = _present_drawing_standard(drawing_standard)
 	polyline_name = _qualified_child_name(root, "polyline")
 	point_name = _qualified_child_name(root, "point")
 	namespace = root.namespaceURI
@@ -268,8 +295,8 @@ def append_wavy_candidate(
 	else:
 		polyline = document.createElement(polyline_name)
 	polyline.setAttribute("id", provisional_id)
-	polyline.setAttribute("line_color", "#000000")
-	polyline.setAttribute("width", "1.5")
+	polyline.setAttribute("line_color", standard.line_color if standard else "#000000")
+	polyline.setAttribute("width", "%g" % standard.line_width if standard else "1.5")
 	polyline.setAttribute("spline", "no")
 	polyline.setAttribute("style", "wavy")
 	for x_coord, y_coord in points:

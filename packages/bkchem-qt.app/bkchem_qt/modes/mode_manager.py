@@ -28,7 +28,7 @@ class ModeManager(PySide6.QtCore.QObject):
 	def __init__(self, view: object, parent: object = None) -> None:
 		"""Initialize the mode manager with built-in modes.
 
-		Registers edit and draw modes and sets edit as the default.
+		Registers edit and draw modes and sets draw as the default.
 
 		Args:
 			view: The ChemView widget whose events are dispatched.
@@ -49,7 +49,7 @@ class ModeManager(PySide6.QtCore.QObject):
 			bkchem_qt.modes.draw_mode.DrawMode(view),
 		)
 		# set default mode
-		self.set_mode("edit")
+		self.set_mode("draw")
 
 	# ------------------------------------------------------------------
 	# Mode management

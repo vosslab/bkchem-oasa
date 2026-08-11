@@ -7,6 +7,7 @@ import tomllib
 
 # local repo modules
 import version_lib
+import version_registry
 
 
 SKIP_DIRS = {
@@ -33,6 +34,7 @@ CANDIDATE_FILENAMES = {
 CARGO_NAME_PATTERN = re.compile(
 	r"^\s*name\s*=\s*['\"](?P<name>[^'\"]+)['\"]\s*$"
 )
+MONOREPO_PACKAGE_DIRS = ("bkchem-app", "bkchem-qt.app", "oasa")
 
 
 def normalize_base_dir(base_dir: str) -> str:
@@ -277,11 +279,21 @@ def parse_simple_version_file(path: str, force_update: bool=False) -> dict | Non
 
 #============================================
 
-def build_version_file_entry(base_dir: str, version: str="", create: bool=True) -> dict:
+def parse_version_registry_file(path: str) -> dict:
+	"""Parse one canonical root VERSION assignment."""
+	return {
+		"path": path,
+		"kind": "version_registry",
+		"version": version_registry.read_version_file(path),
+	}
+
+
+#============================================
+def build_version_file_entry(path: str, version: str="", create: bool=True) -> dict:
 	"""Build a VERSION-file entry.
 
 	Args:
-		base_dir (str): Base directory.
+		path (str): Canonical VERSION registry path.
 		version (str): Current version value.
 		create (bool): Whether the VERSION file needs to be created.
 
@@ -289,8 +301,8 @@ def build_version_file_entry(base_dir: str, version: str="", create: bool=True) 
 		dict: Version entry.
 	"""
 	return {
-		"path": os.path.join(base_dir, "VERSION"),
-		"kind": "simple",
+		"path": path,
+		"kind": "version_registry",
 		"version": version,
 		"force_update": True,
 		"create": create,
@@ -347,10 +359,13 @@ def parse_versions(base_dir: str, max_depth: int) -> list[dict]:
 	"""
 	entries = []
 	candidate_paths = iter_candidate_files(base_dir, max_depth)
+	registry_path = version_registry.resolve_version_path(base_dir)
 	cargo_package_names = set()
 	for path in candidate_paths:
 		filename = os.path.basename(path)
-		if filename == "pyproject.toml":
+		if os.path.abspath(path) == os.path.abspath(registry_path):
+			entry = parse_version_registry_file(path)
+		elif filename == "pyproject.toml":
 			entry = parse_pyproject(path)
 		elif filename == "Cargo.toml":
 			entry, package_name = parse_cargo_toml(path)
@@ -386,13 +401,52 @@ def ensure_version_file_entry(entries: list[dict], base_dir: str) -> list[dict]:
 	Returns:
 		list[dict]: Entries with root VERSION appended when missing.
 	"""
-	version_path = os.path.join(base_dir, "VERSION")
+	version_path = version_registry.resolve_version_path(base_dir)
 	for entry in entries:
 		if os.path.abspath(entry["path"]) == os.path.abspath(version_path):
 			return entries
 	if os.path.exists(version_path):
+		return entries + [parse_version_registry_file(version_path)]
+	return entries + [build_version_file_entry(version_path)]
+
+
+#============================================
+def release_metadata_entries(project_dir: str) -> list[dict]:
+	"""Return the registry and package metadata owned by one release."""
+	version_path = version_registry.resolve_version_path(project_dir)
+	if os.path.isfile(version_path):
+		entries = [parse_version_registry_file(version_path)]
+	else:
+		entries = [build_version_file_entry(version_path)]
+
+	repo_root = os.path.dirname(version_path)
+	packages_dir = os.path.join(repo_root, "packages")
+	package_dirs = set(os.listdir(packages_dir)) if os.path.isdir(packages_dir) else set()
+	if all(package_name in package_dirs for package_name in MONOREPO_PACKAGE_DIRS):
+		for package_name in MONOREPO_PACKAGE_DIRS:
+			pyproject_path = os.path.join(packages_dir, package_name, "pyproject.toml")
+			if not os.path.isfile(pyproject_path):
+				continue
+			entry = parse_pyproject(pyproject_path)
+			if entry:
+				entries.append(entry)
 		return entries
-	return entries + [build_version_file_entry(base_dir)]
+
+	pyproject_path = os.path.join(project_dir, "pyproject.toml")
+	if os.path.isfile(pyproject_path):
+		entry = parse_pyproject(pyproject_path)
+		if entry:
+			entries.append(entry)
+	return entries
+
+
+#============================================
+def update_release_metadata(project_dir: str, version: str, apply: bool) -> list[dict]:
+	"""Update one release registry and every package metadata source."""
+	return [
+		update_entry(entry, version, apply)
+		for entry in release_metadata_entries(project_dir)
+	]
 
 #============================================
 
@@ -505,6 +559,14 @@ def update_entry(entry: dict, new_version: str, apply: bool) -> dict:
 		)
 	elif entry["kind"] == "version_py":
 		updated_text, changed = version_lib.update_version_py(text, version_value)
+	elif entry["kind"] == "version_registry":
+		if entry.get("create"):
+			updated_text = version_registry.create_version_text(version_value)
+			changed = True
+		else:
+			updated_text, changed = version_registry.update_version_text(
+				text, version_value,
+			)
 	else:
 		updated_text, changed = version_lib.update_simple_version(
 			text,

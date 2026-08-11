@@ -244,6 +244,30 @@ def test_blank_gestures_create_distinct_backend_root_pairs(main_window: object) 
 
 
 #============================================
+def test_first_draw_preserves_backend_defined_blank_page(main_window: object) -> None:
+	"""First interaction cannot replace a frontend-only page with backend defaults."""
+	session = _active_session(main_window)
+	context = session.paper_properties_context()
+	effective_attributes = {
+		"type": context["default_type"],
+		"orientation": context["default_orientation"],
+	}
+	before_document = session.document
+	before_page = PySide6.QtCore.QRectF(session.scene.paper_rect)
+	assert before_document.paper.attributes == effective_attributes
+
+	mode = session.mode_manager.current_mode
+	assert isinstance(mode, bkchem_qt.modes.draw_mode.DrawMode)
+	_draw_at(mode, before_page.center().x(), before_page.center().y())
+
+	assert (
+		session.document is not before_document
+		and session.document.paper.attributes == effective_attributes
+		and session.scene.paper_rect == before_page
+	)
+
+
+#============================================
 def test_atom_extension_and_join_use_reprojected_backend_models(main_window: object) -> None:
 	"""Extension and same-root join persist the intended durable backend topology."""
 	session = _active_session(main_window)

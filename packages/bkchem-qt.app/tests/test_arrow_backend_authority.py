@@ -110,10 +110,13 @@ def test_registered_arrow_projection_uses_oasa_durable_id(
 	def capture_candidate(
 			complete_cdml: str, provisional_id: str,
 			start: tuple[float, float], end: tuple[float, float],
+			drawing_standard: object | None = None,
 			) -> str:
 		"""Capture the frontend-only token passed into the real candidate builder."""
 		provisional_ids.append(provisional_id)
-		return original_append(complete_cdml, provisional_id, start, end)
+		return original_append(
+			complete_cdml, provisional_id, start, end, drawing_standard,
+		)
 
 	monkeypatch.setattr(bkchem_qt.io.cdml_candidate, "append_arrow_candidate", capture_candidate)
 	outcome = session.commit_arrow((0.0, 0.0), (40.0, 0.0))
@@ -331,9 +334,8 @@ def test_captured_non_mode_capability_uses_its_original_registered_session(
 
 	assert outcome.status == "accepted"
 	assert main_window._active_session.backend_snapshot.revision == 0
-	original.document.mark_clean()
-	main_window.close_session_at(main_window._sessions.index(main_window._active_session))
-	main_window.close_session_at(main_window._sessions.index(original))
+	assert main_window._remove_session(main_window._active_session)
+	assert main_window._remove_session(original)
 
 
 #============================================

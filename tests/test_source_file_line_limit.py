@@ -13,6 +13,7 @@ import file_utils
 
 LINE_LIMIT = 1000
 OVERRIDE_LIST = "tests/source_file_line_limit_overrides.txt"
+BASELINE_LIST = "tests/source_file_line_limit_baseline.txt"
 
 # Authored code, templates, queries, and documentation. Generic text/data,
 # generated artifacts, configuration, notebooks, and binary formats stay out.
@@ -104,6 +105,45 @@ OVERRIDE_PATHS = load_override_paths()
 
 
 #============================================
+def load_baseline_limits(repo_root: str | None = None) -> dict[str, int]:
+	"""Load exact current ceilings for oversized files awaiting decomposition."""
+	if repo_root is None:
+		repo_root = file_utils.get_repo_root()
+	list_path = os.path.join(repo_root, BASELINE_LIST)
+	if not os.path.isfile(list_path):
+		return {}
+	limits = {}
+	with open(list_path, "r", encoding="utf-8") as handle:
+		for line_number, raw_line in enumerate(handle, start=1):
+			entry = raw_line.strip()
+			if not entry or entry.startswith("#"):
+				continue
+			parts = entry.split(maxsplit=1)
+			if len(parts) != 2 or not parts[0].isdecimal():
+				raise ValueError(
+					f"{BASELINE_LIST}:{line_number}: expected 'LINE_COUNT path'"
+				)
+			line_limit = int(parts[0])
+			path = parts[1]
+			path_parts = path.split("/")
+			invalid = path.startswith("/") or "\\" in path or ".." in path_parts
+			invalid = invalid or any(character in path for character in "*?[]")
+			if invalid or line_limit < LINE_LIMIT:
+				raise ValueError(
+					f"{BASELINE_LIST}:{line_number}: expected an oversized exact path"
+				)
+			if path in limits:
+				raise ValueError(
+					f"{BASELINE_LIST}:{line_number}: duplicate path {path!r}"
+				)
+			limits[path] = line_limit
+	return limits
+
+
+BASELINE_LIMITS = load_baseline_limits()
+
+
+#============================================
 def is_source_file(
 	rel: str,
 	override_paths: frozenset[str] | None = None,
@@ -124,6 +164,8 @@ def is_source_file(
 	basename = os.path.basename(rel).lower()
 	extension = os.path.splitext(basename)[1]
 	is_source = basename in SOURCE_FILENAMES or extension in SOURCE_EXTENSIONS
+	if rel.startswith("docs/archive/") or rel.startswith("docs/CHANGELOG-"):
+		return False
 	if rel in override_paths:
 		return False
 	return is_source
@@ -152,7 +194,10 @@ def count_file_lines(path: str) -> int:
 
 
 #============================================
-def violations_for_line_count(rel: str, line_count: int) -> list[str]:
+def violations_for_line_count(
+		rel: str, line_count: int,
+		baseline_limits: dict[str, int] | None = None,
+		) -> list[str]:
 	"""
 	Return a violation when a source file reaches the exclusive limit.
 
@@ -161,10 +206,15 @@ def violations_for_line_count(rel: str, line_count: int) -> list[str]:
 		line_count: Physical line count for the file.
 
 	Returns:
-		list[str]: One violation at 1000 or more lines, otherwise an empty list.
+		list[str]: One violation above the applicable ceiling, otherwise empty.
 	"""
 	if line_count < LINE_LIMIT:
 		return []
+	if baseline_limits is not None and rel in baseline_limits:
+		baseline = baseline_limits[rel]
+		if line_count <= baseline:
+			return []
+		return [f"{rel}: {line_count} lines exceeds debt baseline {baseline}"]
 	message = f"{rel}: {line_count} lines"
 	return [message]
 
@@ -182,7 +232,7 @@ def check_file(rel: str) -> list[str]:
 	"""
 	abs_path = os.path.join(file_utils.get_repo_root(), rel)
 	line_count = count_file_lines(abs_path)
-	violations = violations_for_line_count(rel, line_count)
+	violations = violations_for_line_count(rel, line_count, BASELINE_LIMITS)
 	return violations
 
 
@@ -222,6 +272,36 @@ def test_source_file_line_limit_override_list(tmp_path: pathlib.Path) -> None:
 	)
 	overrides = load_override_paths(str(tmp_path))
 	assert not is_source_file("docs/QTI_v3_SPEC.md", overrides)
+
+
+#============================================
+@pytest.mark.parametrize("path", (
+	"docs/archive/completed_plan.md",
+	"docs/CHANGELOG-2026-02a.md",
+))
+def test_source_file_line_limit_excludes_archived_documents(path: str) -> None:
+	"""Historical documentation is outside the active-source decomposition gate."""
+	assert not is_source_file(path, frozenset())
+
+
+#============================================
+def test_source_file_line_limit_debt_baseline(tmp_path: pathlib.Path) -> None:
+	"""Existing debt may shrink but cannot exceed its exact recorded ceiling."""
+	tests_dir = tmp_path / "tests"
+	tests_dir.mkdir()
+	tests_dir.joinpath("source_file_line_limit_baseline.txt").write_text(
+		"# Existing decomposition debt\n1200 legacy.py\n",
+		encoding="utf-8",
+	)
+	limits = load_baseline_limits(str(tmp_path))
+
+	assert violations_for_line_count("legacy.py", 1200, limits) == []
+	assert violations_for_line_count("legacy.py", 1201, limits) == [
+		"legacy.py: 1201 lines exceeds debt baseline 1200"
+	]
+	assert violations_for_line_count("new.py", 1000, limits) == [
+		"new.py: 1000 lines"
+	]
 
 
 #============================================

@@ -1,5 +1,10 @@
 # Internal access audit
 
+> Status (2026-08-11): resolved historical inventory. BKChem now owns a local
+> `_bond_vertices` compatibility list and composition delegates; the current Qt
+> frontend has no `_vertices` access. The tables below record the pre-refactor
+> findings and must not be read as current violations.
+
 Audit of every `._vertices`, `._neighbors`, `._edges`, and `.properties_`
 access in BKChem code that reaches into OASA internals. After the composition
 refactor, BKChem classes will no longer inherit from OASA, so each of these

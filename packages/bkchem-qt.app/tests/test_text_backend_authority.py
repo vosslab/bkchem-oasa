@@ -183,10 +183,13 @@ def test_accepted_text_projection_retry_uses_current_snapshot_once(
 	def capture_candidate(
 			complete_cdml: str, provisional_id: str,
 			position: tuple[float, float], text: str,
+			drawing_standard: object | None = None,
 			) -> str:
 		"""Record one candidate build while preserving the production builder."""
 		calls.append(provisional_id)
-		return original(complete_cdml, provisional_id, position, text)
+		return original(
+			complete_cdml, provisional_id, position, text, drawing_standard,
+		)
 
 	try:
 		monkeypatch.setattr(

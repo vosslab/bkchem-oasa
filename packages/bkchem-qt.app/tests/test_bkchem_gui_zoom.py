@@ -1,7 +1,6 @@
 """BKChem-Qt GUI zoom behavior tests."""
 
 # Standard Library
-import io
 import math
 
 # PIP3 modules
@@ -9,8 +8,6 @@ import PySide6.QtCore
 import PySide6.QtWidgets
 
 # local repo modules
-import bkchem_qt.actions.file_actions
-import bkchem_qt.bridge.oasa_bridge
 import bkchem_qt.canvas.items.atom_item
 import bkchem_qt.canvas.items.bond_item
 import bkchem_qt.canvas.view
@@ -92,18 +89,17 @@ def _simulate_snapped_button_zoom(start_percent: float, direction: int, steps: i
 
 
 #============================================
-def _import_cholesterol_from_smiles(main_window: object) -> list:
-	"""Import cholesterol from SMILES and add it to scene+document."""
-	smiles_file = io.StringIO(_CHOLESTEROL_SMILES + "\n")
-	molecules = bkchem_qt.bridge.oasa_bridge.read_codec_file("smiles", smiles_file)
-	if not molecules:
-		raise AssertionError("Failed to parse cholesterol SMILES in Qt zoom test.")
-	bkchem_qt.actions.file_actions._add_molecules_to_scene(main_window, molecules)
-	return molecules
+def _import_cholesterol_from_smiles(
+		main_window: object, insert_smiles_through_backend: object,
+		) -> object:
+	"""Install cholesterol through the backend-authoritative molecule route."""
+	return insert_smiles_through_backend(main_window, _CHOLESTEROL_SMILES)
 
 
 #============================================
-def test_qt_gui_zoom_diagnostic(main_window: object) -> None:
+def test_qt_gui_zoom_diagnostic(
+		main_window: object, insert_smiles_through_backend: object,
+		) -> None:
 	"""Validate zoom sequence behavior around content and viewport symmetry."""
 	scene = main_window.scene
 	view = main_window.view
@@ -111,7 +107,7 @@ def test_qt_gui_zoom_diagnostic(main_window: object) -> None:
 	# import biomolecule template content so zoom_to_content has meaningful bounds
 	start_atoms = _count_atoms(scene)
 	start_bonds = _count_bonds(scene)
-	_import_cholesterol_from_smiles(main_window)
+	_import_cholesterol_from_smiles(main_window, insert_smiles_through_backend)
 	_flush_events()
 	assert _count_atoms(scene) >= start_atoms + 27, (
 		"cholesterol import should add at least 27 heavy atoms"

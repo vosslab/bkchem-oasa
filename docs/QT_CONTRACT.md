@@ -65,6 +65,16 @@ validator conformance; see [CDML_FORMAT_SPEC.md](CDML_FORMAT_SPEC.md).
   ID-less child to its owning direct-root molecule when that molecule has a
   durable backend ID; the request contains that root ID only. An unavailable
   ID for the target addressed by an interaction makes that interaction inert.
+- Chemistry Info is enabled only for one or more selected durable direct-root
+  molecules in the current synchronized projection. Qt captures their ordered
+  IDs and exact revision, then displays the backend's immutable per-molecule
+  and combined formula, average and monoisotopic mass, elemental composition,
+  and chemistry-graph counts in a selectable read-only dialog. It never derives
+  chemistry from `AtomModel` symbols or reparses snapshot CDML; implicit
+  hydrogens remain an OASA concern. No selection has an actionable prompt, and
+  stale, unavailable, or unsupported observations have a recoverable warning.
+  The action creates no command, revision, dirty transition, selection change,
+  or reprojection.
 - Chemistry Check and Oxidation Number capture one current synchronized
   revision and selected durable direct-root molecule IDs, then read one
   exact-revision backend atom-chemistry observation. They do not consult the
@@ -95,6 +105,14 @@ validator conformance; see [CDML_FORMAT_SPEC.md](CDML_FORMAT_SPEC.md).
   or a complete-CDML candidate. An empty intent is an authoritative no-op and
   preserves raw compatibility attributes, absent fields, extensions, later
   paper records, and the live projection.
+- Document Drawing Style captures the same exact active-session aliases and an
+  OASA drawing-standard observation plus durable selected top-level keys. Its
+  dialog owns only temporary controls, explicit changed scalars, scope, and the
+  changed/all override-field choice. OASA atomically owns default inheritance,
+  selected/all override materialization, validation, CDML mutation, dirty state,
+  and revision history; the accepted snapshot replaces the Qt projection.
+  Personal defaults are versioned plain application preferences. A valid saved
+  value seeds a clean new backend document; it is never a second document store.
 
 ## Session-state model
 
@@ -215,6 +233,19 @@ canonical no-op does not replace the projection or create backend history.
 Tab replacement, disposal, or loss of active ownership after dialog opening
 makes the result unavailable; Qt never redirects it to another tab. Backend
 undo restores paper state through the same canonical reprojection path.
+
+Options > Document Drawing Style follows the same modal ownership rule. It
+captures one synchronized session and revision, displays OASA's effective
+defaults, and submits only changed plain values plus an explicit defaults,
+selected, or all-object scope. Selected scope uses the durable top-level keys
+captured before the dialog; changed/all chooses only which fields OASA
+materializes as per-object overrides. Cancel and invalid input are inert. A tab
+switch, disposal, or stale revision after the dialog opens cannot redirect the
+request. Accepted backend history is the only document undo; the dialog and
+the replaced Qt model never become a second standard owner. A separately
+accepted personal-default choice writes versioned application settings only
+after document acceptance. Present document defaults also author applicable
+explicit values on later frontend presentation proposals.
 
 The bounded Draw route covers four completed user gestures: releasing on blank
 canvas creates a fresh bonded pair, extending from an existing atom adds its
@@ -451,9 +482,10 @@ visibility; Clear sends the exact `(null, null)` pair. Clear on an unnumbered
 atom is an interaction no-op. Qt has no persistent local number mutation or
 undo owner for either gesture. Its next displayed candidate is transient
 presentation state derived after every outcome or reprojection from the current
-authoritative snapshot's direct core atom number fields, including hidden
-values; nested, opaque, and foreign lookalikes do not participate. The backend
-does not supply an allocator. Accepted edits use the existing backend history,
+exact-revision molecule-core observation, including hidden values. Qt does not
+reparse snapshot CDML; nested, opaque, and foreign lookalikes do not participate.
+The backend does not supply an allocator. Accepted edits use the existing
+backend history,
 dirty-state, undo/redo, Save, and Recovery Export rules. A typed rejection
 leaves the current snapshot and projection unchanged. An accepted result
 remains final if projection fails: recovery reprojects only the exact current
@@ -860,10 +892,13 @@ The receipt contains only the fixed schema and zero exit code, and is written
 atomically only after QApplication and MainWindow initialization, normal timer
 event-loop exit, and this controlled retirement boundary all succeed. It is
 not written for a failed lifecycle result and it does not conceal a later
-native-process diagnostic. The macOS builder evaluates the direct process
-result, app-owned receipt, and captured fatal diagnostics as separate
-observations. Finder registration is outside this application-lifecycle
-contract.
+native-process diagnostic. The macOS builder validates two independent launch
+routes. Direct execution uses the offscreen Qt platform and evaluates process
+status, app-owned receipt, and captured fatal diagnostics. Native execution
+uses `/usr/bin/open -n -W`, removes any inherited offscreen override, and
+requires its own app-owned receipt. A pass proves local LaunchServices startup,
+normal event-loop exit, and retirement; it does not claim signing,
+notarization, persistent Finder registration, or DMG delivery.
 
 ## Close and replacement
 

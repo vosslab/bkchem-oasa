@@ -63,10 +63,11 @@ DMG delivery artifact.
 
 ## Known limitations
 
-- This repository documents pip source installs. A signed, notarized, or DMG
-  application artifact is not currently claimed. A direct frozen-executable
-  lifecycle smoke is retained as bounded builder evidence; Finder registration,
-  signing, notarization, and DMG delivery belong to a separate distribution
-  project.
+- This repository documents pip source installs. The experimental macOS app
+  builder validates both a direct offscreen lifecycle and a native
+  LaunchServices launch, each with independent app-owned completion evidence.
+  This proves that the local bundle starts and retires through both routes; it
+  does not claim a signed, notarized, persistently registered, or DMG-delivered
+  application. Those distribution concerns remain a separate project.
 - The app saves editable documents only as `.cdml`; see [USAGE.md](USAGE.md)
   for imports, rendered exports, and Recovery Export.

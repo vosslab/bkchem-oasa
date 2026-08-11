@@ -33,6 +33,10 @@ SECTION_HEADER_PATTERN = re.compile(r"^\[(?P<section>[^\]]+)\]\s*$")
 VERSION_LINE_PATTERN = re.compile(
 	r"^(?P<indent>\s*)version\s*=\s*(?P<quote>['\"])(?P<version>[^'\"]+)(?P=quote)(?P<rest>.*)$"
 )
+OASA_REQUIREMENT_PATTERN = re.compile(
+	r"(?P<quote>['\"])oasa(?:\[[^]]+\])?\s*>=\s*"
+	r"(?P<version>[^\s,;'\"]+)"
+)
 CARGO_PACKAGE_HEADER_PATTERN = re.compile(r"^\[\[package\]\]\s*$")
 # Prerelease tag vocabularies, one per direction. Previously rebuilt inside
 # parse_version_details (twice), format_version, and normalize_cargo_version.
@@ -464,6 +468,13 @@ def update_pyproject(text: str, sections: list[str], new_version: str) -> tuple[
 
 		if active_section not in sections:
 			continue
+		if active_section == "project":
+			dependency_match = OASA_REQUIREMENT_PATTERN.search(line)
+			if dependency_match:
+				start, end = dependency_match.span("version")
+				lines[index] = line[:start] + new_version + line[end:]
+				changed = True
+				continue
 
 		match = VERSION_LINE_PATTERN.match(line)
 		if not match:

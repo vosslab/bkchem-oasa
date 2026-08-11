@@ -590,15 +590,7 @@ def _hydrate_molecule_core_observation(
 			line_color=record_atom.line_color if record_atom.line_color is not None else "#000000",
 			number=record_atom.number,
 			show_number=record_atom.show_number if record_atom.show_number is not None else True,
-			explicit_fields=frozenset(
-				name for name, value in (
-					("show", record_atom.show),
-					("show_hydrogens", record_atom.show_hydrogens),
-					("font_size", record_atom.font_size),
-					("font_family", record_atom.font_family),
-					("line_color", record_atom.line_color),
-				) if value is not None
-			),
+			explicit_fields=frozenset(record_atom.explicit_fields),
 		)
 		atom.bind_backend_durable_id(
 			record_atom.identifier if record_atom.addressable else None,

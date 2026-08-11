@@ -91,6 +91,7 @@ Preferred structure:
 ## Source file size
 - Tracked authored source files stay under 1000 physical lines: 999 passes; 1000 fails.
   `tests/test_source_file_line_limit.py` defines the scope.
+- Historical `docs/archive/` files and rotated `docs/CHANGELOG-*.md` files are excluded.
 - Managers may exempt tracked external sources in `tests/source_file_line_limit_overrides.txt`,
   one exact repo-relative path per line.
 

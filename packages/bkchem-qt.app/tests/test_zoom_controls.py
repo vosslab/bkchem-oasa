@@ -1,7 +1,6 @@
 """Tests for zoom controls: view API, main window handlers, and widget."""
 
 # Standard Library
-import io
 import math
 import pathlib
 
@@ -10,8 +9,6 @@ import pytest
 import PySide6.QtWidgets
 
 # local repo modules
-import bkchem_qt.actions.file_actions
-import bkchem_qt.bridge.oasa_bridge
 import bkchem_qt.canvas.view
 import bkchem_qt.widgets.zoom_controls
 
@@ -35,15 +32,13 @@ def _viewport_center_scene(view: object) -> object:
 
 
 #============================================
-def _import_cholesterol_from_smiles(main_window: object) -> object:
-	"""Import cholesterol via SMILES into the Qt document/scene."""
-	smiles_file = io.StringIO(_CHOLESTEROL_SMILES + "\n")
-	molecules = bkchem_qt.bridge.oasa_bridge.read_codec_file("smiles", smiles_file)
-	if not molecules:
-		raise AssertionError("Failed to parse cholesterol SMILES in zoom-controls test.")
-	bkchem_qt.actions.file_actions._add_molecules_to_scene(main_window, molecules)
+def _import_cholesterol_from_smiles(
+		main_window: object, insert_smiles_through_backend: object,
+		) -> object:
+	"""Install cholesterol through the backend-authoritative molecule route."""
+	molecule = insert_smiles_through_backend(main_window, _CHOLESTEROL_SMILES)
 	_flush_events()
-	return molecules[0]
+	return molecule
 
 
 #============================================
@@ -324,9 +319,11 @@ def _assert_up_down_coordinate_symmetry(
 
 
 #============================================
-def test_zoom_in_increases_percent(main_window: object) -> None:
+def test_zoom_in_increases_percent(
+		main_window: object, insert_smiles_through_backend: object,
+		) -> None:
 	"""Calling on_zoom_in raises zoom on visible cholesterol content."""
-	_import_cholesterol_from_smiles(main_window)
+	_import_cholesterol_from_smiles(main_window, insert_smiles_through_backend)
 	main_window.on_zoom_to_content()
 	_flush_events()
 	start_zoom = main_window.view.zoom_percent
@@ -435,9 +432,11 @@ def test_zoom_controls_label_updates(main_window: object) -> None:
 
 
 #============================================
-def test_zoom_diagnostic_with_cholesterol(main_window: object) -> None:
+def test_zoom_diagnostic_with_cholesterol(
+		main_window: object, insert_smiles_through_backend: object,
+		) -> None:
 	"""Run a cholesterol-backed zoom diagnostic with round-trip checks."""
-	_import_cholesterol_from_smiles(main_window)
+	_import_cholesterol_from_smiles(main_window, insert_smiles_through_backend)
 	main_window.on_zoom_to_content()
 	_flush_events()
 
@@ -495,9 +494,11 @@ def test_zoom_diagnostic_with_cholesterol(main_window: object) -> None:
 
 
 #============================================
-def test_zoom_model_coords_stable_with_cholesterol(main_window: object) -> None:
+def test_zoom_model_coords_stable_with_cholesterol(
+		main_window: object, insert_smiles_through_backend: object,
+		) -> None:
 	"""Model coordinates must remain unchanged across extreme zoom operations."""
-	_import_cholesterol_from_smiles(main_window)
+	_import_cholesterol_from_smiles(main_window, insert_smiles_through_backend)
 	molecule = _first_molecule(main_window)
 	coords_before = _capture_model_coords(molecule)
 	assert coords_before, "Expected at least one atom coordinate."
@@ -539,9 +540,11 @@ def test_zoom_model_coords_stable_with_cholesterol(main_window: object) -> None:
 
 
 #============================================
-def test_zoom_roundtrip_symmetry_with_cholesterol(main_window: object) -> None:
+def test_zoom_roundtrip_symmetry_with_cholesterol(
+		main_window: object, insert_smiles_through_backend: object,
+		) -> None:
 	"""Zoom out from high zoom and back; viewport center should round-trip."""
-	_import_cholesterol_from_smiles(main_window)
+	_import_cholesterol_from_smiles(main_window, insert_smiles_through_backend)
 	main_window.on_zoom_to_content()
 	_flush_events()
 
@@ -581,9 +584,13 @@ def test_zoom_roundtrip_symmetry_with_cholesterol(main_window: object) -> None:
 
 
 #============================================
-def test_zoom_sweep_25_to_400_and_400_to_25_no_inversion(main_window: object) -> None:
+def test_zoom_sweep_25_to_400_and_400_to_25_no_inversion(
+		main_window: object, insert_smiles_through_backend: object,
+		) -> None:
 	"""Sweep fixed direct-set zoom levels and verify no orientation inversion."""
-	molecule = _import_cholesterol_from_smiles(main_window)
+	molecule = _import_cholesterol_from_smiles(
+		main_window, insert_smiles_through_backend,
+	)
 	p1_scene, p2_scene = _fixed_atom_pair_scene_points(molecule)
 	main_window.on_zoom_to_content()
 	_flush_events()

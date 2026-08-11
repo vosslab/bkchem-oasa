@@ -157,7 +157,7 @@ def test_atom_number_operations_use_backend_history_for_assignment_clear_and_red
 def test_numbering_ribbon_uses_authoritative_hidden_number_for_its_candidate(
 		main_window: bkchem_qt.main_window.MainWindow,
 		) -> None:
-	"""The public numbering submode derives its next value from canonical CDML."""
+	"""The public numbering submode derives its next value from backend facts."""
 	session = _new_session(main_window)
 	try:
 		mode = _misc_mode(session)

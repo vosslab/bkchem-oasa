@@ -23,6 +23,7 @@ import rich.panel
 # local repo modules
 import changelog_lib
 import version_lib
+import version_registry
 
 CHANGELOG_PATHSPEC = "docs/CHANGELOG.md"
 VERSION_PATHSPEC = "VERSION"
@@ -37,10 +38,10 @@ BODY_LINE_BUDGET = 100
 #============================================
 
 def read_version_file() -> str:
-	"""Read VERSION file relative to repo_root and return stripped contents.
+	"""Read the canonical VERSION assignment from the Git worktree root.
 
 	Returns:
-		Stripped contents of the VERSION file.
+		Release version from the VERSION assignment.
 
 	Raises:
 		RuntimeError: When the VERSION file does not exist or cannot be read.
@@ -48,15 +49,12 @@ def read_version_file() -> str:
 	repo_root = changelog_lib.get_git_root()
 	version_path = os.path.join(repo_root, VERSION_PATHSPEC)
 	try:
-		with open(version_path, "r", encoding="utf-8") as f:
-			version_contents = f.read().strip()
+		version = version_registry.read_version_file(version_path)
 	except FileNotFoundError:
 		raise RuntimeError(f"VERSION file not found at {version_path}.")
-	except IOError as e:
-		raise RuntimeError(f"Failed to read VERSION file: {e}")
-	if not version_contents:
-		raise RuntimeError(f"VERSION file is empty: {version_path}.")
-	return version_contents
+	except (OSError, ValueError) as error:
+		raise RuntimeError(f"Failed to read VERSION file: {error}")
+	return version
 
 #============================================
 

@@ -39,9 +39,9 @@ transaction. Hydrogens remain implicit in this editable molecular view.
 | --- | --- |
 | Native document | Open, edit, save, reopen, and recover complete CDML 26.07 documents. |
 | Molecular editing | Draw atoms and bonds, use templates, edit supported chemistry, and repair geometry. |
-| Drawing objects | Persist arrows, rich text, plus signs, brackets, vectors, marks, groups, and ordering. |
+| Drawing objects | Persist arrows, rich text, plus signs, brackets, vectors, marks, groups, ordering, and document/personal drawing styles with selected or all-object application. |
 | History | Apply persistent edits as atomic backend commits with undo, redo, dirty state, and saved-baseline tracking. |
-| Chemistry helpers | Generate coordinates, insert Haworth sugars, create supported direct-glycosidic Haworth drawings, and perform user-requested PubChem lookup. |
+| Chemistry helpers | Import SMILES/InChI, export selected structures as SMILES/InChI/InChIKey, generate coordinates, insert Haworth sugars, and perform PubChem lookup. |
 | Import and export | Import the documented chemistry formats and export SVG, PNG, and PDF snapshots. |
 | Application | Run the supported PySide6 desktop editor from a source or pip installation. |
 

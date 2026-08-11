@@ -33,6 +33,7 @@ class Preferences:
 	# legacy key retained only for hard-cut cleanup
 	KEY_BOND_LENGTH: str = "drawing/bond_length"
 	KEY_BOND_LENGTH_PT: str = "drawing/bond_length_pt"
+	KEY_PERSONAL_DRAWING_STANDARD: str = "drawing/personal_standard_v1"
 	KEY_LOGGING_LEVEL: str = "general/logging_level"
 
 	# -- default values for every key --
@@ -45,6 +46,7 @@ class Preferences:
 		KEY_RECENT_FILES: [],
 		KEY_ZOOM_LEVEL: 100.0,
 		KEY_BOND_LENGTH_PT: 40.0,
+		KEY_PERSONAL_DRAWING_STANDARD: None,
 		KEY_LOGGING_LEVEL: "Warnings",
 	}
 

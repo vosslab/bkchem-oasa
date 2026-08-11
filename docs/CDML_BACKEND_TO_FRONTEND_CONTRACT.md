@@ -118,6 +118,19 @@ presentation description; they retain no root, header, paper, reaction, or
 external-data XML in their synchronized envelope. Standalone compatibility
 loading remains available where no backend session supplies the observation.
 
+`CDMLDrawingStandardQuery` observes the first direct core `standard` at one
+exact revision. Its immutable result contains only effective drawing scalars
+and plain diagnostics. OASA applies those values to molecule projection and
+render observations only where atom or bond depiction fields are absent;
+lexically explicit per-object values remain explicit overrides. Foreign
+lookalikes, later standards, unknown attributes, and child extensions remain
+backend-owned document content.
+
+A frontend may use that exact-revision observation when authoring a new
+presentation proposal. The proposal records applicable values as ordinary
+explicit CDML attributes; the frontend never infers or reparses the retained
+`standard` XML.
+
 ## Snapshots, values, and failures
 
 The backend exposes these behavioral operations:
@@ -149,6 +162,7 @@ The backend exposes these behavioral operations:
 | Observe molecule core | Exact expected revision | Immutable molecule, atom, bond, endpoint-order, and depiction facts with renderability, actionability, and diagnostics. Child actionability requires a unique durable direct-root molecule and child ID; a bond renders only when both endpoint IDs name one observed direct atom. | Invalid query or revision conflict |
 | Observe atom chemistry facts | Exact expected revision | Immutable complete-direct-graph atom facts associated by durable molecule/atom IDs plus source positions. Usable records include plain element and charge display facts, effective, occupied, and free valency, implicit hydrogen count, atomic number, and the backend's electronegativity-derived oxidation result; malformed, ambiguous, foreign, nested, preservation-only, or undecodable content remains display-only with diagnostics. | Invalid query or revision conflict |
 | Observe molecule render | Exact expected revision | Immutable atom and bond paint batches from that same canonical molecule snapshot. The closed grammar is line, polygon, circle, path, and structured text runs; geometry is finite and colors are explicit or use a semantic foreground/document-background role. | Invalid query, revision conflict, or render preparation failure |
+| Observe drawing standard | Exact expected revision | Immutable effective line, color, font, atom-hydrogen, and bond drawing defaults plus plain diagnostics | Invalid query or revision conflict |
 | Expand implicit group | Expected revision, one direct-root molecule ID, and one direct implicit-group ID with exactly one editable exterior bond | Immutable accepted snapshot and generated durable atom/bond IDs | Invalid request, unsupported target content, formula, geometry, bond, target, or revision conflict |
 | Convert to linear form | Expected revision, one direct-root molecule ID, and a nonempty ordered sequence of unique selected direct atom IDs | Immutable accepted snapshot, changed/commit semantics, backend fragment ID, and derived ordered atom/bond IDs | Invalid path, target, coordinate/mark geometry, external bridge, ambiguity, or revision conflict |
 | Apply atom mark | Expected revision, direct-root molecule ID, direct core atom ID, exact `add` or `remove` action, one supported exact mark type, and optional nonnegative same-type core-child removal ordinal | Immutable accepted snapshot plus `added`, `removed`, or `unchanged` action result | Invalid request, selector, target, coordinate geometry, scalar result, or revision conflict |
@@ -162,6 +176,7 @@ The backend exposes these behavioral operations:
 | Patch bond properties | Expected revision, direct-root molecule ID, direct core bond ID, and unique explicit field/value pairs for order, type, center, widths, or six-digit color | Immutable accepted snapshot, or unchanged current snapshot for a canonical no-op | Invalid request, repeated field, target, endpoint, final type/order, depiction value, or revision conflict |
 | Set molecule name | Expected revision, direct-root molecule ID, and exact display-name string | Immutable accepted canonical snapshot, or unchanged current snapshot for a no-op | Invalid request, target, or revision conflict |
 | Set paper properties | Expected revision plus explicit field intent: recognized type or orientation, boolean crop/minus fields, nonnegative crop margin, and an atomic positive finite dimensions pair only for effective `custom` type | Immutable accepted canonical snapshot, or unchanged current snapshot for a no-op | Invalid request shape, repeated or unsupported field, invalid paper value, or revision conflict |
+| Apply drawing standard | Expected revision; unique changed default fields; exact `defaults`, `selected`, or `all` scope; durable selected root IDs where applicable; and unique fields to materialize as overrides | Immutable accepted canonical snapshot, or unchanged current snapshot for a no-op | Invalid request shape, scope, repeated or unsupported field, target, ambiguous direct font, value, or revision conflict |
 | Query molecule SMILES | Expected revision and one direct-root molecule durable ID | Immutable revision-tagged canonical/isomeric SMILES value | Invalid request, target, unavailable chemistry conversion, or revision conflict |
 | Repair geometry | Expected revision, nonempty direct-root molecule IDs, supported kind, and finite-positive `target_spacing_pt` in PostScript points | Immutable current snapshot; a changed repair includes one immutable accepted commit | Invalid request, target, geometry, or revision conflict |
 | Transform top level | Expected revision, exact supported mode, nonempty unique durable direct-root IDs, scale factors only for `scale`, or an exact finite two-value scene/PostScript-point delta only for `translate` | Immutable accepted snapshot, or unchanged current snapshot for a canonical no-op | Invalid request, target, geometry, scalar, or revision conflict |
@@ -213,6 +228,24 @@ effective absent-paper defaults as fresh plain data, so a client can display
 one later patch without inventing a frontend fallback. A
 canonical no-op allocates no revision or history entry and replaces no frontend
 projection.
+
+Apply drawing standard is a revision-bound backend transaction over the first
+direct core `standard`. A first nonempty patch creates that record before paper,
+viewport, or drawable roots; empty intent preserves absence. The backend
+changes only requested attributes or direct `atom`/`bond` defaults, writes
+portable width values in centimetres, and preserves every other attribute,
+child, foreign record, later standard, and root position. Colors normalize to
+six-digit lowercase hexadecimal; widths, font values, the double-line ratio,
+and the hydrogen flag are bounded typed values. `defaults` changes no object
+override. `selected` resolves a nonempty set of unique durable direct molecule
+or presentation roots; `all` resolves every supported direct root. The backend
+then materializes only the requested applicable fields on direct atoms, bonds,
+and supported presentation records in the same detached candidate. An invalid
+target or ambiguous direct font rejects the whole transaction without partial
+mutation. The accepted snapshot uses the ordinary dirty/history/reprojection
+path. A modal frontend captures the exact session, revision, and selection
+before displaying values, and Cancel, invalid input, a tab switch, disposal,
+or stale revision cannot mutate or retarget a document.
 
 Patch bond properties is a revision-bound backend patch for one direct core
 bond. Its request is an immutable ordered sequence of unique explicit
@@ -517,6 +550,9 @@ are typed atomic failures. A compatibility failure leaves that direct legacy
 mark unchanged. Unrelated, nested, and opaque content remain preservation
 content and are not number targets. This operation uses existing CDML 26.07
 attributes and does not change the format version or grammar.
+The next-number candidate is frontend presentation state derived from the
+exact-revision molecule-core observation, not from frontend parsing of the
+authoritative snapshot. The backend does not reserve or allocate that value.
 
 Translate atoms is a bounded backend operation for selected direct core `<atom>`
 records. Its immutable request names an expected revision, ordered unique
@@ -541,6 +577,21 @@ the unchanged snapshot without creating a revision or history entry. Missing,
 nested, opaque, wrong-kind, malformed, and stale targets are typed atomic
 failures; identities, references, child content, order, and unrelated records
 remain unchanged.
+
+Query molecule summary is a bounded nonmutating backend observation. Its
+immutable request names one expected revision and a nonempty ordered sequence
+of unique direct-root core molecule durable IDs. The backend resolves and
+decodes only those exact persistent roots and returns immutable plain facts in
+request order: authored name and ID, chemistry-graph atom and bond counts,
+formula including implicit and explicit hydrogens, average molecular weight,
+monoisotopic mass, elemental counts, and mass percentages. A combined formula,
+mass, and composition is calculated from the same batch and revision rather
+than from separately observed frontend projections. Foreign lookalikes and
+nested opaque chemistry remain preservation-only. Invalid query shapes,
+missing or wrong-kind roots, unsupported chemistry conversions, and stale
+revisions are typed failures. The observation never receives a frontend model,
+serializes CDML, creates a candidate or history entry, changes selection,
+revision, saved baseline, dirty state, or document content.
 
 Query molecule SMILES is a bounded nonmutating backend observation. Its
 immutable request names one expected revision and one direct-root core

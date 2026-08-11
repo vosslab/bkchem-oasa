@@ -114,6 +114,7 @@ menus:
       - action: chemistry.lookup_pubchem
       - separator: true
       - action: chemistry.gen_smiles
+      - action: chemistry.gen_inchi
       - separator: true
       - action: chemistry.set_name
       - separator: true
@@ -141,6 +142,8 @@ menus:
     help_key: "Settings that affect how BKChem works"
     side: "left"
     items:
+      - action: options.standard
+      - separator: true
       - action: options.logging
       - separator: true
       - action: options.theme

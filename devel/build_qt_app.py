@@ -5,7 +5,6 @@
 # Standard Library
 import argparse
 import dataclasses
-import json
 import math
 import os
 import pathlib
@@ -29,6 +28,7 @@ from PyInstaller.archive import readers as pyinstaller_archive_readers
 
 # local repo modules
 import oasa.version_registry as release_version_registry
+import macos_app_smoke
 import qt_bundle_plan
 import version_registry
 
@@ -44,8 +44,6 @@ ICON_SPECS = tuple(
 	for scale_suffix, scale in ICON_SCALES
 )
 VERSION_CHECK_TIMEOUT_SECONDS = 10.0
-SMOKE_STARTUP_ALLOWANCE_SECONDS = 10.0
-SMOKE_RECEIPT_SCHEMA = "bkchem-smoke-1"
 ICONUTIL_SELF_TEST_TIMEOUT_SECONDS = 10.0
 ICONUTIL_SELF_TEST_ICON = pathlib.Path(
 	"/System/Applications/Chess.app/Contents/Resources/AppIcon.icns"
@@ -106,22 +104,6 @@ class MacAppLayout:
 	frameworks_root: pathlib.Path
 	executable_path: pathlib.Path
 	info_path: pathlib.Path
-
-
-#============================================
-class SmokePathError(RuntimeError):
-	"""Report a smoke artifact path that escapes its selected build run root."""
-
-
-#============================================
-@dataclasses.dataclass(frozen=True)
-class MacSmokePaths:
-	"""Describe validated resolved paths for one frozen-app lifecycle smoke."""
-
-	root: pathlib.Path
-	stdout_path: pathlib.Path
-	stderr_path: pathlib.Path
-	receipt_path: pathlib.Path
 
 
 #============================================
@@ -639,155 +621,6 @@ def stage_frontend_metadata(
 
 
 #============================================
-def make_smoke_args(
-		app_path: pathlib.Path, seconds: float, smoke_root: pathlib.Path,
-		) -> tuple[str, ...]:
-	"""Return the direct timer-exit command for one built macOS app.
-
-	Args:
-		app_path: Expected ``BKChem.app`` location.
-		seconds: Positive finite duration before normal Qt event-loop exit.
-		smoke_root: Fresh builder-owned directory for app diagnostics and receipt.
-
-	Returns:
-		Immutable smoke command tuple.
-
-	Raises:
-		ValueError: If the requested timer duration is not positive and finite.
-	"""
-	if not math.isfinite(seconds) or seconds <= 0.0:
-		raise ValueError("--smoke-exit must be a finite positive number of seconds")
-	command = (
-		str(app_path / "Contents" / "MacOS" / "BKChem"),
-		"--smoke-exit", str(seconds),
-		"--smoke-receipt", str(smoke_root / "completion.json"),
-	)
-	return command
-
-
-#============================================
-def resolve_macos_smoke_paths(
-		smoke_root: pathlib.Path, build_run_root: pathlib.Path,
-		) -> MacSmokePaths:
-	"""Resolve and contain every smoke artifact below one selected build run.
-
-	Args:
-		smoke_root: Requested fresh directory for this smoke's diagnostics.
-		build_run_root: Already selected fresh retained build run root.
-
-	Returns:
-		Resolved contained smoke directory and fixed log/receipt paths.
-
-	Raises:
-		SmokePathError: If any resolved smoke path escapes the selected run root.
-	"""
-	resolved_run_root = build_run_root.resolve()
-	resolved_smoke_root = smoke_root.resolve()
-	if resolved_smoke_root == resolved_run_root:
-		raise SmokePathError(
-			"macOS smoke root must be a child of the selected build run root: "
-			f"{resolved_smoke_root}"
-		)
-	candidates = {
-		"smoke root": resolved_smoke_root,
-		"smoke stdout log": (resolved_smoke_root / "stdout.log").resolve(),
-		"smoke stderr log": (resolved_smoke_root / "stderr.log").resolve(),
-		"smoke receipt": (resolved_smoke_root / "completion.json").resolve(),
-	}
-	for label, candidate in candidates.items():
-		if not candidate.is_relative_to(resolved_run_root):
-			raise SmokePathError(
-				f"{label} escapes selected build run root {resolved_run_root}: {candidate}"
-			)
-	paths = MacSmokePaths(
-		root=candidates["smoke root"],
-		stdout_path=candidates["smoke stdout log"],
-		stderr_path=candidates["smoke stderr log"],
-		receipt_path=candidates["smoke receipt"],
-	)
-	return paths
-
-
-#============================================
-def _validate_smoke_receipt(receipt_path: pathlib.Path) -> None:
-	"""Require one exact successful application lifecycle receipt.
-
-	Args:
-		receipt_path: Expected fresh JSON receipt written by the launched app.
-
-	Raises:
-		RuntimeError: If the receipt is absent, unreadable, or not the fixed schema.
-	"""
-	try:
-		payload = json.loads(receipt_path.read_text(encoding="utf-8"))
-	except (OSError, json.JSONDecodeError) as error:
-		raise RuntimeError(f"Missing or invalid smoke receipt: {receipt_path}: {error}") from error
-	if payload != {"schema": SMOKE_RECEIPT_SCHEMA, "exit_code": 0}:
-		raise RuntimeError(f"Invalid smoke receipt: {receipt_path}: {payload!r}")
-
-
-#============================================
-def _fatal_smoke_diagnostic(stderr_path: pathlib.Path) -> str | None:
-	"""Return one retained fatal application diagnostic, when present."""
-	try:
-		stderr = stderr_path.read_text(encoding="utf-8", errors="replace")
-	except OSError as error:
-		raise RuntimeError(f"Missing macOS smoke stderr log: {stderr_path}: {error}") from error
-	for marker in (
-		"Abort trap", "Fatal Python error", "Segmentation fault", "EXC_CRASH", "EXC_BAD_ACCESS",
-	):
-		if marker in stderr:
-			return marker
-	return None
-
-
-#============================================
-def _write_smoke_logs(
-		paths: MacSmokePaths, result: subprocess.CompletedProcess[str],
-		) -> None:
-	"""Retain frozen-app output next to its lifecycle receipt."""
-	try:
-		paths.stdout_path.write_text(result.stdout, encoding="utf-8")
-		paths.stderr_path.write_text(result.stderr, encoding="utf-8")
-	except OSError as error:
-		raise RuntimeError(f"Could not retain macOS smoke output: {error}") from error
-
-
-#============================================
-def run_macos_smoke(
-		app_path: pathlib.Path, seconds: float, smoke_root: pathlib.Path,
-		build_run_root: pathlib.Path, repo_root: pathlib.Path,
-		runner: Callable[[tuple[str, ...], pathlib.Path, float], subprocess.CompletedProcess[str]],
-		) -> None:
-	"""Run one bounded frozen app and require app-owned completion proof."""
-	smoke_paths = resolve_macos_smoke_paths(smoke_root, build_run_root)
-	if smoke_paths.root.exists():
-		raise RuntimeError(f"macOS smoke root must be fresh: {smoke_paths.root}")
-	smoke_paths.root.mkdir(parents=True)
-	command = make_smoke_args(app_path, seconds, smoke_paths.root)
-	try:
-		result = runner(command, repo_root, seconds + SMOKE_STARTUP_ALLOWANCE_SECONDS)
-	except subprocess.TimeoutExpired as error:
-		raise RuntimeError(
-			f"macOS smoke timed out after {seconds + SMOKE_STARTUP_ALLOWANCE_SECONDS:g}s: "
-			f"{_format_command(command)}"
-		) from error
-	_write_smoke_logs(smoke_paths, result)
-	if result.returncode != 0:
-		raise RuntimeError(
-			f"macOS smoke failed ({result.returncode}): {_format_command(command)}\n"
-			f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
-		)
-	_validate_smoke_receipt(smoke_paths.receipt_path)
-	fatal_diagnostic = _fatal_smoke_diagnostic(smoke_paths.stderr_path)
-	if fatal_diagnostic is not None:
-		raise RuntimeError(
-			f"macOS smoke recorded fatal application diagnostic {fatal_diagnostic!r}: "
-			f"{smoke_paths.stderr_path}"
-		)
-
-
-#============================================
 def make_version_args(app_path: pathlib.Path) -> tuple[str, ...]:
 	"""Return the frozen application's lightweight version-check command.
 
@@ -1295,13 +1128,12 @@ def inspect_built_app(
 def run_post_build_checks(
 		plan: qt_bundle_plan.QtBundlePlan, app_path: pathlib.Path,
 		release: release_version_registry.ReleaseVersion, bundle_build: str,
-		smoke_seconds: float, smoke_root: pathlib.Path, build_run_root: pathlib.Path,
-		repo_root: pathlib.Path,
-		smoke_runner: Callable[
-			[tuple[str, ...], pathlib.Path, float], subprocess.CompletedProcess[str]
+		smoke_seconds: float, build_run_root: pathlib.Path, repo_root: pathlib.Path,
+		smoke_runners: Mapping[
+			macos_app_smoke.MacSmokeRoute, macos_app_smoke.ProcessRunner,
 			] | None = None,
 		) -> None:
-	"""Inspect a built application, then retain one bounded lifecycle smoke.
+	"""Inspect a built application, then validate both delivery launch routes.
 
 	Args:
 		plan: Validated immutable Qt bundle plan.
@@ -1309,16 +1141,16 @@ def run_post_build_checks(
 		release: Typed authoritative release identity.
 		bundle_build: Explicit validated numeric macOS build identity.
 		smoke_seconds: Positive normal event-loop smoke duration.
-		smoke_root: Fresh builder-owned directory for smoke logs and completion.
 		build_run_root: Selected fresh retained root that owns smoke artifacts.
-		repo_root: Working directory for the smoke child process.
-		smoke_runner: Optional injected bounded executable runner for focused tests.
+		repo_root: Working directory for smoke child processes.
+		smoke_runners: Optional route-specific process runners for focused tests.
 	"""
 	patch_built_app_metadata(plan, app_path, release, bundle_build)
 	finalize_built_app_signature(app_path, repo_root)
 	inspect_built_app(plan, app_path, release, bundle_build)
-	runner = smoke_runner or _run_macos_smoke_command
-	run_macos_smoke(app_path, smoke_seconds, smoke_root, build_run_root, repo_root, runner)
+	macos_app_smoke.run_macos_smoke_suite(
+		app_path, smoke_seconds, build_run_root, repo_root, smoke_runners,
+	)
 
 
 #============================================
@@ -1636,19 +1468,6 @@ def _run_checked(
 
 
 #============================================
-def _run_macos_smoke_command(
-		command: tuple[str, ...], cwd: pathlib.Path, timeout_seconds: float,
-		) -> subprocess.CompletedProcess[str]:
-	"""Run the frozen executable directly with an offscreen Qt platform."""
-	environment = dict(os.environ)
-	environment["QT_QPA_PLATFORM"] = "offscreen"
-	return subprocess.run(
-		command, cwd=cwd, env=environment, capture_output=True, text=True, check=False,
-		timeout=timeout_seconds,
-	)
-
-
-#============================================
 def _create_icon(plan: qt_bundle_plan.QtBundlePlan, layout: QtBuildLayout, repo_root: pathlib.Path) -> None:
 	"""Render the planned SVG through a self-tested host-adaptive encoder.
 
@@ -1735,7 +1554,16 @@ def main() -> None:
 	planned_metadata = layout.metadata_dir / _expected_dist_info_name(plan, release)
 	planned_pyinstaller_args = make_pyinstaller_args(plan, layout, planned_metadata)
 	planned_config_parent = _planned_pyinstaller_config_parent(layout)
-	smoke_args = make_smoke_args(layout.app_path, args.smoke_exit, layout.run_root / "smoke")
+	smoke_commands = tuple(
+		(
+			route,
+			macos_app_smoke.make_smoke_args(
+				route, layout.app_path, args.smoke_exit,
+				layout.run_root / route.artifact_directory,
+			),
+		)
+		for route in macos_app_smoke.MACOS_SMOKE_ROUTES
+	)
 	icon_commands = make_icon_commands(plan, layout)
 	print(f"Qt bundle plan: {plan.app_name} via {plan.entry_module}")
 	print(f"Run root: {layout.run_root}")
@@ -1753,7 +1581,8 @@ def main() -> None:
 	print(f"Frontend metadata stage: {planned_metadata}")
 	print(f"PyInstaller config parent: {planned_config_parent}")
 	print(f"Planned PyInstaller command: {_format_command(planned_pyinstaller_args)}")
-	print(f"Future smoke command: {_format_command(smoke_args)}")
+	for route, command in smoke_commands:
+		print(f"Future {route.label} smoke command: {_format_command(command)}")
 	if args.dry_run:
 		return
 	if args.bundle_build is None:
@@ -1771,7 +1600,7 @@ def main() -> None:
 	_run_checked(pyinstaller_args, repo_root, env=pyinstaller_environment)
 	run_post_build_checks(
 		plan, layout.app_path, release, args.bundle_build, args.smoke_exit,
-		layout.run_root / "smoke", layout.run_root, repo_root,
+		layout.run_root, repo_root,
 	)
 
 

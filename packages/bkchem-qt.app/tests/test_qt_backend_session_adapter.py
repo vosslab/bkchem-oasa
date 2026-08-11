@@ -3075,7 +3075,7 @@ def test_save_ineligible_session_requires_recovery_export_without_qt_serializati
 def test_file_action_predicates_disable_save_but_keep_recovery_export_available(
 		main_window: bkchem_qt.main_window.MainWindow,
 		) -> None:
-	"""A local persistent edit exposes recovery instead of an unsafe Save action."""
+	"""A local edit exposes recovery without enabling unavailable file actions."""
 	session = main_window._active_session
 	assert main_window._registry.is_enabled("file.save", main_window)
 	try:
@@ -3085,7 +3085,7 @@ def test_file_action_predicates_disable_save_but_keep_recovery_export_available(
 			main_window._registry.is_enabled("file.save_as", main_window),
 			main_window._registry.is_enabled("file.recovery_export", main_window),
 			main_window._registry.is_enabled("file.save_as_template", main_window),
-		) == (False, False, True, True)
+		) == (False, False, True, False)
 	finally:
 		session._discard_legacy_and_retry_projection()
 

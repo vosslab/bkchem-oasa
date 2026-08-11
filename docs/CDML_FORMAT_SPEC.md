@@ -254,14 +254,14 @@ independent of root `cdml@version` and may have a different value.
 
 ## `<standard>`
 
-Drawing defaults applied when per-object values are absent. Saved as part of
-the document and can be stored separately as a personal standard. Unit-bearing
-defaults are retained document data. Where a delivered typed adapter must
-convert a unit-bearing default, `cm` is the portable authored unit. Bare,
-`px`, `mm`, and `in` values remain compatibility-preserved historical/default
-values according to the readers that accept them; 26.07 does not define a
-shared portable conversion for those forms. Paper dimensions remain separately
-defined in millimetres.
+Drawing defaults apply when per-object values are absent. The authoritative
+drawing adapter reads the first direct core record and leaves explicit object
+values as overrides. It converts `cm`, `mm`, and `in` widths to PostScript
+points at 72 points per inch; bare and `px` widths retain their legacy numeric
+scene value. Explicit patches write portable centimetre widths and preserve
+unrequested, malformed, foreign, and later-standard content. A standard is
+saved with the document and may also be stored separately as a personal
+standard. Paper dimensions remain separately defined in millimetres.
 
 ### Attributes
 

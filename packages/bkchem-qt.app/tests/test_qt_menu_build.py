@@ -66,11 +66,18 @@ def test_enumerated_menu_action_toggles_grid(
 #============================================
 def test_recent_file_menu_entry_opens_selected_document(
 		main_window: object, qapp: object, tmp_path: pathlib.Path,
+		monkeypatch: object,
 		) -> None:
 	"""A refreshed visible Recent Files entry opens its selected CDML file."""
 	source = tmp_path / "recent-document.cdml"
 	source.write_text(
-		'<cdml version="0.15"><arrow id="arrow-1"/></cdml>', encoding="utf-8",
+		'<cdml version="26.07"><molecule id="m1"><atom id="a1" name="C">'
+		'<point x="1cm" y="1cm"/></atom></molecule></cdml>', encoding="utf-8",
+	)
+	warnings = []
+	monkeypatch.setattr(
+		PySide6.QtWidgets.QMessageBox, "warning",
+		lambda _parent, title, text: warnings.append((title, text)),
 	)
 	prefs = bkchem_qt.config.preferences.Preferences.instance()
 	previous = prefs.value(
@@ -86,6 +93,7 @@ def test_recent_file_menu_entry_opens_selected_document(
 			session.document.file_path == str(source)
 			for session in main_window.sessions
 		)
+		assert not warnings
 	finally:
 		prefs.set_value(
 			bkchem_qt.config.preferences.Preferences.KEY_RECENT_FILES, previous,
@@ -94,19 +102,18 @@ def test_recent_file_menu_entry_opens_selected_document(
 
 
 #============================================
-def test_options_menu_applies_only_delivered_preferences(
+def test_options_menu_exposes_document_style_and_omits_inactive_preferences(
 		main_window: object, qapp: object, monkeypatch: object,
 		) -> None:
-	"""Visible Options actions omit inactive promises and apply logging now."""
+	"""Options exposes authoritative style while omitting inactive promises."""
 	menu_actions = _menu_tree_actions(main_window.menuBar())
 	labels = {
 		action.text().replace("&", "")
 		for action in menu_actions
 		if not action.isSeparator()
 	}
-	assert not {
-		"Standard", "Language", "InChI program path",
-	}.intersection(labels)
+	assert "Document Drawing Style..." in labels
+	assert not {"Language", "InChI program path"}.intersection(labels)
 
 	prefs = bkchem_qt.config.preferences.Preferences.instance()
 	previous_preference = prefs.value(

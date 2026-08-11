@@ -1,5 +1,31 @@
 # Changelog
 
+## 2026-08-11
+
+### Behavior or Interface Changes
+
+- New Qt tabs start in Draw mode, use OASA paper defaults, and frame after
+  layout; first Draw creates backend structure. Chemistry Info reads exact OASA
+  composition, Numbering avoids CDML reparsing, and Drawing Style atomically
+  supports selected/all overrides plus clean personal defaults for later files.
+  The macOS builder now validates independent direct/offscreen and native
+  LaunchServices routes, each with separate logs and app-written receipts.
+
+### Fixes and Maintenance
+
+- Added first-use checks through first Draw, aligned template and Recent Files
+  checks, and removed a test-only Qt insertion escape hatch.
+
+- Corrected the indentation gate for Python 3.12 multiline f-strings; embedded
+  XML and other text tokens are not source-code indentation.
+
+- Restored registry-aware release tooling after its split: changelog commits
+  parse the canonical assignment, the public facade remains, requirement
+  suffixes survive, and releases update all package manifests.
+
+- Added exact non-growth ceilings for oversized active files. Historical
+  archives are excluded; current debt may shrink but cannot grow.
+
 ## 2026-08-03
 
 ### Behavior or Interface Changes

@@ -9,13 +9,11 @@ import PySide6.QtWidgets
 
 # local repo modules
 import bkchem_qt.bridge.worker
-import bkchem_qt.canvas.molecule_projection
 import bkchem_qt.config.geometry_units
 import bkchem_qt.config.preferences
 import bkchem_qt.dialogs.paper_properties_dialog
 import bkchem_qt.io.import_capabilities
 import bkchem_qt.models.document_session
-import bkchem_qt.undo.commands
 from bkchem_qt.actions.action_registry import MenuAction
 
 # maximum number of entries in the recent files list
@@ -342,69 +340,6 @@ def _record_recent_file(main_window: object, file_path: str) -> None:
 	if callable(refresh):
 		refresh()
 
-
-#============================================
-def _add_molecules_to_scene(
-		main_window: object, molecules: list, undoable: bool = True,
-		*, session: object = None, document: object = None,
-		scene: object = None,
-		) -> None:
-	"""Add a list of MoleculeModel objects to the active scene.
-
-	For each molecule, creates AtomItem and BondItem graphics items,
-	then stores the molecule and scene projection as an undo command.
-	File loading may opt out because the loaded state is a clean baseline.
-	Bond items are added before atom items so that atoms render on top.
-
-	Args:
-		main_window: MainWindow instance with ``_scene`` and optionally
-			a ``_document`` attribute. Retained as the compatibility target.
-		molecules: List of MoleculeModel instances to display.
-		undoable: Whether insertion belongs on the document undo stack.
-		session: Optional DocumentSession target. Its document and scene are
-			used unless explicitly supplied.
-		document: Optional explicit Document target.
-		scene: Optional explicit QGraphicsScene target.
-	"""
-	if session is not None:
-		if scene is None:
-			scene = session.scene
-		if document is None:
-			document = session.document
-	if scene is None:
-		scene = main_window._scene
-	if document is None:
-		document = getattr(main_window, "_document", None)
-	projections = bkchem_qt.canvas.molecule_projection.build_molecule_projections(
-		molecules,
-	)
-
-	if document is None:
-		bkchem_qt.canvas.molecule_projection.install_molecule_projections(
-			scene, projections,
-		)
-		return
-
-	if undoable:
-		if len(projections) > 1:
-			document.undo_stack.beginMacro("Add Molecules")
-		for mol_model, graphics_items in projections:
-			document.undo_stack.push(
-				bkchem_qt.undo.commands.AddMoleculeCommand(
-					document,
-					scene,
-					mol_model,
-					graphics_items,
-				)
-			)
-		if len(projections) > 1:
-			document.undo_stack.endMacro()
-		return
-
-	for mol_model, graphics_items in projections:
-		document.add_molecule(mol_model, mark_dirty=False)
-		for item in graphics_items:
-			scene.addItem(item)
 
 #============================================
 #============================================
