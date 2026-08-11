@@ -141,6 +141,59 @@ def _repo_name_variants() -> list[str]:
 
 
 #============================================
+def _read_readme_text() -> str:
+	"""
+	Return the full README.md text.
+
+	Returns:
+		str: README file contents.
+	"""
+	with open(README_PATH, encoding="utf-8") as handle:
+		return handle.read()
+
+
+#============================================
+def test_readme_exists() -> None:
+	# README.md must be present at the repo root
+	assert os.path.isfile(README_PATH), (
+		f"README.md is missing at the repo root: {README_PATH}"
+	)
+
+
+#============================================
+def test_readme_has_single_h1_title() -> None:
+	# First Markdown heading must be a single '# Title' line, and there
+	# must be exactly one level-one heading in the file.
+	text = _read_readme_text()
+	heading_lines = []
+	in_fence = False
+	for raw_line in text.splitlines():
+		stripped = raw_line.strip()
+		# Skip content inside fenced code blocks
+		if stripped.startswith("```") or stripped.startswith("~~~"):
+			in_fence = not in_fence
+			continue
+		if in_fence:
+			continue
+		if stripped.startswith("#"):
+			heading_lines.append(stripped)
+	assert heading_lines, f"README.md has no Markdown headings: {README_PATH}"
+	first = heading_lines[0]
+	assert first.startswith("# ") and not first.startswith("## "), (
+		f"First README heading must be a level-one '# Project Name' line, got: {first!r}"
+	)
+	title_text = first[2:].strip()
+	assert title_text, "First README heading is '#' with no title text after it."
+	h1_count = 0
+	for heading in heading_lines:
+		if heading.startswith("# ") and not heading.startswith("## "):
+			h1_count += 1
+	assert h1_count == 1, (
+		f"README.md must contain exactly one '# Title' heading, found {h1_count}."
+	)
+
+
+#============================================
 def test_first_paragraph_exists() -> None:
 	# First paragraph must be present and non-empty
 	paragraph = _load_first_paragraph()

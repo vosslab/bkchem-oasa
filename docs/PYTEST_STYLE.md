@@ -22,7 +22,6 @@ Run this checklist before writing a new pytest or approving one in review. Any u
 - [ ] Slower tests live in `tests/e2e/` or `tests/playwright/` (see [E2E_TESTS.md](E2E_TESTS.md)).
 - [ ] One or two assertions per function (not five on a simple function).
 - [ ] Test body free of complex logic; complex logic moved to a helper and tested there.
-- [ ] XML input uses the owning hardened parser, never native ElementTree or minidom parsing.
 - [ ] Targets code that will remain in the repo (not `_temp.*` or ad-hoc debugging scripts).
 - [ ] Writes setup and test inputs inline rather than in an external on-disk data file, except for the fixture cases listed in [Fixture policy](#fixture-policy).
 
@@ -50,24 +49,6 @@ See [Good tests](#good-tests) for examples of stable assertion shapes and [Britt
 * Do not create permanent pytest files for temporary or scratch code.
 * Do not write tests for `_temp.*` files, ad-hoc debugging scripts, or any code intended to be deleted shortly after use.
 * Tests in `tests/` are reserved for code that will remain in the repo.
-
-## XML in tests
-
-Test the public format behavior first. Complete CDML supplied as a fixture,
-file, request, load, commit, or round-trip input must first enter through
-`oasa.cdml_document.CDMLDocument`, `oasa.cdml_conformance.inspect_cdml`, or
-`oasa.cdml_xml.inspect_cdml_xml`. Do not use `oasa.safe_xml` as that input's
-first parser: the CDML boundary also enforces its CDML-specific no-DOCTYPE
-policy.
-
-When a structural assertion genuinely needs the compatibility DOM, use
-`oasa.safe_xml` only after the document or result was accepted through that
-CDML boundary, rather than copying historical `xml.etree.ElementTree.fromstring`
-or `xml.dom.minidom.parseString` calls.
-For non-CDML XML, use that format's hardened parser. Native XML classes may
-construct controlled test output, perform escaping, or serve as annotations,
-but they must not be the input parser. The repository Bandit test enforces
-unsafe parser calls inside tests as well as production code.
 
 ## Fixture policy
 
@@ -109,7 +90,7 @@ Test files are organized by execution model and scope:
 
 * **`tests/test_*.py`** - Fast, deterministic unit and integration tests. Rules: no network, no file I/O beyond `tmp_path`, no sleeps, no subprocess CLI round-trips. Examples: lint checks (pyflakes, ASCII compliance, indentation), parser correctness, round-trip invariants.
 * **`tests/e2e/`** - Non-browser end-to-end (shell or Python orchestration); excluded from pytest (outside scope of `pytest tests/`); run via explicit shell or Python runner. Examples: full bootstrap flow, multi-repo propagation with real git operations, CLI round-trip chains.
-* **`tests/playwright/`** - Browser-driven E2E; excluded from pytest; run via Playwright runner or explicit shell. Examples: full-stack web app flows, UI interaction and assertion, rendered-output verification. The website family (`website` and its inheriting `typescript`) includes `PLAYWRIGHT_TEST_STYLE.md`, shipped via the `templates/website/` overlay, in their propagated `docs/` folder for browser test authoring rules.
+* **`tests/playwright/`** - Browser-driven E2E; excluded from pytest; run via Playwright runner or explicit shell. Examples: full-stack web app flows, UI interaction and assertion, rendered-output verification. The website family (`website` and its inheriting `typescript`) includes `PLAYWRIGHT_TEST_STYLE.md` in their propagated `docs/` folder for browser test authoring rules.
 
 ## Runtime budget
 
@@ -235,6 +216,12 @@ Discovery filters files through three layers, in order:
 - Layer 3, `extra_filter` (vendored call site): a universal per-test SELECTION mechanism only
   (for example keep only `__init__.py`). Keep all repo-specific exclusions in
   `tests/conftest.py REPO_HYGIENE_FILTERS`; vendored files hold only universal logic.
+
+The source-file line-limit gate has one narrower manager-approval mechanism rather than a glob
+filter: `tests/source_file_line_limit_overrides.txt` may list exact repo-relative paths for tracked
+sources outside the repo's control, such as downloaded normative specifications. The file is
+optional, repo-owned, and never propagated between repos. Other hygiene exclusions remain in
+`REPO_HYGIENE_FILTERS`.
 
 A normal hygiene test calls `discover_files` with its `test_key` so Layer 2 can target it:
 

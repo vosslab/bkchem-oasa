@@ -13,7 +13,6 @@ review, and final commit confirmation.
 import os
 import re
 import sys
-import time
 import shlex
 import tempfile
 import subprocess
@@ -23,7 +22,7 @@ import rich.panel
 
 # local repo modules
 import changelog_lib
-import version_registry
+import version_lib
 
 CHANGELOG_PATHSPEC = "docs/CHANGELOG.md"
 VERSION_PATHSPEC = "VERSION"
@@ -38,10 +37,10 @@ BODY_LINE_BUDGET = 100
 #============================================
 
 def read_version_file() -> str:
-	"""Read the canonical VERSION assignment from the Git worktree root.
+	"""Read VERSION file relative to repo_root and return stripped contents.
 
 	Returns:
-		Release version from the VERSION assignment.
+		Stripped contents of the VERSION file.
 
 	Raises:
 		RuntimeError: When the VERSION file does not exist or cannot be read.
@@ -49,23 +48,15 @@ def read_version_file() -> str:
 	repo_root = changelog_lib.get_git_root()
 	version_path = os.path.join(repo_root, VERSION_PATHSPEC)
 	try:
-		version = version_registry.read_version_file(version_path)
+		with open(version_path, "r", encoding="utf-8") as f:
+			version_contents = f.read().strip()
 	except FileNotFoundError:
 		raise RuntimeError(f"VERSION file not found at {version_path}.")
-	except (OSError, ValueError) as error:
-		raise RuntimeError(f"Failed to read VERSION file: {error}")
-	return version
-
-#============================================
-
-def current_calver_month() -> str:
-	"""Return the current calendar month in CalVer format (YY.MM).
-
-	Returns:
-		Current month as a zero-padded string in the format YY.MM
-		(for example "26.05").
-	"""
-	return time.strftime("%y.%m")
+	except IOError as e:
+		raise RuntimeError(f"Failed to read VERSION file: {e}")
+	if not version_contents:
+		raise RuntimeError(f"VERSION file is empty: {version_path}.")
+	return version_contents
 
 #============================================
 
@@ -80,13 +71,8 @@ def check_version_freshness() -> bool:
 		False if user declines to continue.
 	"""
 	version_value = read_version_file()
-	current_month = current_calver_month()
-
-	# Extract the first two dotted segments (YY.MM)
-	version_parts = version_value.split(".")
-	if len(version_parts) < 2:
-		raise RuntimeError(f"VERSION format unrecognized: {version_value}")
-	version_month = f"{version_parts[0]}.{version_parts[1]}"
+	current_month = version_lib.current_calver_month()
+	version_month = version_lib.calver_month_prefix(version_value)
 
 	# If months match, freshness is confirmed
 	if version_month == current_month:

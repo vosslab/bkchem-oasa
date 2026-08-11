@@ -1,6 +1,7 @@
 # Standard Library
 import os
 import re
+import random
 
 # PIP3 modules
 import pytest
@@ -12,6 +13,8 @@ REPO_ROOT = file_utils.get_repo_root()
 # Module-level file list built once at import time for the markdown link scan.
 FILES = file_utils.discover_files(extensions=(".md",), test_key="markdown_links")
 REPORT_NAME = file_utils.report_name(__file__)
+ERROR_SAMPLE_COUNT = 5
+
 HEADER = "Markdown link errors detected:"
 
 # Inline link and image: optional leading !, [text](url), url ends at ) or space.
@@ -351,6 +354,53 @@ def scan_file(
 
 
 #============================================
+def print_issue_samples(all_issues: list[str]) -> None:
+	"""
+	Print diagnostic samples of link issues to stdout.
+
+	Prints the first, a random selection, and the last few issues, plus a
+	per-file issue count summary. Used for human-readable console output when
+	violations are found; does not write any files.
+
+	Args:
+		all_issues: List of "path:line: message" issue strings.
+	"""
+	print("")
+	print(f"First {ERROR_SAMPLE_COUNT} errors")
+	for line in all_issues[:ERROR_SAMPLE_COUNT]:
+		print(line)
+	print("-------------------------")
+
+	print(f"Random {ERROR_SAMPLE_COUNT} errors")
+	sample = all_issues
+	if len(all_issues) > ERROR_SAMPLE_COUNT:
+		sample = random.sample(all_issues, ERROR_SAMPLE_COUNT)
+	for line in sample:
+		print(line)
+	print("-------------------------")
+
+	print(f"Last {ERROR_SAMPLE_COUNT} errors")
+	for line in all_issues[-ERROR_SAMPLE_COUNT:]:
+		print(line)
+	print("-------------------------")
+
+	# Count issues per file for a quick overview.
+	file_counts: dict[str, int] = {}
+	for line in all_issues:
+		file_path = line.split(":", 1)[0]
+		file_counts[file_path] = file_counts.get(file_path, 0) + 1
+	print("Issues per file")
+	for file_path in sorted(file_counts):
+		print(f"{file_path}: {file_counts[file_path]}")
+	print("")
+
+	print(
+		f"Found {len(all_issues)} markdown link errors written to "
+		f"REPO_ROOT/{REPORT_NAME}"
+	)
+
+
+#============================================
 def collect_violations(files: list[str]) -> dict[str, list[str]]:
 	"""
 	Scan every markdown file and distribute issues into a violations dict.
@@ -359,7 +409,8 @@ def collect_violations(files: list[str]) -> dict[str, list[str]]:
 	Each markdown file's issues are keyed by its repo-relative POSIX path.
 	Files with no issues are omitted. Uses a closure approach: tracked_set
 	and tracked_dirs are whole-repo context computed once here, then passed
-	into scan_file for each file.
+	into scan_file for each file. all_issues is preserved flat for
+	print_issue_samples; per-file distribution is a dict comprehension.
 
 	Args:
 		files: Absolute paths to markdown files to scan.
@@ -375,10 +426,15 @@ def collect_violations(files: list[str]) -> dict[str, list[str]]:
 	tracked_dirs = build_tracked_dirs(tracked_set)
 
 	violations: dict[str, list[str]] = {}
+	all_issues: list[str] = []
 	for md_path in rel_files:
 		issues = scan_file(REPO_ROOT, tracked_set, tracked_dirs, md_path)
+		all_issues.extend(issues)
 		if issues:
 			violations[md_path] = issues
+
+	if all_issues:
+		print_issue_samples(all_issues)
 
 	return violations
 

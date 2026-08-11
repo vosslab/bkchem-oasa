@@ -13,11 +13,13 @@ report_*.txt
 # === UNIVERSAL ===
 output*/
 _temp*.?*
-tmp/
-OTHER_REPOS/
+/OTHER_REPOS/
+/LOCAL_ONLY/
+
 # === PYTHON ===
 build/
 sdist/
 *.egg
 *.egg-info/
 site/
+
