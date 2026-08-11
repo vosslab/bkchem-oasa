@@ -9,13 +9,13 @@ import io
 
 # local repo modules
 from oasa import cdml
+from oasa import cdml_document
 from oasa import cdml_writer
 from oasa import render_out
 from oasa import safe_xml
 from oasa import svg_out
 
 
-_CDML_NAMESPACE = cdml_writer.CDML_NAMESPACE
 _SVG_NAMESPACE = "http://www.w3.org/2000/svg"
 _FORBIDDEN_EXPORT_SNIPPETS = (
 	"<script",
@@ -71,16 +71,20 @@ def _assert_safe_svg_export(svg_text: str) -> None:
 
 
 #============================================
-def _extract_cdml_element(svg_text: object) -> object | None:
+def _extract_cdml_elements(svg_text: object) -> tuple[object, ...]:
+	"""Return embedded CDML roots without interpreting rendered SVG content."""
 	doc = safe_xml.parse_dom_from_string(svg_text)
-	nodes = doc.getElementsByTagNameNS(_CDML_NAMESPACE, "cdml")
-	if nodes:
-		return nodes[0]
-	# Backward compatibility: older BKChem CD-SVG files may have <cdml>
-	# without a namespace, so fall back to non-namespaced lookup.
-	for node in doc.getElementsByTagName("cdml"):
-		return node
-	return None
+	return tuple(
+		node for node in doc.getElementsByTagName("*")
+		if (node.localName or node.tagName).split(":")[-1] == "cdml"
+	)
+
+
+#============================================
+def _extract_cdml_element(svg_text: object) -> object | None:
+	"""Return the first embedded root for legacy molecule-only codec behavior."""
+	nodes = _extract_cdml_elements(svg_text)
+	return nodes[0] if nodes else None
 
 
 #============================================
@@ -130,6 +134,27 @@ def file_to_mol(file_obj: object, **kwargs) -> object:
 	if isinstance(text, bytes):
 		text = text.decode("utf-8")
 	return text_to_mol(text, **kwargs)
+
+
+#============================================
+def text_to_document(text: object, **kwargs: object) -> str:
+	"""Extract exactly one strict complete CDML document from CD-SVG."""
+	del kwargs
+	nodes = _extract_cdml_elements(text)
+	if not nodes:
+		raise ValueError("CD-SVG import failed: no embedded CDML block found.")
+	if len(nodes) != 1:
+		raise ValueError("CD-SVG import failed: multiple embedded CDML blocks found.")
+	cdml_text = nodes[0].toxml("utf-8").decode("utf-8")
+	return cdml_document.CDMLDocument.parse(
+		cdml_text, validation="strict",
+	).serialize()
+
+
+#============================================
+def file_to_document(file_obj: object, **kwargs: object) -> str:
+	"""Extract complete CDML from one caller-owned CD-SVG file object."""
+	return text_to_document(file_obj.read(), **kwargs)
 
 
 #============================================

@@ -48,7 +48,7 @@ operations, opaque preservation, and exact-revision projection observations.
 Qt's synchronized projection consumes one immutable aggregate envelope and is
 discardable/rebuildable without raw CDML or OASA graph ownership. Copy as SVG,
 chemistry observations and text imports, preferences/logging, Rotate, Bond
-Align, repair, PubChem, detached templates, file import/export, portable
+Align, repair, PubChem, detached templates, CD-SVG and other import/export, portable
 render batches, direct-glycosidic Haworth preparation, installed-wheel
 round-trip, clean-install, direct frozen-lifecycle, and native-launch gates have
 implementation evidence. The action-parity audit records each delivered

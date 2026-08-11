@@ -24,6 +24,8 @@ import io
 _CODECS = {}
 _ALIASES = {}
 _EXTENSIONS = {}
+_READ_EXTENSIONS = {}
+_WRITE_EXTENSIONS = {}
 _DEFAULTS_REGISTERED = False
 
 
@@ -40,6 +42,10 @@ class Codec(object):
 		mol_to_text: object=None,
 		file_to_mol: object=None,
 		mol_to_file: object=None,
+		text_to_document: object=None,
+		file_to_document: object=None,
+		read_extensions: object=None,
+		write_extensions: object=None,
 	) -> None:
 		self.name = _normalize_name(name)
 		if not self.name:
@@ -56,14 +62,31 @@ class Codec(object):
 				file_to_mol = getattr(module, "file_to_mol", None)
 			if mol_to_file is None:
 				mol_to_file = getattr(module, "mol_to_file", None)
+			if text_to_document is None:
+				text_to_document = getattr(module, "text_to_document", None)
+			if file_to_document is None:
+				file_to_document = getattr(module, "file_to_document", None)
 		self.text_to_mol = text_to_mol
 		self.mol_to_text = mol_to_text
 		self.file_to_mol = file_to_mol
 		self.mol_to_file = mol_to_file
+		self.text_to_document = text_to_document
+		self.file_to_document = file_to_document
 		self.reads_text = bool(self.text_to_mol)
 		self.writes_text = bool(self.mol_to_text)
 		self.reads_files = bool(self.file_to_mol or self.text_to_mol)
 		self.writes_files = bool(self.mol_to_file or self.mol_to_text)
+		self.reads_documents = bool(self.file_to_document or self.text_to_document)
+		self.read_extensions = _normalize_extensions(
+			read_extensions if read_extensions is not None else (
+				self.extensions if self.reads_files or self.reads_documents else ()
+			)
+		)
+		self.write_extensions = _normalize_extensions(
+			write_extensions if write_extensions is not None else (
+				self.extensions if self.writes_files else ()
+			)
+		)
 
 
 	#============================================
@@ -80,6 +103,24 @@ class Codec(object):
 		if not self.text_to_mol:
 			raise ValueError(f"Codec '{self.name}' does not support file input.")
 		return self.text_to_mol(file_obj.read(), **kwargs)
+
+
+	#============================================
+	def read_document(self, text: object, **kwargs) -> str:
+		"""Read one complete persistent document as frontend-neutral text."""
+		if not self.text_to_document:
+			raise ValueError(f"Codec '{self.name}' does not support document input.")
+		return self.text_to_document(text, **kwargs)
+
+
+	#============================================
+	def read_document_file(self, file_obj: object, **kwargs) -> str:
+		"""Read one complete document from a caller-owned file object."""
+		if self.file_to_document:
+			return self.file_to_document(file_obj, **kwargs)
+		if not self.text_to_document:
+			raise ValueError(f"Codec '{self.name}' does not support document input.")
+		return self.text_to_document(file_obj.read(), **kwargs)
 
 
 	#============================================
@@ -116,10 +157,26 @@ def register_codec(codec: object, aliases: object=None, replace: object=False) -
 		if not replace and ext in _EXTENSIONS and _EXTENSIONS[ext] != name:
 			raise ValueError(f"Extension '{ext}' is already registered.")
 		_EXTENSIONS[ext] = name
+	_register_direction_extensions(_READ_EXTENSIONS, codec.read_extensions, name, replace, "read")
+	_register_direction_extensions(_WRITE_EXTENSIONS, codec.write_extensions, name, replace, "write")
 	if aliases:
 		for alias in aliases:
 			register_alias(alias, name, replace=replace)
 	return codec
+
+
+#============================================
+def _register_direction_extensions(
+		extension_map: dict, extensions: object, name: str, replace: bool,
+		direction: str,
+		) -> None:
+	"""Register operation-specific suffixes without conflating read and write."""
+	for extension in extensions:
+		if not replace and extension in extension_map and extension_map[extension] != name:
+			raise ValueError(
+				f"Extension '{extension}' already has a {direction} codec."
+			)
+		extension_map[extension] = name
 
 
 #============================================
@@ -140,12 +197,16 @@ def register_module_codec(
 	extensions: object=None,
 	description: object=None,
 	aliases: object=None,
+	read_extensions: object=None,
+	write_extensions: object=None,
 ) -> object:
 	codec = Codec(
 		name=name,
 		module=module,
 		extensions=extensions,
 		description=description,
+		read_extensions=read_extensions,
+		write_extensions=write_extensions,
 	)
 	return register_codec(codec, aliases=aliases)
 
@@ -156,6 +217,8 @@ def reset_registry() -> None:
 	_CODECS.clear()
 	_ALIASES.clear()
 	_EXTENSIONS.clear()
+	_READ_EXTENSIONS.clear()
+	_WRITE_EXTENSIONS.clear()
 	_DEFAULTS_REGISTERED = False
 
 
@@ -296,7 +359,11 @@ def _ensure_defaults_registered() -> None:
 			mol_to_text=cdsvg.mol_to_text,
 			file_to_mol=cdsvg.file_to_mol,
 			mol_to_file=cdsvg.mol_to_file,
+			text_to_document=cdsvg.text_to_document,
+			file_to_document=cdsvg.file_to_document,
 			extensions=[".cdsvg"],
+			read_extensions=[".svg", ".svgz", ".cdsvg"],
+			write_extensions=[".cdsvg"],
 		),
 		aliases=["cd-svg"],
 	)
@@ -378,6 +445,31 @@ def get_codec_by_extension(ext: object) -> Codec:
 
 
 #============================================
+def get_import_codec_by_extension(ext: object) -> Codec:
+	"""Resolve a readable codec without borrowing an export-only mapping."""
+	return _get_direction_codec(ext, _READ_EXTENSIONS, "import")
+
+
+#============================================
+def get_export_codec_by_extension(ext: object) -> Codec:
+	"""Resolve a writable codec without borrowing an import-only mapping."""
+	return _get_direction_codec(ext, _WRITE_EXTENSIONS, "export")
+
+
+#============================================
+def _get_direction_codec(ext: object, extension_map: dict, direction: str) -> Codec:
+	"""Resolve one operation-specific extension map."""
+	_ensure_defaults_registered()
+	key = _normalize_extension(ext)
+	if not key:
+		raise ValueError("Extension is required.")
+	name = extension_map.get(key)
+	if not name:
+		raise KeyError(f"No {direction} codec registered for extension '{key}'.")
+	return _CODECS[name]
+
+
+#============================================
 def get_registry_snapshot() -> dict:
 	"""Return registry capabilities for runtime discovery."""
 	_ensure_defaults_registered()
@@ -389,5 +481,8 @@ def get_registry_snapshot() -> dict:
 			"writes_text": codec.writes_text,
 			"reads_files": codec.reads_files,
 			"writes_files": codec.writes_files,
+			"reads_documents": codec.reads_documents,
+			"read_extensions": list(codec.read_extensions),
+			"write_extensions": list(codec.write_extensions),
 		}
 	return snapshot

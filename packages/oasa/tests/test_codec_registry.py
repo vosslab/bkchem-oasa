@@ -62,6 +62,9 @@ def test_codec_registry_defaults() -> None:
 	assert by_ext.name == "cdxml"
 	by_ext = oasa.codec_registry.get_codec_by_extension(".svg")
 	assert by_ext.name == "svg"
+	assert oasa.codec_registry.get_import_codec_by_extension(".svg").name == "cdsvg"
+	assert oasa.codec_registry.get_import_codec_by_extension(".svgz").name == "cdsvg"
+	assert oasa.codec_registry.get_export_codec_by_extension(".svg").name == "svg"
 	by_ext = oasa.codec_registry.get_codec_by_extension(".cdsvg")
 	assert by_ext.name == "cdsvg"
 	# new extension lookups
@@ -203,6 +206,30 @@ def test_codec_registry_cdsvg_roundtrip_and_safe_export() -> None:
 	loaded = codec.read_text(text)
 	assert loaded is not None
 	assert len(loaded.vertices) == 2
+	complete_cdml = codec.read_document(text)
+	assert "<molecule" in complete_cdml
+
+
+#============================================
+def test_codec_registry_cdsvg_preserves_complete_document_content() -> None:
+	"""The document route retains presentation content rather than one molecule."""
+	oasa.codec_registry.reset_registry()
+	codec = oasa.codec_registry.get_codec("cdsvg")
+	source = (
+		'<svg xmlns="http://www.w3.org/2000/svg"><metadata>'
+		'<cdml version="26.07"><paper type="A4" orientation="portrait"/>'
+		'<arrow id="arrow1"><point x="1cm" y="2cm"/>'
+		'<point x="3cm" y="2cm"/></arrow></cdml>'
+		'</metadata><path d="M 0 0"/></svg>'
+	)
+
+	complete_cdml = codec.read_document(source)
+
+	assert '<paper type="A4" orientation="portrait"' in complete_cdml
+	assert '<arrow id="arrow1">' in complete_cdml
+	assert "<path" not in complete_cdml
+	with pytest.raises(ValueError, match="multiple embedded CDML blocks"):
+		codec.read_document(source.replace("</metadata>", "<cdml/></metadata>"))
 
 
 #============================================
@@ -239,6 +266,8 @@ def test_registry_snapshot_contains_capabilities() -> None:
 	assert snapshot["pdf"]["reads_files"] is False
 	assert snapshot["pdf"]["writes_files"] is True
 	assert snapshot["cdsvg"]["reads_files"] is True
+	assert snapshot["cdsvg"]["reads_documents"] is True
+	assert snapshot["svg"]["reads_documents"] is False
 	# RDKit-backed codecs
 	assert "molfile_v3000" in snapshot
 	assert "sdf" in snapshot

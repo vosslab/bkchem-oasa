@@ -38,7 +38,7 @@ def parse_args() -> argparse.Namespace:
 	parser.add_argument(
 		'files',
 		nargs='*',
-		help="CDML files to open on launch",
+		help="Supported chemistry or document files to open on launch",
 	)
 	args = parser.parse_args()
 	if args.smoke_exit is not None and (

@@ -62,6 +62,12 @@ assessment for producers that choose to use it. A future authoring operation
 declares its own emitted-profile rule; ordinary Load and Commit remain
 compatibility-preserving unless that operation explicitly adds such a rule.
 
+A document-bearing external codec returns frontend-neutral complete CDML text,
+not an OASA graph or frontend model. The backend validates that extracted
+document before it crosses the worker boundary. The frontend installs it as an
+import against an empty saved baseline, so source-container paths never become
+native CDML Save destinations.
+
 An accepted commit:
 
 1. creates one new monotonically increasing revision;

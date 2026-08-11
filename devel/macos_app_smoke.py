@@ -9,6 +9,7 @@ import json
 import math
 import os
 import pathlib
+import shlex
 import subprocess
 from collections.abc import Callable, Mapping
 
@@ -68,7 +69,9 @@ def make_smoke_args(
 	)
 	if route is MacSmokeRoute.DIRECT:
 		return (str(app_path / "Contents" / "MacOS" / "BKChem"), *app_arguments)
-	return ("/usr/bin/open", "-n", "-W", str(app_path), "--args", *app_arguments)
+	if route is MacSmokeRoute.NATIVE:
+		return ("/usr/bin/open", "-n", "-W", str(app_path), "--args", *app_arguments)
+	raise ValueError(f"Unsupported macOS smoke route: {route!r}")
 
 
 #============================================
@@ -149,8 +152,10 @@ def _run_smoke_command(
 	environment = dict(os.environ)
 	if route is MacSmokeRoute.DIRECT:
 		environment["QT_QPA_PLATFORM"] = "offscreen"
-	else:
+	elif route is MacSmokeRoute.NATIVE:
 		environment.pop("QT_QPA_PLATFORM", None)
+	else:
+		raise ValueError(f"Unsupported macOS smoke route: {route!r}")
 	return subprocess.run(
 		command, cwd=cwd, env=environment, capture_output=True, text=True, check=False,
 		timeout=timeout_seconds,
@@ -170,23 +175,25 @@ def run_macos_smoke(
 	smoke_paths.root.mkdir(parents=True)
 	command = make_smoke_args(route, app_path, seconds, smoke_paths.root)
 	timeout_seconds = seconds + SMOKE_STARTUP_ALLOWANCE_SECONDS
-	process_runner = runner or (
-		lambda child_command, cwd, timeout: _run_smoke_command(
-			route, child_command, cwd, timeout,
-		)
-	)
+	def default_runner(
+			child_command: tuple[str, ...], cwd: pathlib.Path, timeout: float,
+			) -> subprocess.CompletedProcess[str]:
+		"""Run the selected production route when no test seam is injected."""
+		return _run_smoke_command(route, child_command, cwd, timeout)
+
+	process_runner = runner or default_runner
 	try:
 		result = process_runner(command, repo_root, timeout_seconds)
 	except subprocess.TimeoutExpired as error:
 		raise RuntimeError(
 			f"macOS {route.label} smoke timed out after {timeout_seconds:g}s: "
-			f"{subprocess.list2cmdline(command)}"
+			f"{shlex.join(command)}"
 		) from error
 	_write_smoke_logs(smoke_paths, result)
 	if result.returncode != 0:
 		raise RuntimeError(
 			f"macOS {route.label} smoke failed ({result.returncode}): "
-			f"{subprocess.list2cmdline(command)}\n"
+			f"{shlex.join(command)}\n"
 			f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
 		)
 	_validate_smoke_receipt(smoke_paths.receipt_path)

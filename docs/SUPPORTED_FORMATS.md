@@ -25,6 +25,16 @@ chemical structure and available coordinates, not a complete BKChem
 presentation document. Imported work therefore opens as a new, unsaved
 session and must be saved as CDML.
 
+## Embedded editable document imports
+
+- BKChem CD-SVG: `.svg`, `.svgz`, `.cdsvg`
+
+CD-SVG enters through OASA's complete-document codec and preserves its one
+embedded CDML document, including supported presentation and paper records.
+It opens as an unsaved, dirty import and must be saved as CDML. Generic SVG or
+SVG with missing, invalid, or multiple CDML blocks is rejected; rendered vector
+artwork is not reverse-engineered into chemistry.
+
 ## Molecular identifiers
 
 - Import SMILES or InChI text as editable molecular structure
@@ -51,12 +61,12 @@ not editable BKChem documents and do not replace CDML saving.
 
 ## Backend codecs
 
-OASA also contains codecs for formats such as CD-SVG and chemistry-only
-exports. The CML backend retains a legacy `.xml` alias, but `bkchem-qt` does
-not advertise generic `.xml` because that extension is ambiguous. Backend
-availability does not imply that the PySide6 File menu supports the same
-operation. New GUI formats must preserve the session, undo, and
-backend/frontend ownership contracts before they are advertised.
+OASA also contains chemistry-only export codecs. The CML backend retains a
+legacy `.xml` alias, but `bkchem-qt` does not advertise generic `.xml` because
+that extension is ambiguous. Backend availability does not imply that the
+PySide6 File menu supports the same operation. New GUI formats must preserve
+the session, undo, and backend/frontend ownership contracts before they are
+advertised.
 
 The retained Tk source contains older plugin routes as contributor reference
 evidence only. Those routes are not a supported frontend, packaging target, or

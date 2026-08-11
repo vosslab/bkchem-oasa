@@ -42,7 +42,7 @@ transaction. Hydrogens remain implicit in this editable molecular view.
 | Drawing objects | Persist arrows, rich text, plus signs, brackets, vectors, marks, groups, ordering, and document/personal drawing styles with selected or all-object application. |
 | History | Apply persistent edits as atomic backend commits with undo, redo, dirty state, and saved-baseline tracking. |
 | Chemistry helpers | Import SMILES/InChI, export selected structures as SMILES/InChI/InChIKey, generate coordinates, insert Haworth sugars, and perform PubChem lookup. |
-| Import and export | Import the documented chemistry formats and export SVG, PNG, and PDF snapshots. |
+| Import and export | Import documented chemistry formats or classic CD-SVG, and export SVG, PNG, and PDF snapshots. |
 | Application | Run the supported PySide6 desktop editor from a source or pip installation. |
 
 The exact file-format boundaries are listed in

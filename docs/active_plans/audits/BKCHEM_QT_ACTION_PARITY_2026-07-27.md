@@ -165,7 +165,7 @@ not release claims unless they appear as a supported row.
 | Native CDML open/save | complete backend snapshot envelope and session loader | OK | clean/save | yes | GUI | aggregate envelope/hydration and round-trip authority tests |
 | OASA format import | capability registry drives actions and dialogs | OK | clean/new document | imported molecule | worker | [import capabilities](../../../packages/bkchem-qt.app/tests/test_import_capabilities.py) |
 | SDF import | capability registry maps molfile reader | OK | clean/new document | imported molecule | worker | import capabilities |
-| SVG import | unavailable as a chemistry/document import | UNSUP | n/a | n/a | GUI | `test_import_capabilities.py`; SVG is rendered export, not editable CDML import |
+| CD-SVG import | OASA complete-document codec extracts one embedded CDML root from `.svg`, `.svgz`, or `.cdsvg` | OK | backend import baseline | yes | worker | `test_import_capabilities.py`; plain rendered SVG remains explicitly non-editable |
 | SVG/PNG/PDF export | disposable snapshot-render projection | OK | n/a | export only | GUI | `test_export_render_plan.py`; unavailable projection is a typed export failure rather than Qt-model serialization |
 | Import menu cascade | generated from capabilities | OK | n/a | n/a | GUI | import capabilities |
 | Action module discovery | contextual registration diagnostics | OK | n/a | n/a | GUI | [menu contract](../../../packages/bkchem-qt.app/tests/test_qt_menu_contract.py) |
@@ -174,7 +174,7 @@ not release claims unless they appear as a supported row.
 | File-import worker | session-owned parse/project worker | OK | clean/new document | imported molecule | worker | delivery cancellation, tab transfer, and MainWindow retirement are covered by [worker lifecycle](../../../packages/bkchem-qt.app/tests/test_worker_lifecycle.py) |
 | Chemistry text imports | immutable preparation bridge and origin-bound worker | OK | backend | molecule | worker | chemistry action bridge and worker lifecycle tests |
 | Geometry cleanup | repair action calls coordinate work directly | OK | backend | molecule | sync | accepted latency evidence keeps the bounded synchronous path under the current release budget |
-| Package data/runtime layout | package-owned menus, modes, themes, icons, and OASA data | OK build audit | n/a | n/a | n/a | wheel and direct frozen-process audit; Finder integration belongs to a separate distribution project |
+| Package data/runtime layout | package-owned menus, modes, themes, icons, and OASA data | OK build audit | n/a | n/a | n/a | wheel inspection plus independent direct-lifecycle and native LaunchServices receipts; signing/notarization remain separate |
 
 ## Resolved and dispositioned slices
 

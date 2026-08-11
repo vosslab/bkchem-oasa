@@ -2,8 +2,8 @@
 
 This registry is deliberately narrower than the OASA codec registry.  It
 contains only native CDML and codecs that the Qt ``FileImportWorker`` can
-turn into molecule sessions today.  Do not add a format here merely because
-OASA can write it or because the legacy Tk application listed it.
+turn into backend-owned document sessions today. Do not add a format merely
+because OASA can write it or because the legacy Tk application listed it.
 """
 
 # Standard Library
@@ -34,6 +34,13 @@ _IMPORT_CAPABILITIES = (
 		label="BKChem CDML",
 		description="BKChem native document",
 		route="native",
+	),
+	ImportCapability(
+		codec_name="cdsvg",
+		extensions=(".svg", ".svgz", ".cdsvg"),
+		label="BKChem CD-SVG",
+		description="SVG with embedded editable BKChem CDML",
+		route="worker",
 	),
 	ImportCapability(
 		codec_name="molfile",
@@ -173,14 +180,14 @@ def _validate_capability(capability: ImportCapability) -> None:
 			% capability.codec_name
 		)
 	codec = oasa.codec_registry.get_codec(capability.codec_name)
-	if not codec.reads_files:
+	if not codec.reads_files and not codec.reads_documents:
 		raise RuntimeError(
-			"Qt import capability '%s' has no readable OASA file codec."
+			"Qt import capability '%s' has no readable OASA import codec."
 			% capability.codec_name
 		)
 	for extension in capability.extensions:
 		try:
-			extension_codec = oasa.codec_registry.get_codec_by_extension(
+			extension_codec = oasa.codec_registry.get_import_codec_by_extension(
 				extension,
 			)
 		except KeyError as exc:

@@ -1,6 +1,7 @@
 """Tests for the truthful Qt file-import capability registry."""
 
 # Standard Library
+import gzip
 import pathlib
 
 # PIP3 modules
@@ -79,6 +80,88 @@ def test_import_chooser_delegates_to_the_session_loader(
 	capability = bkchem_qt.io.import_capabilities.capability_for_extension(".smi")
 	bkchem_qt.actions.file_actions.import_capability(host, capability)
 	assert host.paths == ["example.smi"]
+
+
+#============================================
+@pytest.mark.parametrize("extension", (".svg", ".svgz"))
+def test_cdsvg_import_preserves_the_embedded_complete_document(
+		tmp_path: pathlib.Path, main_window: object, extension: str,
+		) -> None:
+	"""Classic CD-SVG opens as dirty backend CDML, including drawing objects."""
+	source = (
+		'<svg xmlns="http://www.w3.org/2000/svg"><metadata>'
+		'<cdml version="26.07"><paper type="A4" orientation="portrait"/>'
+		'<molecule id="m1"><atom id="a1" name="C"><point x="1cm" y="1cm"/>'
+		'</atom><atom id="a2" name="O"><point x="2cm" y="1cm"/></atom>'
+		'<bond id="b1" start="a1" end="a2" type="n2"/></molecule>'
+		'<arrow id="arrow1"><point x="3cm" y="1cm"/>'
+		'<point x="4cm" y="1cm"/></arrow></cdml></metadata></svg>'
+	)
+	cdsvg_path = tmp_path / ("classic" + extension)
+	if extension == ".svgz":
+		with gzip.open(cdsvg_path, "wt", encoding="utf-8") as destination:
+			destination.write(source)
+	else:
+		cdsvg_path.write_text(source, encoding="utf-8")
+	capability = bkchem_qt.io.import_capabilities.capability_for_extension(extension)
+
+	prepared = bkchem_qt.bridge.worker._read_and_prepare_import(
+		capability.codec_name, str(cdsvg_path),
+	)
+
+	assert isinstance(prepared, bkchem_qt.bridge.worker.PreparedCompleteCDML)
+	assert '<arrow id="arrow1">' in prepared.complete_cdml
+	assert _staged_structure_signature(main_window, prepared.complete_cdml) == (True, (
+		(("C", "O"), ((0, 1, 2),)),
+	))
+
+
+#============================================
+def test_plain_rendered_svg_is_not_misrepresented_as_an_editable_document(
+		tmp_path: pathlib.Path,
+		) -> None:
+	"""Only SVG with embedded CDML enters the authoritative document route."""
+	svg_path = tmp_path / "rendered.svg"
+	svg_path.write_text(
+		'<svg xmlns="http://www.w3.org/2000/svg"><path d="M 0 0 L 1 1"/></svg>',
+		encoding="utf-8",
+	)
+	capability = bkchem_qt.io.import_capabilities.capability_for_extension(".svg")
+
+	with pytest.raises(ValueError, match="no embedded CDML block"):
+		bkchem_qt.bridge.worker._read_and_prepare_import(
+			capability.codec_name, str(svg_path),
+		)
+
+
+#============================================
+def test_cdsvg_open_file_path_installs_a_dirty_projected_session(
+		tmp_path: pathlib.Path, main_window: object, qtbot: object,
+		) -> None:
+	"""The public file route delivers embedded CDML through its owned worker."""
+	cdsvg_path = tmp_path / "open-classic.svg"
+	cdsvg_path.write_text(
+		'<svg xmlns="http://www.w3.org/2000/svg"><metadata>'
+		'<cdml version="26.07"><arrow id="arrow1">'
+		'<point x="1cm" y="1cm"/><point x="2cm" y="1cm"/>'
+		'</arrow></cdml></metadata></svg>',
+		encoding="utf-8",
+	)
+	target = main_window._active_session
+
+	assert main_window.open_file_path(str(cdsvg_path), replace_current=True)
+	qtbot.waitUntil(
+		lambda: not target._import_workers and not main_window._retired_import_workers,
+		timeout=3000,
+	)
+	imported = main_window._active_session
+
+	assert imported is not target
+	assert imported.backend_snapshot.is_dirty
+	assert imported.document.file_path is None
+	assert any(
+		obj.object_id == "arrow1" for obj in imported.document.presentation_objects
+	)
 
 
 #============================================

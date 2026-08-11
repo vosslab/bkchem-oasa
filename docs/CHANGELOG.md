@@ -6,10 +6,10 @@
 
 - New Qt tabs start in Draw mode, use OASA paper defaults, and frame after
   layout; first Draw creates backend structure. Chemistry Info reads exact OASA
-  composition, Numbering avoids CDML reparsing, and Drawing Style atomically
-  supports selected/all overrides plus clean personal defaults for later files.
-  The macOS builder now validates independent direct/offscreen and native
-  LaunchServices routes, each with separate logs and app-written receipts.
+  composition, Numbering avoids reparsing, and Drawing Style supports atomic
+  selected/all overrides plus clean defaults. OASA codecs now preserve classic
+  CD-SVG as complete imported documents. The macOS builder independently checks
+  direct/offscreen and native LaunchServices routes with separate receipts.
 
 ### Fixes and Maintenance
 

@@ -3,6 +3,8 @@
 # Standard Library
 import dataclasses
 import enum
+import gzip
+import pathlib
 
 # PIP3 modules
 import PySide6.QtCore
@@ -214,6 +216,17 @@ def _read_file(codec_name: str, file_path: str) -> object:
 
 
 #============================================
+def _read_complete_document(codec: object, file_path: str) -> str:
+	"""Read one codec-owned complete document, including intended gzip storage."""
+	path = pathlib.Path(file_path)
+	if path.suffix.lower() == ".svgz":
+		with gzip.open(path, "rt", encoding="utf-8") as source:
+			return codec.read_document_file(source)
+	with path.open(encoding="utf-8") as source:
+		return codec.read_document_file(source)
+
+
+#============================================
 def _read_and_prepare_import(codec_name: str, file_path: str) -> "PreparedCompleteCDML | None":
 	"""Parse an import and return one backend-valid complete CDML document.
 
@@ -224,6 +237,15 @@ def _read_and_prepare_import(codec_name: str, file_path: str) -> "PreparedComple
 	Returns:
 		Frozen serializable complete-CDML value, or ``None`` for no molecules.
 	"""
+	import oasa.codec_registry
+	codec = oasa.codec_registry.get_codec(codec_name)
+	if codec.reads_documents:
+		from oasa import cdml_document
+		complete_cdml = _read_complete_document(codec, file_path)
+		canonical_cdml = cdml_document.CDMLDocument.parse(
+			complete_cdml, validation="strict",
+		).serialize()
+		return PreparedCompleteCDML(canonical_cdml, file_path)
 	mol = _read_file(codec_name, file_path)
 	if mol is None:
 		return None
