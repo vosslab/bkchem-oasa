@@ -1,8 +1,10 @@
 # Usage
 
-`bkchem-qt` is the only supported BKChem frontend. OASA owns the canonical,
-persistent CDML document; Qt supplies presentation, interaction, and a
-replaceable scene projection of the current backend snapshot.
+`bkchem-qt` is the current release-selected BKChem frontend. OASA owns the
+canonical, persistent CDML document; Qt supplies presentation, interaction,
+and a replaceable scene projection of the current backend snapshot. The
+classic Tk frontend is deprecated but retained; it is not the release launcher
+documented here.
 
 ## Quick start
 
@@ -79,7 +81,7 @@ tetrahedral stereochemistry.
   conversion requires a selected unbranched atom path.
 - Rendered export can report unsupported persistent objects that it omitted.
 - OASA's frontend-neutral backend contract defines the data boundary only; this
-  release ships the Qt application and does not claim another frontend.
+  release packages Qt while retaining the deprecated Tk source separately.
 
 For the detailed ownership and lifecycle rules, see
 [QT_CONTRACT.md](QT_CONTRACT.md) and

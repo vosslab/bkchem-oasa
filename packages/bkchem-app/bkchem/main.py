@@ -94,9 +94,6 @@ class BKChem(
 	def initialize( self) -> None:
 		self.in_batch_mode = 0
 		self.init_basics()
-		# register ABC virtual subclasses so is_chemistry_vertex/edge/graph work
-		import bkchem.chem_compat
-		bkchem.chem_compat.register_bkchem_classes()
 
 		# main drawing part
 		self.papers = []
@@ -152,9 +149,6 @@ class BKChem(
 	def initialize_batch( self) -> None:
 		self.in_batch_mode = 1
 		self.init_basics()
-		# register ABC virtual subclasses so is_chemistry_vertex/edge/graph work
-		import bkchem.chem_compat
-		bkchem.chem_compat.register_bkchem_classes()
 
 		# main drawing part
 		self.papers = []

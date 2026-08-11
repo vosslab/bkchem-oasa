@@ -15,11 +15,11 @@ interactive desktop experience and disposable Qt projections of that document.
 - Qt owns gestures, previews, selection, dialogs, worker delivery, QObject
   lifetime, and a rebuildable scene projection. A successful backend commit is
   final even if Qt must retry projection installation.
-- [packages/bkchem-qt.app/](../packages/bkchem-qt.app/) is the sole supported
-  and shipped BKChem frontend. The retained
-  [packages/bkchem-app/](../packages/bkchem-app/) code is historical source and
-  fixture evidence only. It has no runtime, packaging, compatibility, or
-  feature-parity obligation.
+- [packages/bkchem-qt.app/](../packages/bkchem-qt.app/) is the current
+  release-selected and packaged BKChem frontend. The classic Tk frontend in
+  [packages/bkchem-app/](../packages/bkchem-app/) is deprecated but retained
+  as legacy source and behavioral evidence. It is not the current packaging
+  target or an architecture constraint on the frontend-neutral backend.
 
 [CDML_BACKEND_TO_FRONTEND_CONTRACT.md](CDML_BACKEND_TO_FRONTEND_CONTRACT.md)
 is the normative backend behavior. [QT_CONTRACT.md](QT_CONTRACT.md) specifies
@@ -35,6 +35,9 @@ current implementation; it does not add another contract.
   opaque CDML in source order, validate candidates in detached state, commit
   atomically, maintain history and saved baseline, and publish immutable
   snapshots and projection observations.
+- `packages/oasa/oasa/cdml_presentation_properties.py`
+  extends that stable document surface with focused direct-root presentation
+  patches; Arrow Configure changes scalar intent without exposing the DOM.
 - [packages/oasa/oasa/cdml_conformance.py](../packages/oasa/oasa/cdml_conformance.py),
   [packages/oasa/oasa/cdml_xml.py](../packages/oasa/oasa/cdml_xml.py), and
   [packages/oasa/oasa/cdml_writer.py](../packages/oasa/oasa/cdml_writer.py)
@@ -110,9 +113,9 @@ current implementation; it does not add another contract.
 - [packages/bkchem-qt.app/bkchem_qt/io/cdml_candidate.py](../packages/bkchem-qt.app/bkchem_qt/io/cdml_candidate.py)
   is transitional candidate construction for action families not yet expressed
   as a bounded operation. Its output still commits through OASA.
-- [packages/bkchem-app/](../packages/bkchem-app/) retains prior Tk code,
-  templates, addons, and focused tests for historical comparison. Its
-  package metadata and module code are retained source material, not
+- [packages/bkchem-app/](../packages/bkchem-app/) retains the deprecated Tk
+  code, templates, addons, and focused tests for behavioral comparison. Its
+  package metadata and module code remain source material, not current
   release-delivery evidence.
 
 ## Testing and verification
@@ -141,9 +144,9 @@ current implementation; it does not add another contract.
   complete-candidate route first, then consume its immutable result in a Qt
   adapter. Do not make a Qt model, scene item, raw XML clone, or undo command
   an alternate persistent owner.
-- Use [packages/bkchem-app/](../packages/bkchem-app/) only to inspect historical
-  behavior or fixtures when migration evidence is needed; do not add delivery
-  features, packaging requirements, or parity commitments there.
+- Use [packages/bkchem-app/](../packages/bkchem-app/) to inspect legacy behavior
+  or fixtures and for bounded contract or regression fixes. Keep new delivery
+  features on the Qt path; Tk remains deprecated and outside current packaging.
 
 ## Known gaps
 
@@ -155,5 +158,5 @@ current implementation; it does not add another contract.
 - The delivered compatibility decoder and Qt-local undo are isolated routes,
   not synchronized persistence sources. A future feature adds an OASA operation
   or complete-candidate route before it joins the synchronized release set.
-- Retained Tk source remains historical material only; it is not a delivery,
-  package, compatibility, or feature-parity commitment.
+- The deprecated Tk frontend remains in the repository. It is not the current
+  delivery package or a feature-parity gate for the Qt release.

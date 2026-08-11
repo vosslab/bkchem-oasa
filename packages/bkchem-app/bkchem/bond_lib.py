@@ -91,8 +91,6 @@ class BkBond(
     self._chem_bond = oasa.bond_lib.Bond(order=order, type=type)
     # standalone vertex list (no longer inheriting from oasa.edge)
     self._bond_vertices = list(atoms) if atoms else [None, None]
-    # backward compat alias during transition
-    self._vertices = self._bond_vertices
     # attributes formerly provided by oasa.edge/oasa.bond inheritance
     self.properties_ = {}
     self.disconnected = False
@@ -240,7 +238,6 @@ class BkBond(
       self._bond_vertices[0] = mol
     except (IndexError, AttributeError):
       self._bond_vertices = [mol, None]
-    self._vertices = self._bond_vertices
     self.__dirty = 1
 
 
@@ -258,7 +255,6 @@ class BkBond(
       self._bond_vertices[1] = mol
     except (IndexError, AttributeError):
       self._bond_vertices = [None, mol]
-    self._vertices = self._bond_vertices
     self.__dirty = 1
 
 
@@ -271,7 +267,6 @@ class BkBond(
   def atoms(self, mol: object) -> None:
     # replace and re-link references
     self._bond_vertices = list(mol)
-    self._vertices = self._bond_vertices
     self.__dirty = 1
 
 
@@ -285,7 +280,6 @@ class BkBond(
   def vertices(self, vs: object) -> None:
     """Set the bond vertex list."""
     self._bond_vertices = list(vs)
-    self._vertices = self._bond_vertices
 
 
   def get_vertices(self) -> list:
@@ -297,7 +291,6 @@ class BkBond(
     """Set the bond vertex list (compatibility with oasa.edge API)."""
     if vs and len(vs) == 2:
       self._bond_vertices = list(vs)
-      self._vertices = self._bond_vertices
 
 
   @property

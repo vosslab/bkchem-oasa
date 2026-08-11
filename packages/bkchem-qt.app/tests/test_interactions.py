@@ -44,36 +44,6 @@ def _new_root_from_draw(
 
 
 #============================================
-def test_atom_dialog_applies_changes(qapp: object) -> None:
-	"""AtomDialog.edit_atom() can apply changes to an AtomModel."""
-	atom = bkchem_qt.models.atom_model.AtomModel(symbol="C")
-	atom.set_xyz(0.0, 0.0, 0.0)
-	assert atom.symbol == "C", "should start as C"
-	# directly test property setting
-	atom.symbol = "N"
-	assert atom.symbol == "N", "symbol should be N after set"
-	atom.charge = -1
-	assert atom.charge == -1, "charge should be -1"
-	atom.font_size = 14
-	assert atom.font_size == 14, "font_size should be 14"
-
-
-#============================================
-def test_bond_dialog_applies_changes(qapp: object) -> None:
-	"""BondDialog.edit_bond() can apply changes to a BondModel."""
-	bond = bkchem_qt.models.bond_model.BondModel(order=1, bond_type="n")
-	assert bond.order == 1, "should start as single"
-	assert bond.type == "n", "should start as normal"
-	# directly test property setting
-	bond.order = 2
-	assert bond.order == 2, "order should be 2 after set"
-	bond.type = "w"
-	assert bond.type == "w", "type should be w after set"
-	bond.line_width = 2.5
-	assert bond.line_width == 2.5, "line_width should be 2.5"
-
-
-#============================================
 def test_context_menu_delete_atom(main_window: object) -> None:
 	"""Context menu _delete_atom() removes atom with undo support."""
 	main_window._mode_manager.set_mode("draw")

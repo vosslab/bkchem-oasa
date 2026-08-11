@@ -310,12 +310,12 @@ def handle_scale(app: object) -> None:
 
 #============================================
 def handle_configure(app: object) -> None:
-	"""Open properties for one selected atom, bond, Text, Plus, or Wavy.
+	"""Open properties for one selected atom, bond, Text, Plus, Wavy, or Arrow.
 
 	If exactly one atom is selected, opens AtomDialog. If exactly
 	one bond is selected, opens BondDialog. One synchronized durable top-level
-	Text, plain Plus, or plain Wavy opens its detached dialog. Otherwise the action reports
-	its selection boundary.
+	Text, plain Plus, Wavy, or Arrow opens its detached dialog. Otherwise the
+	action reports its selection boundary.
 
 	Args:
 		app: The main application object.
@@ -369,6 +369,20 @@ def handle_configure(app: object) -> None:
 		return
 	if bkchem_qt.actions.property_editing.has_single_selected_wavy(app):
 		return
+	# Capture only plain Arrow values and the exact origin session callback.
+	arrow_capture = bkchem_qt.actions.property_editing.capture_selected_arrow_properties(app)
+	if arrow_capture is not None:
+		expected_revision, submit, arrow_id, changes = arrow_capture
+		if changes:
+			outcome = submit(expected_revision, arrow_id, changes)
+			show_outcome = getattr(app, "_show_persistent_action_outcome", None)
+			if callable(show_outcome):
+				show_outcome(outcome)
+			if outcome.status == "accepted" and outcome.commit is not None:
+				app.statusBar().showMessage("Edited Arrow properties", 2000)
+		return
+	if bkchem_qt.actions.property_editing.has_single_selected_arrow(app):
+		return
 	# exactly one current durable Text presentation root
 	presentations = app.document.selected_presentation_objects
 	presentation_ids = app.document.selected_presentation_stack_root_ids
@@ -389,7 +403,7 @@ def handle_configure(app: object) -> None:
 			app.statusBar().showMessage("Edited Text properties", 2000)
 		return
 	app.statusBar().showMessage(
-		"Select a single atom, bond, durable Text, plain Plus, or plain Wavy to configure", 3000
+		"Select a single atom, bond, durable Text, Plus, Wavy, or Arrow to configure", 3000
 	)
 
 

@@ -7,6 +7,7 @@ import math
 import PySide6.QtCore
 import PySide6.QtGui
 import PySide6.QtWidgets
+import pytest
 
 # local repo modules
 import bkchem_qt.canvas.items.atom_item
@@ -40,6 +41,16 @@ def _horizontal_line_ends(item: object) -> tuple[float, float]:
 		if op.kind == "line":
 			points.extend((op.points[0][0], op.points[1][0]))
 	return min(points), max(points)
+
+
+#============================================
+def _horizontal_line_lengths(item: object) -> list[float]:
+	"""Return horizontal portable line lengths from longest to shortest."""
+	return sorted(
+		(abs(operation.points[1][0] - operation.points[0][0])
+			for operation in item._ops if operation.kind == "line"),
+		reverse=True,
+	)
 
 
 #============================================
@@ -91,6 +102,18 @@ def test_nitrogen_font_change_shortens_only_its_bond_endpoint(
 
 
 #============================================
+def test_explicit_carbon_label_clips_its_bond_endpoint(
+		qapp: PySide6.QtWidgets.QApplication,
+		) -> None:
+	"""A visible carbon glyph and its bond share one backend label target."""
+	del qapp
+	carbon, nitrogen, bond_item = _bond_with_explicit_carbon_label()
+	left, right = _horizontal_line_ends(bond_item)
+
+	assert carbon.x < left < right < nitrogen.x
+
+
+#============================================
 def test_hidden_endpoint_has_no_bond_label_clipping(
 		qapp: PySide6.QtWidgets.QApplication,
 		) -> None:
@@ -113,6 +136,33 @@ def test_bond_bounds_contain_its_full_selection_and_hover_axis(
 	bounds = bond_item.boundingRect()
 
 	assert bounds.contains(carbon.x, carbon.y) and bounds.contains(nitrogen.x, nitrogen.y)
+
+
+#============================================
+def test_standalone_double_bond_uses_topology_and_authored_line_ratio(
+		qapp: PySide6.QtWidgets.QApplication,
+		) -> None:
+	"""The compatibility projection retains OASA's uncentered-lane contract."""
+	del qapp
+	molecule = bkchem_qt.models.molecule_model.MoleculeModel()
+	atoms = [molecule.create_atom(symbol="C") for _index in range(3)]
+	for atom, point in zip(atoms, ((0.0, 0.0), (80.0, 0.0), (80.0, 40.0)), strict=True):
+		atom.set_xyz(point[0], point[1], 0.0)
+		molecule.add_atom(atom)
+	double_bond = molecule.create_bond(order=2, bond_type="n")
+	molecule.add_bond(atoms[0], atoms[1], double_bond)
+	initial_ratio = 0.7
+	double_bond.double_length_ratio = initial_ratio
+	branch = molecule.create_bond(order=1, bond_type="n")
+	molecule.add_bond(atoms[1], atoms[2], branch)
+	item = bkchem_qt.canvas.items.bond_item.BondItem(double_bond)
+	baseline = _horizontal_line_lengths(item)
+	double_bond.double_length_ratio = 0.5
+	updated = _horizontal_line_lengths(item)
+
+	assert baseline[-1] == pytest.approx(baseline[0] * initial_ratio)
+	assert updated[0] == pytest.approx(baseline[0])
+	assert updated[-1] == pytest.approx(updated[0] * 0.5)
 
 
 #============================================

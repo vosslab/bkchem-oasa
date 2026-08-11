@@ -70,7 +70,8 @@ source source_me.sh && ./take_qt_screenshot.sh \
   --scenario haworth --output tmp/haworth-preview.png --kill-after 3
 ```
 
-The delivered application scope is the PySide6 frontend and Python OASA backend.
-The retained Tk source is historical implementation evidence. A future Rust or
-browser backend can consume the same ownership model without becoming a claim of
-this release.
+The current release application is the PySide6 frontend with the Python OASA
+backend. The classic Tk frontend is deprecated but retained as a runnable legacy
+surface and behavior reference; it is not the packaged default. A future Rust
+or browser backend can consume the same ownership model without becoming a
+claim of this release.

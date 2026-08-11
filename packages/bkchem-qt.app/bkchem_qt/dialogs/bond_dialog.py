@@ -192,24 +192,3 @@ class BondDialog(PySide6.QtWidgets.QDialog):
 			(name, value) for name, value in current.items()
 			if value != self._initial_values[name]
 		)
-
-	#============================================
-	@staticmethod
-	def edit_bond(bond_model: object, parent: object | None = None) -> bool:
-		"""Convenience: show dialog, apply changes if accepted.
-
-		Args:
-			bond_model: The BondModel to edit.
-			parent: Optional parent widget.
-
-		Returns:
-			True if changes were accepted and applied, False otherwise.
-		"""
-		dialog = BondDialog(bond_model, parent)
-		result = dialog.exec()
-		if result != PySide6.QtWidgets.QDialog.DialogCode.Accepted:
-			return False
-		values = dialog.get_values()
-		for key, value in values.items():
-			setattr(bond_model, key, value)
-		return bool(dialog.changes())

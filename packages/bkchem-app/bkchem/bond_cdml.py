@@ -1,6 +1,7 @@
 """CDML serialization mixin methods for BKChem bonds."""
 
-import oasa
+import oasa.bond_semantics
+import oasa.cdml_bond_io
 
 from bkchem import dom_extensions
 

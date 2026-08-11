@@ -93,11 +93,16 @@ def remove_invalid_generated_forms(document: object, molecule_ids: tuple[str, ..
 	changed = False
 	for molecule_id in molecule_ids:
 		molecule = oasa.cdml_document._direct_root_molecule(document, molecule_id)
-		atoms, bonds = _direct_graph(molecule)
-		for fragment in tuple(oasa.cdml_document._element_children(molecule)):
-			members = _owned_members(fragment)
-			if members is None:
-				continue
+		owned_forms = tuple(
+			(fragment, members)
+			for fragment in oasa.cdml_document._element_children(molecule)
+			if (members := _owned_members(fragment)) is not None
+		)
+		if not owned_forms:
+			continue
+		atoms = _unique_direct_records(molecule, "atom")
+		bonds = _unique_direct_records(molecule, "bond")
+		for fragment, members in owned_forms:
 			atom_ids, bond_ids = members
 			if not _form_is_valid(atoms, bonds, atom_ids, bond_ids):
 				molecule.removeChild(fragment)
@@ -151,6 +156,27 @@ def _direct_graph(molecule: object) -> tuple[dict[str, object], dict[str, object
 		_atom_point(atom)
 		_validate_marks(atom)
 	return atoms, bonds
+
+
+#============================================
+def _unique_direct_records(molecule: object, record_name: str) -> dict[str, object]:
+	"""Index only unambiguous direct records needed by generated metadata."""
+	records = {}
+	ambiguous_ids = set()
+	for child in oasa.cdml_document._element_children(molecule):
+		if not oasa.cdml_document._is_cdml_element(child):
+			continue
+		if oasa.cdml_document._local_name(child) != record_name:
+			continue
+		identifier = child.getAttribute("id")
+		if not identifier or identifier in ambiguous_ids:
+			continue
+		if identifier in records:
+			del records[identifier]
+			ambiguous_ids.add(identifier)
+			continue
+		records[identifier] = child
+	return records
 
 
 #============================================

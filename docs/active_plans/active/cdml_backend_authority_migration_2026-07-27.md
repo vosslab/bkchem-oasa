@@ -66,7 +66,7 @@ remain a separate future distribution project.
 Six fresh perspectives completed the final audit: plan, test, style,
 documentation, legacy, and comments. Their material findings corrected stale
 milestone and release claims, fragile tests, scoped code/style issues,
-Qt-only delivery documentation, obsolete Tk and molecule-only paths,
+Qt release documentation, stale Tk lifecycle claims, and molecule-only paths,
 and ownership wording. The accepted dispositions are reflected here and in
 the changelog; the stable contracts remain implementation-independent.
 
@@ -369,10 +369,9 @@ frontend projections and adapters.
 - Retire Qt full-document serialization and persistent raw-envelope ownership.
 - Correct contracts, active plans, parity reports, changelog claims, and
   packaging evidence.
-- Deliver Qt as the sole BKChem frontend. Use the legacy Tk code only as
-  historical behavioral and fixture evidence; do not retain it as a supported
-  frontend, packaging target, compatibility requirement, or architecture
-  constraint.
+- Deliver Qt as the release-selected BKChem frontend. Retain deprecated Tk as
+  legacy source and behavioral/fixture evidence, not the current packaging
+  target, a release-parity requirement, or an architecture constraint.
 
 ## Non-goals
 
@@ -382,8 +381,9 @@ frontend projections and adapters.
   backend ownership is valid.
 - Promise byte-identical XML formatting; semantic order, namespaces, opaque
   subtrees, IDs, references, and values must survive.
-- Support or package the historical Tk frontend. Legacy code and CDML fixtures
-  remain behavioral and migration evidence only.
+- Remove or newly package the deprecated Tk frontend. Its code and CDML
+  fixtures remain available for legacy behavior, migration evidence, and
+  bounded contract or regression fixes.
 - Deliver a browser, WASM backend, TypeScript, or SolidJS frontend. The
   frontend-neutral backend contract is sufficient for a future frontend
   without adding one to this migration.
@@ -1785,9 +1785,9 @@ change.
   evidence only. Publishable Qt-only delivery and current-user documentation
   additionally depend on WP-G1a, WP-G1b, and the M6 authority gate.
 - Required behavior:
-  - Ship `bkchem-qt` as the only BKChem application. Remove the legacy Tk
+  - Ship `bkchem-qt` as the release application. Exclude the deprecated Tk
     application, Tcl/Tk collection, and legacy `bkchem` entry point from
-    release artifacts and current-user installation instructions.
+    release artifacts and current-user instructions; retain their source.
   - Keep the Qt app builder experimental until controlled native-build evidence
     supports a release artifact. The active path makes no DMG claim.
   - Retain legacy source and CDML fixtures only as non-shipped behavioral
@@ -2119,8 +2119,8 @@ gates succeed.
   infrastructure until its backend replacement passes equivalent tests.
 - Never patch a backend response with data from the old Qt projection.
 - Preserve unknown CDML content in backend-owned opaque records.
-- Keep legacy CDML fixtures and observed Tk behavior only as historical CDML
-  migration evidence; Qt is the only delivered frontend.
+- Keep legacy CDML fixtures and observed behavior from the deprecated Tk
+  frontend as migration and regression evidence; Qt is the delivered frontend.
 - Enable the backend-authoritative route by complete action families; do not
   mix backend revision history and graphics-owning persistent undo within one
   migrated family.
@@ -2215,12 +2215,12 @@ independent acceptance.
     size/color through origin-bound backend history, durable selection recovery,
     and snapshot-only retry. Family, background color, child-font semantics,
     rich Plus records, and broader operations remain pending.
-  - [x] Accept the third bounded WP-E1 hypothesis: normal Wavy creation
-    commits complete CDML, records backend history and dirty state, canonically
-    reprojects, and uses authoritative Save. Independent evidence:
-    [wavy_public_tests_final_acceptance_2026_07_28.md](../audits/wavy_public_tests_final_acceptance_2026_07_28.md);
-    Wavy configure,
-    move, delete, and other presentation editing remain pending.
+  - [x] Accept the third bounded WP-E1 hypothesis: normal Wavy creation and
+    Configure commit complete CDML, record backend history and dirty state,
+    reproject, and use authoritative Save. Independent evidence remains in
+    [wavy_public_tests_final_acceptance_2026_07_28.md](../audits/wavy_public_tests_final_acceptance_2026_07_28.md).
+    Arrow Configure now patches heads, spline, width, and color through the
+    same origin-bound OASA operation family with undo, save, and reopen proof.
 - [x] Migrate every release-selected chemistry and worker family.
 - [x] Record the independently accepted WP-F0 capability dispositions before
   M5; close only the required RDKit, rendering, Haworth, PubChem, and

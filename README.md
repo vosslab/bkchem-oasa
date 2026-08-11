@@ -30,11 +30,11 @@ is discarded and rebuilt.
 
 ## Status and format boundaries
 
-Pip source installation is supported. BKChem-Qt is the sole supported and shipped
-BKChem frontend; Qt provides interaction and a replaceable scene projection, while
-OASA remains the authoritative complete-CDML backend. Retained Tk source and fixtures
-remain contributor reference material, not a user installation, packaging, or
-compatibility commitment.
+Pip source installation is supported. BKChem-Qt is the current release-selected and
+packaged frontend; Qt provides interaction and a replaceable scene projection, while
+OASA remains the authoritative complete-CDML backend. The classic Tk frontend is
+deprecated but intentionally retained as legacy source and behavioral reference. It
+is not the current release installation or packaging target.
 
 Native editable Save is CDML. OASA-supported imports create a pathless, dirty CDML
 session until Save As chooses a new `.cdml` destination. SVG, PNG, and PDF are rendered
@@ -54,7 +54,7 @@ source source_me.sh && ./take_qt_screenshot.sh --kill-after 3
 ## Quick start
 
 Use Python 3.10 or newer with a desktop session suitable for PySide6. From a source
-checkout, install OASA and the supported BKChem frontend:
+checkout, install OASA and the current BKChem frontend:
 
 ```sh
 python3 -m pip install packages/oasa packages/bkchem-qt.app
@@ -107,7 +107,7 @@ remain separate from the supported source and pip installation.
 - [docs/CODE_ARCHITECTURE.md](docs/CODE_ARCHITECTURE.md) maps backend ownership, Qt
   projection, and the live data flow.
 - [docs/FILE_STRUCTURE.md](docs/FILE_STRUCTURE.md) identifies the shipped packages,
-  retained historical source, and extension locations.
+  retained deprecated source, and extension locations.
 - [docs/CDML_BACKEND_TO_FRONTEND_CONTRACT.md](docs/CDML_BACKEND_TO_FRONTEND_CONTRACT.md)
   defines complete-CDML persistence, revisions, and backend operations.
 - [docs/QT_CONTRACT.md](docs/QT_CONTRACT.md) defines Qt session, projection, save, and
@@ -118,5 +118,5 @@ remain separate from the supported source and pip installation.
 ## Provenance and license
 
 This repository continues the BKChem and OASA open-source projects while delivering the
-current Qt-only application path. OASA and BKChem-Qt declare GPL-2.0-only licensing;
+current Qt application path. OASA and BKChem-Qt declare GPL-2.0-only licensing;
 see [LICENSE](LICENSE) for the GNU General Public License, version 2.

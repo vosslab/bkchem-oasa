@@ -2,7 +2,11 @@
 
 > Status (2026-08-11): resolved historical inventory. Production BKChem and Qt
 > contain no `isinstance` check against an OASA graph, atom, bond, or molecule
-> class. The tables below preserve the pre-composition migration evidence.
+> class. `chem_compat.py` now classifies projected objects by BKChem's public
+> `object_type` role; it imports and registers no OASA implementation class.
+> The architecture-law suite rejects inheritance, graph-class tests, private
+> graph storage, and virtual registration. The tables below preserve the
+> pre-composition migration evidence.
 
 Audit of every `isinstance(x, oasa.*)` check in the BKChem codebase.
 These checks must be replaced before the composition refactor removes
@@ -23,7 +27,7 @@ OASA inheritance from BKChem classes.
 | `modes.py` | 20 |
 | `paper.py` | 4 |
 | `context_menu.py` | 4 |
-| `chem_compat.py` | 3 (helper wrappers, keep as-is) |
+| `chem_compat.py` | 3 (historical helper wrappers) |
 
 ### Counts by OASA type
 
@@ -45,9 +49,8 @@ OASA inheritance from BKChem classes.
 | `oasa.bond` | `chem_compat.is_chemistry_edge(x)` or `isinstance(x, bond)` |
 | `(oasa.graph.vertex, bond)` | Use both helpers or a combined check |
 
-The `chem_compat.py` helpers centralize the isinstance logic so that
-only three lines need updating when OASA inheritance is fully removed.
-All other call sites should migrate to these helpers.
+The `chem_compat.py` helpers were the migration seam. They now classify only
+frontend projections through public roles; no runtime OASA type bridge remains.
 
 ## Full occurrence table
 
@@ -96,10 +99,10 @@ Priority is ordered by file risk (modes.py first, highest density).
 | 376 | `isinstance(a, oasa.graph.vertex)` | `is_chemistry_vertex(a)` |
 | 383 | `isinstance(b, oasa.bond)` | `is_chemistry_edge(b)` |
 
-### chem_compat.py (3 occurrences -- keep as-is)
+### chem_compat.py (3 historical occurrences)
 
-These are the centralized helpers that wrap the isinstance checks.
-After the refactor, only these three lines change.
+These were the centralized helpers that wrapped the `isinstance` checks before
+the composition refactor was completed.
 
 | Line | isinstance call | Notes |
 | --- | --- | --- |
@@ -107,7 +110,7 @@ After the refactor, only these three lines change.
 | 85 | `isinstance(obj, oasa.graph.edge)` | Body of `is_chemistry_edge()` |
 | 98 | `isinstance(obj, oasa.graph.graph)` | Body of `is_chemistry_graph()` |
 
-## Migration plan
+## Completed migration outline
 
 1. **Phase 1** -- Add `import bkchem.chem_compat` to `modes.py`,
    `paper.py`, and `context_menu.py`.
@@ -116,8 +119,7 @@ After the refactor, only these three lines change.
 3. **Phase 3** -- For `oasa.bond` checks in `context_menu.py`, decide
    whether to use `is_chemistry_edge()` or `isinstance(x, bond)` based
    on whether the check needs to include all edge types or only bonds.
-4. **Phase 4** -- Update `chem_compat.py` helper bodies to use
-   duck-typing or direct BKChem type checks once OASA inheritance is
-   fully removed.
+4. **Phase 4** -- Update `chem_compat.py` to use BKChem's public projected-object
+   roles once OASA inheritance is fully removed.
 5. **Phase 5** -- Remove `import oasa` / `import oasa.graph` from files
    that no longer need them directly.

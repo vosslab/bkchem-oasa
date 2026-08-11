@@ -1,11 +1,18 @@
 """Object-menu Configure dialog persistence tests."""
 
+# PIP3 modules
+import PySide6.QtGui
+import PySide6.QtWidgets
+
 # local repo modules
 import bkchem_qt.actions.object_actions
+import bkchem_qt.actions.property_editing
 import bkchem_qt.canvas.items.atom_item
 import bkchem_qt.canvas.items.bond_item
 import bkchem_qt.dialogs.atom_dialog
 import bkchem_qt.dialogs.bond_dialog
+import bkchem_qt.models.atom_model
+import bkchem_qt.models.bond_model
 import bkchem_qt.models.document_session
 
 
@@ -45,6 +52,49 @@ def _projected_item(session: object, item_type: type) -> object:
 		if isinstance(item, item_type):
 			return item
 	raise AssertionError("Native projection omitted the requested item")
+
+
+#============================================
+def test_isolated_atom_dialog_intent_is_one_reversible_local_edit(
+		qapp: object, monkeypatch: object,
+		) -> None:
+	"""Detached atom intent reaches an isolated model only through local undo."""
+	parent = PySide6.QtWidgets.QWidget()
+	stack = PySide6.QtGui.QUndoStack(parent)
+	atom = bkchem_qt.models.atom_model.AtomModel(symbol="C")
+
+	def accept(dialog: object) -> int:
+		"""Choose one different public value before accepting the dialog."""
+		dialog._symbol_edit.setText("N")
+		return PySide6.QtWidgets.QDialog.DialogCode.Accepted
+
+	monkeypatch.setattr(bkchem_qt.dialogs.atom_dialog.AtomDialog, "exec", accept)
+	changed = bkchem_qt.actions.property_editing.edit_atom_properties(atom, parent, stack)
+	assert changed and atom.symbol == "N" and stack.canUndo()
+	stack.undo()
+	assert atom.symbol == "C" and stack.canRedo()
+
+
+#============================================
+def test_isolated_bond_dialog_intent_is_one_reversible_local_edit(
+		qapp: object, monkeypatch: object,
+		) -> None:
+	"""A multi-field bond intent is first applied by one local undo macro."""
+	parent = PySide6.QtWidgets.QWidget()
+	stack = PySide6.QtGui.QUndoStack(parent)
+	bond = bkchem_qt.models.bond_model.BondModel(order=1, bond_type="n")
+
+	def accept(dialog: object) -> int:
+		"""Choose different order and color values before accepting the dialog."""
+		dialog._order_combo.setCurrentIndex(dialog._order_combo.findText("Double"))
+		dialog._color = "#123456"
+		return PySide6.QtWidgets.QDialog.DialogCode.Accepted
+
+	monkeypatch.setattr(bkchem_qt.dialogs.bond_dialog.BondDialog, "exec", accept)
+	changed = bkchem_qt.actions.property_editing.edit_bond_properties(bond, parent, stack)
+	assert changed and (bond.order, bond.line_color) == (2, "#123456") and stack.canUndo()
+	stack.undo()
+	assert (bond.order, bond.line_color) == (1, "#000000") and stack.canRedo()
 
 
 #============================================
@@ -163,11 +213,11 @@ def test_configure_idless_synchronized_atom_is_inert(
 		before = session.backend_snapshot
 		before_symbol = atom_model.symbol
 
-		def fail_fallback(_atom: object, _parent: object) -> bool:
+		def fail_fallback(_dialog: object) -> int:
 			"""Expose a forbidden local fallback from the synchronized window route."""
 			raise AssertionError("Object Configure opened the atom local fallback")
 
-		monkeypatch.setattr(bkchem_qt.dialogs.atom_dialog.AtomDialog, "edit_atom", fail_fallback)
+		monkeypatch.setattr(bkchem_qt.dialogs.atom_dialog.AtomDialog, "exec", fail_fallback)
 		bkchem_qt.actions.object_actions.handle_configure(main_window)
 
 		assert (
@@ -193,11 +243,11 @@ def test_configure_idless_synchronized_bond_is_inert(
 		before = session.backend_snapshot
 		before_order = bond_model.order
 
-		def fail_fallback(_bond: object, _parent: object) -> bool:
+		def fail_fallback(_dialog: object) -> int:
 			"""Expose a forbidden local fallback from the synchronized window route."""
 			raise AssertionError("Object Configure opened the bond local fallback")
 
-		monkeypatch.setattr(bkchem_qt.dialogs.bond_dialog.BondDialog, "edit_bond", fail_fallback)
+		monkeypatch.setattr(bkchem_qt.dialogs.bond_dialog.BondDialog, "exec", fail_fallback)
 		bkchem_qt.actions.object_actions.handle_configure(main_window)
 
 		assert (

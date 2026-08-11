@@ -29,6 +29,7 @@ import bkchem_qt.wavy_geometry
 import oasa.cdml_document
 import oasa.cdml_ftext
 import oasa.cdml_molecule_summary
+import oasa.cdml_presentation_properties
 import oasa.cdml_render
 import oasa.cdml_standard
 import oasa.biomolecule_template_placement
@@ -490,38 +491,25 @@ def rich_text_patch_from_plain_runs(
 
 
 #============================================
-def build_plus_properties_patch_request(
-		expected_revision: int, plus_id: str,
+def build_presentation_properties_patch_request(
+		kind: str, expected_revision: int, identifier: str,
 		changes: tuple[tuple[str, object], ...],
 		) -> PersistentOperationRequest:
-	"""Build one immutable explicit-field direct-root plain Plus patch request."""
+	"""Build one immutable request in the direct-root presentation family."""
+	operation_key, label, identifier_field = {
+		"plus": ("plus.properties.patch", "Edit Plus Properties", "plus_id"),
+		"wavy": ("wavy.properties.patch", "Edit Wavy Properties", "wavy_id"),
+		"arrow": ("arrow.properties.patch", "Edit Arrow Properties", "arrow_id"),
+	}[kind]
 	return PersistentOperationRequest(
-		"plus.properties.patch", "Edit Plus Properties",
+		operation_key, label,
 		(
 			("expected_revision", expected_revision),
-			("plus_id", plus_id),
+			(identifier_field, identifier),
 			("changes", changes),
 		),
-		frozenset({("presentation", plus_id)}),
+		frozenset({("presentation", identifier)}),
 	)
-
-
-#============================================
-def build_wavy_properties_patch_request(
-		expected_revision: int, wavy_id: str,
-		changes: tuple[tuple[str, object], ...],
-		) -> PersistentOperationRequest:
-	"""Build one immutable explicit-field direct-root plain Wavy patch request."""
-	return PersistentOperationRequest(
-		"wavy.properties.patch", "Edit Wavy Properties",
-		(
-			("expected_revision", expected_revision),
-			("wavy_id", wavy_id),
-			("changes", changes),
-		),
-		frozenset({("presentation", wavy_id)}),
-	)
-
 
 #============================================
 def build_fragment_create_request(
@@ -1138,8 +1126,9 @@ class DocumentSession(PySide6.QtCore.QObject):
 			"atom.properties.patch": self._build_atom_properties_patch,
 			"text.properties.patch": self._build_text_properties_patch,
 			"text.rich.patch": self._build_rich_text_patch,
-			"plus.properties.patch": self._build_plus_properties_patch,
-			"wavy.properties.patch": self._build_wavy_properties_patch,
+			"plus.properties.patch": self._build_presentation_properties_patch,
+			"wavy.properties.patch": self._build_presentation_properties_patch,
+			"arrow.properties.patch": self._build_presentation_properties_patch,
 			"fragment.create": self._build_fragment_create,
 			"fragment.delete": self._build_fragment_delete,
 			"group.expand.implicit": self._build_implicit_group_expand,
@@ -1171,8 +1160,7 @@ class DocumentSession(PySide6.QtCore.QObject):
 			"atom-properties-patch": self._commit_atom_properties_patch,
 			"text-properties-patch": self._commit_text_properties_patch,
 			"rich-text-patch": self._commit_rich_text_patch,
-			"plus-properties-patch": self._commit_plus_properties_patch,
-			"wavy-properties-patch": self._commit_wavy_properties_patch,
+			"presentation-properties-patch": self._commit_presentation_properties_patch,
 			"fragment-create": self._commit_fragment_create,
 			"fragment-delete": self._commit_fragment_delete,
 			"implicit-group-expand": self._commit_implicit_group_expand,
@@ -1974,8 +1962,8 @@ class DocumentSession(PySide6.QtCore.QObject):
 			) -> PersistentActionOutcome:
 		"""Submit one revision-bound durable plain Plus patch through this session."""
 		self._require_live_persistent_operation()
-		request = build_plus_properties_patch_request(
-			expected_revision, plus_id, changes,
+		request = build_presentation_properties_patch_request(
+			"plus", expected_revision, plus_id, changes,
 		)
 		return self.submit_persistent_operation(request)
 
@@ -1986,8 +1974,20 @@ class DocumentSession(PySide6.QtCore.QObject):
 			) -> PersistentActionOutcome:
 		"""Submit one revision-bound durable plain Wavy patch through this session."""
 		self._require_live_persistent_operation()
-		request = build_wavy_properties_patch_request(
-			expected_revision, wavy_id, changes,
+		request = build_presentation_properties_patch_request(
+			"wavy", expected_revision, wavy_id, changes,
+		)
+		return self.submit_persistent_operation(request)
+
+	#============================================
+	def submit_arrow_properties_patch(
+			self, expected_revision: int, arrow_id: str,
+			changes: tuple[tuple[str, object], ...],
+			) -> PersistentActionOutcome:
+		"""Submit one revision-bound durable Arrow patch through this session."""
+		self._require_live_persistent_operation()
+		request = build_presentation_properties_patch_request(
+			"arrow", expected_revision, arrow_id, changes,
 		)
 		return self.submit_persistent_operation(request)
 
@@ -2091,6 +2091,7 @@ class DocumentSession(PySide6.QtCore.QObject):
 					oasa.cdml_document.CDMLRichTextPatchResult,
 					oasa.cdml_document.CDMLPlusPropertiesPatchResult,
 					oasa.cdml_document.CDMLWavyPropertiesPatchResult,
+					oasa.cdml_presentation_properties.CDMLArrowPropertiesPatchResult,
 					oasa.cdml_document.CDMLAtomMarkOperationResult,
 					oasa.cdml_document.CDMLTopLevelTransformResult,
 					oasa.cdml_document.CDMLLinearFormConvertResult,
@@ -3037,59 +3038,49 @@ class DocumentSession(PySide6.QtCore.QObject):
 		)
 
 	#============================================
-	def _build_plus_properties_patch(
+	def _build_presentation_properties_patch(
 			self, snapshot: oasa.cdml_document.CDMLSnapshot,
 			request: PersistentOperationRequest,
 			) -> _PreparedPersistentOperation:
-		"""Bind one exact plain Plus dialog intent to OASA's root patch."""
+		"""Bind one direct-root presentation dialog intent to its OASA patch."""
+		specifications = {
+			"plus.properties.patch": (
+				"Plus", "plus_id", oasa.cdml_document.CDMLPlusPropertiesPatch,
+			),
+			"wavy.properties.patch": (
+				"Wavy", "wavy_id", oasa.cdml_document.CDMLWavyPropertiesPatch,
+			),
+			"arrow.properties.patch": (
+				"Arrow", "arrow_id",
+				oasa.cdml_presentation_properties.CDMLArrowPropertiesPatch,
+			),
+		}
+		if request.operation_key not in specifications:
+			raise ValueError("Presentation properties operation is unsupported")
+		label, identifier_field, request_type = specifications[request.operation_key]
 		payload = dict(request.payload)
-		if set(payload) != {"expected_revision", "plus_id", "changes"}:
-			raise ValueError("Plus properties payload has unsupported fields")
+		if set(payload) != {"expected_revision", identifier_field, "changes"}:
+			raise ValueError("%s properties payload has unsupported fields" % label)
 		if type(payload["expected_revision"]) is not int:
-			raise ValueError("Plus properties expected_revision must be an integer")
+			raise ValueError("%s properties expected_revision must be an integer" % label)
 		if payload["expected_revision"] != snapshot.revision:
 			raise oasa.cdml_document.CDMLRevisionConflictError(
-				"Plus properties expected revision does not match the current snapshot",
+				"%s properties expected revision does not match the current snapshot" % label,
 			)
-		plus_id = payload["plus_id"]
-		if type(plus_id) is not str or not plus_id.strip():
-			raise ValueError("Plus properties plus_id must contain a non-whitespace character")
-		if type(payload["changes"]) is not tuple:
-			raise ValueError("Plus properties changes must be an immutable tuple")
-		if request.target_keys != frozenset({("presentation", plus_id)}):
-			raise ValueError("Plus properties target keys must match the durable Plus target")
-		plus_request = oasa.cdml_document.CDMLPlusPropertiesPatch(**payload)
-		return _PreparedPersistentOperation(
-			"plus-properties-patch", plus_request.expected_revision, plus_request,
-			frozenset({("presentation", plus_id)}),
-		)
-
-	#============================================
-	def _build_wavy_properties_patch(
-			self, snapshot: oasa.cdml_document.CDMLSnapshot,
-			request: PersistentOperationRequest,
-			) -> _PreparedPersistentOperation:
-		"""Bind one exact plain Wavy dialog intent to OASA's root patch."""
-		payload = dict(request.payload)
-		if set(payload) != {"expected_revision", "wavy_id", "changes"}:
-			raise ValueError("Wavy properties payload has unsupported fields")
-		if type(payload["expected_revision"]) is not int:
-			raise ValueError("Wavy properties expected_revision must be an integer")
-		if payload["expected_revision"] != snapshot.revision:
-			raise oasa.cdml_document.CDMLRevisionConflictError(
-				"Wavy properties expected revision does not match the current snapshot",
+		identifier = payload[identifier_field]
+		if type(identifier) is not str or not identifier.strip():
+			raise ValueError(
+				"%s properties %s must contain a non-whitespace character"
+				% (label, identifier_field),
 			)
-		wavy_id = payload["wavy_id"]
-		if type(wavy_id) is not str or not wavy_id.strip():
-			raise ValueError("Wavy properties wavy_id must contain a non-whitespace character")
 		if type(payload["changes"]) is not tuple:
-			raise ValueError("Wavy properties changes must be an immutable tuple")
-		if request.target_keys != frozenset({("presentation", wavy_id)}):
-			raise ValueError("Wavy properties target keys must match the durable Wavy target")
-		wavy_request = oasa.cdml_document.CDMLWavyPropertiesPatch(**payload)
+			raise ValueError("%s properties changes must be an immutable tuple" % label)
+		if request.target_keys != frozenset({("presentation", identifier)}):
+			raise ValueError("%s properties target keys do not match its durable target" % label)
+		patch = request_type(**payload)
 		return _PreparedPersistentOperation(
-			"wavy-properties-patch", wavy_request.expected_revision, wavy_request,
-			frozenset({("presentation", wavy_id)}),
+			"presentation-properties-patch", patch.expected_revision, patch,
+			frozenset({("presentation", identifier)}),
 		)
 
 	#============================================
@@ -3655,22 +3646,19 @@ class DocumentSession(PySide6.QtCore.QObject):
 		return self._backend_session.patch_rich_text(prepared.value)
 
 	#============================================
-	def _commit_plus_properties_patch(
+	def _commit_presentation_properties_patch(
 			self, prepared: _PreparedPersistentOperation,
-			) -> oasa.cdml_document.CDMLPlusPropertiesPatchResult:
-		"""Execute one backend-owned explicit plain Plus-properties patch."""
-		if type(prepared.value) is not oasa.cdml_document.CDMLPlusPropertiesPatch:
-			raise ValueError("Plus properties requires an exact Plus properties patch")
-		return self._backend_session.patch_plus_properties(prepared.value)
-
-	#============================================
-	def _commit_wavy_properties_patch(
-			self, prepared: _PreparedPersistentOperation,
-			) -> oasa.cdml_document.CDMLWavyPropertiesPatchResult:
-		"""Execute one backend-owned explicit plain Wavy-properties patch."""
-		if type(prepared.value) is not oasa.cdml_document.CDMLWavyPropertiesPatch:
-			raise ValueError("Wavy properties requires an exact Wavy properties patch")
-		return self._backend_session.patch_wavy_properties(prepared.value)
+			) -> object:
+		"""Execute one backend-owned direct-root presentation property patch."""
+		if type(prepared.value) is oasa.cdml_document.CDMLPlusPropertiesPatch:
+			return self._backend_session.patch_plus_properties(prepared.value)
+		if type(prepared.value) is oasa.cdml_document.CDMLWavyPropertiesPatch:
+			return self._backend_session.patch_wavy_properties(prepared.value)
+		if type(prepared.value) is oasa.cdml_presentation_properties.CDMLArrowPropertiesPatch:
+			return oasa.cdml_presentation_properties.patch_arrow_properties(
+				self._backend_session, prepared.value,
+			)
+		raise ValueError("Presentation properties requires a supported exact patch")
 
 	#============================================
 	def _commit_fragment_create(
@@ -3800,8 +3788,7 @@ class DocumentSession(PySide6.QtCore.QObject):
 			"atom-align", "atom-translate", "selection-translate", "atom-rotate", "bond-order-edit", "bond-type-edit",
 			"bond-properties-patch", "atom-properties-patch", "text-properties-patch",
 			"rich-text-patch",
-			"plus-properties-patch",
-			"wavy-properties-patch",
+			"presentation-properties-patch",
 			"atom-mark-operation",
 			"fragment-create", "fragment-delete",
 			"linear-form-convert",

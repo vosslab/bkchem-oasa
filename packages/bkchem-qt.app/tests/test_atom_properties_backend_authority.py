@@ -525,12 +525,12 @@ def test_retained_unregistered_view_is_inert_while_another_tab_is_active(
 		second_before = second.backend_snapshot
 		removed = main_window._sessions_by_view.pop(first.view)
 
-		def fail_local_fallback(_atom: object, _parent: object) -> bool:
+		def fail_local_fallback(_dialog: object) -> int:
 			"""Expose a stale callback taking the isolated-document route."""
 			raise AssertionError("unregistered synchronized view opened local fallback")
 
 		monkeypatch.setattr(
-			bkchem_qt.dialogs.atom_dialog.AtomDialog, "edit_atom", fail_local_fallback,
+			bkchem_qt.dialogs.atom_dialog.AtomDialog, "exec", fail_local_fallback,
 		)
 		_properties_action(menu).trigger()
 

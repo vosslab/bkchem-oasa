@@ -33,7 +33,7 @@ Relevant to future toolkit migration (PySide, Tauri, etc.).
 | `misc.py` | 177 | General utility functions |
 | `graph_vertex_mixin.py` | 172 | Graph connectivity mixin |
 | `id_manager.py` | 78 | Object ID registry |
-| `chem_compat.py` | 120 | ABC compatibility shim |
+| `chem_compat.py` | 30 | Frontend projected-object role classifier |
 | `chem_protocols.py` | 420 | Protocol/ABC definitions |
 | `checks.py` | ~50 | Chemistry integrity checks |
 | `validator.py` | 125 | Chemistry validation |

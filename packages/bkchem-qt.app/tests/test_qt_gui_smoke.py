@@ -252,14 +252,19 @@ def test_qt_status_bar_coords_smoke(qapp: object, main_window: object) -> None:
 	coords_text = main_window._status_bar._coords_label.text()
 	assert "123.4" in coords_text, f"coords label should contain '123.4', got: {coords_text}"
 	assert "567.8" in coords_text, f"coords label should contain '567.8', got: {coords_text}"
-	# show a status message
+	main_window._mode_manager.set_mode("edit")
+	current_mode = main_window._mode_manager.current_mode
+	expected_hint = current_mode.status_hint
+	assert main_window._status_bar.context_message == expected_hint
+	# transient outcomes should reveal the persistent mode hint again afterward
 	main_window._status_bar.show_message("Test message", timeout=0)
-	msg_text = main_window._status_bar._message_label.text()
-	assert "Test message" in msg_text, f"message label should contain 'Test message', got: {msg_text}"
-	# update mode
-	main_window._status_bar.update_mode("Draw")
+	assert main_window._status_bar.currentMessage() == "Test message"
+	assert main_window._status_bar.visible_message == "Test message"
+	main_window._status_bar.clearMessage()
+	assert main_window._status_bar.context_message == expected_hint
+	assert main_window._status_bar.visible_message == expected_hint
 	mode_text = main_window._status_bar._mode_label.text()
-	assert "Draw" in mode_text, f"mode label should contain 'Draw', got: {mode_text}"
+	assert current_mode.name.lower() in mode_text.lower()
 	# take screenshot for visual review
 	qapp.processEvents()
 	_save_screenshot(main_window, "status_bar")

@@ -160,6 +160,7 @@ The backend exposes these behavioral operations:
 | Patch rich Text | Expected revision, one durable direct-root core Text ID, immutable CDML 26.07 formatted text runs, and unique explicit optional root `font_family`, `font_size`, or `font_color` changes | Immutable accepted snapshot, or unchanged current snapshot for normalized runs plus every requested canonical root-font value | Invalid request, repeated field, target ambiguity, preservation-only ftext, unsupported markup, font scalar, blank content, or revision conflict |
 | Patch plain Plus properties | Expected revision, one durable direct-root core Plus ID, and unique explicit changes for root font size or six-digit root color | Immutable accepted snapshot, or unchanged current snapshot for a semantic no-op | Invalid request, repeated field, target or direct-child ambiguity, overriding child font, scalar value, or revision conflict |
 | Patch plain Wavy properties | Expected revision, one durable direct-root core `<polyline style="wavy">` ID, and unique explicit width or six-digit line color changes | Immutable accepted snapshot, or unchanged current snapshot for a semantic no-op | Invalid request, repeated field, target or point ambiguity, scalar value, malformed Wavy content, or revision conflict |
+| Patch Arrow properties | Expected revision, one durable editable direct-root core Arrow ID, and unique explicit start-head, end-head, spline, width, or six-digit color changes | Immutable accepted snapshot, or unchanged current snapshot for a semantic no-op | Invalid request, repeated field, target or presentation ambiguity, scalar value, malformed Arrow content, or revision conflict |
 | Create fragment metadata | Expected revision, one direct-root molecule ID, nonblank name, exact `explicit` or `implicit` type, and ordered duplicate-free direct atom/bond IDs | Immutable accepted snapshot and backend-allocated fragment ID | Invalid request, member, endpoint, target, or revision conflict |
 | Delete fragment metadata | Expected revision, one direct-root molecule ID, and one durable ordinary-fragment ID | Immutable accepted snapshot | Invalid request, preservation-only fragment grammar, target, or revision conflict |
 | Observe fragment metadata | Exact expected revision | Immutable ordinary-fragment facts and display-only diagnostics | Invalid query or revision conflict |
@@ -513,6 +514,26 @@ subtrees remain opaque. Empty or semantically equal intent is history-free,
 including missing-default and lexical width/color variants. Every grammar,
 target, scalar, or revision failure is typed and atomic: it preserves the
 snapshot, saved baseline, retained history, and opaque content.
+
+Patch Arrow properties is a revision-bound backend operation for one durable
+editable direct-root core `<arrow>`. Its immutable request carries one expected
+revision, the Arrow ID, and unique explicit `start_head`, `end_head`, `spline`,
+`line_width`, or `color` changes. Head and spline intent is exactly boolean and
+serializes as `yes` or `no`. Width is a non-boolean finite number from 0.1
+through 20 and serializes with `%g`; color is an exact six-digit hexadecimal
+value and becomes lowercase. Missing start, end, spline, width, and color have
+the visible meanings false, true, false, 1.0, and black for semantic comparison
+only. Compatible historical yes/no spellings and lexical width/color variants
+participate in that comparison without normalizing untouched content.
+
+The target must be the unique editable Arrow in the exact-revision presentation
+observation: it has a durable ID, at least two finite direct core points, and no
+preservation-only direct child content. Acceptance changes only the requested
+root attributes. Authored point and control-point order, type, shape, length,
+unmentioned attributes, comments, processing instructions, namespaces,
+unrelated records, and source position remain backend-owned. Empty or
+semantically equal intent creates no revision. Every request, target, scalar,
+candidate-validation, or revision failure is typed and atomic.
 
 Apply atom mark is a revision-bound backend operation for one direct core
 `<atom>`. Its immutable request names a direct-root molecule ID, direct atom

@@ -2,6 +2,7 @@
 
 # local repo modules
 import bkchem_qt.dialogs.atom_dialog
+import bkchem_qt.dialogs.arrow_dialog
 import bkchem_qt.dialogs.bond_dialog
 import bkchem_qt.dialogs.plus_dialog
 import bkchem_qt.dialogs.text_dialog
@@ -118,66 +119,53 @@ def _text_properties_submission(
 
 
 #============================================
-def _plus_properties_submission(
-		parent: object, plus_model: object,
+def _presentation_properties_submission(
+		parent: object, model: object, capture_name: str,
 		) -> tuple[int, object, str] | None:
-	"""Return the frozen synchronized durable Plus target for this owning view."""
+	"""Return one frozen synchronized durable presentation target."""
 	window, view = _owning_window_and_view(parent)
-	plus_id = getattr(plus_model, "object_id", None)
-	if not getattr(plus_model, "editable", False) or not isinstance(plus_id, str) or not plus_id:
+	identifier = getattr(model, "object_id", None)
+	if not getattr(model, "editable", False) or not isinstance(identifier, str) or not identifier:
 		return None
-	capture_for_view = getattr(window, "capture_plus_properties_for_view", None)
+	capture_for_view = getattr(window, capture_name, None)
 	if not callable(capture_for_view):
 		return None
-	captured = capture_for_view(view, plus_id)
+	captured = capture_for_view(view, identifier)
 	if (
 		captured is None or type(captured) is not tuple or len(captured) != 2
 		or type(captured[0]) is not int or not callable(captured[1])
 	):
 		return None
-	return captured[0], captured[1], plus_id
+	return captured[0], captured[1], identifier
 
 
 #============================================
-def _wavy_properties_submission(
-		parent: object, wavy_model: object,
-		) -> tuple[int, object, str] | None:
-	"""Return the frozen synchronized durable Wavy target for this owning view."""
-	window, view = _owning_window_and_view(parent)
-	wavy_id = getattr(wavy_model, "object_id", None)
-	if not getattr(wavy_model, "editable", False) or not isinstance(wavy_id, str) or not wavy_id:
+def _single_selected_presentation(
+		parent: object, kind: str, *, style: str | None = None,
+		) -> object | None:
+	"""Return one exact current editable presentation root of the requested kind."""
+	window, _view = _owning_window_and_view(parent)
+	document = getattr(window, "document", None)
+	if document is None or document.selected_atoms or document.selected_bonds:
 		return None
-	capture_for_view = getattr(window, "capture_wavy_properties_for_view", None)
-	if not callable(capture_for_view):
+	presentations = document.selected_presentation_objects
+	presentation_ids = document.selected_presentation_stack_root_ids
+	if len(presentations) != 1 or len(presentation_ids) != 1:
 		return None
-	captured = capture_for_view(view, wavy_id)
+	model = presentations[0]
 	if (
-		captured is None or type(captured) is not tuple or len(captured) != 2
-		or type(captured[0]) is not int or not callable(captured[1])
+		model.kind != kind or not model.editable
+		or model.object_id != presentation_ids[0]
+		or style is not None and model.attributes.get("style") != style
 	):
 		return None
-	return captured[0], captured[1], wavy_id
+	return model
 
 
 #============================================
 def _single_selected_plus(parent: object) -> object | None:
 	"""Return one exact current durable Plus projection inside this helper frame."""
-	window, _view = _owning_window_and_view(parent)
-	document = getattr(window, "document", None)
-	if document is None:
-		return None
-	if document.selected_atoms or document.selected_bonds:
-		return None
-	presentations = document.selected_presentation_objects
-	presentation_ids = document.selected_presentation_stack_root_ids
-	if (
-		len(presentations) != 1 or len(presentation_ids) != 1
-		or presentations[0].kind != "plus"
-		or not presentations[0].editable
-		or presentations[0].object_id != presentation_ids[0]
-	):
-		return None
-	return presentations[0]
+	return _single_selected_presentation(parent, "plus")
 
 
 #============================================
@@ -190,27 +178,25 @@ def has_single_selected_plus(parent: object) -> bool:
 #============================================
 def _single_selected_wavy(parent: object) -> object | None:
 	"""Return one exact current durable Wavy projection inside this helper frame."""
-	window, _view = _owning_window_and_view(parent)
-	document = getattr(window, "document", None)
-	if document is None or document.selected_atoms or document.selected_bonds:
-		return None
-	presentations = document.selected_presentation_objects
-	presentation_ids = document.selected_presentation_stack_root_ids
-	if (
-		len(presentations) != 1 or len(presentation_ids) != 1
-		or presentations[0].kind != "polyline"
-		or not presentations[0].editable
-		or presentations[0].object_id != presentation_ids[0]
-		or presentations[0].attributes.get("style") != "wavy"
-	):
-		return None
-	return presentations[0]
+	return _single_selected_presentation(parent, "polyline", style="wavy")
 
 
 #============================================
 def has_single_selected_wavy(parent: object) -> bool:
 	"""Report exact Wavy Configure eligibility without retaining its QObject."""
 	return _single_selected_wavy(parent) is not None
+
+
+#============================================
+def _single_selected_arrow(parent: object) -> object | None:
+	"""Return one exact current durable Arrow projection inside this helper frame."""
+	return _single_selected_presentation(parent, "arrow")
+
+
+#============================================
+def has_single_selected_arrow(parent: object) -> bool:
+	"""Report exact Arrow Configure eligibility without retaining its QObject."""
+	return _single_selected_arrow(parent) is not None
 
 
 #============================================
@@ -221,7 +207,9 @@ def capture_selected_plus_properties(
 	plus_model = _single_selected_plus(parent)
 	if plus_model is None:
 		return None
-	synchronized = _plus_properties_submission(parent, plus_model)
+	synchronized = _presentation_properties_submission(
+		parent, plus_model, "capture_plus_properties_for_view",
+	)
 	if synchronized is None:
 		window, _view = _owning_window_and_view(parent)
 		status_bar = getattr(window, "statusBar", None)
@@ -247,7 +235,9 @@ def capture_selected_wavy_properties(
 	wavy_model = _single_selected_wavy(parent)
 	if wavy_model is None:
 		return None
-	synchronized = _wavy_properties_submission(parent, wavy_model)
+	synchronized = _presentation_properties_submission(
+		parent, wavy_model, "capture_wavy_properties_for_view",
+	)
 	if synchronized is None:
 		return None
 	attributes = wavy_model.attributes
@@ -259,6 +249,35 @@ def capture_selected_wavy_properties(
 	if dialog.exec() == dialog.DialogCode.Accepted:
 		changes = dialog.changes()
 	return expected_revision, submit, wavy_id, changes
+
+
+#============================================
+def capture_selected_arrow_properties(
+		parent: object,
+		) -> tuple[int, object, str, tuple[tuple[str, object], ...]] | None:
+	"""Capture one Arrow dialog intent before disposable wrappers are released."""
+	arrow_model = _single_selected_arrow(parent)
+	if arrow_model is None:
+		return None
+	synchronized = _presentation_properties_submission(
+		parent, arrow_model, "capture_arrow_properties_for_view",
+	)
+	if synchronized is None:
+		return None
+	attributes = arrow_model.attributes
+	start_head = attributes.get("start", "no").lower() in ("yes", "true", "1", "both")
+	end_head = attributes.get("end", "yes").lower() not in ("no", "false", "0")
+	spline = attributes.get("spline", "no").lower() in ("yes", "true", "1")
+	dialog = bkchem_qt.dialogs.arrow_dialog.ArrowDialog(
+		parent=parent, start_head=start_head, end_head=end_head,
+		line_width=float(attributes.get("width", "1")), spline=spline,
+		color=attributes.get("color", "#000000"),
+	)
+	expected_revision, submit, arrow_id = synchronized
+	changes = ()
+	if dialog.exec() == dialog.DialogCode.Accepted:
+		changes = dialog.changes()
+	return expected_revision, submit, arrow_id, changes
 
 
 #============================================
@@ -285,38 +304,37 @@ def _plain_text_values(text_model: object) -> dict[str, object] | None:
 
 
 #============================================
-def _apply_changed_properties(
-		model: object, old_values: dict, undo_stack: object,
-		macro_text: str,
+def _push_local_property_changes(
+		model: object, changes: tuple[tuple[str, object], ...],
+		undo_stack: object, macro_text: str, aliases: dict[str, str],
 		) -> bool:
-	"""Turn an isolated dialog-mutated model into one local undoable edit.
+	"""Push detached dialog intent as one isolated local undoable edit.
 
-	The legacy dialogs intentionally apply their accepted values directly to
-	the supplied model.  This boundary restores each changed value before
-	placing a command on the stack, so the command's initial redo updates the
-	model and its projections through the normal property signals.
+	The dialog never changes the projected model.  This explicit compatibility
+	boundary translates backend field spellings to local model properties, then
+	lets each command's initial redo perform the first mutation.
 
 	Args:
-		model: AtomModel or BondModel changed by an accepted dialog.
-		old_values: Values captured before opening the dialog.
+		model: AtomModel or BondModel receiving the accepted values.
+		changes: Unique detached field/value intent returned by the dialog.
 		undo_stack: QUndoStack for the intentionally isolated local document.
 		macro_text: One user-visible description for the grouped edit.
+		aliases: Backend field names whose local model names differ.
 
 	Returns:
 		True when the dialog changed at least one persisted property.
 	"""
-	changes = []
-	for property_name, old_value in old_values.items():
-		new_value = getattr(model, property_name)
-		if new_value != old_value:
-			changes.append((property_name, old_value, new_value))
-	if not changes:
+	commands = []
+	for field_name, new_value in changes:
+		property_name = aliases[field_name] if field_name in aliases else field_name
+		old_value = getattr(model, property_name)
+		if new_value == old_value:
+			continue
+		commands.append((property_name, old_value, new_value))
+	if not commands:
 		return False
-	# Restore dialog mutations so push() invokes each command's redo normally.
-	for property_name, old_value, _new_value in changes:
-		setattr(model, property_name, old_value)
 	undo_stack.beginMacro(macro_text)
-	for property_name, old_value, new_value in changes:
+	for property_name, old_value, new_value in commands:
 		undo_stack.push(bkchem_qt.undo.commands.ChangePropertyCommand(
 			model, property_name, old_value, new_value,
 			text=f"Change {property_name}",
@@ -344,13 +362,17 @@ def edit_atom_properties(
 		True when accepted dialog changes were recorded.
 	"""
 	synchronized = _atom_properties_submission(parent, atom_model)
+	if synchronized is None and _synchronized_application_context(parent):
+		return False
+	if synchronized is None and undo_stack is None:
+		return False
+	dialog = bkchem_qt.dialogs.atom_dialog.AtomDialog(atom_model, parent)
+	if dialog.exec() != dialog.DialogCode.Accepted:
+		return False
+	changes = dialog.changes()
+	if not changes:
+		return False
 	if synchronized is not None:
-		dialog = bkchem_qt.dialogs.atom_dialog.AtomDialog(atom_model, parent)
-		if dialog.exec() != dialog.DialogCode.Accepted:
-			return False
-		changes = dialog.changes()
-		if not changes:
-			return False
 		expected_revision, submit, molecule_id, atom_id = synchronized
 		outcome = submit(expected_revision, molecule_id, atom_id, changes)
 		window, _view = _owning_window_and_view(parent)
@@ -358,28 +380,9 @@ def edit_atom_properties(
 		if callable(show_outcome):
 			show_outcome(outcome)
 		return outcome.status == "accepted" and outcome.commit is not None
-	if _synchronized_application_context(parent):
-		return False
-	if undo_stack is None:
-		return False
-	old_values = {
-		"symbol": atom_model.symbol,
-		"charge": atom_model.charge,
-		"valency": atom_model.valency,
-		"isotope": atom_model.isotope,
-		"multiplicity": atom_model.multiplicity,
-		"show": atom_model.show,
-		"show_hydrogens": atom_model.show_hydrogens,
-		"font_size": atom_model.font_size,
-		"line_color": atom_model.line_color,
-	}
-	accepted = bkchem_qt.dialogs.atom_dialog.AtomDialog.edit_atom(
-		atom_model, parent,
-	)
-	if not accepted:
-		return False
-	changed = _apply_changed_properties(
-		atom_model, old_values, undo_stack, "Edit Atom Properties",
+	changed = _push_local_property_changes(
+		atom_model, changes, undo_stack, "Edit Atom Properties",
+		{"element": "symbol"},
 	)
 	return changed
 
@@ -403,13 +406,17 @@ def edit_bond_properties(
 		True when accepted dialog changes were recorded.
 	"""
 	synchronized = _bond_properties_submission(parent, bond_model)
+	if synchronized is None and _synchronized_application_context(parent):
+		return False
+	if synchronized is None and undo_stack is None:
+		return False
+	dialog = bkchem_qt.dialogs.bond_dialog.BondDialog(bond_model, parent)
+	if dialog.exec() != dialog.DialogCode.Accepted:
+		return False
+	changes = dialog.changes()
+	if not changes:
+		return False
 	if synchronized is not None:
-		dialog = bkchem_qt.dialogs.bond_dialog.BondDialog(bond_model, parent)
-		if dialog.exec() != dialog.DialogCode.Accepted:
-			return False
-		changes = dialog.changes()
-		if not changes:
-			return False
 		expected_revision, submit, molecule_id, bond_id = synchronized
 		outcome = submit(expected_revision, molecule_id, bond_id, changes)
 		window, _view = _owning_window_and_view(parent)
@@ -417,26 +424,9 @@ def edit_bond_properties(
 		if callable(show_outcome):
 			show_outcome(outcome)
 		return outcome.status == "accepted" and outcome.commit is not None
-	if _synchronized_application_context(parent):
-		return False
-	if undo_stack is None:
-		return False
-	old_values = {
-		"order": bond_model.order,
-		"type": bond_model.type,
-		"center": bond_model.center,
-		"line_width": bond_model.line_width,
-		"bond_width": bond_model.bond_width,
-		"wedge_width": bond_model.wedge_width,
-		"line_color": bond_model.line_color,
-	}
-	accepted = bkchem_qt.dialogs.bond_dialog.BondDialog.edit_bond(
-		bond_model, parent,
-	)
-	if not accepted:
-		return False
-	changed = _apply_changed_properties(
-		bond_model, old_values, undo_stack, "Edit Bond Properties",
+	changed = _push_local_property_changes(
+		bond_model, changes, undo_stack, "Edit Bond Properties",
+		{"color": "line_color"},
 	)
 	return changed
 

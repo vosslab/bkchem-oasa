@@ -13,8 +13,8 @@ BKChem-Qt presents and interacts with its disposable scene projection.
 
 ## Install
 
-From the repository root, install the backend and the only shipped BKChem
-frontend:
+From the repository root, install the backend and the current release-selected
+BKChem frontend:
 
 ```sh
 python3 -m pip install packages/oasa packages/bkchem-qt.app
@@ -26,8 +26,9 @@ For source-tree development, use editable installs instead:
 python3 -m pip install -e packages/oasa -e packages/bkchem-qt.app
 ```
 
-`packages/bkchem-app/` is retained only as historical source and fixture
-reference during the migration. It is not a current-user installation path.
+The classic Tk frontend in `packages/bkchem-app/` is deprecated but not
+removed. Its source, fixtures, and focused tests remain available for legacy
+behavior and maintenance; this release guide and its validation target Qt.
 
 ## Verify install
 

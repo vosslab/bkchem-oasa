@@ -250,9 +250,9 @@ def test_all_values_application_materializes_applicable_object_styles() -> None:
 	commit = _apply(
 		session,
 		(("line_width", 3.0), ("font_size", 16), ("font_family", "Courier"),
-		 ("line_color", "#224466"), ("area_color", "#ddeeff"),
-		 ("bond_width", 8.0), ("wedge_width", 7.0),
-		 ("double_ratio", 0.5), ("show_hydrogens", True)),
+			("line_color", "#224466"), ("area_color", "#ddeeff"),
+			("bond_width", 8.0), ("wedge_width", 7.0),
+			("double_ratio", 0.5), ("show_hydrogens", True)),
 		"all", (), fields,
 	)
 	atom = _element_by_id(commit.cdml, "a3")

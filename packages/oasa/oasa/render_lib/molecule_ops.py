@@ -44,8 +44,13 @@ from oasa.render_lib.bond_ops import build_bond_ops
 
 
 #============================================
-def _resolved_vertex_label_layout(vertex: object, show_hydrogens_on_hetero: object, font_size: object, font_name: object) -> object:
-	if not vertex_is_shown(vertex):
+def _resolved_vertex_label_layout(
+		vertex: object, show_hydrogens_on_hetero: object, font_size: object,
+		font_name: object, show_carbon_symbol: object = False,
+		) -> object:
+	if not vertex_is_shown(vertex) and not (
+		show_carbon_symbol and vertex.symbol == "C"
+	):
 		return None
 	text = vertex_label_text(vertex, show_hydrogens_on_hetero)
 	if not text:
@@ -110,12 +115,14 @@ def _transform_target(target: object, transform_xy: object) -> object:
 #============================================
 def build_vertex_ops(vertex: object, transform_xy: object = None, show_hydrogens_on_hetero: object = False,
 		color_atoms: object = True, atom_colors: object = None, font_name: object = "Arial", font_size: object = 16,
-		background_color: object = None, draw_label_mask: object = True) -> object:
+		background_color: object = None, draw_label_mask: object = True,
+		show_carbon_symbol: object = False) -> object:
 	layout = _resolved_vertex_label_layout(
 		vertex,
 		show_hydrogens_on_hetero=show_hydrogens_on_hetero,
 		font_size=font_size,
 		font_name=font_name,
+		show_carbon_symbol=show_carbon_symbol,
 	)
 	if layout is None:
 		return []
@@ -267,6 +274,7 @@ def build_label_attach_targets(vertices: object, show_hydrogens_on_hetero: objec
 			show_hydrogens_on_hetero=bool(show_hydrogens_on_hetero),
 			font_size=float(font_size),
 			font_name=str(font_name),
+			show_carbon_symbol=show_carbon_symbol,
 		)
 		if layout is None:
 			continue
@@ -434,6 +442,7 @@ def molecule_to_ops(mol: object, style: object = None, transform_xy: object = No
 			font_name=str(used_style["font_name"]),
 			font_size=float(used_style["font_size"]),
 			background_color=used_style["background_color"],
+			show_carbon_symbol=bool(used_style["show_carbon_symbol"]),
 		)
 		ops.extend(vertex_ops)
 	return ops

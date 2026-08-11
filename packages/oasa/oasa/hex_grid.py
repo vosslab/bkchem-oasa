@@ -427,32 +427,3 @@ def find_best_grid_origin(atom_coords: list, spacing: float) -> tuple:
 			best_total = total
 			best_origin = (ox, oy)
 	return best_origin
-
-
-#============================================
-# simple assert examples
-#============================================
-
-# hex_grid_point: origin grid point (0,0) should be at the origin
-result = hex_grid_point(0, 0, 1.0)
-assert result == (0.0, 0.0), f"expected (0.0, 0.0), got {result}"
-
-# hex_grid_point: (1,0) should be at (sqrt(3)/2, 0.5) -- 30 degrees
-_e1x = sqrt(3.0) / 2.0
-_e1y = 0.5
-result = hex_grid_point(1, 0, 1.0)
-assert abs(result[0] - _e1x) < 1e-12, f"expected x={_e1x}, got {result[0]}"
-assert abs(result[1] - _e1y) < 1e-12, f"expected y={_e1y}, got {result[1]}"
-
-# snap_to_hex_grid: a point at the origin should snap to (0,0)
-result = snap_to_hex_grid(0.0, 0.0, 1.0)
-assert result == (0.0, 0.0), f"expected (0.0, 0.0), got {result}"
-
-# snap_to_hex_grid: a point near e1 should snap to e1
-result = snap_to_hex_grid(_e1x + 0.01, _e1y + 0.01, 1.0)
-assert abs(result[0] - _e1x) < 1e-9, f"expected x={_e1x}, got {result[0]}"
-assert abs(result[1] - _e1y) < 1e-9, f"expected y={_e1y}, got {result[1]}"
-
-# hex_grid_point with custom origin
-result = hex_grid_point(0, 0, 1.0, origin_x=5.0, origin_y=10.0)
-assert result == (5.0, 10.0), f"expected (5.0, 10.0), got {result}"

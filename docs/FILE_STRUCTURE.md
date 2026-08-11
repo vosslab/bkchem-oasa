@@ -6,8 +6,8 @@
 bkchem-oasa/
 +- packages/
 |  +- oasa/                 authoritative chemistry and CDML backend
-|  +- bkchem-qt.app/        sole supported PySide6 BKChem frontend
-|  `- bkchem-app/           historical Tk source and fixture evidence
+|  +- bkchem-qt.app/        current PySide6 release frontend
+|  `- bkchem-app/           deprecated, retained Tk frontend source
 +- docs/                    contracts, plans, architecture, and user docs
 +- tests/                   repository-wide structural and E2E checks
 +- tools/                   focused developer utilities
@@ -24,7 +24,8 @@ bkchem-oasa/
 - [source_me.sh](../source_me.sh) sets the repository Python path for local
   pointed checks.
 - [launch_bkchem-qt_gui.sh](../launch_bkchem-qt_gui.sh) is the current local
-  desktop launcher. The release boundary does not include a Tk launcher.
+  desktop launcher. The deprecated Tk source remains present, but the current
+  release boundary does not package a Tk launcher.
 
 ## Package layout
 
@@ -34,6 +35,7 @@ bkchem-oasa/
 packages/oasa/
 +- oasa/                    backend library source
 |  +- cdml_document.py      complete-CDML session and operations
+|  +- cdml_presentation_properties.py  focused presentation-root patches
 |  +- codecs/               molecule-format codecs
 |  +- graph/                graph primitives and backends
 |  +- haworth/              carbohydrate layout helpers
@@ -46,6 +48,9 @@ packages/oasa/
 - [packages/oasa/oasa/cdml_document.py](../packages/oasa/oasa/cdml_document.py)
   is the persistent-document authority. It owns snapshots, revisioned atomic
   operations, history, saved baseline, durable identities, and typed failures.
+- `packages/oasa/oasa/cdml_presentation_properties.py`
+  owns bounded direct-root presentation property patches without frontend or
+  toolkit dependencies.
 - [packages/oasa/oasa/cdml_xml.py](../packages/oasa/oasa/cdml_xml.py) and
   [packages/oasa/oasa/cdml_writer.py](../packages/oasa/oasa/cdml_writer.py)
   provide hardened CDML parsing and controlled output.
@@ -93,25 +98,25 @@ packages/bkchem-qt.app/
   and [packages/bkchem-qt.app/bkchem_qt/canvas/graphics_retirement.py](../packages/bkchem-qt.app/bkchem_qt/canvas/graphics_retirement.py)
   build and dispose Qt scene objects on the frontend side of the boundary.
 
-### Historical BKChem source
+### Deprecated Tk BKChem source
 
 ```text
 packages/bkchem-app/
 +- bkchem/                  retained Tk application source
-|  +- actions/              historical action modules
-|  +- main_lib/             historical window responsibilities
-|  +- modes/                historical interaction modes
-|  `- paper_lib/            historical canvas helpers
+|  +- actions/              legacy action modules
+|  +- main_lib/             legacy window responsibilities
+|  +- modes/                legacy interaction modes
+|  `- paper_lib/            legacy canvas helpers
 +- bkchem_data/             legacy templates, assets, locales, and DTDs
 +- addons/                  legacy XML-described addons
-+- tests/                   focused historical behavior evidence
++- tests/                   focused legacy behavior evidence
 `- pyproject.toml           retained legacy package metadata
 ```
 
-[packages/bkchem-app/](../packages/bkchem-app/) is retained for source and
-fixture reference only. It is not a supported frontend, runtime dependency,
-packaging target, compatibility commitment, or parity target. New work does
-not belong in this subtree.
+[packages/bkchem-app/](../packages/bkchem-app/) is a deprecated but retained
+frontend. It supplies legacy behavior and fixtures and may receive bounded
+contract or regression fixes. It is not the current release packaging target;
+new user-facing delivery work belongs on the Qt path.
 
 ## Documentation map
 
@@ -157,9 +162,9 @@ not belong in this subtree.
 - Put cross-package developer utilities in [tools/](../tools/) or
   [devel/](../devel/), durable documentation in [docs/](.), and repository-wide
   checks in [tests/](../tests/).
-- Consult [packages/bkchem-app/](../packages/bkchem-app/) only for historical
-  source or fixtures needed as migration evidence. Do not add frontend,
-  packaging, compatibility, or parity work there.
+- Consult [packages/bkchem-app/](../packages/bkchem-app/) for legacy source or
+  fixtures and make bounded contract or regression fixes there when needed.
+  Keep new packaging and user-facing delivery work on the Qt path.
 
 ## Known gaps
 
@@ -168,5 +173,5 @@ not belong in this subtree.
   delivery project rather than a requirement for this release.
 - Compatibility decoding and deliberately local compatibility undo remain
   explicit isolated routes. Synchronized persistence remains backend-owned.
-- Legacy source remains in the checkout as historical evidence; that retained
-  layout does not expand the shipped product boundary.
+- Deprecated Tk source remains in the checkout; that retained layout does not
+  expand the current shipped product boundary.

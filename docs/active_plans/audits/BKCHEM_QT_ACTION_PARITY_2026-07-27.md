@@ -3,7 +3,8 @@
 This is the WP-E1 release-facing inventory. It records the current Qt delivery and
 the frontend-neutral CDML boundary, using legacy behavior only as a feature reference.
 It is based on the action registry, toolbar-mode configuration, implementation, and
-pointed tests reconciled on 2026-08-11. Qt is the only delivered frontend.
+pointed tests reconciled on 2026-08-11. Qt is the current release frontend;
+the classic Tk frontend is deprecated but remains retained as a behavior reference.
 
 See the active [BKCHEM_QT_COMPLETION_PLAN_2026-07-27.md](../active/BKCHEM_QT_COMPLETION_PLAN_2026-07-27.md).
 The exact-revision presentation, paper-layout, backend clipboard, fragment,
@@ -34,7 +35,7 @@ The supported set is: session/new/open/save/close; native CDML save/reopen for t
 implemented document path; molecule draw, atom placement, templates, basic edit and
 undo/redo; arrows, text, plus signs, brackets, vectors, and marks; mixed top-level
 clipboard operations; presentation edit/delete/stacking; atom, bond, plain Text, plain
-Plus, Wavy, supported Rich Text editing, and current-document drawing defaults;
+Plus, Wavy, Arrow, supported Rich Text editing, and current-document drawing defaults;
 active-session keybindings;
 capability-driven file import; asynchronous imports; Haworth and PubChem insertion;
 and supported artifact export. M6 source, installed, boundary, and audit gates
@@ -89,7 +90,7 @@ are not missing projection decoding.
 | `object.swap_on_stack` | revision-bound presentation-stack reorder | OK | backend | supported objects | GUI | object-stack actions |
 | `object.vertical_mirror` | backend mixed-root transform | OK | backend | supported roots | GUI | transform action authority |
 | `object.horizontal_mirror` | backend mixed-root transform | OK | backend | supported roots | GUI | transform action authority |
-| `object.configure` | atom/bond, plain Text, Plus, and Wavy property dialogs | OK | backend synchronized; local isolated compatibility route | supported scalar fields | GUI | property-authority tests; unsupported broader Plus fields remain explicitly unavailable rather than a partial release claim |
+| `object.configure` | atom/bond, plain Text, Plus, Wavy, and Arrow property dialogs | OK | backend synchronized; local isolated compatibility route | supported scalar fields | GUI | property-authority tests; Arrow start/end heads, spline, width, and color use one OASA revision-bound patch |
 | `object.edit_rich_text` | revision-bound `text.rich.patch` modal flow | OK | backend | supported direct-root Text `ftext` | GUI | `test_rich_text_qt_authority.py`; unsupported attributed markup remains visible and preservation-only |
 
 ## Chemistry and repair actions

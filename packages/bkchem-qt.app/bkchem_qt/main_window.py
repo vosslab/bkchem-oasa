@@ -508,16 +508,25 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 		return session.backend_snapshot.revision, self.text_properties_capability_for(session)
 
 	#============================================
-	def plus_properties_capability_for(
+	def _presentation_properties_capability_for(
 			self, session: bkchem_qt.models.document_session.DocumentSession,
+			kind: str,
 			) -> object:
-		"""Freeze one narrow direct-root plain Plus patch onto a registered tab."""
+		"""Freeze one direct-root presentation patch onto a registered tab."""
 		if not isinstance(session, bkchem_qt.models.document_session.DocumentSession):
-			raise TypeError("Plus properties capability requires a DocumentSession")
+			raise TypeError("Presentation properties capability requires a DocumentSession")
 		if session.is_disposed or session not in self._sessions:
-			raise ValueError("Plus properties capability requires a live registered session")
+			raise ValueError("Presentation properties requires a live registered session")
+		submitters = {
+			"plus": session.submit_plus_properties_patch,
+			"wavy": session.submit_wavy_properties_patch,
+			"arrow": session.submit_arrow_properties_patch,
+		}
+		if kind not in submitters:
+			raise ValueError("Presentation properties kind is unsupported")
+		submitter = submitters[kind]
 		def submit(
-				expected_revision: int, plus_id: str,
+				expected_revision: int, identifier: str,
 				changes: tuple[tuple[str, object], ...],
 				) -> bkchem_qt.models.document_session.PersistentActionOutcome:
 			"""Submit only while the exact captured session remains registered."""
@@ -525,61 +534,43 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 				return bkchem_qt.models.document_session.PersistentActionOutcome(
 					"unavailable", "Document cannot accept a persistent edit", None, False,
 				)
-			return session.submit_plus_properties_patch(
-				expected_revision, plus_id, changes,
-			)
+			return submitter(expected_revision, identifier, changes)
 		return submit
 
 	#============================================
-	def capture_plus_properties_for_view(
-			self, view: object, plus_id: str,
+	def _capture_presentation_properties_for_view(
+			self, view: object, identifier: str, kind: str,
 			) -> tuple[int, object] | None:
-		"""Capture one revision and exact-tab Plus patch callback for one intent."""
+		"""Capture one revision and exact-tab presentation callback for one intent."""
 		session = self._sessions_by_view.get(view)
 		if (
 			session is None or session.is_disposed or session.document is None
 			or not session.can_commit_persistent_action
-			or not isinstance(plus_id, str) or not plus_id
+			or not isinstance(identifier, str) or not identifier
 		):
 			return None
-		return session.backend_snapshot.revision, self.plus_properties_capability_for(session)
+		return (
+			session.backend_snapshot.revision,
+			self._presentation_properties_capability_for(session, kind),
+		)
 
 	#============================================
-	def wavy_properties_capability_for(
-			self, session: bkchem_qt.models.document_session.DocumentSession,
-			) -> object:
-		"""Freeze one narrow direct-root plain Wavy patch onto a registered tab."""
-		if not isinstance(session, bkchem_qt.models.document_session.DocumentSession):
-			raise TypeError("Wavy properties capability requires a DocumentSession")
-		if session.is_disposed or session not in self._sessions:
-			raise ValueError("Wavy properties capability requires a live registered session")
-		def submit(
-				expected_revision: int, wavy_id: str,
-				changes: tuple[tuple[str, object], ...],
-				) -> bkchem_qt.models.document_session.PersistentActionOutcome:
-			"""Submit only while the exact captured session remains registered."""
-			if session.is_disposed or session not in self._sessions:
-				return bkchem_qt.models.document_session.PersistentActionOutcome(
-					"unavailable", "Document cannot accept a persistent edit", None, False,
-				)
-			return session.submit_wavy_properties_patch(
-				expected_revision, wavy_id, changes,
-			)
-		return submit
+	def capture_plus_properties_for_view(self, view: object,
+			plus_id: str) -> tuple[int, object] | None:
+		"""Capture one exact-tab plain Plus callback."""
+		return self._capture_presentation_properties_for_view(view, plus_id, "plus")
 
 	#============================================
-	def capture_wavy_properties_for_view(
-			self, view: object, wavy_id: str,
-			) -> tuple[int, object] | None:
-		"""Capture one revision and exact-tab Wavy patch callback for one intent."""
-		session = self._sessions_by_view.get(view)
-		if (
-			session is None or session.is_disposed or session.document is None
-			or not session.can_commit_persistent_action
-			or not isinstance(wavy_id, str) or not wavy_id
-		):
-			return None
-		return session.backend_snapshot.revision, self.wavy_properties_capability_for(session)
+	def capture_wavy_properties_for_view(self, view: object,
+			wavy_id: str) -> tuple[int, object] | None:
+		"""Capture one exact-tab Wavy callback."""
+		return self._capture_presentation_properties_for_view(view, wavy_id, "wavy")
+
+	#============================================
+	def capture_arrow_properties_for_view(self, view: object,
+			arrow_id: str) -> tuple[int, object] | None:
+		"""Capture one exact-tab Arrow callback."""
+		return self._capture_presentation_properties_for_view(view, arrow_id, "arrow")
 
 	#============================================
 	def _bind_property_dock(
@@ -2035,7 +2026,7 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 		mode = self._mode_manager.current_mode
 		if mode is None:
 			return
-		# rebuild the submode ribbon for the new mode
+		self._status_bar.set_context_message(mode.status_hint)
 		self._submode_ribbon.rebuild(mode_name)
 		# keep submode toolbar always visible at a fixed minimum height
 		# to prevent layout jumps when switching between modes

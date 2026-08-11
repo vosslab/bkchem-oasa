@@ -72,7 +72,7 @@ def test_text_mode_annotation_uses_backend_authority_without_qt_undo(
 		projected_semantics = {
 			"kind": text_model.kind,
 			"id": text_model.object_id,
-			"content": text_model.xml_ftext,
+			"content": text_model.display_text,
 			"font": text_model.font_attributes,
 		}
 		projected_point = text_model.points[0][:2]

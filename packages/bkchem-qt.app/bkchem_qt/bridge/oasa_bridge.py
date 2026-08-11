@@ -14,6 +14,7 @@ import oasa.cdml_bond_io
 import oasa.cdml_document
 import oasa.cdml_ftext
 import oasa.cdml_molecule_summary
+import oasa.cdml_standard
 import oasa.codecs.rdkit_formats
 import oasa.render_lib.bond_ops
 import oasa.render_lib.data_types
@@ -503,25 +504,18 @@ def legacy_atom_render_operations(
 	properties = atom.properties_
 	if properties.get("show") == "no":
 		return ()
-	added_label = False
-	if properties.get("show") == "yes" and atom.symbol == "C" and not properties.get("label"):
-		properties["label"] = atom.symbol
-		added_label = True
-	try:
-		operations = oasa.render_lib.molecule_ops.build_vertex_ops(
-			atom,
-			transform_xy=None,
-			show_hydrogens_on_hetero=atom_model.show_hydrogens,
-			color_atoms=True,
-			atom_colors={atom.symbol: _compatibility_color(atom_model.line_color)},
-			font_name=atom_model.font_family,
-			font_size=atom_model.font_size,
-			background_color=_BACKEND_DOCUMENT_BACKGROUND,
-		)
-		return oasa.cdml_document.normalize_render_operations(operations)
-	finally:
-		if added_label:
-			del properties["label"]
+	operations = oasa.render_lib.molecule_ops.build_vertex_ops(
+		atom,
+		transform_xy=None,
+		show_hydrogens_on_hetero=atom_model.show_hydrogens,
+		color_atoms=True,
+		atom_colors={atom.symbol: _compatibility_color(atom_model.line_color)},
+		font_name=atom_model.font_family,
+		font_size=atom_model.font_size,
+		background_color=_BACKEND_DOCUMENT_BACKGROUND,
+		show_carbon_symbol=properties.get("show") == "yes",
+	)
+	return oasa.cdml_document.normalize_render_operations(operations)
 
 
 #============================================
@@ -543,28 +537,46 @@ def legacy_bond_render_operations(
 		) -> tuple[oasa.cdml_document.CDMLRenderPrimitive, ...]:
 	"""Build portable bond primitives from scalar endpoint intent.
 
-	This compatibility bridge owns fresh OASA endpoint materialization, each
-	endpoint's label/attach targets, and the render context.  It returns only
-	opaque operations; no temporary vertex, edge, or graph escapes to Qt items.
+	This compatibility bridge owns fresh OASA topology materialization, label
+	and attach targets, and the render context.  It returns only opaque
+	operations; no temporary vertex, edge, or graph escapes to Qt items.
 	"""
 	if not all(math.isfinite(value) for point in (start, end) for value in point):
 		raise ValueError("legacy bond rendering requires finite endpoints")
-	edge = materialize_oasa_bond(bond_model)
+	molecule_model = atom1.molecule_model
+	if (
+		molecule_model is not None and molecule_model is atom2.molecule_model
+		and any(candidate is bond_model for candidate in molecule_model.bonds)
+	):
+		materialized = _materialize_oasa_molecule(molecule_model)
+		render_molecule = materialized.molecule
+		edge = materialized.bonds_by_model_identity[id(bond_model)]
+		atom_models = tuple(molecule_model.atoms)
+		vertices = tuple(
+			materialized.atoms_by_model_identity[id(atom_model)]
+			for atom_model in atom_models
+		)
+	else:
+		render_molecule = None
+		edge = materialize_oasa_bond(bond_model)
+		atom_models = (atom1, atom2)
+		vertices = (materialize_oasa_atom(atom1), materialize_oasa_atom(atom2))
+		edge.vertices = list(vertices)
 	# Preserve the historical theme sentinel as a portable semantic role.  The
 	# temporary OASA edge remains bridge-local and is discarded after depiction.
 	edge.properties_["line_color"] = _compatibility_color(bond_model.line_color)
-	vertices = (materialize_oasa_atom(atom1), materialize_oasa_atom(atom2))
-	edge.vertices = list(vertices)
 	shown_vertices, label_targets, attach_targets = _legacy_bond_label_targets(
-		(atom1, atom2), vertices,
+		atom_models, vertices,
 	)
 	render_context = oasa.render_lib.data_types.BondRenderContext(
-		molecule=None,
+		molecule=render_molecule,
 		line_width=bond_model.line_width,
 		bond_width=bond_model.bond_width,
 		wedge_width=bond_model.wedge_width,
 		bold_line_width_multiplier=1.2,
-		bond_second_line_shortening=0.0,
+		bond_second_line_shortening=oasa.cdml_standard.bond_second_line_shortening(
+			bond_model.double_length_ratio,
+		),
 		color_bonds=True,
 		atom_colors=None,
 		shown_vertices=shown_vertices,
@@ -589,8 +601,8 @@ def _compatibility_color(value: str) -> str:
 
 #============================================
 def _legacy_bond_label_targets(
-		atom_models: tuple[bkchem_qt.models.atom_model.AtomModel, bkchem_qt.models.atom_model.AtomModel],
-		vertices: tuple[oasa.atom_lib.Atom, oasa.atom_lib.Atom],
+		atom_models: tuple[bkchem_qt.models.atom_model.AtomModel, ...],
+		vertices: tuple[oasa.atom_lib.Atom, ...],
 		) -> tuple[set[object], dict[object, object], dict[object, object]]:
 	"""Build OASA clipping targets using each endpoint's own display facts."""
 	shown_vertices = set()
@@ -604,11 +616,23 @@ def _legacy_bond_label_targets(
 			show_hydrogens_on_hetero=bool(atom_model.show_hydrogens),
 			font_name=atom_model.font_family,
 			font_size=float(atom_model.font_size),
+			show_carbon_symbol=(
+				atom_model.show and "show" in atom_model.cdml_display_fields
+			),
 		)
 		shown_vertices.update(shown)
 		label_targets.update(labels)
 		attach_targets.update(attaches)
 	return shown_vertices, label_targets, attach_targets
+
+
+@dataclasses.dataclass(frozen=True)
+class _MaterializedOASAMolecule:
+	"""One bridge-local graph plus identity associations to Qt wrappers."""
+
+	molecule: oasa.molecule_lib.Molecule
+	atoms_by_model_identity: dict[int, oasa.atom_lib.Atom]
+	bonds_by_model_identity: dict[int, oasa.bond_lib.Bond]
 
 
 #============================================
@@ -626,14 +650,13 @@ def qt_mol_to_oasa_mol(
 	Returns:
 		oasa.molecule_lib.Molecule with atoms and bonds.
 	"""
-	oasa_mol, unused_atom_by_model_identity = _materialize_oasa_molecule(mol_model)
-	return oasa_mol
+	return _materialize_oasa_molecule(mol_model).molecule
 
 
 #============================================
 def _materialize_oasa_molecule(
 		mol_model: bkchem_qt.models.molecule_model.MoleculeModel,
-		) -> tuple[oasa.molecule_lib.Molecule, dict[int, oasa.atom_lib.Atom]]:
+		) -> _MaterializedOASAMolecule:
 	"""Create a complete disposable OASA graph and scalar-wrapper association."""
 	oasa_mol = oasa.molecule_lib.Molecule()
 	if mol_model.mol_id:
@@ -648,7 +671,8 @@ def _materialize_oasa_molecule(
 		oasa_mol.add_vertex(oasa_atom)
 		atom_by_model_identity[id(am)] = oasa_atom
 
-	# create bonds
+	# Create bonds and retain the bridge-local association needed by renderers.
+	bond_by_model_identity = {}
 	for bm in mol_model.bonds:
 		oasa_bond = materialize_oasa_bond(bm)
 		a1 = bm.atom1
@@ -660,8 +684,11 @@ def _materialize_oasa_molecule(
 		if v1 is None or v2 is None:
 			continue
 		oasa_mol.add_edge(v1, v2, e=oasa_bond)
+		bond_by_model_identity[id(bm)] = oasa_bond
 
-	return oasa_mol, atom_by_model_identity
+	return _MaterializedOASAMolecule(
+		oasa_mol, atom_by_model_identity, bond_by_model_identity,
+	)
 
 
 #============================================
@@ -673,10 +700,10 @@ def standalone_atom_chemistry(
 	The keys are ephemeral ``id(AtomModel)`` values used only by the caller's
 	synchronous loop.  No OASA vertex survives the bridge call.
 	"""
-	unused_oasa_mol, atom_by_model_identity = _materialize_oasa_molecule(mol_model)
+	materialized = _materialize_oasa_molecule(mol_model)
 	return {
 		model_identity: (oasa_atom.free_valency, oasa_atom.oxidation_number)
-		for model_identity, oasa_atom in atom_by_model_identity.items()
+		for model_identity, oasa_atom in materialized.atoms_by_model_identity.items()
 	}
 
 

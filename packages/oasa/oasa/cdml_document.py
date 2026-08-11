@@ -2378,45 +2378,35 @@ def _molecule_render_observation(document: "CDMLDocument", revision: int) -> CDM
 				(atom_record, atom_by_source[atom_record.source_position])
 				for atom_record in core_record.atoms if atom_record.renderable
 			]
-			label_state = {}
 			for atom_record, atom in atom_entries:
-				if atom_record.show is True and atom.symbol == "C":
-					label_state[atom] = atom.properties_.get("label")
-					atom.properties_["label"] = "C"
-			try:
-				for atom_record, atom in atom_entries:
-					if atom_record.show is False:
-						ops = ()
-					else:
-						marks = atom.properties_.pop("marks", None)
-						color = atom_record.line_color or "__backend_foreground__"
-						ops = oasa.render_lib.molecule_ops.build_vertex_ops(
-							atom, transform_xy=None, show_hydrogens_on_hetero=bool(atom_record.show_hydrogens),
-							color_atoms=True, atom_colors={atom.symbol: color},
-							font_name=atom_record.font_family or "Arial", font_size=atom_record.font_size or 12.0,
-							background_color=standard.area_color or "__backend_document_background__",
-						)
-						if marks is not None:
-							atom.properties_["marks"] = marks
-					anchor = (float(atom_record.x_pt), float(atom_record.y_pt))
-					batches.append(CDMLMoleculeRenderBatch("atom", core_record.source_position, atom_record.identifier,
-						atom_record.source_position, atom_record.addressable, anchor, None,
-						tuple(_render_primitive(op, anchor) for op in ops)))
-				shown, labels, attaches = set(), {}, {}
-				for atom_record, atom in atom_entries:
-					if atom_record.show is False:
-						continue
-					entry_shown, entry_labels, entry_attaches = oasa.render_lib.molecule_ops.build_label_attach_targets(
-						[atom], show_hydrogens_on_hetero=bool(atom_record.show_hydrogens),
+				if atom_record.show is False:
+					ops = ()
+				else:
+					marks = atom.properties_.pop("marks", None)
+					color = atom_record.line_color or "__backend_foreground__"
+					ops = oasa.render_lib.molecule_ops.build_vertex_ops(
+						atom, transform_xy=None, show_hydrogens_on_hetero=bool(atom_record.show_hydrogens),
+						color_atoms=True, atom_colors={atom.symbol: color},
 						font_name=atom_record.font_family or "Arial", font_size=atom_record.font_size or 12.0,
+						background_color=standard.area_color or "__backend_document_background__",
+						show_carbon_symbol=atom_record.show is True,
 					)
-					shown.update(entry_shown); labels.update(entry_labels); attaches.update(entry_attaches)
-			finally:
-				for atom, previous_label in label_state.items():
-					if previous_label is None:
-						atom.properties_.pop("label", None)
-					else:
-						atom.properties_["label"] = previous_label
+					if marks is not None:
+						atom.properties_["marks"] = marks
+				anchor = (float(atom_record.x_pt), float(atom_record.y_pt))
+				batches.append(CDMLMoleculeRenderBatch("atom", core_record.source_position, atom_record.identifier,
+					atom_record.source_position, atom_record.addressable, anchor, None,
+					tuple(_render_primitive(op, anchor) for op in ops)))
+			shown, labels, attaches = set(), {}, {}
+			for atom_record, atom in atom_entries:
+				if atom_record.show is False:
+					continue
+				entry_shown, entry_labels, entry_attaches = oasa.render_lib.molecule_ops.build_label_attach_targets(
+					[atom], show_hydrogens_on_hetero=bool(atom_record.show_hydrogens),
+					font_name=atom_record.font_family or "Arial", font_size=atom_record.font_size or 12.0,
+					show_carbon_symbol=atom_record.show is True,
+				)
+				shown.update(entry_shown); labels.update(entry_labels); attaches.update(entry_attaches)
 			bond_entries = [
 				(bond_record, bond_by_source[bond_record.source_position])
 				for bond_record in core_record.bonds if bond_record.renderable

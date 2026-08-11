@@ -170,11 +170,10 @@ replacement rolls back the existing tab if late installation fails. Native
 CDML is the ordinary save target; a non-CDML import remains pathless and dirty
 until saved as native CDML.
 
-For a backend-synchronized session, complete-CDML routes build a complete
-candidate from the current backend snapshot, submit its expected revision, and
-project only the accepted canonical response. Normal Arrow, creation-only plain
-Text, creation-only Plus, creation-only Wavy, and plain root width/color Wavy
-Configure are currently such routes.
+For a backend-synchronized session, Qt sends only a revision-bound candidate or
+bounded scalar intent and projects the accepted canonical response. Normal
+Arrow, plain Text, Plus, and Wavy creation plus their supported Configure
+fields are current routes.
 Presentation-stack Bring to Front, Send to Back, and Swap on Stack are bounded
 complete-candidate routes. Qt submits only a current revision, declared mode,
 and durable IDs after every selected scene item proves to be the current
@@ -349,6 +348,17 @@ backend history, canonical reprojection, and durable Wavy selection recovery,
 with no Qt property command. Tab activation cannot redirect the callback;
 origin disposal returns typed unavailability. Projection recovery reuses only
 the accepted authoritative snapshot and never resubmits the candidate.
+
+Arrow Configure follows that same synchronized-session-only family for one
+selected current durable direct-root Arrow. Qt copies start/end head, spline,
+width, and color values into ArrowDialog, then freezes the originating session,
+revision, Arrow ID, and capability. Accept returns only changed plain fields;
+Cancel and semantic no-op intent are inert. Submission uses the OASA-owned
+Arrow property patch, backend history, canonical reprojection, and durable
+selection recovery without a Qt property command. Tab activation cannot
+retarget the callback, disposal returns typed unavailability, and projection
+retry consumes only the accepted snapshot. Authored points and control points
+never cross back as a frontend reconstruction candidate.
 
 Atom Align submits only one exact `horizontal` or `vertical` axis and an
 immutable tuple of durable `(molecule_id, atom_id)` pairs to a session-owned
@@ -592,8 +602,8 @@ instructions, and foreign content retain backend raw XML, render recursive
 character data through plain text, and leave rich editing unavailable. Accepted
 reprojection restores durable selection from the backend snapshot; unavailable
 and stale outcomes are typed, and retry never resubmits the accepted patch.
-Plus root size/color Configure and Wavy root width/color Configure are
-backend-authoritative through their bounded plain patches. Plus family,
+Plus root size/color, Wavy root width/color, and Arrow head/spline/width/color
+Configure are backend-authoritative through bounded plain patches. Plus family,
 background color, child-font semantics, rich Plus, and other presentation
 operation families retain their current transitional limits.
 

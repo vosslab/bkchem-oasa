@@ -1,5 +1,9 @@
 # GUI module usage audit
 
+> Historical static-import snapshot. Current OASA/BKChem boundary evidence is
+> enforced by `tests/test_cdml_contract_boundaries.py`; individual importer
+> lists below are not a live dependency manifest.
+
 ## Scope
 - Files audited: 47 modules listed in the request under packages/bkchem-app/bkchem.
 - Goal: identify each module purpose and whether it is in active GUI use.

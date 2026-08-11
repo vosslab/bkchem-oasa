@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """Validate direct and native launch routes for one built macOS app."""
 
 # Standard Library

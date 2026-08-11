@@ -43,6 +43,25 @@ def test_scalar_geometry_bridge_returns_immutable_finite_lattice_values() -> Non
 
 
 #============================================
+def test_overlay_vertices_and_interaction_snap_share_one_lattice() -> None:
+	"""Every interior interaction result is one of the displayed grid vertices."""
+	spacing = 40.0
+	points = bkchem_qt.bridge.display_geometry.hex_grid_points(
+		-100.0, -100.0, 100.0, 100.0, spacing,
+	)
+	queries = ((17.0, 19.0), (-31.0, 44.0), (62.0, -7.0))
+	snapped = (
+		bkchem_qt.bridge.display_geometry.snap_to_hex_grid(x, y, spacing)
+		for x, y in queries
+	)
+
+	assert all(
+		any(math.dist(result, point) < 1e-9 for point in points)
+		for result in snapped
+	)
+
+
+#============================================
 def test_scalar_geometry_bridge_rejects_nonfinite_snap_input() -> None:
 	"""Invalid interaction coordinates receive the stable typed boundary error."""
 	with pytest.raises(ValueError, match="must be finite"):

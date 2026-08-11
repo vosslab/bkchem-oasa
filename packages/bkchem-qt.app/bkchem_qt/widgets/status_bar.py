@@ -28,6 +28,11 @@ class StatusBar(PySide6.QtWidgets.QStatusBar):
 		# stretch message label on the left for status messages
 		self._message_label = PySide6.QtWidgets.QLabel("")
 		self.addWidget(self._message_label, 1)
+		self._context_message = ""
+		self._transient_message = ""
+		self._message_timer = PySide6.QtCore.QTimer(self)
+		self._message_timer.setSingleShot(True)
+		self._message_timer.timeout.connect(self.clearMessage)
 
 		# coordinate display label
 		self._coords_label = PySide6.QtWidgets.QLabel(self.tr("X: 0.0  Y: 0.0"))
@@ -53,18 +58,58 @@ class StatusBar(PySide6.QtWidgets.QStatusBar):
 		self._coords_label.setText(text)
 
 	#============================================
+	@property
+	def context_message(self) -> str:
+		"""Return the persistent interaction guidance behind transient results."""
+		return self._context_message
+
+	#============================================
+	@property
+	def visible_message(self) -> str:
+		"""Return the one message currently painted in the status area."""
+		return self._message_label.text()
+
+	#============================================
+	def set_context_message(self, text: str) -> None:
+		"""Set guidance that reappears after Qt hides a transient message."""
+		self._context_message = text
+		if not self._transient_message:
+			self._message_label.setText(text)
+
+	#============================================
+	def showMessage(self, text: str, timeout: int = 0) -> None:
+		"""Show one transient result, replacing any earlier transient result."""
+		self._message_timer.stop()
+		self._transient_message = text
+		self._message_label.setText(text)
+		self.messageChanged.emit(text)
+		if timeout > 0:
+			self._message_timer.start(timeout)
+
+	#============================================
+	def clearMessage(self) -> None:
+		"""Clear the transient result and restore persistent context guidance."""
+		self._message_timer.stop()
+		if not self._transient_message:
+			return
+		self._transient_message = ""
+		self._message_label.setText(self._context_message)
+		self.messageChanged.emit("")
+
+	#============================================
+	def currentMessage(self) -> str:
+		"""Return the active transient result, matching QStatusBar semantics."""
+		return self._transient_message
+
+	#============================================
 	def show_message(self, text: str, timeout: int = 3000) -> None:
-		"""Show a temporary message in the left message area.
+		"""Show a transient result without replacing interaction guidance.
 
 		Args:
 			text: Message text to display.
 			timeout: Milliseconds before clearing (0 for persistent).
 		"""
-		self._message_label.setText(text)
-		if timeout > 0:
-			PySide6.QtCore.QTimer.singleShot(
-				timeout, lambda: self._message_label.setText("")
-			)
+		self.showMessage(text, timeout)
 
 	#============================================
 	def update_mode(self, name: str) -> None:

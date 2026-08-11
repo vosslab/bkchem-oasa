@@ -15,14 +15,26 @@
   rounded wedge geometry plan.
 
 ## Near-term focus
-- Finish glyph-bond alignment work in
-  [OASA-Wide_Glyph-Bond_Awareness.md](archive/OASA-Wide_Glyph-Bond_Awareness.md).
+- Close task-level Qt usability gaps against retained classic behavior without
+  reintroducing frontend persistence. The next Configure family is the
+  remaining vector/shape stroke and fill surface; each accepted editor needs
+  OASA history, dirty state, save/reopen, and recovery evidence.
 
-## Future work
-- **Hexagonal grid alignment**: OASA geometry module for hex grid snap and
-  validation (`hex_grid.py`), plus BKChem visual dot overlay and interactive
-  snap-to-grid. See related work section in
-  [TRANSFORMATION_OPERATIONS.md](TRANSFORMATION_OPERATIONS.md).
+## Completed foundations
+- **Hexagonal grid alignment**: OASA owns nearest-vertex geometry, the shared
+  origin-zero persistent Repair operation, and immutable display coordinates.
+  Qt projects the matching overlay and uses the same lattice for interaction
+  snapping. See [TRANSFORMATION_OPERATIONS.md](TRANSFORMATION_OPERATIONS.md)
+  and the accepted WP-F5 disposition in the active backend-authority plan.
+- **Glyph-bond alignment**: portable OASA rendering and the Qt projection share
+  label attachment targets, including explicit carbon labels and complete
+  topology.
+- **Arrow Configure**: start/end heads, spline, width, and color now use a
+  revision-bound OASA presentation operation with backend undo/redo through
+  Qt, durable selection, save, and reopen behavior.
 
 ## Known gaps
+- Full classic feature parity is not complete. Object Configure covers atoms,
+  bonds, Text, Plus, Wavy, and Arrow, but remaining vector and geometric-shape
+  stroke/fill editors are not yet exposed through the synchronized Qt route.
 - Add dates and milestones once a release schedule is agreed.

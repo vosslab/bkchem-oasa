@@ -191,25 +191,3 @@ class AtomDialog(PySide6.QtWidgets.QDialog):
 				continue
 			changed.append(("element" if field_name == "symbol" else field_name, value))
 		return tuple(changed)
-
-	#============================================
-	@staticmethod
-	def edit_atom(atom_model: object, parent: object | None = None) -> bool:
-		"""Convenience: show dialog, apply changes if accepted.
-
-		Args:
-			atom_model: The AtomModel to edit.
-			parent: Optional parent widget.
-
-		Returns:
-			True if changes were accepted and applied, False otherwise.
-		"""
-		dialog = AtomDialog(atom_model, parent)
-		result = dialog.exec()
-		if result != PySide6.QtWidgets.QDialog.DialogCode.Accepted:
-			return False
-		values = dialog.get_values()
-		# apply each value to the model
-		for key, value in values.items():
-			setattr(atom_model, key, value)
-		return True

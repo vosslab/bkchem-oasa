@@ -784,12 +784,7 @@ def test_build_label_attach_targets_carbon_hidden() -> None:
 
 #============================================
 def test_build_label_attach_targets_carbon_with_show_carbon() -> None:
-	"""Carbon added to shown_vertices when show_carbon_symbol=True.
-
-	Note: plain uncharged carbons are added to shown_vertices but do not
-	get label targets because _resolved_vertex_label_layout() returns None
-	for them. This matches the original molecule_to_ops() behavior.
-	"""
+	"""An explicitly shown carbon has the label target used by bond clipping."""
 	carbon = _make_atom(symbol="C", x=10.0, y=20.0)
 	shown, labels, attaches = build_label_attach_targets(
 		vertices=[carbon],
@@ -797,8 +792,8 @@ def test_build_label_attach_targets_carbon_with_show_carbon() -> None:
 		show_carbon_symbol=True,
 	)
 	assert carbon in shown, "carbon should be in shown_vertices with show_carbon_symbol"
-	# plain carbon gets no label target since vertex_is_shown() returns False
-	assert carbon not in labels, "plain carbon has no label target"
+	assert carbon in labels, "shown carbon should have a label target"
+	assert labels[carbon].box[0] < carbon.x < labels[carbon].box[2]
 
 
 #============================================

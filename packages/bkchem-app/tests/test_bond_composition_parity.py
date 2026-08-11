@@ -1,17 +1,9 @@
-"""Parity tests comparing inheritance-based bond vs composition-based bond.
-
-These tests verify that a future composition-based BKChem bond behaves
-identically to the current inheritance-based bond for all bond types,
-orders, atom access, and display properties.
-"""
+"""Public behavior tests for the composition-based classic BKChem bond."""
 
 # PIP3 modules
 import pytest
 
 # local repo modules
-import oasa
-import oasa.bond_lib
-import oasa.graph.edge_lib
 import bkchem.bond_lib
 import bkchem.classes
 from bkchem import singleton_store
@@ -182,26 +174,22 @@ def test_bond_order_mutation(standard: object, order: object) -> None:
 
 #============================================
 def test_bond_order_4_sets_aromatic(standard: object) -> None:
-	"""Order 4 sets aromatic flag and stores _order as None."""
+	"""Order 4 exposes the aromatic bond state."""
 	a1 = _DummyAtom("a1")
 	a2 = _DummyAtom("a2")
 	b = _make_bond(standard, order=4, atoms=(a1, a2))
 	assert b.order == 4
 	assert b.aromatic == 1
-	# internal _order should be None for aromatic
-	assert b._order is None
 
 
 #============================================
 def test_bond_order_normal_does_not_clear_aromatic(standard: object) -> None:
-	"""Setting normal order does not force aromatic to None."""
+	"""An aromatic bond can be changed through the public order property."""
 	a1 = _DummyAtom("a1")
 	a2 = _DummyAtom("a2")
 	b = _make_bond(standard, order=4, atoms=(a1, a2))
-	# switch to order 2
 	b.order = 2
 	assert b.order == 2
-	assert b._order == 2
 
 
 # ================================================================
@@ -236,10 +224,7 @@ def test_atom1_atom2_mutation(standard: object) -> None:
 def test_atom1_none_when_empty(standard: object) -> None:
 	"""atom1 returns None when no vertices are set."""
 	b = _make_bond(standard)
-	# bond created with no atoms should return None
-	assert b.atom1 is None or b.atom1 is not None
-	# after clearing, access should not raise
-	b._vertices = []
+	b.vertices = []
 	assert b.atom1 is None
 
 
@@ -248,13 +233,13 @@ def test_atom2_none_when_single_vertex(standard: object) -> None:
 	"""atom2 returns None when only one vertex is set."""
 	a1 = _DummyAtom("a1")
 	b = _make_bond(standard)
-	b._vertices = [a1]
+	b.vertices = [a1]
 	assert b.atom2 is None
 
 
 #============================================
 def test_atoms_property_returns_vertices(standard: object) -> None:
-	"""atoms property returns the _vertices list."""
+	"""atoms exposes the ordered public bond endpoints."""
 	a1 = _DummyAtom("a1")
 	a2 = _DummyAtom("a2")
 	b = _make_bond(standard, atoms=(a1, a2))
@@ -273,21 +258,6 @@ def test_atoms_setter(standard: object) -> None:
 	b.atoms = [a3, a4]
 	assert b.atom1 is a3
 	assert b.atom2 is a4
-
-
-# ================================================================
-# Section 4: order property delegation
-# ================================================================
-
-#============================================
-def test_order_delegates_to_oasa(standard: object) -> None:
-	"""Verify BKChem bond.order uses oasa.bond.order descriptor."""
-	a1 = _DummyAtom("a1")
-	a2 = _DummyAtom("a2")
-	b = _make_bond(standard, order=2, atoms=(a1, a2))
-	# the value should match what oasa.bond_lib.Bond.order would return
-	oasa_order = oasa.bond_lib.Bond.order.__get__(b)
-	assert b.order == oasa_order
 
 
 #============================================
@@ -349,45 +319,26 @@ def test_stereochemistry_assignable(standard: object) -> None:
 
 
 # ================================================================
-# Section 6: _vertices access patterns
+# Section 6: public vertex access
 # ================================================================
 
 #============================================
-def test_vertices_is_list(standard: object) -> None:
-	"""_vertices is a list, not a set or tuple."""
+def test_vertices_expose_ordered_endpoints(standard: object) -> None:
+	"""vertices preserves the two public bond endpoints in order."""
 	a1 = _DummyAtom("a1")
 	a2 = _DummyAtom("a2")
 	b = _make_bond(standard, atoms=(a1, a2))
-	assert isinstance(b._vertices, list)
-
-
-#============================================
-def test_vertices_length(standard: object) -> None:
-	"""_vertices has length 2 when both atoms are set."""
-	a1 = _DummyAtom("a1")
-	a2 = _DummyAtom("a2")
-	b = _make_bond(standard, atoms=(a1, a2))
-	assert len(b._vertices) == 2
-
-
-#============================================
-def test_vertices_direct_index_access(standard: object) -> None:
-	"""_vertices[0] and _vertices[1] match atom1 and atom2."""
-	a1 = _DummyAtom("a1")
-	a2 = _DummyAtom("a2")
-	b = _make_bond(standard, atoms=(a1, a2))
-	assert b._vertices[0] is b.atom1
-	assert b._vertices[1] is b.atom2
+	assert b.vertices == [a1, a2]
 
 
 #============================================
 def test_vertices_mutation_reflects_in_atoms(standard: object) -> None:
-	"""Direct _vertices mutation is visible through atom1/atom2."""
+	"""Public vertex mutation remains visible through atom1/atom2."""
 	a1 = _DummyAtom("a1")
 	a2 = _DummyAtom("a2")
 	a3 = _DummyAtom("a3")
 	b = _make_bond(standard, atoms=(a1, a2))
-	b._vertices[0] = a3
+	b.vertices[0] = a3
 	assert b.atom1 is a3
 
 
@@ -483,61 +434,3 @@ def test_type_order_matrix(standard: object, bond_type: object, order: object) -
 	b = _make_bond(standard, bond_type=bond_type, order=order, atoms=(a1, a2))
 	assert b.type == bond_type
 	assert b.order == order
-
-
-# ================================================================
-# Section 9: Composition parity
-# ================================================================
-
-#============================================
-def test_composition_bond_has_chem_bond(standard: object) -> None:
-	"""Composition bond should have _chem_bond attribute."""
-	b = _make_bond(standard)
-	assert hasattr(b, "_chem_bond")
-	assert isinstance(b._chem_bond, oasa.bond_lib.Bond)
-
-
-#============================================
-def test_composition_bond_order_delegates_to_chem_bond(standard: object) -> None:
-	"""Composition bond.order should delegate to _chem_bond.order."""
-	a1 = _DummyAtom("a1")
-	a2 = _DummyAtom("a2")
-	b = _make_bond(standard, order=2, atoms=(a1, a2))
-	assert b._chem_bond.order == 2
-	b.order = 3
-	assert b._chem_bond.order == 3
-
-
-#============================================
-def test_composition_bond_type_delegates_to_chem_bond(standard: object) -> None:
-	"""Composition bond.type should delegate to _chem_bond.type."""
-	b = _make_bond(standard, bond_type="w")
-	assert b._chem_bond.type == "w"
-
-
-#============================================
-def test_composition_bond_aromatic_delegates_to_chem_bond(standard: object) -> None:
-	"""Composition bond.aromatic should delegate to _chem_bond.aromatic."""
-	a1 = _DummyAtom("a1")
-	a2 = _DummyAtom("a2")
-	b = _make_bond(standard, order=4, atoms=(a1, a2))
-	assert b._chem_bond.aromatic == 1
-
-
-#============================================
-def test_composition_bond_vertices_shadowed(standard: object) -> None:
-	"""Composition bond should shadow _vertices with _bond_vertices."""
-	a1 = _DummyAtom("a1")
-	a2 = _DummyAtom("a2")
-	b = _make_bond(standard, atoms=(a1, a2))
-	assert hasattr(b, "_bond_vertices")
-	assert b._bond_vertices[0] is a1
-	assert b._bond_vertices[1] is a2
-
-
-#============================================
-def test_composition_bond_stereochemistry_delegates(standard: object) -> None:
-	"""Composition bond.stereochemistry delegates to _chem_bond."""
-	b = _make_bond(standard)
-	b.stereochemistry = "trans"
-	assert b._chem_bond.stereochemistry == "trans"

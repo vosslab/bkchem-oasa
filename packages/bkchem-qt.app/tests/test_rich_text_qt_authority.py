@@ -90,8 +90,17 @@ def test_authored_projection_uses_literal_cursor_formats(
 #============================================
 def test_preservation_ftext_stays_plain_and_rich_action_is_inert(
 		main_window: bkchem_qt.main_window.MainWindow, tmp_path: pathlib.Path,
+		monkeypatch: pytest.MonkeyPatch,
 		) -> None:
 	"""Attributed or foreign ftext content remains safe display-only content."""
+	monkeypatch.setattr(
+		PySide6.QtWidgets.QMessageBox, "warning",
+		lambda _parent, _title, _message: PySide6.QtWidgets.QMessageBox.StandardButton.Ok,
+	)
+	monkeypatch.setattr(
+		bkchem_qt.dialogs.rich_text_dialog.RichTextDialog, "exec",
+		_fail_if_rich_dialog_opens,
+	)
 	session = _open_native_session(main_window, tmp_path, _PRESERVATION_CDML)
 	try:
 		item = _text_item(session)

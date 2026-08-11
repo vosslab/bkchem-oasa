@@ -13,7 +13,7 @@ import bkchem_qt.main_window
 
 
 _TEMPLATE_CDML = (
-	'<cdml version="26.07"><molecule name="Reusable carbon">'
+	'<cdml version="26.07"><molecule id="molecule-a" name="Reusable carbon">'
 	'<atom id="atom-a" name="C"><point x="1cm" y="2cm"/></atom>'
 	'</molecule></cdml>'
 )

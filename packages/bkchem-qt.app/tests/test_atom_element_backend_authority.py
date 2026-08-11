@@ -125,7 +125,7 @@ def test_atom_mode_replaces_any_supported_core_atom_through_backend_cdml(
 
 #============================================
 def test_same_element_and_missing_durable_identity_leave_backend_unchanged(
-		main_window: object, monkeypatch: pytest.MonkeyPatch,
+		main_window: object,
 		) -> None:
 	"""No-op or unaddressable AtomMode clicks never create an accepted change."""
 	session = _active_session(main_window)
@@ -137,7 +137,7 @@ def test_same_element_and_missing_durable_identity_leave_backend_unchanged(
 	assert session.backend_snapshot == before
 
 	item = _atom_item(session.scene, atom_id)
-	monkeypatch.setattr(type(item.atom_model), "atom_id", property(lambda _self: None))
+	item.atom_model.bind_backend_durable_id(None)
 	mode.set_element("O")
 	_click_atom(mode, item)
 	assert session.backend_snapshot == before
