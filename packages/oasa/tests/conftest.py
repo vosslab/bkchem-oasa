@@ -2,22 +2,12 @@
 
 # Standard Library
 import os
-import subprocess
 import sys
 
 pytest_plugins = ("pytest_kill_after",)
 
 
-#============================================
-def _get_repo_root() -> str:
-	"""Find repo root via git."""
-	return subprocess.check_output(
-		["git", "rev-parse", "--show-toplevel"],
-		text=True,
-	).strip()
-
-
-_REPO_ROOT = _get_repo_root()
+_REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
 
 #============================================
@@ -31,33 +21,6 @@ def _ensure_paths() -> None:
 	tests_dir = os.path.join(_REPO_ROOT, "tests")
 	if tests_dir not in sys.path:
 		sys.path.insert(0, tests_dir)
-
-
-#============================================
-def pytest_addoption(parser: object) -> None:
-	"""Register custom pytest command-line options."""
-	parser.addoption(
-		"--save",
-		action="store_true",
-		default=False,
-		help="Save rendered outputs to the current working directory",
-	)
-
-
-#============================================
-def repo_root() -> str:
-	"""Return the repository root directory."""
-	return _REPO_ROOT
-
-
-#============================================
-def repo_tests_path(*parts) -> str:
-	"""Return a path under the repo-root tests/ directory.
-
-	Args:
-		*parts: path components relative to tests/
-	"""
-	return os.path.join(_REPO_ROOT, "tests", *parts)
 
 
 _ensure_paths()

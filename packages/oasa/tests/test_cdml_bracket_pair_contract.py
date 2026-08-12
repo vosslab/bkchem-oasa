@@ -64,3 +64,22 @@ def test_projection_plan_orders_only_valid_pair_facts_at_its_snapshot_revision()
 		and tuple(pair.pair_id for pair in projection.plan.presentation_description.bracket_pairs)
 		== ("left", "left2")
 	)
+
+
+#============================================
+def test_projection_plan_normalizes_bracket_appearance_with_other_roots() -> None:
+	"""Bracket Configure and paint receive one normalized backend color fact."""
+	short_color = _PAIR.replace("#123456", "#abc")
+	session = oasa.cdml_document.CDMLDocumentSession.load(f"<cdml>{short_color}</cdml>")
+	pair = session.projection_snapshot().plan.presentation_description.bracket_pairs[0]
+	assert pair.line_color == "#aabbcc"
+
+
+#============================================
+def test_malformed_bracket_appearance_does_not_abort_the_projection_plan() -> None:
+	"""A malformed member remains a root diagnostic, not a document-wide failure."""
+	malformed = _PAIR.replace('line_color="#123456"', 'line_color="bad"', 1)
+	session = oasa.cdml_document.CDMLDocumentSession.load(f"<cdml>{malformed}</cdml>")
+	description = session.projection_snapshot().plan.presentation_description
+	assert not description.bracket_pairs
+	assert tuple(issue.identifier for issue in description.issues) == ("left",)

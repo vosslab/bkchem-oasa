@@ -116,7 +116,7 @@ def test_standard_observation_drives_only_inherited_projection_values() -> None:
 	"""Backend projection resolves defaults while retaining explicit atom fields."""
 	session = oasa.cdml_document.CDMLDocumentSession.load(_STANDARD_CDML)
 	standard = _query(session)
-	core = session.projection_snapshot().molecule_core_observation.records[0]
+	core = session.projection_snapshot().plan.molecule_core_observation.records[0]
 	first, second = core.atoms
 	bond, = core.bonds
 

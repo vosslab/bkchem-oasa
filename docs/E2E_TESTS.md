@@ -56,6 +56,34 @@ the `e2e_*` prefix as a secondary, human-readable convention.
 - For browser-driven Playwright runs, TypeScript repos include `PLAYWRIGHT_USAGE.md` in their propagated `docs/` folder.
 - Do not invoke E2E tests from `pytest tests/`. Keep the two suites separate.
 
+## BKChem permanent and one-time checks
+
+The permanent pytest lane contains deterministic chemistry, document-authority,
+compatibility, and selected adapter behavior. During development, run only the
+pointed modules related to the change. The quiet aggregate runner is the release
+regression command:
+
+```sh
+source source_me.sh && ./all_test.sh
+```
+
+The following checks prove an assembled application or rendered artifact. They
+are valuable release evidence, but they are not permanent pytests:
+
+- Managed Qt documentation gallery:
+  `source source_me.sh && ./devel/take_qt_screenshot.sh --kill-after 3`
+- Clean isolated wheel installation and authoritative round trip:
+  `source source_me.sh && python3 tests/e2e/e2e_clean_qt_install.py`
+- Controlled glyph-to-bond inspection:
+  `source source_me.sh && python3 tools/measure_glyph_bond_alignment.py --fail-on-miss`
+- Deprecated retained-Tk native launch probe:
+  `source source_me.sh && python3 tests/e2e/e2e_bkchem_tk_smoke.py`
+
+The retained-Tk probe depends on a functioning host Tk installation and may be
+unavailable even when the permanent compatibility tests pass. Live PubChem
+lookup is likewise a one-time network check, not a pytest fixture or default
+suite dependency.
+
 ## Naming conventions test
 
 File naming conventions are enforced by `tests/test_test_naming_conventions.py`

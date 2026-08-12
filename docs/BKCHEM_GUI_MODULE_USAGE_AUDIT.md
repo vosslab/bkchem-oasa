@@ -44,7 +44,7 @@
 | `import_checker.py` | Runtime dependency preflight for BKChem launcher. | `packages/bkchem-app/bkchem/bkchem_app.py` | ACTIVE |
 | `interactors.py` | Glue functions between application or paper and the dialogs. | `packages/bkchem-app/bkchem/actions/chemistry_actions.py`; `packages/bkchem-app/bkchem/actions/options_actions.py`; `packages/bkchem-app/bkchem/context_menu.py`; +6 more importer(s) | ACTIVE |
 | `keysym_loader.py` | Cached loader for keysym definition data. | `packages/bkchem-app/bkchem/edit_pool.py`; `packages/bkchem-app/bkchem/widgets.py` | ACTIVE |
-| `main.py` | Main application class. | `packages/bkchem-app/bkchem/bkchem_app.py`; `packages/bkchem-app/tests/bkchem_batch_examples.py`; `packages/bkchem-app/tests/bkchem_gui_smoke.py`; +6 more importer(s) | ACTIVE |
+| `main.py` | Main application class. | `packages/bkchem-app/bkchem/bkchem_app.py`; `packages/bkchem-app/tests/bkchem_batch_examples.py`; `tests/e2e/e2e_bkchem_tk_smoke.py`; +6 more importer(s) | ACTIVE |
 | `marks.py` | Set of marks such as charges, radicals etc. | `packages/bkchem-app/bkchem/atom_lib.py`; `packages/bkchem-app/bkchem/context_menu.py`; `packages/bkchem-app/bkchem/group_lib.py`; +5 more importer(s) | ACTIVE |
 | `messages.py` | messages for use throughout the program. | `packages/bkchem-app/bkchem/bkchem_app.py`; `packages/bkchem-app/bkchem/main.py`; `packages/bkchem-app/bkchem/modes/modes_lib.py`; +2 more importer(s) | ACTIVE |
 | `molecule_lib.py` | Home of the molecule class. | `packages/bkchem-app/bkchem/chem_compat.py`; `packages/bkchem-app/bkchem/external_data.py`; `packages/bkchem-app/bkchem/interactors.py`; +12 more importer(s) | ACTIVE |
@@ -53,7 +53,7 @@
 | `paper.py` | chem_paper - main drawing part for BKChem. | `packages/bkchem-app/bkchem/main_lib/main_tabs.py` | ACTIVE |
 | `parents.py` | This file stores the oldest parents of used classes. | `packages/bkchem-app/bkchem/arrow_lib.py`; `packages/bkchem-app/bkchem/bond_lib.py`; `packages/bkchem-app/bkchem/classes.py`; +8 more importer(s) | ACTIVE |
 | `pixmaps.py` | Images for buttons all over BKChem. | `packages/bkchem-app/bkchem/main.py`; `packages/bkchem-app/bkchem/main_lib/main_modes.py` | ACTIVE |
-| `pref_manager.py` | XML preference read and write manager. | `packages/bkchem-app/bkchem/bkchem_app.py`; `packages/bkchem-app/tests/bkchem_batch_examples.py`; `packages/bkchem-app/tests/bkchem_gui_smoke.py`; +6 more importer(s) | ACTIVE |
+| `pref_manager.py` | XML preference read and write manager. | `packages/bkchem-app/bkchem/bkchem_app.py`; `packages/bkchem-app/tests/bkchem_batch_examples.py`; `tests/e2e/e2e_bkchem_tk_smoke.py`; +6 more importer(s) | ACTIVE |
 | `queryatom_lib.py` | The query_atom class. | `packages/bkchem-app/bkchem/chem_compat.py`; `packages/bkchem-app/bkchem/external_data.py`; `packages/bkchem-app/bkchem/molecule_lib.py` | ACTIVE |
 | `reaction_lib.py` | Reaction container object tying arrows and molecules. | `packages/bkchem-app/bkchem/arrow_lib.py`; `packages/bkchem-app/bkchem/paper_lib/paper_factories.py` | ACTIVE |
 | `singleton_store.py` | The Store class which is a manager for application wide singletons resides here. | `packages/bkchem-app/addons/angle_between_bonds.py`; `packages/bkchem-app/addons/fragment_search.py`; `packages/bkchem-app/addons/text_to_group.py`; +71 more importer(s) | ACTIVE |
@@ -93,7 +93,7 @@
 | `import_checker.py` | Runtime dependency preflight for BKChem launcher. | `packages/bkchem-app/bkchem/bkchem_app.py` | ACTIVE |
 | `interactors.py` | Glue functions between application or paper and the dialogs. | `packages/bkchem-app/bkchem/actions/chemistry_actions.py`; `packages/bkchem-app/bkchem/actions/options_actions.py`; `packages/bkchem-app/bkchem/context_menu.py`; +6 more importer(s) | ACTIVE |
 | `keysym_loader.py` | Cached loader for keysym definition data. | `packages/bkchem-app/bkchem/edit_pool.py`; `packages/bkchem-app/bkchem/widgets.py` | ACTIVE |
-| `main.py` | Main application class. | `packages/bkchem-app/bkchem/bkchem_app.py`; `packages/bkchem-app/tests/bkchem_batch_examples.py`; `packages/bkchem-app/tests/bkchem_gui_smoke.py`; +6 more importer(s) | ACTIVE |
+| `main.py` | Main application class. | `packages/bkchem-app/bkchem/bkchem_app.py`; `packages/bkchem-app/tests/bkchem_batch_examples.py`; `tests/e2e/e2e_bkchem_tk_smoke.py`; +6 more importer(s) | ACTIVE |
 
 | `messages.py` | messages for use throughout the program. | `packages/bkchem-app/bkchem/bkchem_app.py`; `packages/bkchem-app/bkchem/main.py`; `packages/bkchem-app/bkchem/modes/modes_lib.py`; +2 more importer(s) | ACTIVE |
 
@@ -102,7 +102,7 @@
 | `paper.py` | chem_paper - main drawing part for BKChem. | `packages/bkchem-app/bkchem/main_lib/main_tabs.py` | ACTIVE |
 | `parents.py` | This file stores the oldest parents of used classes. | `packages/bkchem-app/bkchem/arrow_lib.py`; `packages/bkchem-app/bkchem/bond_lib.py`; `packages/bkchem-app/bkchem/classes.py`; +8 more importer(s) | ACTIVE |
 | `pixmaps.py` | Images for buttons all over BKChem. | `packages/bkchem-app/bkchem/main.py`; `packages/bkchem-app/bkchem/main_lib/main_modes.py` | ACTIVE |
-| `pref_manager.py` | XML preference read and write manager. | `packages/bkchem-app/bkchem/bkchem_app.py`; `packages/bkchem-app/tests/bkchem_batch_examples.py`; `packages/bkchem-app/tests/bkchem_gui_smoke.py`; +6 more importer(s) | ACTIVE |
+| `pref_manager.py` | XML preference read and write manager. | `packages/bkchem-app/bkchem/bkchem_app.py`; `packages/bkchem-app/tests/bkchem_batch_examples.py`; `tests/e2e/e2e_bkchem_tk_smoke.py`; +6 more importer(s) | ACTIVE |
 
 | `splash.py` | the Splash class resides here. | `packages/bkchem-app/bkchem/bkchem_app.py` | ACTIVE |
 | `temp_manager.py` | Template manager resides here. | `packages/bkchem-app/bkchem/main.py`; `packages/bkchem-app/tests/test_biomolecule_smiles_templates.py` | ACTIVE |

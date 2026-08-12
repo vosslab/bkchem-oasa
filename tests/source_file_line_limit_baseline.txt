@@ -17,7 +17,6 @@
 1139 packages/bkchem-qt.app/bkchem_qt/modes/draw_mode.py
 1494 packages/bkchem-qt.app/bkchem_qt/modes/edit_mode.py
 1195 packages/bkchem-qt.app/bkchem_qt/undo/commands.py
-3626 packages/bkchem-qt.app/tests/test_qt_backend_session_adapter.py
 8234 packages/oasa/oasa/cdml_document.py
 2074 packages/oasa/oasa/haworth/renderer.py
 1105 packages/oasa/tests/test_cdml_geometry_repair.py

@@ -169,39 +169,18 @@ If atoms have not yet redrawn their canvas items, bonds get stale
 coordinates and stale bboxes.  The solution is atoms-first redraw with
 a lift pass to restore z-ordering (atoms above bonds).
 
-## Test Structure for Zoom
+## Native launch probe
 
-The test (tests/test_bkchem_gui_zoom.py) runs in a subprocess to
-isolate Tk.  It draws benzene, performs zoom operations, and captures
-snapshots of scale, bbox center, viewport center, and item count at
-each step.
+The former native-window zoom matrices were implementation diagnostics. They
+depended on sleeps, hardcoded scale ladders, and host Tk behavior, so they are
+not permanent pytest coverage. To establish that the deprecated retained
+application still launches on a functioning Tk host, run the bounded one-time
+probe:
 
-### test_bkchem_gui_zoom (diagnostic round-trip)
+```sh
+source source_me.sh && python3 tests/e2e/e2e_bkchem_tk_smoke.py
+```
 
-- Scale round-trip: zoom_out x3 + zoom_in x3 restores original scale
-- BBox stability: content bbox center unchanged after round-trip
-  (50 px tolerance)
-- Viewport stability: viewport center near original after round-trip
-  (50 px tolerance)
-- Idempotency: zoom_to_content produces same scale when called twice
-  (5% tolerance)
-- Scale clamping: zoom_out x50 clamps at ZOOM_MIN, zoom_in x50 at
-  ZOOM_MAX
-
-### test_zoom_model_coords_stable
-
-Verifies that atom.x / atom.y model coordinates never change during
-zoom operations.  Performs zoom_in x50, zoom_out x100, and zoom reset,
-checking after each that model coords match the original values exactly.
-This catches bugs where zoom logic mutates model state (e.g. the old
-canvas.scale() path did not affect model coords, but other approaches
-might).
-
-### test_zoom_roundtrip_symmetry
-
-Places benzene at the pixel center of the paper, zooms from 1000% to
-~250% (8 zoom_out steps) and back to 1000% (8 zoom_in steps), then
-checks that the model-space viewport center matches the original
-within 3.0 model px.  This catches centering drift that accumulates
-across many zoom steps (e.g. the Tk inset bug caused ~15 model px
-drift over 16 steps before the fix).
+The probe starts Tk in an isolated child and reports a timeout, ordinary exit,
+or terminating signal explicitly. Geometry investigation remains a manual
+debugging task guided by the canvas invariants above.

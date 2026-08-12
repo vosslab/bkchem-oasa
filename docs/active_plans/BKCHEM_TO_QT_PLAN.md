@@ -1,5 +1,10 @@
 # BKChem PySide6 Frontend Rewrite - Implementation Plan
 
+> Superseded by
+> [cdml_backend_authority_migration_2026-07-27.md](active/cdml_backend_authority_migration_2026-07-27.md).
+> This document records the original rewrite hypothesis; its unchanged-OASA,
+> Qt-owned undo, and literal Tk-parity requirements are not current acceptance criteria.
+
 ## Context
 
 BKChem is a 2D molecular structure editor currently built on Tkinter (~25,760 lines across 89 Python files). The chemistry backend (OASA) is already separated via composition and a bridge layer. This plan creates a new parallel package `packages/bkchem-qt.app/` that reimplements the entire GUI using PySide6 (v6.10.2, already installed), targeting feature parity with the Tk app. Both packages coexist and share the OASA backend unchanged.

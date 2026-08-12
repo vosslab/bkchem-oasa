@@ -3,7 +3,8 @@
 # Standard Library
 import pathlib
 
-import defusedxml.ElementTree as ET
+# Third Party
+from lxml import etree
 
 from measurelib.constants import (
 	ALIGNMENT_GAP_MAX,
@@ -117,7 +118,8 @@ def analyze_svg_file(
 		write_diagnostic_svg: bool = False,
 		diagnostic_svg_dir: pathlib.Path | None = None) -> dict:
 	"""Analyze one SVG file and return independent geometry and alignment metrics."""
-	root = ET.parse(svg_path).getroot()
+	parser = etree.XMLParser(resolve_entities=False, no_network=True)
+	root = etree.parse(str(svg_path), parser=parser).getroot()
 	lines = collect_svg_lines(root)
 	labels = collect_svg_labels(root)
 	ring_primitives = collect_svg_ring_primitives(root)

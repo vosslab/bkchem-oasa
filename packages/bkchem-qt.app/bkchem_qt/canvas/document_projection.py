@@ -46,21 +46,10 @@ def _coordinate(value: object) -> float:
 
 
 #============================================
-def _color(attributes: dict[str, str]) -> str | None:
-	"""Return a legacy CDML line/text color when one is specified."""
-	value = attributes.get("line_color")
-	if value is None:
-		value = attributes.get("color")
-	return value
-
-
-#============================================
-def _brush(attributes: dict[str, str]) -> PySide6.QtGui.QBrush:
-	"""Build a fill brush from legacy CDML area color attributes."""
-	color = attributes.get("area_color")
+def _brush(model: object) -> PySide6.QtGui.QBrush:
+	"""Build a fill brush from the backend-resolved appearance fact."""
+	color = model.effective_fill_color
 	if color is None:
-		color = attributes.get("background-color")
-	if color is None or color == "" or color == "none":
 		brush = PySide6.QtGui.QBrush(PySide6.QtCore.Qt.BrushStyle.NoBrush)
 		return brush
 	brush = PySide6.QtGui.QBrush(PySide6.QtGui.QColor(color))
@@ -68,12 +57,12 @@ def _brush(attributes: dict[str, str]) -> PySide6.QtGui.QBrush:
 
 
 #============================================
-def _pen(attributes: dict[str, str]) -> PySide6.QtGui.QPen:
-	"""Build a pen from legacy CDML line attributes."""
-	color = _color(attributes)
-	qt_color = PySide6.QtGui.QColor(color) if color is not None else PySide6.QtGui.QColor("black")
-	width = _number(attributes.get("width"), 1.0)
-	pen = PySide6.QtGui.QPen(qt_color, width)
+def _pen(model: object) -> PySide6.QtGui.QPen:
+	"""Build a pen from the backend-resolved appearance fact."""
+	pen = PySide6.QtGui.QPen(
+		PySide6.QtGui.QColor(model.effective_line_color),
+		model.effective_line_width,
+	)
 	return pen
 
 
@@ -123,43 +112,25 @@ def _set_item_interaction(item: PySide6.QtWidgets.QGraphicsItem,
 def _refresh_presentation(item: PySide6.QtWidgets.QGraphicsItem,
 		model: object) -> None:
 	"""Refresh an already projected graphics item after model mutation."""
-	attributes = model.attributes
 	if isinstance(item, bkchem_qt.canvas.items.arrow_item.ArrowItem):
 		points = _points(model)
 		if len(points) >= 2:
 			item.start = points[0]
 			item.end = points[-1]
 			item.control_points = points[1:-1]
-			item.spline = attributes.get("spline", "no") in (
-				"yes", "true", "1",
-			)
-		item.start_head = attributes.get("start", "no") in ("yes", "true", "1", "both")
-		item.end_head = attributes.get("end", "yes") not in ("no", "false", "0")
-		item.line_width = _number(attributes.get("width"), 1.0)
-		item.color = _color(attributes)
+			item.spline = bool(model.effective_spline)
+		item.start_head = bool(model.effective_start_head)
+		item.end_head = bool(model.effective_end_head)
+		item.line_width = model.effective_line_width
+		item.color = model.effective_line_color
 		return
 	if isinstance(item, bkchem_qt.canvas.items.text_item.TextItem):
 		points = _points(model)
 		position = points[0] if points else _bounds(model).topLeft()
 		item.setPos(position)
 		font = item.font()
-		font_attributes = model.font_attributes
-		family = font_attributes.get("family")
-		if model.kind == "plus":
-			family = model.effective_font_family
-		if family is not None:
-			font.setFamily(family)
-		size = (
-			attributes.get("font_size", "14") if model.kind == "plus"
-			else font_attributes.get("size", attributes.get("font_size"))
-		)
-		if size is not None:
-			if model.kind == "text" and (
-				type(size) is not str or not size.isdecimal()
-			):
-				font.setPointSizeF(12.0)
-			else:
-				font.setPointSizeF(_number(size, 12.0))
+		font.setFamily(model.effective_font_family)
+		font.setPointSizeF(model.effective_font_size)
 		item.setFont(font)
 		if model.kind == "plus" and points:
 			bounds = item.boundingRect()
@@ -168,14 +139,8 @@ def _refresh_presentation(item: PySide6.QtWidgets.QGraphicsItem,
 				points[0].y() - bounds.height() / 2.0,
 			)
 			item.setPos(position)
-		color = (
-			attributes.get("color", "#000000") if model.kind == "plus"
-			else font_attributes.get("color", _color(attributes))
-		)
-		if color is not None:
-			item.set_color(color)
-		background = attributes.get("background-color", attributes.get("area_color"))
-		item.set_background_color(background)
+		item.set_color(model.effective_font_color)
+		item.set_background_color(model.effective_fill_color)
 		if model.kind == "text" and model.formatted_text_runs is not None:
 			item.set_formatted_text_runs(model.formatted_text_runs)
 		else:
@@ -184,21 +149,21 @@ def _refresh_presentation(item: PySide6.QtWidgets.QGraphicsItem,
 	if isinstance(item, (bkchem_qt.canvas.items.graphics_item.RectItem,
 			bkchem_qt.canvas.items.graphics_item.OvalItem)):
 		item.setRect(_bounds(model))
-		item.setPen(_pen(attributes))
-		item.setBrush(_brush(attributes))
+		item.setPen(_pen(model))
+		item.setBrush(_brush(model))
 		return
 	if isinstance(item, bkchem_qt.canvas.items.graphics_item.PolygonItem):
 		item.setPolygon(PySide6.QtGui.QPolygonF(_points(model)))
-		item.setPen(_pen(attributes))
-		item.setBrush(_brush(attributes))
+		item.setPen(_pen(model))
+		item.setBrush(_brush(model))
 		return
 	if isinstance(item, PySide6.QtWidgets.QGraphicsPathItem):
 		points = _points(model)
-		spline = attributes.get("spline", "no") in ("yes", "true", "1")
+		spline = bool(model.effective_spline)
 		path = bkchem_qt.canvas.spline_path.presentation_path(points, spline)
 		item.setPath(path)
-		item.setPen(_pen(attributes))
-		item.setBrush(_brush(attributes))
+		item.setPen(_pen(model))
+		item.setBrush(_brush(model))
 
 #============================================
 class _ProjectionBinding(PySide6.QtCore.QObject):

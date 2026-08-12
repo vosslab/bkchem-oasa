@@ -83,7 +83,7 @@ source source_me.sh && ./devel/take_qt_screenshot.sh \
 ```
 
 The current release application is the PySide6 frontend with the Python OASA
-backend. The classic Tk frontend is deprecated but retained as a runnable legacy
-surface and behavior reference; it is not the packaged default. A future Rust
-or browser backend can consume the same ownership model without becoming a
-claim of this release.
+backend. The classic Tk frontend is deprecated retained source and a
+compatibility-tested behavior reference; it is not the packaged default. Native
+launch must be re-probed on a functioning Tk host. A future Rust or browser
+backend can consume the same ownership model without becoming a release claim.

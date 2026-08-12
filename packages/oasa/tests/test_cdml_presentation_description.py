@@ -83,3 +83,38 @@ def test_presentation_description_omits_text_without_required_ftext() -> None:
 	)
 	assert not description.records
 	assert description.issues[0].reason == "Text presentation requires one direct ftext"
+
+
+#============================================
+def test_presentation_description_resolves_standard_line_appearance() -> None:
+	"""A root without authored stroke values receives normalized backend facts."""
+	session = oasa.cdml_document.CDMLDocumentSession.load(
+		'<cdml><standard line_width="2px" line_color="#123"/>'
+		'<arrow id="a"><point x="0cm" y="0cm"/><point x="1cm" y="0cm"/>'
+		'</arrow></cdml>',
+	)
+	record = session.projection_snapshot().plan.presentation_description.records[0]
+	assert (record.appearance.line_width, record.appearance.line_color) == (2.0, "#112233")
+
+
+#============================================
+def test_presentation_description_resolves_standard_text_appearance() -> None:
+	"""Text editing receives the same effective font values as projection."""
+	session = oasa.cdml_document.CDMLDocumentSession.load(
+		'<cdml><standard font_family="Palatino" font_size="16" line_color="#234"/>'
+		'<text id="t"><point x="0cm" y="0cm"/><ftext>water</ftext></text></cdml>',
+	)
+	appearance = session.projection_snapshot().plan.presentation_description.records[0].appearance
+	assert (appearance.font_family, appearance.font_size, appearance.font_color) == (
+		"Palatino", 16, "#223344",
+	)
+
+
+#============================================
+def test_presentation_description_keeps_plus_semantic_size_default_in_backend() -> None:
+	"""The classic Plus size default is an OASA fact rather than a Qt fallback."""
+	session = oasa.cdml_document.CDMLDocumentSession.load(
+		'<cdml><plus id="p"><point x="0cm" y="0cm"/></plus></cdml>',
+	)
+	appearance = session.projection_snapshot().plan.presentation_description.records[0].appearance
+	assert appearance.font_size == 14

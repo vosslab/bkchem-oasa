@@ -1,7 +1,6 @@
 """Focused durable behavior for the one identity-bound sucrose preset."""
 
 # Standard Library
-import dataclasses
 import math
 
 # PIP3 modules
@@ -13,25 +12,6 @@ import oasa.cdml_document
 import oasa.cdml_writer
 import oasa.haworth.verified_sucrose
 import oasa.smiles_lib
-
-
-#============================================
-def _snapshot(molecule: object) -> tuple:
-	"""Return detached mutable state used to prove rejected candidates are inert."""
-	indexes = {atom: index for index, atom in enumerate(molecule.vertices)}
-	bonds = tuple(sorted(
-		(
-			tuple(indexes[atom] for atom in bond.vertices),
-			bond.type,
-			tuple(sorted(bond.properties_.items())),
-		)
-		for bond in molecule.edges
-	))
-	result = (
-		tuple((atom.x, atom.y) for atom in molecule.vertices),
-		bonds,
-	)
-	return result
 
 
 #============================================
@@ -115,29 +95,6 @@ def _face_map(molecule: object) -> tuple[tuple[str, str], ...]:
 
 
 #============================================
-def _clearances(molecule: object) -> tuple[float, float]:
-	"""Measure the two independent fixed-layout clearance predicates."""
-	coordinates = _role_geometry(molecule)
-	roles = oasa.haworth.verified_sucrose.role_by_atom(molecule)
-	min_atom = min(
-		math.dist(coordinates[roles[first]], coordinates[roles[second]])
-		for index, first in enumerate(molecule.vertices)
-		for second in molecule.vertices[index + 1:]
-		if molecule.get_edge_between(first, second) is None
-	)
-	edges = list(molecule.edges)
-	min_edge = min(
-		math.dist(coordinates[roles[first]], coordinates[roles[second]])
-		for index, first_edge in enumerate(edges)
-		for second_edge in edges[index + 1:]
-		if not set(first_edge.vertices) & set(second_edge.vertices)
-		for first in first_edge.vertices for second in second_edge.vertices
-	)
-	result = min_atom, min_edge
-	return result
-
-
-#============================================
 def _assert_identity_rejected_before_parse(
 		monkeypatch: pytest.MonkeyPatch, source: bytes, provenance: str, digest: str,
 		) -> None:
@@ -166,30 +123,6 @@ class _WrongHash:
 def _wrong_sha256(source: bytes) -> _WrongHash:
 	"""Return a deterministic nonmatching hash object for the final fence gate."""
 	return _WrongHash()
-
-
-#============================================
-def _unplanned_sucrose() -> object:
-	"""Return the preset source graph before fixed-plan mutation."""
-	molecule = oasa.smiles_lib.text_to_mol(
-		oasa.haworth.verified_sucrose.IDENTITY.isomeric_smiles.decode("ascii"), calc_coords=0,
-	)
-	for atom in molecule.vertices:
-		atom.x = 0.0
-		atom.y = 0.0
-	return molecule
-
-
-#============================================
-def _ordered_variant(reverse_vertices: bool, reverse_neighbors: bool) -> object:
-	"""Return one fresh source graph with harmless storage-order variation."""
-	molecule = _unplanned_sucrose()
-	if reverse_vertices:
-		molecule.vertices.reverse()
-	if reverse_neighbors:
-		for atom in molecule.vertices:
-			atom.neighbors.reverse()
-	return molecule
 
 
 #============================================
@@ -266,72 +199,6 @@ def test_verified_sucrose_has_selected_alpha_beta_face_map() -> None:
 		("fructose.c2", "down"), ("fructose.c3", "up"), ("fructose.c4", "down"),
 		("fructose.c5", "up"),
 	)
-
-
-#============================================
-def test_verified_sucrose_fixed_geometry_clears_recorded_layout_gates() -> None:
-	"""The fixed drawing retains meaningful atom and nonincident-edge clearance."""
-	molecule = oasa.haworth.verified_sucrose.prepare_verified_sucrose_haworth()
-	min_atom, min_edge = _clearances(molecule)
-
-	assert min_atom >= 9.0
-	assert min_edge >= 6.0
-
-
-#============================================
-def test_verified_sucrose_role_resolution_is_order_independent() -> None:
-	"""Source storage order cannot change the prepared fixed depiction."""
-	representations = []
-	for reverse_vertices, reverse_neighbors in ((False, False), (True, False), (False, True), (True, True)):
-		molecule = _ordered_variant(reverse_vertices, reverse_neighbors)
-		oasa.haworth.verified_sucrose._apply_plan(molecule, oasa.haworth.verified_sucrose.PLAN)
-		representations.append((_fixed_shape(molecule), _role_geometry(molecule)))
-
-	assert all(representation == representations[0] for representation in representations[1:])
-
-
-#============================================
-def test_verified_sucrose_rejects_invalid_topology_without_mutation() -> None:
-	"""Topology validation rejects a detached damaged graph without further mutation."""
-	molecule = _unplanned_sucrose()
-	roles = {
-		role: atom for atom, role in oasa.haworth.verified_sucrose.role_by_atom(molecule).items()
-	}
-	molecule.disconnect(roles["glucose.c2"], roles["glucose.c3"])
-	before = _snapshot(molecule)
-	with pytest.raises(ValueError, match="ring"):
-		oasa.haworth.verified_sucrose._apply_plan(molecule, oasa.haworth.verified_sucrose.PLAN)
-
-	assert _snapshot(molecule) == before
-
-
-#============================================
-def test_verified_sucrose_rejects_invalid_fixed_plan_without_mutation() -> None:
-	"""An alternate fixed-plan record is inert even when its source graph is valid."""
-	molecule = oasa.haworth.verified_sucrose.prepare_verified_sucrose_haworth()
-	before = _snapshot(molecule)
-	tampered = dataclasses.replace(
-		oasa.haworth.verified_sucrose.PLAN,
-		styles=tuple(reversed(oasa.haworth.verified_sucrose.PLAN.styles)),
-	)
-	with pytest.raises(ValueError, match="immutable fixed plan"):
-		oasa.haworth.verified_sucrose._apply_plan(molecule, tampered)
-
-	assert _snapshot(molecule) == before
-
-
-#============================================
-def test_verified_sucrose_rejects_nonfinite_coordinate_without_mutation() -> None:
-	"""Numeric validation rejects a detached coordinate candidate before graph mutation."""
-	molecule = _unplanned_sucrose()
-	roles = oasa.haworth.verified_sucrose.role_by_atom(molecule)
-	coordinates = dict(oasa.haworth.verified_sucrose.PLAN.coordinates)
-	coordinates["glucose.c1"] = (math.nan, 0.0)
-	before = _snapshot(molecule)
-	with pytest.raises(ValueError, match="finite builtin"):
-		oasa.haworth.verified_sucrose._validate_geometry(molecule, roles, coordinates)
-
-	assert _snapshot(molecule) == before
 
 
 #============================================

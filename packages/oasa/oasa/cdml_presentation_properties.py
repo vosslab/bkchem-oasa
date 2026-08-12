@@ -8,7 +8,7 @@ import re
 
 # local repo modules
 import oasa.cdml_document
-import oasa.safe_xml
+import oasa.cdml_xml
 
 
 class CDMLArrowPropertiesPatchError(oasa.cdml_document.CDMLValidationError):
@@ -61,6 +61,21 @@ _FALSE_VALUES = frozenset({"no", "false", "0"})
 _GEOMETRIC_FIELDS = frozenset({"line_width", "line_color", "area_color"})
 _FILLABLE_GEOMETRIC_KINDS = frozenset({"rect", "square", "oval", "circle", "polygon"})
 _GEOMETRIC_KINDS = _FILLABLE_GEOMETRIC_KINDS | frozenset({"polyline"})
+
+
+#============================================
+def _authorized_candidate_dom(snapshot_cdml: str, error_type: type[Exception]) -> object:
+	"""Return a detached DOM only after complete CDML authorization.
+
+	Property operations mutate a detached compatibility DOM, but their source is
+	the backend's complete persistent snapshot.  Keep that read behind the same
+	lxml-first CDML policy used by every other active presentation operation.
+	"""
+	try:
+		document = oasa.cdml_xml.parse_cdml_dom(snapshot_cdml.encode("utf-8"))
+	except (UnicodeError, oasa.cdml_xml.CDMLXMLParseError) as error:
+		raise error_type("Presentation properties current CDML cannot be safely parsed") from error
+	return document
 
 
 #============================================
@@ -222,7 +237,7 @@ def patch_arrow_properties(
 	current = _arrow_values(record)
 	if not changes or all(current[field_name] == value for field_name, value in changes):
 		return CDMLArrowPropertiesPatchResult(snapshot, False, None)
-	candidate_dom = oasa.safe_xml.parse_dom_from_string(snapshot.cdml)
+	candidate_dom = _authorized_candidate_dom(snapshot.cdml, CDMLArrowPropertiesPatchError)
 	arrow = _candidate_arrow(candidate_dom, arrow_id)
 	attribute_names = {
 		"start_head": "start", "end_head": "end", "spline": "spline",
@@ -420,7 +435,7 @@ def patch_geometric_properties(
 		)
 	if not changes or all(current[field_name] == value for field_name, value in changes):
 		return CDMLGeometricPropertiesPatchResult(snapshot, False, None)
-	candidate_dom = oasa.safe_xml.parse_dom_from_string(snapshot.cdml)
+	candidate_dom = _authorized_candidate_dom(snapshot.cdml, CDMLGeometricPropertiesPatchError)
 	element = _candidate_geometric(candidate_dom, presentation_id, record.kind)
 	attribute_names = {
 		"line_width": "width", "line_color": "line_color", "area_color": "area_color",

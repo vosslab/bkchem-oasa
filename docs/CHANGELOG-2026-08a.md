@@ -2203,12 +2203,12 @@
   menu action, shortcut, preference, and scene flag).
 - Fixed Bandit XML parser warning in methanol SVG smoke test by switching from
   `xml.dom.minidom` to `defusedxml.minidom` in
-  [test_methanol_ab_compare.py](../packages/oasa/tests/test_methanol_ab_compare.py).
+  `test_methanol_ab_compare.py`.
 - Fixed mixed indentation style in
   `periodic_table.py` by converting new
   element-category helper block indentation to spaces.
 - Fixed pyflakes lint in
-  [test_interactions.py](../packages/bkchem-qt.app/tests/test_interactions.py) by
+  `test_interactions.py` by
   removing an unused local variable.
 - Fixed Tk SMILES import compatibility in
   `oasa_bridge.py` by replacing
@@ -2264,7 +2264,7 @@
     that use the shared `main_window` fixture now auto-show the window for
     visual inspection without requiring extra flags.
 - Expanded
-  [`test_zoom_controls.py`](../packages/bkchem-qt.app/tests/test_zoom_controls.py)
+  `test_zoom_controls.py`
   to include cholesterol-backed zoom diagnostics (content round-trip stability,
   model-coordinate invariance across min/max zoom clamps, and high-zoom
   viewport center symmetry), aligning Qt zoom coverage more closely with the Tk
@@ -2296,11 +2296,11 @@
   entry paths) remains exact and is **not** snapped, so arbitrary values such
   as `173.91%` are preserved when set directly.
 - Added focused Qt zoom regression assertions in
-  [`test_zoom_controls.py`](../packages/bkchem-qt.app/tests/test_zoom_controls.py):
+  `test_zoom_controls.py`:
   `zoom_to_fit()` and `zoom_to_content()` must land on `ZOOM_SNAP_LEVELS`,
   while `set_zoom_percent(173.91)` must remain exact (non-snapped).
 - Expanded
-  [`test_zoom_controls.py`](../packages/bkchem-qt.app/tests/test_zoom_controls.py)
+  `test_zoom_controls.py`
   diagnostics with dense bidirectional zoom sweeps (`25% -> 400%` and
   `400% -> 25%`), explicit transform orientation assertions
   (`m11 > 0`, `m22 > 0`, determinant `> 0`), and fixed-point pair tracking
@@ -2308,13 +2308,13 @@
   checks) so visual mirror/inversion regressions fail fast with printed
   diagnostics.
 - Decoupled Qt zoom sweep diagnostics from snap policy:
-  [`test_zoom_controls.py`](../packages/bkchem-qt.app/tests/test_zoom_controls.py)
+  `test_zoom_controls.py`
   now drives the `25..400` sweep with explicit direct
   `set_zoom_percent(...)` levels (dense `10%` stepping plus `400%` endpoint)
   instead of deriving from `ZOOM_SNAP_LEVELS`, so the sweep remains a true
   non-snapped path.
 - Added a second full-range non-snapped sweep gate in
-  [`test_zoom_controls.py`](../packages/bkchem-qt.app/tests/test_zoom_controls.py):
+  `test_zoom_controls.py`:
   bidirectional direct-set diagnostics now also cover `10% -> 1000%` and
   `1000% -> 10%` with the same fixed-point inversion and symmetry checks.
 - Reduced Qt direct-set zoom drift in
@@ -2335,7 +2335,7 @@
   geometry instead of empty-canvas-only zoom changes.
 - Added matched up-vs-down coordinate comparison output for fixed points at
   each zoom level in
-  [`test_zoom_controls.py`](../packages/bkchem-qt.app/tests/test_zoom_controls.py),
+  `test_zoom_controls.py`,
   including per-level point deltas and translation vectors, plus translation-
   aware symmetry assertions (vector consistency and shift consistency).
 
@@ -2372,7 +2372,7 @@
   [test_element_categories.py](../packages/oasa/tests/test_element_categories.py)
   with 7 tests covering category data, accessors, and fallbacks.
 - Extended
-  [test_qt_theme_yaml_mapping.py](../packages/bkchem-qt.app/tests/test_qt_theme_yaml_mapping.py)
+  `test_qt_theme_yaml_mapping.py`
   with 6 new tests for canvas, charge, tooltip, and high-contrast YAML keys.
 
 ### Behavior or Interface Changes
@@ -2509,11 +2509,11 @@
   - Converted all 21 subprocess tests across 5 files to standard pytest
     functions using shared fixtures from `conftest.py`. Each subprocess spawn
     added 10-15s of Python startup overhead.
-    Files: [`test_qt_theme_yaml_mapping.py`](../packages/bkchem-qt.app/tests/test_qt_theme_yaml_mapping.py),
-    [`test_qt_theme_toggle_runtime.py`](../packages/bkchem-qt.app/tests/test_qt_theme_toggle_runtime.py),
-    [`test_qt_menu_build.py`](../packages/bkchem-qt.app/tests/test_qt_menu_build.py),
-    [`test_qt_menu_cascades.py`](../packages/bkchem-qt.app/tests/test_qt_menu_cascades.py),
-    [`test_qt_gui_smoke.py`](../packages/bkchem-qt.app/tests/test_qt_gui_smoke.py).
+    Files: `test_qt_theme_yaml_mapping.py`,
+    `test_qt_theme_toggle_runtime.py`,
+    `test_qt_menu_build.py`,
+    `test_qt_menu_cascades.py`,
+    `test_qt_gui_smoke.py`.
   - Fixed grid theme-switch hang: replaced `destroyItemGroup()` on ~10,400
     items with in-place recoloring via new `_recolor_grid()` method in
     [`scene.py`](../packages/bkchem-qt.app/bkchem_qt/canvas/scene.py).
@@ -2767,7 +2767,7 @@
   [main_window.py](../packages/bkchem-qt.app/bkchem_qt/main_window.py).
   All 92 bkchem_qt pyflakes tests now pass.
 - Reworked methanol A/B smoke ownership in
-  [test_methanol_ab_compare.py](../packages/oasa/tests/test_methanol_ab_compare.py):
+  `test_methanol_ab_compare.py`:
   pytest now writes deterministic repo-level artifacts
   `output_smoke/methanol_A_mask.svg` and `output_smoke/methanol_B_clip.svg`
   and enforces SVG DOM gates for non-degenerate bond lines, `OH` label
@@ -2788,7 +2788,7 @@
   carbon, mixed atoms, coordinate transforms, and bond clipping with vs without
   targets.
 - Added 7 methanol A/B comparison tests in
-  [`test_methanol_ab_compare.py`](../packages/oasa/tests/test_methanol_ab_compare.py):
+  `test_methanol_ab_compare.py`:
   GUI-agnostic OASA-level test building methanol (C-O) and rendering two
   variants -- (A) full-length bond + label mask polygon, (B) clipped bond +
   no mask -- with assertions on endpoint shortening, non-degenerate bond line
@@ -2797,7 +2797,7 @@
   SVG output to `output_smoke/methanol_A_mask.svg` and
   `output_smoke/methanol_B_clip.svg`.
 - Added 6 Qt tests for bond endpoint clipping and signal chain in
-  [`test_interactions.py`](../packages/bkchem-qt.app/tests/test_interactions.py):
+  `test_interactions.py`:
   clips at labeled atom, no clip for hidden carbon, symbol/charge/position
   change triggers bond redraw, real targets in BondRenderContext.
 - Added Qt parity GUI-event flow test
@@ -2822,7 +2822,7 @@
   clamp edges, and use a wider viewport drift tolerance.
 
 - Added anti-stub gate test
-  [test_no_stubs.py](../packages/bkchem-qt.app/tests/test_no_stubs.py)
+  `test_no_stubs.py`
   with 4 tests: `test_no_stub_handlers` (inspects handler source code and
   bytecode constants for 'not yet implemented', 'stub', 'TODO' patterns),
   `test_all_handlers_are_callable`, `test_minimum_action_count` (asserts >= 48
@@ -2857,7 +2857,7 @@
   120-degree angle placement, grid snapping, drag angle snapping, zero-neighbor
   default angle, and least-crowded placement. Full Qt test suite passes: 81
   tests (up from 75). File modified:
-  [test_interactions.py](../packages/bkchem-qt.app/tests/test_interactions.py).
+  `test_interactions.py`.
 
 ## 2026-02-28
 
@@ -2872,7 +2872,7 @@
   slider for continuous zoom. Wired zoom controls signals to main window
   handlers and view feedback. File created:
   [zoom_controls.py](../packages/bkchem-qt.app/bkchem_qt/widgets/zoom_controls.py),
-  [test_zoom_controls.py](../packages/bkchem-qt.app/tests/test_zoom_controls.py).
+  `test_zoom_controls.py`.
   Files modified:
   [view.py](../packages/bkchem-qt.app/bkchem_qt/canvas/view.py),
   [main_window.py](../packages/bkchem-qt.app/bkchem_qt/main_window.py),
@@ -2925,12 +2925,12 @@
 - Added mode submode parity tests (`test_mode_submode_parity.py`) verifying
   that template, draw, and biotemplate modes have non-empty submodes and that
   template submode switching updates `_current_template`. File created:
-  [test_mode_submode_parity.py](../packages/bkchem-qt.app/tests/test_mode_submode_parity.py).
+  `test_mode_submode_parity.py`.
 
 - Added theme chooser integration tests (`test_theme_chooser.py`) verifying
   dialog theme listing, preselection, apply, and cancel flows using
   monkeypatched `choose_theme`. File created:
-  [test_theme_chooser.py](../packages/bkchem-qt.app/tests/test_theme_chooser.py).
+  `test_theme_chooser.py`.
 
 - Added theme chooser dialog to Qt app. Options > Theme now opens a list dialog
   (`ThemeChooserDialog`) instead of toggling between dark and light. The dialog
@@ -2962,8 +2962,8 @@
   View menu as a standalone checkable action since it is not in `menus.yaml`.
   Files created:
   `menu_builder.py`,
-  [test_qt_menu_build.py](../packages/bkchem-qt.app/tests/test_qt_menu_build.py),
-  [test_qt_menu_cascades.py](../packages/bkchem-qt.app/tests/test_qt_menu_cascades.py).
+  `test_qt_menu_build.py`,
+  `test_qt_menu_cascades.py`.
   Files modified:
   [main_window.py](../packages/bkchem-qt.app/bkchem_qt/main_window.py).
 
@@ -2979,10 +2979,10 @@
   Files modified:
   [palettes.py](../packages/bkchem-qt.app/bkchem_qt/themes/palettes.py),
   `theme_manager.py`,
-  [test_qt_gui_smoke.py](../packages/bkchem-qt.app/tests/test_qt_gui_smoke.py).
+  `test_qt_gui_smoke.py`.
   Files created:
-  [test_qt_theme_yaml_mapping.py](../packages/bkchem-qt.app/tests/test_qt_theme_yaml_mapping.py),
-  [test_qt_theme_toggle_runtime.py](../packages/bkchem-qt.app/tests/test_qt_theme_toggle_runtime.py).
+  `test_qt_theme_yaml_mapping.py`,
+  `test_qt_theme_toggle_runtime.py`.
 
 - Add Qt `PlatformMenuAdapter` module (Stream 2 of the parallel implementation
   plan). Wraps `QMenuBar`/`QMenu`/`QAction` behind the same interface that the
@@ -3068,7 +3068,7 @@
   File created:
   `action_registry.py`.
   File created:
-  [test_qt_menu_contract.py](../packages/bkchem-qt.app/tests/test_qt_menu_contract.py).
+  `test_qt_menu_contract.py`.
 
 - Add YAML theme file loader for BKChem-Qt. The new `theme_loader.py` module
   reads paper, grid, chemistry, and GUI colors from the shared YAML theme files
@@ -3115,7 +3115,7 @@
   screenshots saved to `output_smoke/`, and verify pixel colors for dark mode
   and grid rendering.
   File created:
-  [test_qt_gui_smoke.py](../packages/bkchem-qt.app/tests/test_qt_gui_smoke.py).
+  `test_qt_gui_smoke.py`.
 
 - Add theme-aware icon loader for BKChem-Qt that loads PNG icons from
   `bkchem_data/pixmaps/` with theme-appropriate directory selection
@@ -3317,7 +3317,7 @@
   dark paper (`#2b2b2b`) instead of white, grid test expects visible-by-default.
   Grid boundary checks skip dot ellipses (only check line items).
   File modified:
-  [test_qt_gui_smoke.py](../packages/bkchem-qt.app/tests/test_qt_gui_smoke.py).
+  `test_qt_gui_smoke.py`.
 - Fix dark mode canvas viewport rendering on macOS Qt 6. QSS `background-color`
   on `QGraphicsView` targets the widget frame, not the drawing viewport.
   `setBackgroundBrush()` also fails to render reliably on macOS Qt 6. The fix
@@ -3336,7 +3336,7 @@
   verify dark mode viewport background and grid line rendering. Dark mode test
   scrolls to viewport edge to confirm dark margin pixels.
   File modified:
-  [test_qt_gui_smoke.py](../packages/bkchem-qt.app/tests/test_qt_gui_smoke.py).
+  `test_qt_gui_smoke.py`.
 - Fixed Qt hex grid visual parity with Tk: thinner grid lines (0.375 vs 1.0),
   smaller dots (1.0 vs 1.5), non-cosmetic pen for zoom-correct scaling.
   File modified:
@@ -3393,15 +3393,15 @@
   to 75 pass / 0 fail. File created:
   `conftest.py`.
   Files modified:
-  [test_document_wiring.py](../packages/bkchem-qt.app/tests/test_document_wiring.py),
-  [test_toolbar_actions.py](../packages/bkchem-qt.app/tests/test_toolbar_actions.py),
-  [test_interactions.py](../packages/bkchem-qt.app/tests/test_interactions.py),
+  `test_document_wiring.py`,
+  `test_toolbar_actions.py`,
+  `test_interactions.py`,
   `test_cdml_roundtrip.py`.
 - Added grid visual parity test suite for BKChem-Qt. Tests verify grid is
   visible by default, toggles on/off correctly, snap_to_grid returns a
   2-tuple of floats, grid group has child items when visible, and grid
   survives theme changes (dark/light apply_theme rebuilds). File created:
-  [test_grid_parity.py](../packages/bkchem-qt.app/tests/test_grid_parity.py).
+  `test_grid_parity.py`.
 
 ## 2026-02-26
 
@@ -3430,7 +3430,7 @@
   writes cholesterol in format A, reads back, writes in format B, reads back,
   and verifies atom/bond counts survive both hops.
   File changed:
-  [test_rdkit_formats.py](../packages/oasa/tests/test_rdkit_formats.py).
+  `test_rdkit_formats.py`.
 
 ### Behavior or Interface Changes
 
@@ -3625,7 +3625,7 @@
   [`import_checker.py`](../packages/bkchem-app/bkchem/import_checker.py),
   [`messages.py`](../packages/bkchem-app/bkchem/messages.py),
   `menu_builder.py`,
-  [`test_platform_menu.py`](../packages/bkchem-app/tests/test_platform_menu.py).
+  `test_platform_menu.py`.
 - Migrate `widgets.py` from Pmw (M7). Replace `FontSizeChooser(Pmw.Counter)` ->
   `BkCounter`, `FontFamilyChooser(Pmw.ScrolledListBox)` -> `BkScrolledListBox`,
   `WidthCounter`/`LengthCounter`/`RatioCounter(Pmw.Counter)` -> `BkCounter`,
@@ -3766,7 +3766,7 @@
   [`main.py`](../packages/bkchem-app/bkchem/main.py),
   [`main_modes.py`](../packages/bkchem-app/bkchem/main_lib/main_modes.py),
   `theme_manager.py`,
-  [`test_gui_modes.py`](../packages/bkchem-app/tests/test_gui_modes.py).
+  `test_gui_modes.py`.
 - Fix TclError on theme switch caused by garbage-collected PhotoImage
   references. Old images are now kept alive until new themed images replace
   them on toolbar buttons. Submode ribbon is rebuilt on theme switch to
@@ -3775,7 +3775,7 @@
 - Add GUI theme switch smoke test that exercises light-to-dark-to-light
   transitions, validates toolbar button images survive the switch, and
   includes a rapid toggle stress test. File added:
-  [`test_gui_theme_change.py`](../packages/bkchem-app/tests/test_gui_theme_change.py).
+  `test_gui_theme_change.py`.
 - Replace Emacs-style multi-key sequences with standard single-modifier
   keyboard shortcuts. File operations (New, Open, Save, Quit) now use Ctrl+N,
   Ctrl+O, Ctrl+S, Ctrl+Q cross-platform. macOS adds Cmd equivalents (Cmd+N,
@@ -3803,7 +3803,7 @@
   `edit_actions.py`,
   `chemistry_actions.py`.
   Also updated
-  [`test_file_actions.py`](../packages/bkchem-app/tests/test_file_actions.py)
+  `test_file_actions.py`
   to match new label_key values.
 - Add Help > Keyboard Shortcuts dialog showing all shortcuts with
   platform-native modifier notation. Files changed:
@@ -4364,11 +4364,11 @@
   the mixins. Only core methods (init, clipboard, undo/redo, hex grid, display
   info, chemistry check) remain in paper.py. Unused imports removed. No
   behavioral changes.
-- Fix [test_menu_yaml.py](../packages/bkchem-app/tests/test_menu_yaml.py) to account
+- Fix `test_menu_yaml.py` to account
   for the new repair menu: update expected menu count (9 to 10), menu order,
   action count (55 to 61), and separator count (19 to 21).
 - Add GUI test for hex grid overlay and snap system in
-  [test_bkchem_gui_hex_grid.py](../packages/bkchem-app/tests/test_bkchem_gui_hex_grid.py).
+  `test_bkchem_gui_hex_grid.py`.
   Three subprocess-based tests cover show/hide/toggle + snap toggle, the 50%
   zoom threshold that clears and redraws dots, and the MAX_GRID_POINTS cutoff
   in `generate_hex_grid_points()`.
@@ -4878,7 +4878,7 @@
   unify bare and package-relative `singleton_store` modules via
   `sys.modules` aliasing in `_ensure_preferences()` for
   `test_bkchem_gui_zoom.py`,
-  [test_bkchem_gui_benzene.py](../packages/bkchem-app/tests/test_bkchem_gui_benzene.py),
+  `test_bkchem_gui_benzene.py`,
   `test_bkchem_gui_events.py`.
 - Fix `meta__undo_copy` and `meta__undo_children_to_record` in
   `molecule.py`:
@@ -4905,7 +4905,7 @@
   `modes.py`
   after isinstance migration.
 - Fix atom composition test fixture dual-module singleton collision in
-  [test_atom_composition_parity.py](../packages/bkchem-app/tests/test_atom_composition_parity.py).
+  `test_atom_composition_parity.py`.
 - Wave 3 C7+C8: remove `oasa.molecule` from class bases of
   `molecule.py`;
   added `_chem_mol` composition layer wrapping `oasa.molecule()` for all graph
@@ -4970,7 +4970,7 @@
   `bond_render_ops.py` -- no code changes needed, all chemistry reads use
   property accessors that delegate through `_chem_bond` automatically.
 - Wave 1 post-review cleanup: fix `from` imports in
-  [test_molecule_composition_parity.py](../packages/bkchem-app/tests/test_molecule_composition_parity.py)
+  `test_molecule_composition_parity.py`
   to use `import oasa` style, fix isinstance audit count (20 in modes.py, 30
   total), remove unused imports across all test files.
 - Add chemistry Protocol classes
@@ -4984,22 +4984,22 @@
   `is_chemistry_edge()`, `is_chemistry_graph()` for isinstance checks after MRO
   removal.
 - Add bond composition parity test harness
-  [test_bond_composition_parity.py](../packages/bkchem-app/tests/test_bond_composition_parity.py)
+  `test_bond_composition_parity.py`
   with 90 passing tests covering all 9 bond types, 4 bond orders, atom1/atom2
   access, `_vertices` patterns, display properties, and 6 xfail composition stubs.
 - Add atom composition parity test harness
-  [test_atom_composition_parity.py](../packages/bkchem-app/tests/test_atom_composition_parity.py)
+  `test_atom_composition_parity.py`
   with 52 passing tests and 7 xfail composition stubs covering chemistry
   properties, symbol setter side effects, coordinate conversion via
   Screen.any_to_px, graph connectivity, display properties, charge override
   delegation, OASA baseline, and composition delegation placeholders.
 - Add molecule composition parity test harness
-  [test_molecule_composition_parity.py](../packages/bkchem-app/tests/test_molecule_composition_parity.py)
+  `test_molecule_composition_parity.py`
   with 40 passing tests and 7 xfail composition stubs covering atom/bond aliases,
   graph mutation, connectivity, factory methods, ring perception (benzene and
   naphthalene), deep copy, and stereochemistry list management.
 - Add CDML round-trip parity tests
-  [test_cdml_roundtrip_parity.py](../packages/bkchem-app/tests/test_cdml_roundtrip_parity.py)
+  `test_cdml_roundtrip_parity.py`
   with 44 passing tests covering bond type/order round-trip for all 9 types x 3
   orders, unknown attribute preservation, coordinate unit conversion, bond_width
   sign, center/auto_sign, wavy_style, line_color, equithick, double_length_ratio,
@@ -5128,7 +5128,7 @@
   dynamic state updates via enabled_when predicates and plugin slot injection
   for exporter/importer cascades.
 - Add menu builder tests in
-  [test_menu_builder.py](../packages/bkchem-app/tests/test_menu_builder.py):
+  `test_menu_builder.py`:
   11 tests covering menu creation, command placement, separators, cascades,
   missing action handling, state updates (callable and string predicates),
   plugin slot discovery, and plugin slot injection.
@@ -5143,7 +5143,7 @@
   registers 5 View menu actions (zoom-in, zoom-out, zoom-reset,
   zoom-to-fit, zoom-to-content) with the ActionRegistry.
 - Add tests for chemistry and view actions in
-  [test_chemistry_view_actions.py](../packages/bkchem-app/tests/test_chemistry_view_actions.py):
+  `test_chemistry_view_actions.py`:
   6 tests covering action counts, IDs, and enabled_when type correctness.
 - Fix pyproject.toml multiline inline table that blocked pytest 9.0.2 TOML
   parsing for all tests under packages/bkchem-app/.
@@ -5153,7 +5153,7 @@
   PlatformMenuAdapter class with methods for add_menu, add_command, add_separator,
   add_cascade, add_command_to_cascade, get_menu_component, and set_item_state.
 - Add platform menu adapter tests in
-  [test_platform_menu.py](../packages/bkchem-app/tests/test_platform_menu.py):
+  `test_platform_menu.py`:
   10 tests covering macOS vs Linux menubar selection, menu/command/separator/cascade
   addition, side-argument suppression on macOS, and enable/disable state changes.
 - Add YAML menu structure file
@@ -5162,7 +5162,7 @@
   3 cascades) with order, side placement, and cascade definitions. Action details
   remain in the ActionRegistry.
 - Add menu YAML tests in
-  [test_menu_yaml.py](../packages/bkchem-app/tests/test_menu_yaml.py):
+  `test_menu_yaml.py`:
   13 tests covering YAML parsing, menu count/order, side assignments, item type
   validation, action ID format, duplicate detection, cascade resolution, and
   per-menu item counts.
@@ -5176,14 +5176,14 @@
   swap-on-stack, vertical-mirror, horizontal-mirror, configure) with the
   ActionRegistry.
 - Add tests for edit and object actions in
-  [test_edit_object_actions.py](../packages/bkchem-app/tests/test_edit_object_actions.py):
+  `test_edit_object_actions.py`:
   6 tests covering action counts, IDs, and enabled_when type correctness.
 - Add File menu action registrations in
   `file_actions.py`:
   registers 9 File menu actions (new, save, save-as, save-as-template, load,
   load-same-tab, properties, close-tab, exit) with the ActionRegistry. Includes
   tests in
-  [test_file_actions.py](../packages/bkchem-app/tests/test_file_actions.py).
+  `test_file_actions.py`.
 - Add ActionRegistry core package in
   `__init__.py`:
   provides `MenuAction` dataclass and `ActionRegistry` class as the shared contract

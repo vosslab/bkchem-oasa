@@ -143,3 +143,26 @@ def test_target_and_revision_failures_leave_the_latest_snapshot_unchanged() -> N
 	with pytest.raises(oasa.cdml_document.CDMLRevisionConflictError):
 		oasa.cdml_presentation_properties.patch_arrow_properties(session, stale)
 	assert session.snapshot() == accepted.snapshot
+
+
+#============================================
+def test_unsafe_current_snapshot_is_rejected_without_a_property_commit(
+		monkeypatch: object,
+		) -> None:
+	"""The public Arrow operation reauthorizes its detached CDML source."""
+	session = oasa.cdml_document.CDMLDocumentSession.load(_CDML)
+	before = session.snapshot()
+	hostile = oasa.cdml_document.CDMLSnapshot(
+		before.revision,
+		'<!DOCTYPE cdml [<!ENTITY value "unsafe">]><cdml>&value;</cdml>',
+		before.is_dirty,
+	)
+	monkeypatch.setattr(session, "snapshot", lambda: hostile)
+	request = oasa.cdml_presentation_properties.CDMLArrowPropertiesPatch(
+		before.revision, "arrow1", (("line_width", 2.0),),
+	)
+	with pytest.raises(oasa.cdml_presentation_properties.CDMLArrowPropertiesPatchError):
+		oasa.cdml_presentation_properties.patch_arrow_properties(session, request)
+	monkeypatch.undo()
+
+	assert session.snapshot() == before

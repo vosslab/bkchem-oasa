@@ -4,11 +4,9 @@
 import collections.abc
 import dataclasses
 import types
-import typing
 
-
-if typing.TYPE_CHECKING:
-	import oasa.cdml_document
+# local repo modules
+import oasa.cdml_document
 
 
 @dataclasses.dataclass(frozen=True)

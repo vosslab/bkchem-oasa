@@ -8,7 +8,6 @@ atoms, and drawing directions before asking OASA to make a depiction.
 # Standard Library
 import dataclasses
 import math
-import typing
 
 # Local modules
 import oasa.haworth.layout
@@ -31,8 +30,8 @@ class HaworthRingDeclaration:
 
 	ring_id: str
 	vertices: tuple[HaworthAtomRef, ...]
-	orientation: typing.Literal["canonical", "mirrored"]
-	front_face: typing.Literal["front"]
+	orientation: str
+	front_face: str
 
 
 #============================================
@@ -46,7 +45,7 @@ class HaworthLinkDeclaration:
 	child_ring_id: str
 	child_attachment: HaworthAtomRef
 	connector_atoms: tuple[HaworthAtomRef, ...]
-	direction: typing.Literal["east", "west", "north", "south"]
+	direction: str
 
 
 #============================================
@@ -549,7 +548,7 @@ def _layout_links(
 		direction = _DIRECTIONS[link.direction]
 		coordinates = tuple(
 			(start[0] + (index + 1) * request.bond_length * direction[0],
-			 start[1] + (index + 1) * request.bond_length * direction[1])
+				start[1] + (index + 1) * request.bond_length * direction[1])
 			for index in range(len(link.connector_atoms)))
 		result[link.link_id] = HaworthAssemblyLinkPlan(link.link_id, link.connector_atoms, coordinates)
 	return result

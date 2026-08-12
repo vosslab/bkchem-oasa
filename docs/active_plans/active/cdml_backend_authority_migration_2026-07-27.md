@@ -8,18 +8,18 @@ ledger controls the active claim.
 
 | Priority | Current outcome | Next durable decision |
 | --- | --- | --- |
-| P0 authority | OASA owns complete CDML, root-only insertion facts, revisions, history, and immutable projection plans. Synchronized Qt does not parse canonical CDML. | Keep new persistent work as a typed OASA operation or complete-document transaction. |
-| P1 Qt usability | Release-selected classic behavior/action parity is complete: typed Arrow/Vector creation, direct Text editing, all delivered Configure routes including bracket pairs, responsive 640/1024/1280 controls, and durable pair interaction use backend commits and replacement projections. | Keep future work explicit: literal Tk parity is not a target; template atom fusion and a three-ring Qt adapter are separately declared capabilities. |
+| P0 authority | OASA owns complete CDML, root-only insertion facts, revisions, history, immutable projection plans, and normalized effective presentation appearance. Synchronized Qt neither parses canonical CDML nor recreates drawing defaults. | Keep new persistent appearance behavior in OASA facts and consume only scalars in Qt. |
+| P1 Qt usability | Release-selected classic behavior/action routes are complete: typed Arrow/Vector creation, direct Text editing, delivered Configure routes including bracket pairs, responsive 640/1024/1280 controls, and durable pair interaction use backend commits and replacement projections. | Keep literal Tk parity, template atom fusion, and a three-ring Qt adapter outside this release scope. |
 | P2 Haworth and render | Direct two-ring Haworth remains the only Qt authoring profile. An explicit-declaration three-ring OASA API exists; all seven active Haworth layout overrides now converge on generic geometry. | Do not claim a three-ring Qt adapter or universal carbohydrate inference. Keep future render changes on shared geometry. |
-| P3 retained Tk | Tk is deprecated but runnable reference software, not default packaging. It preserves structurally complete marked bracket pairs without proximity inference. | Make bounded regression/contract fixes only; do not rebuild the product boundary around Tk. |
-| P4 delivery | The screenshot catalog stages and validates all scenarios before atomic publication. Source/pip remain delivered paths. | Run release evidence only after focused permanent tests and independent audit are green. |
+| P3 retained Tk | Tk is deprecated retained reference software, not default packaging. Compatibility tests pass and it preserves complete marked bracket pairs without proximity inference; native launch is unproven on this host because plain Tk aborts first. | Make bounded regression/contract fixes only; re-probe on a functioning Tk host rather than rebuilding the product boundary around Tk. |
+| P4 delivery | Source/pip, atomic screenshots, isolated-wheel round trips, glyph measurement, the complete four-root aggregate, and the independent audit pass. | Re-run the classified release receipts after material delivery changes. |
 
 ### Verification classification
 
-- Permanent tests: backend transaction/authority laws, immutable-plan hydration,
-  focused Qt interaction and closed-tab behavior, bracket identity/remapping,
-  retained-Tk compatibility, and semantic Haworth/render behavior.
-- One-time release checks: full three-root pytest run, live screenshot gallery
+- Permanent tests: backend transaction/authority laws, immutable-plan values,
+  deterministic Qt adapters, retained-Tk compatibility, and semantic
+  Haworth/render behavior.
+- One-time release checks: complete four-root pytest aggregate, live screenshot gallery
   capture and visual inspection, retained-Tk manual smoke, isolated-wheel
   install/launch, glyph measurement, and independent multi-review audit.
 - This plan intentionally avoids arbitrary count, timing, pixel, or private
@@ -32,9 +32,9 @@ The migration began with OASA providing molecule-level CDML support while the
 PySide6 frontend parsed, stored, merged, and serialized the complete document
 envelope. That made Qt the actual persistent document owner even though the
 frontend/backend boundary was described as CDML-only. OASA now implements the
-complete-document authority, and the remaining work is to migrate each
-persistent Qt action family onto it and keep Qt projection serialization out of
-all complete-document publication routes.
+complete-document authority. Release-selected persistent Qt action families
+use that boundary, and Qt projection serialization stays out of
+complete-document publication routes.
 
 The settled architecture is stricter: OASA owns the authoritative complete
 persistent CDML document. Qt owns only transient interaction state and
@@ -709,14 +709,19 @@ Qt may not:
   Qt package build and installed smoke, and documentation close-out.
 - Workstreams: WS-G0, WS-G1, WS-G1a, WS-G1b, and WS-G2.
 - Entry criteria: M5 integration gate passes.
-- Status: source authority retirement, Qt-only packaging/documentation, clean
-  dependency-isolated installation, installed round-trip, composition boundary,
-  dual-route frozen-app evidence, managed screenshots, and six-perspective
-  audit are complete. A post-closure modularity audit also moved projection
-  delivery values into a dependency-light session port with public ownership
-  checks and moved molecule wrapper construction out of File Actions into a
-  dedicated canvas projection module. These cuts preserve the accepted
-  backend contract while reducing Qt-internal lifecycle and layer coupling.
+- Status: historical M6 authority-retirement work is complete for the
+  release-selected boundary. The P0 normalized-presentation-default finding
+  is closed by immutable OASA appearance facts and scalar-only Qt consumers.
+  Source, packaging/documentation, installation, installed round trips, managed
+  screenshots, glyph measurement, the complete four-root pytest aggregate, and
+  the corrected six-perspective audit pass. Native retained-Tk launch remains
+  unproven on this host because plain Tk aborts before BKChem initialization; it
+  is deprecated retained compatibility evidence, not the shipped Qt path. A
+  post-closure modularity audit also moved projection delivery values into a
+  dependency-light session port with public ownership checks and moved molecule
+  wrapper construction out of File Actions into a dedicated canvas projection
+  module. These cuts preserve the accepted backend contract while reducing
+  Qt-internal lifecycle and layer coupling.
 - Exit criteria:
   - `bkchem_qt.io.cdml_document_io` only adapts backend CDML to projections or
     is removed.
@@ -1064,10 +1069,9 @@ Qt may not:
   Invalid, stale, mixed, ID-less, mark, atom, and foreign
   selections are inert. Accepted results use backend history and canonical
   reprojection; the former local reorder command no longer owns these routes.
-  Focused acceptance evidence:
-  `source source_me.sh && QT_QPA_PLATFORM=offscreen python3 -W error -m pytest -q packages/oasa/tests/test_cdml_presentation_insert.py packages/bkchem-qt.app/tests/test_object_stack_actions.py`
-  now covers backend ordering and public Qt behavior. The original independent
-  reviews accepted the authority boundary and test quality.
+  Permanent ordering evidence lives in
+  `packages/oasa/tests/test_cdml_presentation_insert.py`. The public Qt reorder
+  walkthrough is one-time evidence; its shared-window pytest was retired.
 
 ### Work package WP-F0: Triage visible Qt capabilities
 
@@ -1301,8 +1305,8 @@ mixed move/configure behavior for their own operation grammars. Focused
 clipboard coverage validates mixed molecule/presentation deletion,
 opaque-sibling preservation, backend undo/redo, failure inertness, exact-tab
 binding, callback staleness, and isolation handling.
-`packages/bkchem-qt.app/tests/test_clipboard_top_level_objects.py` passed 18
-focused tests.
+The implementation-era clipboard adapter suite was retired after acceptance.
+OASA semantics remain permanent; native clipboard behavior is one-time evidence.
 
 **Backend-owned whole-root clipboard extraction.** OASA now supplies one
 revision-bound read-only query for unique durable direct roots. It resolves
@@ -2020,16 +2024,11 @@ gates succeed.
   - A source-isolated installed smoke opens, projects, edits, saves, and
     reopens the arrow proof.
   - Documentation describes backend authority without Qt-envelope language.
-  - The final release validation is run once at M6, after pointed slice checks
-    pass, and records these existing checks: `packages/oasa/tests/test_cdml_document_authority.py`,
-    `packages/bkchem-qt.app/tests/test_qt_backend_session_adapter.py`,
-    `packages/bkchem-qt.app/tests/test_backend_projection_replacement.py`,
-    `packages/bkchem-qt.app/tests/test_arrow_backend_authority.py`,
-    `packages/bkchem-qt.app/tests/test_worker_lifecycle.py`, the selected
-    capability-family tests, `tests/e2e/e2e_qt_arrow_backend_authority.py`,
-    `tests/e2e/e2e_qt_projection_disposal.py`, offline artifact inspection,
-    isolated Qt install/launch/edit/save/reopen smoke, and
-    `tests/test_markdown_links.py`.
+  - Final M6 validation follows the pointed checks. Permanent evidence includes
+    `packages/oasa/tests/test_cdml_document_authority.py`, backend operations,
+    contract laws, deterministic plain Qt adapters, and Markdown links.
+    Whole-window, worker, clipboard, screenshot, artifact, and isolated-install
+    checks remain explicit one-time or E2E evidence.
 - Independently accepted installed-wheel runner: the dedicated
   `tests/e2e/e2e_installed_qt_authoritative_roundtrip.py` starts one
   QApplication-owned deadline, verifies installed OASA and Qt origins, uses
@@ -2097,8 +2096,9 @@ gates succeed.
   can restore the immediate pre-restore revision, later restores replace that
   protection, normal edits clear it, and evicted nonprotected revisions reject
   cleanly.
-- Test Qt with backend response before projection, then assert projection
-  replacement uses new wrapper identities while stable IDs preserve selection.
+- Permanently test Qt projection replacement with fresh wrapper identities and
+  stable backend IDs. Verify selected-item restoration in the managed GUI
+  walkthrough, where the real scene and native wrapper lifecycle are present.
 - Use `QT_QPA_PLATFORM=offscreen` and `--kill-after 3` for pointed Qt tests.
 - Keep pytest offline, under one second, free of sleeps and real subprocesses,
   with no more than two meaningful assertions per test.
@@ -2231,9 +2231,10 @@ independent acceptance.
 - [x] Complete the M6 installed gate: clean dependency-isolated installation
   and installed authoritative round-trip pass.
 - [x] Complete the M6 delivery/boundary gate: Qt-only package inspection plus
-  direct lifecycle and native LaunchServices smoke passes.
-- [x] Complete the fresh six-perspective M6 audit and accept its material
-  plan, test, style, documentation, legacy, and comment repairs.
+  direct lifecycle and native Qt LaunchServices smoke passes.
+- [x] Run the fresh six-perspective M6 audit; pass the complete four-root aggregate,
+  managed screenshots, controlled glyph alignment, and isolated-wheel
+  authoritative round trips. Resolve its boundary findings through P0/P4.
 - [x] Add the managed README screenshot PNG to version control so its retained
   Markdown reference is a release-valid asset.
 - [x] Require independent app-owned receipts for direct lifecycle and native

@@ -15,6 +15,8 @@ import oasa.cdml_writer
 import oasa.cdml_xml
 import oasa.safe_xml
 import oasa.cdml_document
+import oasa.cdml_presentation_appearance
+import oasa.cdml_standard
 import oasa.render_lib.data_types
 
 import bkchem_qt.bridge.oasa_bridge
@@ -420,6 +422,7 @@ def _hydrate_cdml_document(
 		raise ValueError("CDML document must have a <cdml> root element")
 
 	document = bkchem_qt.models.document.Document()
+	standard = oasa.cdml_standard.observe(root, 0)
 	header_elements = {tag: [] for tag in _HEADER_TAGS}
 	envelope = None
 	state = {
@@ -444,7 +447,7 @@ def _hydrate_cdml_document(
 					)
 				state["unsupported"].append(unsupported)
 				document.add_presentation_object(
-						_presentation(child, supported=False), mark_dirty=False,
+						_presentation(child, supported=False, standard=standard), mark_dirty=False,
 					)
 				continue
 			# Legacy CDML can omit atom and bond IDs.  Give every loaded
@@ -472,7 +475,7 @@ def _hydrate_cdml_document(
 			continue
 		if tag in _DRAWING_TAGS:
 			document.add_presentation_object(
-					_presentation(child, supported=True), mark_dirty=False,
+					_presentation(child, supported=True, standard=standard), mark_dirty=False,
 				)
 			continue
 		if tag == "reaction":
@@ -487,7 +490,7 @@ def _hydrate_cdml_document(
 				)
 		state["unsupported"].append(unsupported)
 		document.add_presentation_object(
-				_presentation(child, supported=False), mark_dirty=False,
+				_presentation(child, supported=False, standard=standard), mark_dirty=False,
 				)
 
 	info_xml = header_elements["info"]
@@ -659,7 +662,7 @@ def _remove_molecule_core_source_children(molecule_el: dom.Element) -> None:
 
 #============================================
 def _presentation(
-		element: dom.Element, supported: bool,
+		element: dom.Element, supported: bool, standard: object,
 		) -> bkchem_qt.models.document_object.PresentationObject:
 	"""Create a presentation DTO while retaining every XML attribute/child."""
 	attrs = _attributes(element)
@@ -670,14 +673,34 @@ def _presentation(
 	font = _first_child(element, "font")
 	ftext = _first_child(element, "ftext")
 	formatted_text_runs, display_text = _ftext_projection_values(ftext, attrs)
+	font_attributes = _attributes(font) if font is not None else {}
+	try:
+		appearance = oasa.cdml_presentation_appearance.resolve(
+			_local_name(element), tuple(attrs.items()), tuple(font_attributes.items()), standard,
+		)
+	except ValueError:
+		# This named compatibility path may retain malformed authored style as
+		# opaque XML; its disposable display uses only OASA's standard facts.
+		appearance = oasa.cdml_presentation_appearance.resolve(
+			_local_name(element), (), (), standard,
+		)
 	return bkchem_qt.models.document_object.PresentationObject(
 		kind=_local_name(element),
 		attributes=attrs,
 		points=points, bounds=bounds,
-		font_attributes=_attributes(font) if font is not None else {},
+		font_attributes=font_attributes,
 		xml_ftext=_inner_xml(ftext) if ftext is not None else None,
 		formatted_text_runs=formatted_text_runs, display_text=display_text,
 		raw_xml=_raw_xml(element), supported=supported,
+		effective_font_family=appearance.font_family,
+		effective_line_width=appearance.line_width,
+		effective_line_color=appearance.line_color,
+		effective_fill_color=appearance.fill_color,
+		effective_font_size=appearance.font_size,
+		effective_font_color=appearance.font_color,
+		effective_start_head=appearance.start_head,
+		effective_end_head=appearance.end_head,
+		effective_spline=appearance.spline,
 	)
 
 
@@ -696,7 +719,15 @@ def _presentation_from_description(
 		font_attributes=dict(record.font_attributes),
 		supported=record.disposition in {"editable", "display-only"},
 		editable=record.disposition == "editable",
-		effective_font_family=record.effective_font_family,
+		effective_font_family=record.appearance.font_family,
+		effective_line_width=record.appearance.line_width,
+		effective_line_color=record.appearance.line_color,
+		effective_fill_color=record.appearance.fill_color,
+		effective_font_size=record.appearance.font_size,
+		effective_font_color=record.appearance.font_color,
+		effective_start_head=record.appearance.start_head,
+		effective_end_head=record.appearance.end_head,
+		effective_spline=record.appearance.spline,
 	)
 
 
@@ -709,8 +740,8 @@ def _ftext_projection_values(
 		text = attributes.get("text", "")
 		return None, text
 	character_data = _recursive_character_data(ftext)
-	# M0 rich Text permits authored character data only.  Attributes belong to
-	# preservation-only CDML, even when their character data happens to decode.
+	# Authored rich Text permits character data only. Attributes belong to
+	# preservation-only CDML even when their character data happens to decode.
 	if ftext.hasAttributes():
 		return None, character_data
 	if any(

@@ -66,20 +66,53 @@
   carries connector/label and composite-stroke identity, so the current
   furanose+pyranose corpus validates declared paint relationships without
   guessing from unrelated wedges or requiring absent archive previews.
-- Refreshed all three managed 1280x800 Qt captures after the responsive and
-  presentation work. The capture gate now consumes the immutable projection
-  plan, frames readable content after normal post-Open callbacks, and visibly
-  exercises a marked bracket pair plus a distinct vector-drawn object.
+- Refreshed the complete managed 1280x800 Qt catalog after the responsive,
+  presentation, and final-audit work. The reaction and drawing-object captures
+  remained byte-identical; the verified-sucrose capture was republished. The
+  gate consumes the immutable projection plan, frames readable content after
+  normal post-Open callbacks, and visibly exercises a marked bracket pair plus
+  a distinct vector-drawn object.
 - Corrected bracket dragging so a newly clicked pair moves both durable members,
   and routed bracket backend parsing through the authorized hardened lxml entry.
+- Routed Arrow and geometric property patches through the same lxml-authorized
+  complete-CDML parser before constructing their detached compatibility DOM.
+- Moved effective Arrow, Text, Plus, Wavy, geometric, and bracket appearance
+  resolution into immutable OASA projection facts. Qt projection and Configure
+  paths now consume those normalized scalars instead of repeating font, color,
+  width, fill, head, or spline defaults. A malformed bracket member now remains
+  an unsupported root diagnostic instead of aborting the complete projection.
+- Corrected the retained Tk one-time smoke launch path so it imports the
+  package from `packages/bkchem-app` rather than constructing a nonexistent
+  nested `packages/bkchem` path. The probe remains release-only evidence and
+  bounds native Tk in an isolated child; this host has not yet established a
+  successful native launch because plain `tkinter` receives signal 6. Tk stays
+  deprecated retained source, intended to run on a functioning Tk host.
 
 ### Developer Tests and Notes
 
+- Reduced the permanent Tk and Qt suites using the repository pytest checklist.
+  Deprecated native-Tk window scripts, migration-parity matrices, Qt visual
+  diagnostics, action inventories, hardcoded defaults, no-crash sweeps, and
+  test-fixture self-tests are no longer collected. Permanent Qt pytest no
+  longer owns a shared mutable application/window fixture; full-window,
+  worker, visual capture, clean-wheel install, glyph inspection, live PubChem,
+  and native-Tk launch checks use explicit one-time or E2E paths. The root
+  aggregate runner now uses one quiet, fail-fast Python 3.12 pytest invocation
+  instead of disabling capture for the Qt suite.
 - Permanent focused tests cover backend authority, typed presentation behavior,
-  bracket identity/remapping, responsive reachable controls, and Haworth
-  structural semantics. Full application, screenshot, installed-wheel, and
-  retained-Tk release probes remain one-time release evidence rather than
-  brittle permanent wiring tests.
+  bracket identity/remapping, and Haworth structural semantics. The exact
+  four-root aggregate passes, and pointed behavior and policy checks pass after
+  final fragile-test pruning. Responsive layout remains part of the managed
+  screenshot walkthrough rather than a hardcoded permanent width matrix.
+  Screenshot, installed-wheel, glyph, and retained-Tk launch probes remain
+  one-time release evidence rather than brittle permanent wiring tests.
+- Applied the final six-perspective audit's documentation, comment, test, and
+  architecture findings. A small fixture-free Qt adapter contract now proves
+  immutable OASA projection facts replace disposable wrappers while preserving
+  durable identity; normalized OASA appearance facts close the former repeated-
+  default finding. Fresh screenshots, isolated-wheel round trips, and controlled
+  glyph alignment pass. Retained-Tk native launch remains
+  unproven here because plain `tkinter.Tk()` aborts before BKChem.
 
 ## 2026-08-03
 

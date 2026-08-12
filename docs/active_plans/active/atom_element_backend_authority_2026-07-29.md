@@ -134,10 +134,8 @@ retries only the exact current backend snapshot.
   dispatcher, plain-payload adapter, OASA executor, and accepted-result path.
 - `packages/bkchem-qt.app/bkchem_qt/modes/atom_mode.py`: replace the local
   property command with one state-gated submission and durable-ID follow-up.
-- `packages/bkchem-qt.app/tests/test_atom_element_backend_authority.py`: one
-  offscreen click-to-canonical-CDML behavior route and recovery/rejection facts.
-- Existing focused session and interaction modules only where their former
-  local-undo expectation is intentionally superseded.
+- Qt click, recovery, rejection, and local-undo replacement are one-time
+  application evidence rather than permanent session/lifecycle pytest.
 
 ## Approach
 
@@ -187,9 +185,7 @@ Run only pointed checks after the associated code changes:
 source source_me.sh && python3 -m pytest -q \
   packages/oasa/tests/test_cdml_atom_element_substitution.py
 
-source source_me.sh && QT_QPA_PLATFORM=offscreen python3 -m pytest --kill-after 3 -q \
-  packages/bkchem-qt.app/tests/test_qt_backend_session_adapter.py \
-  packages/bkchem-qt.app/tests/test_atom_element_backend_authority.py
+source source_me.sh && ./devel/take_qt_screenshot.sh --kill-after 3
 
 git diff --check
 ```
@@ -198,10 +194,10 @@ Backend evidence must show accepted canonical CDML retains the same molecule
 and atom durable IDs while the target element changes from one supported
 element to the requested different supported element. Rejection evidence must
 compare the prior canonical CDML and revision with the unchanged backend result.
-Qt evidence must show the click reprojects a fresh wrapper from the accepted
-snapshot, preserves selection by durable ID, and navigates undo/redo through
-backend revisions. Avoid collection counts, fixed defaults, and assertions over
-implementation storage.
+The one-time Qt walkthrough must show the click reprojects a fresh wrapper from
+the accepted snapshot, preserves selection by durable ID, and navigates
+undo/redo through backend revisions. Avoid collection counts, fixed defaults,
+and assertions over implementation storage.
 
 ## Risk register
 

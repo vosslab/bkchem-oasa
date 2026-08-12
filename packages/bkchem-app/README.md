@@ -25,8 +25,14 @@ bkchem
 
 ## Tests
 - `tests/run_pyflakes.sh` shared linting check.
-- `tests/bkchem_gui_smoke.py` basic GUI smoke test (requires Tk).
 - `tests/bkchem_batch_examples.py` runs the batch script examples (requires Tk).
+
+The bounded native launch probe is a one-time release check, not permanent
+pytest coverage:
+
+```sh
+source source_me.sh && python3 tests/e2e/e2e_bkchem_tk_smoke.py
+```
 
 ## Docs
 - [docs/USER_GUIDE.md](../../docs/USER_GUIDE.md) BKChem manual.

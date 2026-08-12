@@ -80,7 +80,7 @@ class UnsupportedContent:
 
 #============================================
 class PresentationObject(PySide6.QtCore.QObject):
-	"""A drawable non-molecule CDML object and its serializable state."""
+	"""A disposable drawing projection plus isolated compatibility source state."""
 
 	changed = PySide6.QtCore.Signal()
 
@@ -100,6 +100,14 @@ class PresentationObject(PySide6.QtCore.QObject):
 			parent: PySide6.QtCore.QObject | None = None,
 			editable: bool | None = None,
 			effective_font_family: str | None = None,
+			effective_line_width: float | None = None,
+			effective_line_color: str | None = None,
+			effective_fill_color: str | None = None,
+			effective_font_size: int | None = None,
+			effective_font_color: str | None = None,
+			effective_start_head: bool | None = None,
+			effective_end_head: bool | None = None,
+			effective_spline: bool | None = None,
 			) -> None:
 		"""Initialize a CDML presentation object.
 
@@ -117,6 +125,14 @@ class PresentationObject(PySide6.QtCore.QObject):
 			parent: Optional QObject owner.
 			editable: Whether persistent Qt actions may target the projection.
 			effective_font_family: Backend-resolved family without changing authored XML.
+			effective_line_width: Backend-resolved visible line width.
+			effective_line_color: Backend-resolved visible line color.
+			effective_fill_color: Backend-resolved fill/background or transparent null.
+			effective_font_size: Backend-resolved point size for Text or Plus.
+			effective_font_color: Backend-resolved Text or Plus foreground.
+			effective_start_head: Backend-resolved Arrow start-head state.
+			effective_end_head: Backend-resolved Arrow end-head state.
+			effective_spline: Backend-resolved curve state for line-like roots.
 		"""
 		super().__init__(parent)
 		self._kind = str(kind)
@@ -131,6 +147,14 @@ class PresentationObject(PySide6.QtCore.QObject):
 		self._supported = bool(supported)
 		self._editable = self._supported if editable is None else bool(editable) and self._supported
 		self._effective_font_family = effective_font_family
+		self._effective_line_width = effective_line_width
+		self._effective_line_color = effective_line_color
+		self._effective_fill_color = effective_fill_color
+		self._effective_font_size = effective_font_size
+		self._effective_font_color = effective_font_color
+		self._effective_start_head = effective_start_head
+		self._effective_end_head = effective_end_head
+		self._effective_spline = effective_spline
 
 	#============================================
 	@property
@@ -201,6 +225,54 @@ class PresentationObject(PySide6.QtCore.QObject):
 	def effective_font_family(self) -> str | None:
 		"""Return the backend-resolved family for presentation."""
 		return self._effective_font_family
+
+	#============================================
+	@property
+	def effective_line_width(self) -> float | None:
+		"""Return the backend-resolved visible line width."""
+		return self._effective_line_width
+
+	#============================================
+	@property
+	def effective_line_color(self) -> str | None:
+		"""Return the backend-resolved visible line color."""
+		return self._effective_line_color
+
+	#============================================
+	@property
+	def effective_fill_color(self) -> str | None:
+		"""Return the backend-resolved fill/background color or transparent null."""
+		return self._effective_fill_color
+
+	#============================================
+	@property
+	def effective_font_size(self) -> int | None:
+		"""Return the backend-resolved Text or Plus point size."""
+		return self._effective_font_size
+
+	#============================================
+	@property
+	def effective_font_color(self) -> str | None:
+		"""Return the backend-resolved Text or Plus foreground color."""
+		return self._effective_font_color
+
+	#============================================
+	@property
+	def effective_start_head(self) -> bool | None:
+		"""Return the backend-resolved Arrow start-head state."""
+		return self._effective_start_head
+
+	#============================================
+	@property
+	def effective_end_head(self) -> bool | None:
+		"""Return the backend-resolved Arrow end-head state."""
+		return self._effective_end_head
+
+	#============================================
+	@property
+	def effective_spline(self) -> bool | None:
+		"""Return the backend-resolved curve state for a line-like root."""
+		return self._effective_spline
 
 	#============================================
 	@property

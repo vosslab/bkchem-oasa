@@ -132,9 +132,9 @@ of click-counter or undo behavior.
 - M1 focused verification:
   `source source_me.sh && python3 -W error -m pytest -q packages/oasa/tests/test_cdml_atom_numbering.py`
   reports `22 passed`.
-- M2 focused verification:
-  `source source_me.sh && QT_QPA_PLATFORM=offscreen python3 -W error -m pytest --kill-after 3 -q packages/bkchem-qt.app/tests/test_persistent_atom_numbering.py`
-  reports `7 passed`.
+- M2 used a focused implementation-time Qt verification that reported seven
+  passing cases. That shared-window module was retired under the permanent-test
+  policy; current user-visible numbering is one-time application evidence.
 - Fresh backend and Qt reviews accepted the direct-target, atomic-failure,
   backend-history, snapshot-derived candidate, and exact-reprojection rules.
 - M3 records the delivered behavior in the durable contracts. The plan remains
@@ -356,15 +356,13 @@ number of behavioral assertions per test.
 source source_me.sh && python3 -W error -m pytest -q \
   packages/oasa/tests/test_cdml_atom_numbering.py
 
-source source_me.sh && QT_QPA_PLATFORM=offscreen python3 -W error -m pytest --kill-after 3 -q \
-  packages/bkchem-qt.app/tests/test_persistent_atom_numbering.py
+source source_me.sh && ./devel/take_qt_screenshot.sh --kill-after 3
 
 git diff --check -- \
   packages/oasa/oasa/cdml_document.py \
   packages/oasa/tests/test_cdml_atom_numbering.py \
   packages/bkchem-qt.app/bkchem_qt/models/document_session.py \
-  packages/bkchem-qt.app/bkchem_qt/modes/misc_mode.py \
-  packages/bkchem-qt.app/tests/test_persistent_atom_numbering.py
+  packages/bkchem-qt.app/bkchem_qt/modes/misc_mode.py
 ```
 
 The final commands are selected after files exist; their behavior, not their

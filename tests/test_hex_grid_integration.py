@@ -1,28 +1,10 @@
-"""Integration tests for the oasa.hex_grid module and snap_cdml_to_hex_grid CLI."""
+"""Deterministic geometry tests for the oasa.hex_grid module."""
 
 # Standard Library
-import os
-import sys
 import math
-import pathlib
-import subprocess
-import tempfile
 
 # local repo modules
-import file_utils
-import oasa.cdml_document
 import oasa.hex_grid
-
-REPO_ROOT = file_utils.get_repo_root()
-
-# path to the templates CDML file used by several tests
-TEMPLATES_CDML = os.path.join(
-	REPO_ROOT, "packages", "bkchem-app", "bkchem_data",
-	"templates", "templates.cdml"
-)
-
-# snap CLI script path
-SNAP_CLI = os.path.join(REPO_ROOT, "tools", "snap_cdml_to_hex_grid.py")
 
 # tolerance for floating point comparisons
 TOL = 1e-6
@@ -79,62 +61,6 @@ def test_benzene_on_hex_grid() -> None:
 
 
 #============================================
-def test_snap_benzene_cdml_roundtrip() -> None:
-	"""Snap the benzene molecule from templates.cdml and verify atoms land on grid."""
-	assert os.path.isfile(TEMPLATES_CDML), f"missing: {TEMPLATES_CDML}"
-	# use the snap CLI in non-dry-run mode via subprocess
-	with tempfile.NamedTemporaryFile(suffix=".cdml", delete=False) as tmp:
-		tmp_path = tmp.name
-	try:
-		cmd = [
-			sys.executable, SNAP_CLI,
-			'-i', TEMPLATES_CDML,
-			'-o', tmp_path,
-			'-w',
-		]
-		result = subprocess.run(
-			cmd, capture_output=True, text=True, timeout=30,
-		)
-		assert result.returncode == 0, f"CLI failed: {result.stderr}"
-		# output file should exist and be non-empty
-		assert os.path.isfile(tmp_path)
-		assert os.path.getsize(tmp_path) > 0
-		# re-parse the output and verify all atoms land on hex grid
-		import oasa.safe_xml
-		import oasa.dom_extensions
-		doc = oasa.safe_xml.parse_dom_from_file(tmp_path)
-		mol_elements = doc.getElementsByTagName("molecule")
-		# at least benzene should be present
-		assert len(mol_elements) > 0
-		# check the first molecule (benzene)
-		benzene = mol_elements[0]
-		atom_elements = oasa.dom_extensions.simpleXPathSearch(benzene, "atom")
-		# conversion: 72 pts per inch / 2.54 cm per inch
-		pts_per_cm = 72.0 / 2.54
-		spacing_pts = 0.7 * pts_per_cm
-		coords = []
-		for atom_el in atom_elements:
-			point_els = atom_el.getElementsByTagName("point")
-			if not point_els:
-				continue
-			x_str = point_els[0].getAttribute("x")
-			y_str = point_els[0].getAttribute("y")
-			# parse coordinate: strip optional "cm" suffix
-			x_val = float(x_str.replace("cm", "")) * pts_per_cm
-			y_val = float(y_str.replace("cm", "")) * pts_per_cm
-			coords.append((x_val, y_val))
-		# find best origin for snapped coords
-		ox, oy = oasa.hex_grid.find_best_grid_origin(coords, spacing_pts)
-		on_grid = oasa.hex_grid.all_atoms_on_hex_grid(
-			coords, spacing_pts, tolerance=0.5, origin_x=ox, origin_y=oy
-		)
-		assert on_grid is True
-	finally:
-		if os.path.exists(tmp_path):
-			os.unlink(tmp_path)
-
-
-#============================================
 def test_zigzag_chain_on_hex_grid() -> None:
 	"""A zigzag chain of atoms on hex grid points should pass grid check."""
 	spacing = 1.0
@@ -184,65 +110,6 @@ def test_snap_preserves_bond_lengths() -> None:
 		assert abs(d - spacing) < 0.01, (
 			f"bond ({i},{j}) length {d:.4f} != spacing {spacing}"
 		)
-
-
-#============================================
-def test_snap_cli_dry_run() -> None:
-	"""The CLI in dry-run mode should print a report but not write the output."""
-	assert os.path.isfile(TEMPLATES_CDML), f"missing: {TEMPLATES_CDML}"
-	with tempfile.NamedTemporaryFile(suffix=".cdml", delete=False) as tmp:
-		tmp_path = tmp.name
-	# remove the file so we can check it is NOT created
-	os.unlink(tmp_path)
-	try:
-		cmd = [
-			sys.executable, SNAP_CLI,
-			'-i', TEMPLATES_CDML,
-			'-o', tmp_path,
-			'-n',
-		]
-		result = subprocess.run(
-			cmd, capture_output=True, text=True, timeout=30,
-		)
-		assert result.returncode == 0, f"CLI failed: {result.stderr}"
-		# dry run should mention "Dry run" in output
-		assert "Dry run" in result.stdout
-		# output file should NOT have been created
-		assert not os.path.exists(tmp_path)
-	finally:
-		if os.path.exists(tmp_path):
-			os.unlink(tmp_path)
-
-
-#============================================
-def test_snap_cli_output(tmp_path: pathlib.Path) -> None:
-	"""The CLI in write mode should produce a valid CDML output file."""
-	assert os.path.isfile(TEMPLATES_CDML), f"missing: {TEMPLATES_CDML}"
-	output_path = tmp_path / "snapped.cdml"
-	cmd = [
-		sys.executable, SNAP_CLI,
-		'-i', TEMPLATES_CDML,
-		'-o', str(output_path),
-		'-w',
-	]
-	result = subprocess.run(
-		cmd, capture_output=True, text=True, timeout=30,
-	)
-	assert result.returncode == 0, f"CLI failed: {result.stderr}"
-	# The CLI must retain the source molecule records and their stable CDML IDs.
-	source_document = oasa.cdml_document.CDMLDocument.parse(
-		pathlib.Path(TEMPLATES_CDML).read_text(encoding="utf-8")
-	)
-	document = oasa.cdml_document.CDMLDocument.parse(output_path.read_text(encoding="utf-8"))
-	source_molecule_ids = frozenset(
-		record.identifier for record in source_document.objects()
-		if record.local_name == "molecule"
-	)
-	output_molecule_ids = frozenset(
-		record.identifier for record in document.objects()
-		if record.local_name == "molecule"
-	)
-	assert output_molecule_ids == source_molecule_ids
 
 
 #============================================

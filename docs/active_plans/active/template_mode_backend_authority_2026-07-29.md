@@ -193,14 +193,11 @@ public retry path reprojects that exact snapshot only.
   `template.insert` adapter and delegation to the existing insertion executor.
 - `packages/bkchem-qt.app/bkchem_qt/modes/template_mode.py`: replace local
   `MoleculeModel`/graphics/undo placement with one session-owned submission.
-- `packages/bkchem-qt.app/tests/test_qt_backend_session_adapter.py`: session
-  request validation, one commit, backend undo/redo, and recovery outcome.
-- `packages/bkchem-qt.app/tests/test_template_backend_authority.py`: offscreen
-  blank and atom-anchor clicks, source preservation, durable selection, and
-  public retry behavior.
-- `packages/bkchem-qt.app/tests/test_template_mode_undo.py` and
-  `test_interactions.py`: retire only the local-undo assertions superseded by
-  the new backend-history behavior; retain independent interaction coverage.
+- `packages/bkchem-qt.app/tests/test_user_template_catalog.py`: retain only the
+  deterministic plain catalog contract.
+- Whole-window placement and backend-history integration are one-time
+  application evidence. Their implementation-era shared-window pytest modules
+  were retired under the permanent-test and fixture policy.
 
 ## Implementation sequence
 
@@ -266,18 +263,14 @@ public retry path reprojects that exact snapshot only.
 
 ## Verification
 
-Run pointed checks after the related changes. Qt commands use offscreen mode
-and the repository's short test-process bound:
+Run the permanent backend and plain catalog checks after related changes.
+Whole-window placement, history, and recovery remain one-time application
+evidence rather than shared-window pytest fixtures:
 
 ```bash
 source source_me.sh && python3 -m pytest -q \
-  packages/oasa/tests/test_cdml_template_placement.py
-
-source source_me.sh && QT_QPA_PLATFORM=offscreen python3 -m pytest --kill-after 3 -q \
-  packages/bkchem-qt.app/tests/test_qt_backend_session_adapter.py -k template
-
-source source_me.sh && QT_QPA_PLATFORM=offscreen python3 -m pytest --kill-after 3 -q \
-  packages/bkchem-qt.app/tests/test_template_backend_authority.py
+  packages/oasa/tests/test_cdml_template_placement.py \
+  packages/bkchem-qt.app/tests/test_user_template_catalog.py
 
 git diff --check
 ```
@@ -287,12 +280,14 @@ observable contract fact, uses no network, avoids fixture or storage-shape
 assertions, and proves canonical CDML/state behavior rather than item counts
 or wrapper identity. The atom-anchor test compares the source molecule and
 atom canonical facts before and after insertion, while proving one separate
-inserted molecule appears at the anchor. The public retry test observes the
-accepted snapshot and rebuilt projection rather than coordinator internals.
+inserted molecule appears at the anchor. The implementation-time retry probe
+observed the accepted snapshot and rebuilt projection rather than coordinator
+internals; it was retired instead of being kept as permanent lifecycle wiring.
 The preparation test compares finite scale/anchor behavior against the
-measured current Qt rule without a pixel-equivalence gate. A focused Qt test
-also asserts the delivered atom-anchor behavior is detached placement, so the
-user-facing wording and persistent result remain aligned.
+measured current Qt rule without a pixel-equivalence gate. The managed
+application walkthrough checks that delivered atom-anchor behavior remains
+detached placement and that user-facing wording and persistent behavior stay
+aligned.
 
 ## Acceptance record
 

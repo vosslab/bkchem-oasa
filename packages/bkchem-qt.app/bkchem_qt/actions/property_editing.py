@@ -252,6 +252,11 @@ def capture_selected_bracket_properties(
 		return None
 	pair_id, _member_ids, _style, width, color = pair
 	window, view = _owning_window_and_view(parent)
+	if width is None or color is None:
+		window.statusBar().showMessage(
+			"Bracket members must share one appearance before Configure", 3000,
+		)
+		return None
 	capture = getattr(window, "capture_bracket_properties_for_view", None)
 	if not callable(capture):
 		return None
@@ -261,11 +266,9 @@ def capture_selected_bracket_properties(
 		or type(synchronized[0]) is not int or not callable(synchronized[1])
 	):
 		return None
-	# Imported disagreement is intentionally represented as an unchanged baseline;
-	# users may positively choose a value, but merely opening/accepting is inert.
 	dialog = bkchem_qt.dialogs.geometric_properties_dialog.GeometricPropertiesDialog(
-		title="Bracket appearance", line_width=width if width is not None else 1.0,
-		line_color=color if color is not None else "#000000", area_color=None,
+		title="Bracket appearance", line_width=width,
+		line_color=color, area_color=None,
 		fillable=False, parent=parent,
 	)
 	expected_revision, submit = synchronized
@@ -292,11 +295,12 @@ def capture_selected_plus_properties(
 		if callable(status_bar):
 			status_bar().showMessage("Plus properties are unavailable for this document", 3000)
 		return None
-	attributes = plus_model.attributes
-	font_size = int(attributes.get("font_size", "14"))
-	color = attributes.get("color", "#000000")
-	background_color = attributes.get("background-color") or None
-	font_family = plus_model.effective_font_family or "helvetica"
+	font_size = plus_model.effective_font_size
+	color = plus_model.effective_font_color
+	background_color = plus_model.effective_fill_color
+	font_family = plus_model.effective_font_family
+	if font_size is None or color is None or font_family is None:
+		return None
 	dialog = bkchem_qt.dialogs.plus_dialog.PlusDialog(
 		font_size, color, parent, background_color=background_color,
 		font_family=font_family,
@@ -321,9 +325,10 @@ def capture_selected_wavy_properties(
 	)
 	if synchronized is None:
 		return None
-	attributes = wavy_model.attributes
-	width = float(attributes.get("width", "1"))
-	line_color = attributes.get("line_color", attributes.get("color", "#000000"))
+	width = wavy_model.effective_line_width
+	line_color = wavy_model.effective_line_color
+	if width is None or line_color is None:
+		return None
 	dialog = bkchem_qt.dialogs.wavy_dialog.WavyDialog(width, line_color, parent)
 	expected_revision, submit, wavy_id = synchronized
 	changes = ()
@@ -345,14 +350,12 @@ def capture_selected_arrow_properties(
 	)
 	if synchronized is None:
 		return None
-	attributes = arrow_model.attributes
-	start_head = attributes.get("start", "no").lower() in ("yes", "true", "1", "both")
-	end_head = attributes.get("end", "yes").lower() not in ("no", "false", "0")
-	spline = attributes.get("spline", "no").lower() in ("yes", "true", "1")
 	dialog = bkchem_qt.dialogs.arrow_dialog.ArrowDialog(
-		parent=parent, start_head=start_head, end_head=end_head,
-		line_width=float(attributes.get("width", "1")), spline=spline,
-		color=attributes.get("color", "#000000"),
+		parent=parent, start_head=bool(arrow_model.effective_start_head),
+		end_head=bool(arrow_model.effective_end_head),
+		line_width=arrow_model.effective_line_width,
+		spline=bool(arrow_model.effective_spline),
+		color=arrow_model.effective_line_color,
 	)
 	expected_revision, submit, arrow_id = synchronized
 	changes = ()
@@ -374,16 +377,13 @@ def capture_selected_geometric_properties(
 	)
 	if synchronized is None:
 		return None
-	attributes = model.attributes
-	line_color = attributes.get("line_color", attributes.get("color", "#000000"))
 	fillable = model.kind != "polyline"
-	area_color = attributes.get("area_color", attributes.get("background-color"))
-	if area_color in ("", "none") or not fillable:
-		area_color = None
 	dialog = bkchem_qt.dialogs.geometric_properties_dialog.GeometricPropertiesDialog(
 		title=_GEOMETRIC_TITLES[model.kind],
-		line_width=float(attributes.get("width", "1")), line_color=line_color,
-		area_color=area_color, fillable=fillable, parent=parent,
+		line_width=model.effective_line_width,
+		line_color=model.effective_line_color,
+		area_color=model.effective_fill_color if fillable else None,
+		fillable=fillable, parent=parent,
 	)
 	expected_revision, submit, presentation_id = synchronized
 	changes = ()
@@ -402,17 +402,15 @@ def _plain_text_values(text_model: object) -> dict[str, object] | None:
 		plain_text = bkchem_qt.io.cdml_inspection.direct_ftext_text(fragment)
 	if plain_text is None:
 		return None
-	font = text_model.font_attributes
-	attributes = text_model.attributes
 	values = {
 		"text": plain_text,
-		"font_family": font.get("family", "Arial"),
-		"font_size": int(font.get("size", attributes.get("font_size", "12"))),
-		"font_color": font.get(
-			"color", attributes.get("line_color", attributes.get("color", "#000000")),
-		),
-		"background_color": attributes.get("background-color") or None,
+		"font_family": text_model.effective_font_family,
+		"font_size": text_model.effective_font_size,
+		"font_color": text_model.effective_font_color,
+		"background_color": text_model.effective_fill_color,
 	}
+	if any(values[name] is None for name in ("font_family", "font_size", "font_color")):
+		return None
 	return values
 
 

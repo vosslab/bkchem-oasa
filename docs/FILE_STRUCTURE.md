@@ -88,12 +88,12 @@ packages/bkchem-qt.app/
 |  +- resources/            packaged menus, themes, and pixmaps
 |  +- setup/                application and mode setup helpers
 |  +- themes/               Qt theme definitions and helpers
-|  +- undo/                 Qt-local undo retained during migration
+|  +- undo/                 synchronized backend history; legacy-local compatibility isolated
 |  +- widgets/              Qt docks, toolbars, and controls
 |  +- app.py                QApplication setup and shutdown
 |  +- cli.py                bkchem-qt console entry point
 |  `- main_window.py        tab host and global Qt coordinator
-+- tests/                   focused offscreen PySide6 tests
++- tests/                   focused deterministic Qt-package tests
 `- pyproject.toml           bkchem-qt package and console script
 ```
 

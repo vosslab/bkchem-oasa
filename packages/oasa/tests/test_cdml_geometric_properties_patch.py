@@ -185,3 +185,26 @@ def test_wavy_display_only_and_stale_targets_cannot_retarget() -> None:
 	with pytest.raises(oasa.cdml_document.CDMLRevisionConflictError):
 		oasa.cdml_presentation_properties.patch_geometric_properties(session, stale)
 	assert session.snapshot() == accepted.snapshot
+
+
+#============================================
+def test_unsafe_current_snapshot_is_rejected_without_a_property_commit(
+		monkeypatch: object,
+		) -> None:
+	"""The public geometric operation reauthorizes its detached CDML source."""
+	session = oasa.cdml_document.CDMLDocumentSession.load(_CDML)
+	before = session.snapshot()
+	hostile = oasa.cdml_document.CDMLSnapshot(
+		before.revision,
+		'<!DOCTYPE cdml [<!ENTITY value "unsafe">]><cdml>&value;</cdml>',
+		before.is_dirty,
+	)
+	monkeypatch.setattr(session, "snapshot", lambda: hostile)
+	request = oasa.cdml_presentation_properties.CDMLGeometricPropertiesPatch(
+		before.revision, "shape1", (("line_width", 2.0),),
+	)
+	with pytest.raises(oasa.cdml_presentation_properties.CDMLGeometricPropertiesPatchError):
+		oasa.cdml_presentation_properties.patch_geometric_properties(session, request)
+	monkeypatch.undo()
+
+	assert session.snapshot() == before

@@ -212,7 +212,7 @@ def test_presentation_description_resolves_missing_family_from_standard() -> Non
 	)
 	record = next(
 		record for record in oasa.cdml_document.CDMLDocumentSession.load(source)
-		.projection_snapshot().presentation_description.records
+		.projection_snapshot().plan.presentation_description.records
 		if record.identifier == "plus1"
 	)
 

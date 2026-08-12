@@ -321,7 +321,7 @@ snapshot and uses only exact-current-snapshot reprojection, as specified by
 
 - Owner: expert_coder.
 - Touch points: `packages/bkchem-qt.app/bkchem_qt/models/document_session.py`
-  and `packages/bkchem-qt.app/tests/test_qt_backend_session_adapter.py`.
+  and the explicit application walkthrough used during delivery.
 - Depends on: WP-D1.
 - Acceptance criteria:
   - Register `draw.structure` with a direct OASA executor rather than a
@@ -340,10 +340,8 @@ snapshot and uses only exact-current-snapshot reprojection, as specified by
 ### Work package WP-D3: Migrate Draw-mode gestures
 
 - Owner: PySide6 engineer.
-- Touch points: `packages/bkchem-qt.app/bkchem_qt/modes/draw_mode.py`,
-  `packages/bkchem-qt.app/tests/test_draw_backend_authority.py`, and only the
-  existing focused GUI-event/interactions tests whose old local assumption is
-  replaced.
+- Touch points: `packages/bkchem-qt.app/bkchem_qt/modes/draw_mode.py` and the
+  one-time GUI walkthrough whose old local assumption is replaced.
 - Depends on: WP-D2.
 - Acceptance criteria:
   - Capture a pointer gesture and draw a preview without persistent model,
@@ -407,11 +405,9 @@ snapshot and uses only exact-current-snapshot reprojection, as specified by
   hardened CDML parser for structural inspection.
 - Assert durable bond endpoints, document order, preserved opaque content, and
   typed atomic failure rather than brittle object counts or raw DOM behavior.
-- Extend the existing session adapter module with one backend request/revision
-  scenario and one accepted-projection-failure scenario.
-- Add one Draw-mode authority module that drives press/move/release in an
-  offscreen Qt session and observes canonical backend CDML plus fresh
-  projections. Keep direct geometry-helper tests in their existing module.
+- Use a removable application probe for the request/revision and
+  accepted-projection-failure scenarios. Do not keep shared-window,
+  press/move/release, or projection-lifecycle wiring as permanent pytest.
 - Run only the changed focused modules during development:
 
 ```bash
@@ -419,10 +415,7 @@ source source_me.sh && python3 -W error -m pytest \
   packages/oasa/tests/test_cdml_structural_edit.py \
   packages/oasa/tests/test_cdml_document_authority.py
 
-source source_me.sh && QT_QPA_PLATFORM=offscreen python3 -W error -m pytest \
-  --kill-after 3 \
-  packages/bkchem-qt.app/tests/test_qt_backend_session_adapter.py \
-  packages/bkchem-qt.app/tests/test_draw_backend_authority.py
+source source_me.sh && ./devel/take_qt_screenshot.sh --kill-after 3
 ```
 
 - Run the existing backend import-boundary assertion and pointed Markdown-link

@@ -4,6 +4,7 @@
 import dataclasses
 
 # local repo modules
+import oasa.cdml_presentation_appearance
 import oasa.cdml_projection_plan
 
 
@@ -31,11 +32,16 @@ class CDMLPresentationRecord:
 	points: tuple[tuple[float, float, float | None], ...]
 	bounds: tuple[float, float, float, float] | None
 	font_attributes: tuple[tuple[str, str], ...]
-	effective_font_family: str | None
+	appearance: oasa.cdml_presentation_appearance.CDMLPresentationAppearance
 	display_text: str
 	ftext_runs: tuple[tuple[str, tuple[str, ...]], ...] | None
 	disposition: str
 	reason: str | None
+
+	@property
+	def effective_font_family(self) -> str | None:
+		"""Retain the established family accessor through the appearance value."""
+		return self.appearance.font_family
 
 
 @dataclasses.dataclass(frozen=True)

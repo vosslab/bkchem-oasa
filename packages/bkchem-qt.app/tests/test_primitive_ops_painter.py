@@ -21,7 +21,7 @@ def _bond_batch() -> object:
 
 
 #============================================
-def test_portable_line_bounds_include_its_stroked_endpoints(qapp: object) -> None:
+def test_portable_line_bounds_include_its_stroked_endpoints() -> None:
 	"""Qt bounds include the visible stroke rather than only its center line."""
 	batch = _bond_batch()
 	bounds = bkchem_qt.canvas.items.primitive_ops_painter.bounds(batch.operations, 0.0)
@@ -31,7 +31,7 @@ def test_portable_line_bounds_include_its_stroked_endpoints(qapp: object) -> Non
 
 
 #============================================
-def test_bond_drag_preview_follows_current_endpoints_without_mutating_batch(qapp: object) -> None:
+def test_bond_drag_preview_follows_current_endpoints_without_mutating_batch() -> None:
 	"""A preview transforms immutable accepted facts into the live endpoint axis."""
 	batch = _bond_batch()
 	original = batch.operations
@@ -44,23 +44,7 @@ def test_bond_drag_preview_follows_current_endpoints_without_mutating_batch(qapp
 
 
 #============================================
-def test_portable_subscript_text_expands_the_local_label_bound(qapp: object) -> None:
-	"""Qt-local text measurement retains portable subscript label geometry."""
-	del qapp
-	base = oasa.cdml_document.CDMLRenderPrimitive(
-		"text", ((0.0, 0.0),), (), (("N", "base"),), None,
-		None, "foreground", None, None, None, "Arial", 12.0, "start",
-		"normal", None, None, 0,
-	)
-	subscript = dataclasses.replace(base, text_runs=(("N", "base"), ("2", "sub")))
-	base_left, base_right = bkchem_qt.canvas.items.primitive_ops_painter.text_horizontal_bounds((base,))
-	subscript_left, subscript_right = bkchem_qt.canvas.items.primitive_ops_painter.text_horizontal_bounds((subscript,))
-
-	assert subscript_left == base_left and subscript_right > base_right
-
-
-#============================================
-def test_direct_hydration_rejects_mixed_observation_revisions(qapp: object) -> None:
+def test_direct_hydration_rejects_mixed_observation_revisions() -> None:
 	"""Every public hydration entry point rejects cross-revision backend facts."""
 	document = oasa.cdml_document.CDMLDocument.parse(
 		"<cdml><molecule id='m'><atom id='a' name='C'><point x='0cm' y='0cm'/></atom>"

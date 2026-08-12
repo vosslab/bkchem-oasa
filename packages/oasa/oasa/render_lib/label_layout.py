@@ -81,8 +81,7 @@ def choose_label_placement(
 		)
 		for candidate in ordered
 	]
-	best_score, best_result = min(scored, key=lambda entry: entry[0])
-	del best_score
+	_, best_result = min(scored, key=lambda entry: entry[0])
 	return best_result
 
 
@@ -206,9 +205,14 @@ def _box_overlaps_polygon(
 	if any(x1 <= point[0] <= x2 and y1 <= point[1] <= y2 for point in polygon):
 		return True
 	return any(
-		_segment_intersects(edge_start, edge_end, corners[index], corners[(index + 1) % 4])
-		for index, (edge_start, edge_end) in enumerate(_polygon_edges(polygon))
-		for index in range(4)
+		_segment_intersects(
+			edge_start,
+			edge_end,
+			corners[corner_index],
+			corners[(corner_index + 1) % 4],
+		)
+		for edge_start, edge_end in _polygon_edges(polygon)
+		for corner_index in range(4)
 	)
 
 

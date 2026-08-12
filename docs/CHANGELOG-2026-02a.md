@@ -2656,7 +2656,7 @@
 - Add the PubChem API plan to [TODO_REPO.md](TODO_REPO.md).
 
 ## 2026-02-02
-- Add [test_bkchem_gui_benzene.py](../packages/bkchem-app/tests/test_bkchem_gui_benzene.py)
+- Add `test_bkchem_gui_benzene.py`
   to build a benzene ring (hexagon with alternating double bonds) and include
   it in `run_smoke.sh`.
 - Replace deprecated inspect.getargspec with getfullargspec in
@@ -2830,7 +2830,7 @@
 - Resolve repo root in CDML/CLI tests via shared helpers in
   `conftest.py` (no git commands), and register the
   `--save` pytest option for smoke output preservation.
-- Add [test_haworth_cairo_layout.py](../packages/oasa/tests/test_haworth_cairo_layout.py)
+- Add `test_haworth_cairo_layout.py`
   as a pre-merge baseline copy of Haworth layout tests, and update Haworth tests
   to use `conftest.py` path helpers.
 - Document the Haworth CLI in `USAGE.md` and

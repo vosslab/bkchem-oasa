@@ -22,6 +22,7 @@ import oasa.cdml_bracket_pair
 import oasa.cdml_ftext
 import oasa.cdml_molecule_summary
 import oasa.cdml_presentation_facts
+import oasa.cdml_presentation_appearance
 import oasa.cdml_projection_plan
 import oasa.cdml_standard
 import oasa.cdml_writer
@@ -1563,20 +1564,19 @@ def _presentation_description(
 					compatibility_reason = str(error)
 			elif ftext is not None:
 				compatibility_reason = "ftext contains preservation-only direct markup"
-			effective_family = None
-			if name in {"plus", "text"}:
-				effective_family = (
-					(font.getAttribute("family").strip() if font else None) or standard.font_family
-				)
+			root_attributes = _presentation_attributes(element)
+			font_attributes = _presentation_attributes(font) if font is not None else ()
+			appearance = oasa.cdml_presentation_appearance.resolve(
+				name, root_attributes, font_attributes, standard,
+			)
 			if compatibility_reason is not None:
 				issues.append(CDMLPresentationIssue(
 					source_position, name, getattr(element, "namespaceURI", None), path, identifier,
 					"unsupported", compatibility_reason,
 				))
 			records.append(CDMLPresentationRecord(
-				source_position, identifier, name, _presentation_attributes(element), tuple(points), bounds,
-				_presentation_attributes(font) if font is not None else (),
-				effective_family, display_text, runs,
+				source_position, identifier, name, root_attributes, tuple(points), bounds,
+				font_attributes, appearance, display_text, runs,
 				"editable" if identifier is not None and compatibility_reason is None else "display-only",
 				compatibility_reason,
 			))
@@ -1587,6 +1587,7 @@ def _presentation_description(
 			))
 	bracket_pairs = oasa.cdml_bracket_pair.observe_bracket_pairs(
 		tuple(_element_children(root)), _is_cdml_element, _local_name,
+		standard,
 	)
 	return CDMLPresentationDescription(revision, tuple(records), tuple(issues), bracket_pairs)
 
@@ -3041,8 +3042,8 @@ def _validate_user_template_request(
 def inspect_user_template(template_cdml: str) -> CDMLUserTemplateInspection:
 	"""Inspect one exact saved template without mutating durable backend state.
 
-	The result is intentionally limited to catalog-display data.  It validates
-	the same M0 saved-template eligibility grammar used by insertion, but never
+	The result is intentionally limited to catalog-display data. It validates
+	the same saved-template eligibility grammar used by insertion, but never
 	allocates IDs, translates geometry, or touches a session.
 	"""
 	if type(template_cdml) is not str:
@@ -4502,7 +4503,7 @@ def _editable_text_children(text: object) -> tuple[object | None, object]:
 
 #============================================
 def _editable_rich_text_children(text: object) -> tuple[object | None, object]:
-	"""Require the M1 direct-root grammar and return its simple font and ftext."""
+	"""Require direct-root rich Text grammar and return its font and ftext."""
 	points = []
 	fonts = []
 	ftexts = []

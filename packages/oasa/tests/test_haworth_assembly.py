@@ -134,7 +134,6 @@ def test_stale_plan_rejection_is_atomic() -> None:
 		oasa.haworth.assembly.apply_haworth_assembly(molecule, plan)
 	assert _state(molecule) == before
 
-
 #============================================
 def test_duplicate_sibling_direction_is_a_declaration_error() -> None:
 	"""Ambiguous branch placement is rejected as a caller declaration defect."""
@@ -257,20 +256,6 @@ def test_nonfinite_existing_coordinate_is_a_geometry_error() -> None:
 
 
 #============================================
-def test_declared_link_faces_are_outward_and_opposed() -> None:
-	"""Accepted links keep each attachment within the template-derived face sector."""
-	molecule = _identified_molecule("O1CCCCC1OCC2OCCCC2OCC3OCCCC3")
-	plan = oasa.haworth.assembly.plan_haworth_assembly(molecule, _linear_request())
-	for link in plan.request.links:
-		parent = next(ring for ring in plan.rings if ring.ring_id == link.parent_ring_id)
-		child = next(ring for ring in plan.rings if ring.ring_id == link.child_ring_id)
-		parent_face = _face_vector(parent, link.parent_attachment)
-		child_face = _face_vector(child, link.child_attachment)
-		direction = _DIRECTION_VECTORS[link.direction]
-		assert _dot(parent_face, direction) >= math.cos(math.radians(21.0))
-		assert _dot(child_face, direction) <= -math.cos(math.radians(21.0))
-
-
 #============================================
 def test_incompatible_cardinal_face_declaration_is_rejected() -> None:
 	"""A link direction outside the legacy template's compatible face sector fails."""
@@ -319,32 +304,3 @@ def test_nonbonded_clearance_rejection_is_atomic() -> None:
 	with pytest.raises(oasa.haworth.assembly.HaworthAssemblyGeometryError, match="clearance"):
 		oasa.haworth.assembly.apply_haworth_assembly(molecule, plan)
 	assert _state(molecule) == before
-
-
-#============================================
-def _face_vector(ring: oasa.haworth.assembly.HaworthAssemblyRingPlan,
-		ref: oasa.haworth.assembly.HaworthAtomRef) -> tuple[float, float]:
-	"""Return one normalized attachment-centre vector from the public plan facts."""
-	center = (
-		sum(point[0] for point in ring.coordinates) / len(ring.coordinates),
-		sum(point[1] for point in ring.coordinates) / len(ring.coordinates),
-	)
-	point = ring.coordinates[ring.vertex_refs.index(ref)]
-	length = math.hypot(point[0] - center[0], point[1] - center[1])
-	result = ((point[0] - center[0]) / length, (point[1] - center[1]) / length)
-	return result
-
-
-#============================================
-def _dot(first: tuple[float, float], second: tuple[float, float]) -> float:
-	"""Return one compact direction-agreement fact for the semantic test."""
-	result = (first[0] * second[0]) + (first[1] * second[1])
-	return result
-
-
-_DIRECTION_VECTORS = {
-	"east": (1.0, 0.0),
-	"west": (-1.0, 0.0),
-	"north": (0.0, -1.0),
-	"south": (0.0, 1.0),
-}

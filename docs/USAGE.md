@@ -42,9 +42,9 @@ The positional launch files are CDML documents.
   target. A name without a suffix receives `.cdml`; another suffix is refused.
 - File > Open accepts native `.cdml`. It opens each ordinary file in a separate
   session and activates an already-open source instead of duplicating it.
-- File > Import accepts `.mol`, `.sdf`, `.smi`, `.smiles`, `.cdxml`, and
-  `.cml` through OASA. Generic `.xml` is not accepted because it does not name
-  a chemistry format.
+- File > Import accepts `.mol`, `.sdf`, `.smi`, `.smiles`, `.cdxml`, `.cml`,
+  and CD-SVG files with `.svg`, `.svgz`, or `.cdsvg` suffixes through OASA.
+  Generic `.xml` is not accepted because it does not name a chemistry format.
 - Imported material becomes a dirty, pathless CDML session. Save As creates a
   new `.cdml` document and never overwrites the source import format.
 - Ordinary Save publishes the exact current backend snapshot and marks that

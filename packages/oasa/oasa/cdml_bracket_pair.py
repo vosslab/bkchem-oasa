@@ -1,9 +1,7 @@
 """Recognition of durable bracket-pair relationships on core polylines."""
 
-# Standard Library
-import math
-
 # local repo modules
+import oasa.cdml_presentation_appearance
 import oasa.cdml_projection_plan
 
 
@@ -12,29 +10,13 @@ _RECTANGULAR_SPLINES = frozenset({"no", "false", "0"})
 
 
 #============================================
-def _shared_width(left: object, right: object) -> float | None:
-	"""Return a shared finite width, retaining imported disagreement as null."""
-	left_text = left.getAttribute("width")
-	right_text = right.getAttribute("width")
-	if left_text != right_text:
-		return None
-	try:
-		width = float(left_text)
-	except ValueError:
-		return None
-	if not math.isfinite(width):
-		return None
-	return width
-
-
-#============================================
-def _shared_color(left: object, right: object) -> str | None:
-	"""Return an authored shared color without normalizing imported spelling."""
-	left_color = left.getAttribute("line_color")
-	right_color = right.getAttribute("line_color")
-	if left_color != right_color:
-		return None
-	return left_color or None
+def _appearance(element: object, standard: object) -> object:
+	"""Resolve one bracket side through the shared OASA appearance grammar."""
+	attributes = tuple(
+		(element.attributes.item(index).name, element.attributes.item(index).value)
+		for index in range(element.attributes.length)
+	)
+	return oasa.cdml_presentation_appearance.resolve("polyline", attributes, (), standard)
 
 
 #============================================
@@ -92,12 +74,28 @@ def valid_bracket_members(
 #============================================
 def observe_bracket_pairs(
 		elements: tuple[object, ...], is_core_element: object, local_name: object,
+		standard: object,
 		) -> tuple[oasa.cdml_projection_plan.CDMLBracketPairRecord, ...]:
 	"""Return immutable facts for exact valid pairs and no proximity guesses."""
 	records = []
 	for left, right in valid_bracket_members(elements, is_core_element, local_name):
+		try:
+			left_appearance = _appearance(left, standard)
+			right_appearance = _appearance(right, standard)
+		except ValueError:
+			# The direct-root observation owns the detailed unsupported diagnostic.
+			# A malformed member cannot become a trustworthy composite pair fact.
+			continue
+		line_width = (
+			left_appearance.line_width
+			if left_appearance.line_width == right_appearance.line_width else None
+		)
+		line_color = (
+			left_appearance.line_color
+			if left_appearance.line_color == right_appearance.line_color else None
+		)
 		records.append(oasa.cdml_projection_plan.CDMLBracketPairRecord(
 			left.getAttribute("id"), (left.getAttribute("id"), right.getAttribute("id")),
-			_pair_style(left, right), _shared_width(left, right), _shared_color(left, right),
+			_pair_style(left, right), line_width, line_color,
 		))
 	return tuple(records)

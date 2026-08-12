@@ -3,6 +3,7 @@
 # Standard Library
 import os
 import pathlib
+from unittest import mock
 
 # PIP3 modules
 import pytest
@@ -110,7 +111,7 @@ def test_nested_non_cdml_and_symlink_candidates_do_not_enter_catalog(
 #============================================
 @pytest.mark.skipif(os.name != "posix", reason="requires POSIX no-follow admission")
 def test_catalog_rejects_candidate_replaced_by_symlink_at_open_boundary(
-		tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch,
+		tmp_path: pathlib.Path,
 		) -> None:
 	"""A pathname swap cannot turn an admitted template into a symlink target."""
 	usable = tmp_path / "usable.cdml"
@@ -132,8 +133,8 @@ def test_catalog_rejects_candidate_replaced_by_symlink_at_open_boundary(
 		file_descriptor = original_open(path, flags, mode, dir_fd=dir_fd)
 		return file_descriptor
 
-	monkeypatch.setattr(os, "open", replace_before_candidate_open)
-	snapshot = bkchem_qt.io.user_template_catalog.scan_user_template_catalog(tmp_path)
+	with mock.patch.object(os, "open", side_effect=replace_before_candidate_open):
+		snapshot = bkchem_qt.io.user_template_catalog.scan_user_template_catalog(tmp_path)
 	assert tuple(entry.label for entry in snapshot.entries) == ("usable",)
 	assert any(failure.source_name == "swapped.cdml" for failure in snapshot.failures)
 

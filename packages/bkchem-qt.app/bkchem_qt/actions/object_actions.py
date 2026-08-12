@@ -1,8 +1,5 @@
 """Object menu action registrations for BKChem-Qt."""
 
-# Standard Library
-import re
-
 # local repo modules
 from bkchem_qt.actions.action_registry import MenuAction
 import bkchem_qt.actions.property_editing
@@ -19,22 +16,15 @@ import bkchem_qt.undo.commands
 
 #============================================
 def _rich_text_font_values(text_model: object) -> tuple[str, int, str] | None:
-	"""Copy valid visible root font values without normalizing persistent attributes."""
-	font_attributes = text_model.font_attributes
-	attributes = text_model.attributes
-	family = font_attributes.get("family", "Arial")
+	"""Copy backend-normalized visible font values into detached dialog scalars."""
+	family = text_model.effective_font_family
+	size = text_model.effective_font_size
+	color = text_model.effective_font_color
 	if type(family) is not str or not family.strip():
 		return None
-	size_text = font_attributes.get("size", attributes.get("font_size", "12"))
-	if type(size_text) is not str or not size_text.isdecimal():
+	if type(size) is not int or not 4 <= size <= 144:
 		return None
-	size = int(size_text)
-	if not 4 <= size <= 144:
-		return None
-	color = font_attributes.get(
-		"color", attributes.get("line_color", attributes.get("color", "#000000")),
-	)
-	if type(color) is not str or re.fullmatch(r"#[0-9A-Fa-f]{6}", color) is None:
+	if type(color) is not str:
 		return None
 	return family, size, color
 

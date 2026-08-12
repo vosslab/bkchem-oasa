@@ -16,12 +16,15 @@
 
 ## Near-term focus
 - Release-selected classic behavior/action parity is complete. The authoritative
-  action inventory has no `PART` or `QUEUED` release rows. Final audit, full
-  suite, glyph, screenshot, and other one-time release evidence remain gates,
-  not hidden feature-parity tasks.
+  action inventory has no `PART` or `QUEUED` release rows. Editable presentation
+  defaults are normalized OASA projection facts rather than repeated Qt tables.
+  The complete four-root aggregate, managed screenshots, glyph measurement, and
+  isolated-wheel evidence pass.
+  Native retained-Tk launch remains unproven on this host because plain
+  `tkinter.Tk()` aborts before BKChem initialization.
 - New persistent work extends an OASA-owned operation or immutable projection
   fact and proves its visible Qt route through focused save/reopen, undo, and
-  recovery behavior. Tk remains runnable deprecated reference software, not a
+  recovery behavior. Tk remains deprecated retained reference software, not a
   packaging default or a second persistence model.
 
 ## Completed foundations
