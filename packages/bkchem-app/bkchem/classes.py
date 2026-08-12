@@ -455,8 +455,14 @@ class plus(meta_enabled, interactive, point_drawable, with_font, area_colored, t
       self.font_size = int( package.getAttribute( 'font_size'))
     if package.getAttribute( 'color'):
       self.line_color = package.getAttribute( 'color')
-    if package.getAttribute( 'background-color'):
+    if package.hasAttribute( 'background-color'):
       self.area_color = package.getAttribute( 'background-color')
+    fonts = [child for child in package.childNodes
+             if child.nodeType == child.ELEMENT_NODE
+             and (child.localName or child.tagName) == 'font'
+             and child.namespaceURI in (None, package.namespaceURI)]
+    if fonts and fonts[0].getAttribute( 'family'):
+      self.font_family = fonts[0].getAttribute( 'family')
 
 
   def get_package( self, doc: object) -> object:
@@ -468,6 +474,8 @@ class plus(meta_enabled, interactive, point_drawable, with_font, area_colored, t
     x, y = Screen.px_to_text_with_unit( (self.x, self.y))
     dom_extensions.elementUnder( pls, 'point', (('x', x),
                                                 ('y', y)))
+    if self.font_family != self.paper.standard.font_family:
+      dom_extensions.elementUnder( pls, 'font', (('family', self.font_family),))
     pls.setAttribute('font_size', str( self.font_size))
     if self.line_color != '#000':
       pls.setAttribute( 'color', self.line_color)
@@ -699,7 +707,7 @@ class text( meta_enabled, interactive, point_drawable, text_like, area_colored, 
       self.font_family = fnt.getAttribute( 'family')
       if fnt.getAttribute( 'color'):
         self.line_color = fnt.getAttribute( 'color')
-    if package.getAttribute( 'background-color'):
+    if package.hasAttribute( 'background-color'):
       self.area_color = package.getAttribute( 'background-color')
 
 
@@ -709,8 +717,7 @@ class text( meta_enabled, interactive, point_drawable, text_like, area_colored, 
     (the returned element is not inserted into the document)"""
     a = doc.createElement('text')
     a.setAttribute( 'id', self.id)
-    if self.area_color != '':
-      a.setAttribute( 'background-color', self.area_color)
+    a.setAttribute( 'background-color', self.area_color)
     if self.font_size != self.paper.standard.font_size \
        or self.font_family != self.paper.standard.font_family \
        or self.line_color != self.paper.standard.line_color:

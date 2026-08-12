@@ -55,6 +55,8 @@ def resolve_attach_endpoint(
 	resolved_target = _coerce_attach_target(target)
 	if constraints is None:
 		constraints = AttachConstraints()
+	axis_lock = _effective_axis_lock(constraints)
+	canonical_angle_step = _effective_canonical_angle_step(constraints)
 	line_width = max(0.0, float(constraints.line_width))
 	clearance = max(0.0, float(constraints.clearance))
 	margin = clearance + (line_width / 2.0)
@@ -80,7 +82,7 @@ def resolve_attach_endpoint(
 	if resolved_target.kind == "box":
 		attach_bbox = _expanded_box(resolved_target.box, margin)
 		hint = interior_hint if interior_hint is not None else _box_center(attach_bbox)
-		if constraints.vertical_lock:
+		if axis_lock == "vertical":
 			vertical = _vertical_box_intersection(bond_start, attach_bbox, hint)
 			if vertical is not None:
 				return vertical
@@ -89,16 +91,19 @@ def resolve_attach_endpoint(
 			attach_bbox=attach_bbox,
 			attach_target=hint,
 			direction_policy=constraints.direction_policy,
+			canonical_angle_step=canonical_angle_step,
 		)
 	if resolved_target.kind == "circle":
 		radius = max(0.0, float(resolved_target.radius) + margin)
 		center = resolved_target.center
 		hint = interior_hint if interior_hint is not None else center
-		if constraints.vertical_lock:
+		if axis_lock == "vertical":
 			vertical = _vertical_circle_boundary(bond_start, center, radius, hint=hint)
 			if vertical is not None:
 				return vertical
-		lattice_step = _lattice_step_for_direction_policy(constraints.direction_policy)
+		lattice_step = canonical_angle_step
+		if lattice_step is None:
+			lattice_step = _lattice_step_for_direction_policy(constraints.direction_policy)
 		if lattice_step is not None:
 			dx = hint[0] - bond_start[0]
 			dy = hint[1] - bond_start[1]
@@ -120,20 +125,97 @@ def resolve_attach_endpoint(
 			(p1[0] + p2[0]) / 2.0,
 			(p1[1] + p2[1]) / 2.0,
 		)
-		if constraints.vertical_lock:
-			candidate = _line_intersection(
+		if axis_lock == "vertical":
+			candidate = _vertical_segment_intersection(
 				(bond_start[0], bond_start[1]),
-				(bond_start[0], bond_start[1] + 1.0),
 				p1,
 				p2,
 			)
 			if candidate is not None:
-				return _closest_point_on_segment(candidate, p1, p2)
+				return candidate
+		if canonical_angle_step is not None:
+			candidate = _canonical_segment_intersection(
+				bond_start=bond_start,
+				target_hint=hint,
+				p1=p1,
+				p2=p2,
+				angle_step=canonical_angle_step,
+			)
+			if candidate is not None:
+				return candidate
 		intersection = _line_intersection(bond_start, hint, p1, p2)
 		if intersection is not None:
 			return _closest_point_on_segment(intersection, p1, p2)
 		return _closest_point_on_segment(hint, p1, p2)
 	raise ValueError(f"Unsupported attach target kind: {resolved_target.kind!r}")
+
+
+#============================================
+def _effective_axis_lock(constraints: AttachConstraints) -> str | None:
+	"""Return one validated axis, normalizing the legacy vertical flag."""
+	axis_lock = constraints.axis_lock
+	if axis_lock is None and constraints.vertical_lock:
+		axis_lock = "vertical"
+	if axis_lock not in (None, "vertical"):
+		raise ValueError(f"Unsupported attachment axis lock: {axis_lock!r}")
+	return axis_lock
+
+
+#============================================
+def _effective_canonical_angle_step(constraints: AttachConstraints) -> float | None:
+	"""Return one validated explicit lattice step, if requested."""
+	step = constraints.canonical_angle_step
+	if step is None:
+		return None
+	value = float(step)
+	if not math.isfinite(value) or value <= 0.0:
+		raise ValueError(f"Invalid canonical attachment angle step: {step!r}")
+	return value
+
+
+#============================================
+def _vertical_segment_intersection(
+		bond_start: object,
+		p1: object,
+		p2: object) -> object:
+	"""Return a vertical segment hit only when the hit lies on the segment."""
+	vertical_end = (bond_start[0], bond_start[1] + 1.0)
+	intersection = _line_intersection(bond_start, vertical_end, p1, p2)
+	if intersection is None:
+		return None
+	closest = _closest_point_on_segment(intersection, p1, p2)
+	if math.hypot(closest[0] - intersection[0], closest[1] - intersection[1]) > 1e-9:
+		return None
+	return intersection
+
+
+#============================================
+def _canonical_segment_intersection(
+		bond_start: object,
+		target_hint: object,
+		p1: object,
+		p2: object,
+		angle_step: float) -> object:
+	"""Return a forward lattice-ray hit on one segment, or None."""
+	dx = target_hint[0] - bond_start[0]
+	dy = target_hint[1] - bond_start[1]
+	direction = _snapped_direction_unit(dx, dy, angle_step)
+	if direction is None:
+		return None
+	ray_end = (bond_start[0] + direction[0], bond_start[1] + direction[1])
+	intersection = _line_intersection(bond_start, ray_end, p1, p2)
+	if intersection is None:
+		return None
+	closest = _closest_point_on_segment(intersection, p1, p2)
+	if math.hypot(closest[0] - intersection[0], closest[1] - intersection[1]) > 1e-9:
+		return None
+	forward = (
+		(intersection[0] - bond_start[0]) * direction[0]
+		+ (intersection[1] - bond_start[1]) * direction[1]
+	)
+	if forward <= 1e-12:
+		return None
+	return intersection
 
 
 #============================================

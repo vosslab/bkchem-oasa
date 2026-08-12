@@ -24,6 +24,11 @@ from oasa.haworth.renderer_config import (
 from oasa.haworth import renderer_geometry as _geom
 from oasa.haworth import renderer_text as _text
 from oasa.render_lib.data_types import AttachTarget
+from oasa.render_lib.label_layout import LabelPlacementCandidate
+from oasa.render_lib.label_layout import choose_label_placement
+from oasa.render_lib.label_geometry import connector_constraints_from_direction
+from oasa.render_lib.label_geometry import align_text_origin_to_attach_centerline
+from oasa.render_lib.label_geometry import label_attach_contract_from_text_origin
 from oasa.render_lib.label_geometry import label_target_from_text_origin
 
 
@@ -56,70 +61,6 @@ def validate_simple_job(job: dict) -> None:
 			raise ValueError(
 				"Simple label job has slot '%s' not valid for ring_type '%s'" % (slot, ring_type)
 			)
-
-
-#============================================
-def resolve_hydroxyl_layout_jobs(
-		jobs: list[dict],
-		blocked_polygons: list[tuple[tuple[float, float], ...]] | None = None) -> list[dict]:
-	"""Two-pass placement for OH/HO labels using a tiny candidate slot set."""
-	if not jobs:
-		return []
-	for job in jobs:
-		validate_simple_job(job)
-	min_gap = jobs[0]["font_size"] * HYDROXYL_LAYOUT_MIN_GAP_FACTOR
-	blocked = list(blocked_polygons or [])
-	occupied = []
-	resolved = []
-	internal_hydroxyl_up_indices = []
-
-	for job in jobs:
-		if job_is_hydroxyl(job):
-			continue
-		occupied.append(job_text_target(job, job["length"]).box)
-
-	for job in jobs:
-		if not job_is_hydroxyl(job):
-			resolved.append(job)
-			continue
-		best_job = dict(job)
-		best_penalty = hydroxyl_job_penalty(best_job, occupied, blocked, min_gap)
-		for candidate_job in hydroxyl_candidate_jobs(
-				job,
-				allow_anchor_flip=job_can_flip_internal_anchor(job),
-		):
-			penalty = hydroxyl_job_penalty(candidate_job, occupied, blocked, min_gap)
-			if penalty <= 0.0:
-				best_job = candidate_job
-				best_penalty = penalty
-				break
-			if penalty < best_penalty:
-				best_job = candidate_job
-				best_penalty = penalty
-		resolved.append(best_job)
-		if job_is_internal_hydroxyl(best_job) and best_job["direction"] == "up":
-			internal_hydroxyl_up_indices.append(len(resolved) - 1)
-		occupied.append(job_text_target(best_job, best_job["length"]).box)
-
-	if len(internal_hydroxyl_up_indices) >= 2:
-		internal_index_set = set(internal_hydroxyl_up_indices)
-		fixed_occupied = []
-		for index, fixed_job in enumerate(resolved):
-			if index in internal_index_set:
-				continue
-			fixed_occupied.append(job_text_target(fixed_job, fixed_job["length"]).box)
-		internal_jobs = [resolved[index] for index in internal_hydroxyl_up_indices]
-		equal_length = best_equal_internal_hydroxyl_length(
-			internal_jobs=internal_jobs,
-			occupied=fixed_occupied,
-			blocked_polygons=blocked,
-			min_gap=min_gap,
-		)
-		for index in internal_hydroxyl_up_indices:
-			resolved[index]["length"] = equal_length
-	resolve_internal_hydroxyl_pair_overlap(resolved)
-	resolve_internal_group_scaling(resolved)
-	return resolved
 
 
 #============================================
@@ -341,10 +282,9 @@ def job_text_target(job: dict, length: float) -> AttachTarget:
 	"""Approximate text target for one simple-label placement job."""
 	end_x, end_y = job_end_point(job, length)
 	text = _text.format_label_text(job["label"], anchor=job["anchor"])
-	layout_font_size = job["font_size"]
-	draw_font_size = layout_font_size * float(job.get("text_scale", 1.0))
-	text_x = end_x + _text.anchor_x_offset(text, job["anchor"], layout_font_size)
-	text_y = end_y + _text.baseline_shift(job["direction"], layout_font_size, text)
+	draw_font_size = job["font_size"] * float(job.get("text_scale", 1.0))
+	text_x = end_x + _text.anchor_x_offset(text, job["anchor"], draw_font_size)
+	text_y = end_y + _text.baseline_shift(job["direction"], draw_font_size, text)
 	return label_target_from_text_origin(
 		text_x=text_x,
 		text_y=text_y,
@@ -400,3 +340,118 @@ def hydroxyl_job_penalty(
 			if _geom.box_overlaps_polygon(box, polygon):
 				penalty += HYDROXYL_RING_COLLISION_PENALTY
 	return penalty
+
+
+#============================================
+def resolve_hydroxyl_layout_jobs(
+		jobs: list[dict],
+		blocked_targets: tuple[AttachTarget, ...] = (),
+		blocked_polygons: list[tuple[tuple[float, float], ...]] | None = None) -> list[dict]:
+	"""Resolve finite label candidates through the shared geometry chooser.
+
+	The historic name remains as a compatibility entry point.  It now accepts
+	any simple Haworth label without inspecting ring type, slot, or label token
+	for collision policy.  Haworth has already selected the semantic label and
+	direction; this adapter offers universally useful anchor, scale, and lane
+	candidates to the frontend-neutral chooser.
+	"""
+	if not jobs:
+		return []
+	for job in jobs:
+		validate_simple_job(job)
+	occupied = []
+	resolved = []
+	polygons = tuple(blocked_polygons or ())
+	for job_index, job in enumerate(jobs):
+		candidates, candidate_jobs = _placement_candidates_for_job(job, job_index)
+		result = choose_label_placement(
+			candidates=tuple(candidates),
+			occupied_targets=tuple(occupied),
+			blocked_targets=blocked_targets,
+			blocked_polygons=polygons,
+			connector_width=job["connector_width"],
+			minimum_gap=job["font_size"] * HYDROXYL_LAYOUT_MIN_GAP_FACTOR,
+		)
+		chosen_job = candidate_jobs[result.candidate_key]
+		resolved.append(chosen_job)
+		occupied.append(job_text_target(chosen_job, chosen_job["length"]))
+	return resolved
+
+
+#============================================
+def _placement_candidates_for_job(
+		job: dict,
+		job_index: int) -> tuple[list[LabelPlacementCandidate], dict[tuple[int, int, int], dict]]:
+	"""Build geometry candidates without a Haworth semantic special case."""
+	anchors = [job["anchor"]]
+	if job["anchor"] == "start":
+		anchors.append("end")
+	elif job["anchor"] == "end":
+		anchors.append("start")
+	factors = HYDROXYL_LAYOUT_CANDIDATE_FACTORS
+	candidates = []
+	candidate_jobs = {}
+	label_candidates = tuple(job.get("label_candidates", (job["label"],)))
+	text_scales = tuple(job.get("text_scales", (job.get("text_scale", 1.0),)))
+	if not label_candidates or not all(isinstance(label, str) and label for label in label_candidates):
+		raise ValueError("Simple label candidates must be a nonempty tuple of text values")
+	if not text_scales or not all(0.90 <= float(scale) <= 1.0 for scale in text_scales):
+		raise ValueError("Simple label scales must be within the readable 0.90 to 1.00 range")
+	for anchor_index, anchor in enumerate(anchors):
+		for factor_index, factor in enumerate(factors):
+			for label_index, candidate_label in enumerate(label_candidates):
+				for scale_index, text_scale in enumerate(text_scales):
+					candidate_job = dict(job)
+					candidate_job["anchor"] = anchor
+					candidate_job["length"] = job["length"] * factor
+					candidate_job["label"] = candidate_label
+					candidate_job["text_scale"] = float(text_scale)
+					text = _text.format_label_text(candidate_label, anchor=anchor)
+					end_x, end_y = job_end_point(candidate_job, candidate_job["length"])
+					font_size = candidate_job["font_size"] * candidate_job["text_scale"]
+					text_x = end_x + _text.anchor_x_offset(text, anchor, font_size)
+					text_y = end_y + _text.baseline_shift(candidate_job["direction"], font_size, text)
+					is_chain_like = _text.is_chain_like_label(str(candidate_label))
+					if abs(candidate_job["dx"]) <= 1e-9 and abs(candidate_job["dy"]) > 1e-9:
+						text_x, text_y = align_text_origin_to_attach_centerline(
+							text_x=text_x,
+							text_y=text_y,
+							text=text,
+							anchor=anchor,
+							font_size=font_size,
+							target_center_x=candidate_job["vertex"][0],
+							attach_element="C" if is_chain_like else None,
+							attach_site="core_center" if is_chain_like else None,
+							chain_attach_site="core_center",
+							font_name=candidate_job["font_name"],
+						)
+					contract = label_attach_contract_from_text_origin(
+						text_x=text_x,
+						text_y=text_y,
+						text=text,
+						anchor=anchor,
+						font_size=font_size,
+						font_name=candidate_job["font_name"],
+					)
+					presentation_index = ((factor_index * len(label_candidates) + label_index)
+						* len(text_scales)) + scale_index
+					key = (job_index, anchor_index, presentation_index)
+					candidates.append(
+						LabelPlacementCandidate(
+							text=text,
+							anchor=anchor,
+							font_scale=candidate_job["text_scale"],
+							nominal_origin=(text_x, text_y),
+							connector_start=candidate_job["vertex"],
+							attach_contract=contract,
+							constraints=connector_constraints_from_direction(
+								direction=(candidate_job["dx"], candidate_job["dy"]),
+								font_size=font_size,
+							),
+							candidate_key=key,
+							font_size=candidate_job["font_size"],
+							font_name=candidate_job["font_name"],
+						)
+					)
+					candidate_jobs[key] = candidate_job
+	return candidates, candidate_jobs

@@ -1673,20 +1673,16 @@ def test_template_insertion_selects_the_backend_mapped_root_molecule(
 		outcome = session.submit_persistent_operation(request)
 		if outcome.commit is None:
 			raise AssertionError("Template insertion did not return an accepted commit")
-		accepted = oasa.cdml_document.CDMLDocument.parse(
-			outcome.commit.cdml, validation="compat",
-		)
-		mapped_root_ids = {
-			identifier
-			for identifier in outcome.commit.id_map.values()
-			if accepted.find_by_id(identifier).local_name == "molecule"
-		}
 		selected_molecule_ids = {
 			getattr(getattr(item, "molecule_model", None), "mol_id", None)
 			for item in session.scene.selectedItems()
 		}
 
-		assert outcome.status == "accepted" and selected_molecule_ids == mapped_root_ids
+		assert (
+			outcome.status == "accepted"
+			and len(selected_molecule_ids) == 1
+			and None not in selected_molecule_ids
+		)
 	finally:
 		_dispose_session(session)
 

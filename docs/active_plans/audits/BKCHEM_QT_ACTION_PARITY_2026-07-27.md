@@ -90,7 +90,7 @@ are not missing projection decoding.
 | `object.swap_on_stack` | revision-bound presentation-stack reorder | OK | backend | supported objects | GUI | object-stack actions |
 | `object.vertical_mirror` | backend mixed-root transform | OK | backend | supported roots | GUI | transform action authority |
 | `object.horizontal_mirror` | backend mixed-root transform | OK | backend | supported roots | GUI | transform action authority |
-| `object.configure` | atom/bond, plain Text, Plus, Wavy, and Arrow property dialogs | OK | backend synchronized; local isolated compatibility route | supported scalar fields | GUI | property-authority tests; Arrow start/end heads, spline, width, and color use one OASA revision-bound patch |
+| `object.configure` | atom/bond, plain Text, Plus, Wavy, Arrow, and geometric property dialogs | OK | backend synchronized; local isolated chemistry compatibility route | supported scalar fields | GUI | property-authority tests; geometric stroke/fill, Text background, and Plus font/background use OASA history and projection |
 | `object.edit_rich_text` | revision-bound `text.rich.patch` modal flow | OK | backend | supported direct-root Text `ftext` | GUI | `test_rich_text_qt_authority.py`; unsupported attributed markup remains visible and preservation-only |
 
 ## Chemistry and repair actions
@@ -143,16 +143,16 @@ are not missing projection decoding.
 | biotemplate | `BioTemplateMode` catalog-key placement | OK | backend | detached molecule root | GUI | `test_biotemplate_backend_authority.py` and [mode parity](../../../packages/bkchem-qt.app/tests/test_mode_submode_parity.py) |
 | usertemplate | explicit catalog-key template mode | OK | backend | detached molecule root | GUI | `test_user_template_backend_authority.py`, `test_user_template_catalog.py`, `test_user_template_mode.py`, and `test_user_template_window_delivery.py` |
 | mark | `MarkMode` submits a revision-bound atom-mark operation | OK | backend | yes | GUI | [mark authority](../../../packages/bkchem-qt.app/tests/test_mark_backend_authority.py) |
-| arrow | `ArrowMode` submits a complete CDML candidate | OK | backend | yes | GUI | [Arrow authority](../../../packages/bkchem-qt.app/tests/test_arrow_backend_authority.py) |
-| plus | `PlusMode` submits a complete CDML candidate | OK | backend | yes | GUI | [Plus authority](../../../packages/bkchem-qt.app/tests/test_plus_backend_authority.py) |
-| text | `TextMode` submits a complete CDML candidate | OK | backend | yes | GUI | [Text authority](../../../packages/bkchem-qt.app/tests/test_text_backend_authority.py) |
-| bracket | `BracketMode` submits one revision-bound bracket request | OK | backend | yes | GUI | [bracket authority](../../../packages/bkchem-qt.app/tests/test_bracket_backend_authority.py) |
-| vector | `VectorMode` submits one revision-bound vector request | OK | backend | yes | GUI | [vector authority](../../../packages/bkchem-qt.app/tests/test_vector_backend_authority.py) |
+| arrow | `ArrowMode` submits OASA endpoint intent, never XML | OK | backend | yes | GUI | [Arrow authority](../../../packages/bkchem-qt.app/tests/test_arrow_backend_authority.py) |
+| plus | `PlusMode` submits OASA position intent, never XML | OK | backend | yes | GUI | [Plus authority](../../../packages/bkchem-qt.app/tests/test_plus_backend_authority.py) |
+| text | `TextMode` submits OASA position/content intent, never XML | OK | backend | yes | GUI | [Text authority](../../../packages/bkchem-qt.app/tests/test_text_backend_authority.py) |
+| bracket | rectangular/round `BracketMode` submits one OASA-owned insertion request | OK | backend | yes | GUI | [bracket authority](../../../packages/bkchem-qt.app/tests/test_bracket_backend_authority.py) |
+| vector | `VectorMode` submits OASA geometric insertion intent, never XML | OK | backend | yes | GUI | [vector authority](../../../packages/bkchem-qt.app/tests/test_vector_backend_authority.py) |
 | rotate | `RotateMode` atom-only 2D rotation | OK | backend | direct atoms | GUI | `test_rotate_mode_undo.py` and backend rotate operation tests |
 | bondalign | `BondAlignMode` direct atom moves | OK | backend | molecule | GUI | `test_bondalign_mode_undo.py` and backend alignment tests |
 | repair | `RepairMode` invokes declared backend repair actions | OK | backend | molecule | GUI | `test_repair_actions.py` and focused backend geometry tests |
 | misc numbering | revision-bound atom-number operation plus exact-revision candidate facts | OK | backend | yes | GUI | `test_persistent_atom_numbering.py` |
-| misc wavy line | revision-bound Wavy insertion after transient drag preview | OK | backend | yes | GUI | `test_wavy_backend_authority.py` |
+| misc wavy line | OASA endpoint insertion after transient drag preview | OK | backend | yes | GUI | `test_wavy_backend_authority.py` |
 | file-actions ribbon | new/open/save/save-as dispatch | OK | as action | as action | GUI/worker | toolbar action resolution test |
 
 The mode manager registers the advertised document modes. The table records

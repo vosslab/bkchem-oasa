@@ -181,7 +181,11 @@ class AttachConstraints:
 	"""Shared attachment constraints for endpoint resolution and paint legality."""
 	line_width: float = 0.0
 	clearance: float = 0.0
+	# ``vertical_lock`` is retained for existing callers while they migrate to
+	# the general axis vocabulary.  The resolver normalizes it to axis_lock.
 	vertical_lock: bool = False
+	axis_lock: str | None = None
+	canonical_angle_step: float | None = None
 	direction_policy: str = "auto"
 	target_gap: float = 0.0
 	alignment_center: tuple[float, float] | None = None
@@ -196,6 +200,8 @@ def make_attach_constraints(
 		line_width: float = 0.0,
 		clearance: float = 0.0,
 		vertical_lock: bool = False,
+		axis_lock: str | None = None,
+		canonical_angle_step: float | None = None,
 		direction_policy: str = "auto",
 		alignment_center: tuple[float, float] | None = None) -> AttachConstraints:
 	"""Factory for AttachConstraints with three-tier gap resolution.
@@ -211,7 +217,9 @@ def make_attach_constraints(
 		alignment_tolerance: perpendicular tolerance, defaults to ATTACH_PERP_TOLERANCE.
 		line_width: connector line width.
 		clearance: extra clearance around target.
-		vertical_lock: lock connector to vertical direction.
+		vertical_lock: compatibility alias for axis_lock="vertical".
+		axis_lock: optional named connector axis (currently "vertical").
+		canonical_angle_step: optional positive lattice angle step in degrees.
 		direction_policy: direction policy string ("auto" or "line").
 		alignment_center: optional alignment center point.
 
@@ -231,6 +239,8 @@ def make_attach_constraints(
 		line_width=line_width,
 		clearance=clearance,
 		vertical_lock=vertical_lock,
+		axis_lock=axis_lock,
+		canonical_angle_step=canonical_angle_step,
 		direction_policy=direction_policy,
 		alignment_center=alignment_center,
 	)

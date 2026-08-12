@@ -45,6 +45,96 @@ def _has_authored_rich_style(text_model: object) -> bool:
 	runs = text_model.formatted_text_runs
 	return runs is not None and any(styles for _text, styles in runs)
 
+
+#============================================
+def _selected_text_editor(
+		app: object, *, require_rich: bool,
+		) -> tuple[str, object] | None:
+	"""Resolve the sole current Text root to its supported detached editor.
+
+	Both menu actions and direct canvas editing enter through this function.
+	The model is re-resolved from the current document selection, rather than
+	retaining a disposable scene item across a modal dialog or reprojection.
+	"""
+	document = getattr(app, "document", None)
+	if document is None:
+		return None
+	if document.selected_atoms or document.selected_bonds:
+		app.statusBar().showMessage("Select one editable Text object", 3000)
+		return None
+	presentations = document.selected_presentation_objects
+	presentation_ids = document.selected_presentation_stack_root_ids
+	if len(presentations) != 1 or len(presentation_ids) != 1:
+		app.statusBar().showMessage("Select one editable Text object", 3000)
+		return None
+	text_model = presentations[0]
+	if (
+			text_model.kind != "text" or not text_model.editable
+			or text_model.object_id != presentation_ids[0]
+		):
+		app.statusBar().showMessage("Text editing is unavailable for this object", 3000)
+		return None
+	has_rich_style = _has_authored_rich_style(text_model)
+	if require_rich or has_rich_style:
+		if (
+				not text_model.rich_text_editable
+				or text_model.formatted_text_runs is None
+				or _rich_text_font_values(text_model) is None
+				):
+			app.statusBar().showMessage(
+				"Rich text editing is unavailable for this object", 3000,
+			)
+			return None
+		return "rich", text_model
+	return "plain", text_model
+
+
+#============================================
+def _edit_resolved_rich_text(app: object, text_model: object) -> None:
+	"""Open one captured rich Text patch dialog for a resolved current root."""
+	runs = text_model.formatted_text_runs
+	font_values = _rich_text_font_values(text_model)
+	if runs is None or font_values is None:
+		app.statusBar().showMessage("Rich text editing is unavailable for this object", 3000)
+		return
+	text_id = text_model.object_id
+	font_family, font_size, font_color = font_values
+	capture = app.capture_rich_text_for_view(app.view, text_id)
+	if capture is None:
+		app.statusBar().showMessage("Rich text editing is unavailable for this object", 3000)
+		return
+	expected_revision, submit = capture
+	dialog = bkchem_qt.dialogs.rich_text_dialog.RichTextDialog(
+		runs, font_family, font_size, font_color, app,
+	)
+	if dialog.exec() != dialog.DialogCode.Accepted:
+		return
+	accepted_runs = dialog.get_runs()
+	changes = dialog.changes()
+	del dialog
+	outcome = submit(expected_revision, text_id, accepted_runs, changes)
+	app._show_persistent_action_outcome(outcome)
+	app._refresh_document_actions()
+
+
+#============================================
+def edit_selected_text(app: object, *, require_rich: bool = False) -> None:
+	"""Edit the one selected Text through its plain or rich authoritative route.
+
+	Plain Text opens TextDialog. Authored formatted Text opens RichTextDialog.
+	``require_rich`` preserves the explicit Object > Edit Rich Text boundary.
+	"""
+	resolved = _selected_text_editor(app, require_rich=require_rich)
+	if resolved is None:
+		return
+	editor, text_model = resolved
+	if editor == "rich":
+		_edit_resolved_rich_text(app, text_model)
+		return
+	changed = bkchem_qt.actions.property_editing.edit_text_properties(text_model, app)
+	if changed:
+		app.statusBar().showMessage("Edited Text properties", 2000)
+
 #============================================
 def _active_presentation_stack_session(app: object) -> object | None:
 	"""Return the registered synchronized session owning all active aliases."""
@@ -310,12 +400,12 @@ def handle_scale(app: object) -> None:
 
 #============================================
 def handle_configure(app: object) -> None:
-	"""Open properties for one selected atom, bond, Text, Plus, Wavy, or Arrow.
+	"""Open properties for one selected chemistry or presentation object.
 
 	If exactly one atom is selected, opens AtomDialog. If exactly
 	one bond is selected, opens BondDialog. One synchronized durable top-level
-	Text, plain Plus, Wavy, or Arrow opens its detached dialog. Otherwise the
-	action reports its selection boundary.
+	Text, plain Plus, Wavy, Arrow, or geometric root opens its detached dialog.
+	Otherwise the action reports its selection boundary.
 
 	Args:
 		app: The main application object.
@@ -383,75 +473,54 @@ def handle_configure(app: object) -> None:
 		return
 	if bkchem_qt.actions.property_editing.has_single_selected_arrow(app):
 		return
-	# exactly one current durable Text presentation root
-	presentations = app.document.selected_presentation_objects
-	presentation_ids = app.document.selected_presentation_stack_root_ids
+	# A valid bracket is two ordinary polyline roots but one explicit durable
+	# interaction unit.  Capture only its pair ID and detached scalar changes.
+	bracket_capture = bkchem_qt.actions.property_editing.capture_selected_bracket_properties(app)
+	if bracket_capture is not None:
+		expected_revision, submit, pair_id, changes = bracket_capture
+		if changes:
+			outcome = submit(expected_revision, pair_id, changes)
+			show_outcome = getattr(app, "_show_persistent_action_outcome", None)
+			if callable(show_outcome):
+				show_outcome(outcome)
+			if outcome.status == "accepted" and outcome.commit is not None:
+				app.statusBar().showMessage("Edited bracket appearance", 2000)
+		return
+	if bkchem_qt.actions.property_editing.has_selected_bracket_pair(app):
+		return
+	# Geometric roots share one backend appearance grammar across shape tools.
+	geometric_capture = (
+		bkchem_qt.actions.property_editing.capture_selected_geometric_properties(app)
+	)
+	if geometric_capture is not None:
+		expected_revision, submit, presentation_id, changes = geometric_capture
+		if changes:
+			outcome = submit(expected_revision, presentation_id, changes)
+			show_outcome = getattr(app, "_show_persistent_action_outcome", None)
+			if callable(show_outcome):
+				show_outcome(outcome)
+			if outcome.status == "accepted" and outcome.commit is not None:
+				app.statusBar().showMessage("Edited geometric properties", 2000)
+		return
+	if bkchem_qt.actions.property_editing.has_single_selected_geometric(app):
+		return
+	# Text shares the public resolver with direct canvas editing and Rich Text.
 	if (
 		len(atoms) == 0 and len(bonds) == 0
-		and len(presentations) == 1 and len(presentation_ids) == 1
-		and presentations[0].kind == "text"
-		and presentations[0].editable
-		and presentations[0].object_id == presentation_ids[0]
+		and len(app.document.selected_presentation_objects) == 1
+		and app.document.selected_presentation_objects[0].kind == "text"
 	):
-		if _has_authored_rich_style(presentations[0]):
-			app.statusBar().showMessage("Use Object > Edit Rich Text for formatted Text", 3000)
-			return
-		changed = bkchem_qt.actions.property_editing.edit_text_properties(
-			presentations[0], app,
-		)
-		if changed:
-			app.statusBar().showMessage("Edited Text properties", 2000)
+		edit_selected_text(app)
 		return
 	app.statusBar().showMessage(
-		"Select a single atom, bond, durable Text, Plus, Wavy, or Arrow to configure", 3000
+		"Select one configurable atom, bond, Text, symbol, arrow, line, or shape", 3000
 	)
 
 
 #============================================
 def handle_edit_rich_text(app: object) -> None:
 	"""Edit one selected authored Text through a captured backend-only patch."""
-	presentations = app.document.selected_presentation_objects
-	presentation_ids = app.document.selected_presentation_stack_root_ids
-	if len(presentations) != 1 or len(presentation_ids) != 1:
-		app.statusBar().showMessage("Select one editable rich Text object", 3000)
-		return
-	text_model = presentations[0]
-	if (
-			text_model.kind != "text" or not text_model.editable
-			or text_model.object_id != presentation_ids[0]
-			or not text_model.rich_text_editable
-		):
-		app.statusBar().showMessage("Rich text editing is unavailable for this object", 3000)
-		return
-	runs = text_model.formatted_text_runs
-	if runs is None:
-		app.statusBar().showMessage("Rich text editing is unavailable for this object", 3000)
-		return
-	text_id = text_model.object_id
-	font_values = _rich_text_font_values(text_model)
-	if font_values is None:
-		app.statusBar().showMessage("Rich text editing is unavailable for this object", 3000)
-		return
-	font_family, font_size, font_color = font_values
-	capture = app.capture_rich_text_for_view(app.view, text_id)
-	if capture is None:
-		app.statusBar().showMessage("Rich text editing is unavailable for this object", 3000)
-		return
-	expected_revision, submit = capture
-	del presentations
-	del presentation_ids
-	del text_model
-	dialog = bkchem_qt.dialogs.rich_text_dialog.RichTextDialog(
-		runs, font_family, font_size, font_color, app,
-	)
-	if dialog.exec() != dialog.DialogCode.Accepted:
-		return
-	accepted_runs = dialog.get_runs()
-	changes = dialog.changes()
-	del dialog
-	outcome = submit(expected_revision, text_id, accepted_runs, changes)
-	app._show_persistent_action_outcome(outcome)
-	app._refresh_document_actions()
+	edit_selected_text(app, require_rich=True)
 
 
 #============================================

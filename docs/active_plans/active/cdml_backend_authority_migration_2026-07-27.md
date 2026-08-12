@@ -1,5 +1,31 @@
 # Plan: CDML backend authority migration
 
+## Current post-M6 ledger (2026-08-11)
+
+This ledger is the current execution record. Earlier milestone prose below is
+historical design and rollout evidence; where it differs from this ledger, this
+ledger controls the active claim.
+
+| Priority | Current outcome | Next durable decision |
+| --- | --- | --- |
+| P0 authority | OASA owns complete CDML, root-only insertion facts, revisions, history, and immutable projection plans. Synchronized Qt does not parse canonical CDML. | Keep new persistent work as a typed OASA operation or complete-document transaction. |
+| P1 Qt usability | Release-selected classic behavior/action parity is complete: typed Arrow/Vector creation, direct Text editing, all delivered Configure routes including bracket pairs, responsive 640/1024/1280 controls, and durable pair interaction use backend commits and replacement projections. | Keep future work explicit: literal Tk parity is not a target; template atom fusion and a three-ring Qt adapter are separately declared capabilities. |
+| P2 Haworth and render | Direct two-ring Haworth remains the only Qt authoring profile. An explicit-declaration three-ring OASA API exists; all seven active Haworth layout overrides now converge on generic geometry. | Do not claim a three-ring Qt adapter or universal carbohydrate inference. Keep future render changes on shared geometry. |
+| P3 retained Tk | Tk is deprecated but runnable reference software, not default packaging. It preserves structurally complete marked bracket pairs without proximity inference. | Make bounded regression/contract fixes only; do not rebuild the product boundary around Tk. |
+| P4 delivery | The screenshot catalog stages and validates all scenarios before atomic publication. Source/pip remain delivered paths. | Run release evidence only after focused permanent tests and independent audit are green. |
+
+### Verification classification
+
+- Permanent tests: backend transaction/authority laws, immutable-plan hydration,
+  focused Qt interaction and closed-tab behavior, bracket identity/remapping,
+  retained-Tk compatibility, and semantic Haworth/render behavior.
+- One-time release checks: full three-root pytest run, live screenshot gallery
+  capture and visual inspection, retained-Tk manual smoke, isolated-wheel
+  install/launch, glyph measurement, and independent multi-review audit.
+- This plan intentionally avoids arbitrary count, timing, pixel, or private
+  implementation gates. Each permanent test proves a stable user-visible or
+  boundary behavior.
+
 ## Context
 
 The migration began with OASA providing molecule-level CDML support while the
@@ -42,39 +68,10 @@ backend transaction boundary.
 
 ## Integration status (2026-08-03)
 
-The authority and projection milestones are closed by accepted bounded slices:
-OASA owns complete snapshots, atomic revisions, saved-baseline state, typed
-operations, opaque preservation, and exact-revision projection observations.
-Qt's synchronized projection consumes one immutable aggregate envelope and is
-discardable/rebuildable without raw CDML or OASA graph ownership. Copy as SVG,
-chemistry observations and text imports, preferences/logging, Rotate, Bond
-Align, repair, PubChem, detached templates, CD-SVG and other import/export, portable
-render batches, direct-glycosidic Haworth preparation, installed-wheel
-round-trip, clean-install, direct frozen-lifecycle, and native-launch gates have
-implementation evidence. The action-parity audit records each delivered
-capability and its explicit unsupported disposition.
-
-M6 is therefore release closure rather than another document-ownership
-migration. Its completed source, installed, composition-boundary, dual-route
-frozen-app, and six-perspective audit gates are recorded in the rollout
-checklist. The managed README screenshot is retained in version control, and
-the reproducible capabilities gallery expands that evidence with persistent
-drawing objects and a verified sucrose Haworth projection. Finder registration
-is not an application correctness gate. Signing, notarization, and DMG delivery
-remain a separate future distribution project.
-
-Six fresh perspectives completed the final audit: plan, test, style,
-documentation, legacy, and comments. Their material findings corrected stale
-milestone and release claims, fragile tests, scoped code/style issues,
-Qt release documentation, stale Tk lifecycle claims, and molecule-only paths,
-and ownership wording. The accepted dispositions are reflected here and in
-the changelog; the stable contracts remain implementation-independent.
-
-The delivered direct-glycosidic Haworth route is deliberately narrow: two
-vertex-disjoint five- or six-member C/O rings with one direct degree-two oxygen
-bridge. Its backend-created geometry and `q`/`w`/`n` plus `haworth_position`
-depiction values survive CDML insertion and reload. It is a 2D drawing profile,
-not an alpha/beta, tetrahedral, or general carbohydrate-semantics claim.
+The dated M0--M6 notes below remain implementation history. The post-M6 ledger
+above replaces their release status and separates enduring behavior tests from
+one-time delivery evidence. The delivered Qt Haworth route remains the narrow
+two-ring direct-oxygen drawing profile, not a general carbohydrate claim.
 
 ## Atom Align M0 implementation note (2026-07-30)
 
@@ -250,7 +247,7 @@ originating synchronized session, revision, Text ID, and exact capability
 before TextDialog opens. Accepted state canonically reprojects and restores the
 durable Text selection; disposal is typed unavailable and projection recovery
 reuses only the accepted snapshot. This M0 covers plain content, family, size,
-and color. This checkpoint predates the separate completed plain Wavy
+color, and optional background. This checkpoint predates completed plain Wavy
 width/color Configure slice; Rich Text editing and broader Plus work remain
 separate.
 
@@ -265,7 +262,7 @@ modal editor captures its originating session, revision, Text ID, runs, and
 visible root values before opening. Its run formats carry only authored styles,
 so refreshed root family, size, and color inherit through the document default.
 Plain Configure remains plain-only and directs selected authored Text to Edit
-Rich Text. Inline fonts, root weight/style, and rich Plus remain out of scope.
+Rich Text. Inline fonts and root weight/style remain out of scope.
 
 ## Plain Wavy Configure M0 implementation note (2026-08-02)
 
@@ -970,24 +967,23 @@ Qt may not:
   explicit eligibility gate; and focused tests.
 - Depends on: WP-D1.
 - Implementation status: normal plain Text creation and Configure, normal Plus
-  creation and root size/color Configure,
-  normal Wavy, bounded Vector creation, rectangular Bracket creation, and
-  presentation-only EditMode translation are accepted. One
-  `bracket.add` request constructs two top-level polylines in one complete
-  candidate, while Qt retains only bounds selection and preview state. Each
-  accepted creation route submits a complete-CDML candidate, receives one or
-  more backend-issued durable IDs, and canonically reprojects. Wavy additionally
+  creation and family plus root size/foreground/background Configure,
+  normal Wavy, bounded Vector creation, rectangular/Round Bracket creation, and
+  presentation-only EditMode translation are accepted. OASA-owned bracket and
+  geometric-presentation requests construct bracket pairs and Vector roots;
+  Qt retains only style/kind, gesture, selection, and preview state. Remaining
+  accepted creation routes submit complete-CDML candidates. Every route receives
+  backend-issued durable IDs and canonically reprojects. Wavy additionally
   has independent creation-only acceptance evidence in
   [wavy_public_tests_final_acceptance_2026_07_28.md](../audits/wavy_public_tests_final_acceptance_2026_07_28.md).
   Generic direct-root move and delete now cover durable Text. Rich Text editing
-  and Wavy root width/color Configure are accepted bounded routes. Plus family,
-  background color, child-font semantics, and other operations; remaining Wavy
-  editing; Round Bracket; and bracket attachment/container semantics remain
+  and Wavy root width/color Configure are accepted bounded routes. Other
+  operations, remaining Wavy editing, and bracket attachment/container semantics remain
   outside this bounded route.
 - Acceptance criteria:
   - One selected presentation operation changes only its bounded target in a
-    backend snapshot candidate, commits it, and reprojects the accepted
-    response.
+    backend-owned operation or candidate, commits it, and reprojects the
+    accepted response.
   - The completed presentation-only Move route submits only after the
     eligibility gate proves current supported durable direct-root bindings and
     one common translation delta. Configure and Delete remain separate
@@ -1064,14 +1060,14 @@ Qt may not:
   item maps through its current projection binding to one supported,
   durable presentation root of the active document. The request carries the
   backend revision, declared mode, durable presentation IDs, and exact target
-  keys; the pure candidate preserves molecule, envelope, comments, and opaque
-  root records. Invalid, stale, mixed, ID-less, mark, atom, and foreign
+  keys; OASA preserves molecule, envelope, comments, and opaque root records.
+  Invalid, stale, mixed, ID-less, mark, atom, and foreign
   selections are inert. Accepted results use backend history and canonical
   reprojection; the former local reorder command no longer owns these routes.
   Focused acceptance evidence:
-  `source source_me.sh && QT_QPA_PLATFORM=offscreen python3 -W error -m pytest --kill-after 3 -q tests/test_presentation_stack_candidate.py packages/bkchem-qt.app/tests/test_object_stack_actions.py`
-  passed 9 tests in 0.40s on 2026-07-30. Both fresh independent reviews
-  accepted the authority boundary and test quality.
+  `source source_me.sh && QT_QPA_PLATFORM=offscreen python3 -W error -m pytest -q packages/oasa/tests/test_cdml_presentation_insert.py packages/bkchem-qt.app/tests/test_object_stack_actions.py`
+  now covers backend ordering and public Qt behavior. The original independent
+  reviews accepted the authority boundary and test quality.
 
 ### Work package WP-F0: Triage visible Qt capabilities
 
@@ -2186,11 +2182,11 @@ independent acceptance.
 - [x] Route drawing defaults, selected/all object overrides, and clean personal
   defaults through OASA observation, atomic history, and canonical reprojection.
   - [x] Accept the first bounded WP-E1 hypothesis: normal plain Text creation
-    commits complete CDML, receives a backend-issued ID, and canonically
-    reprojects.
+    submits scalar intent to OASA, receives a backend-issued ID, and canonically
+    reprojects without Qt-authored XML.
   - [x] Accept plain Text Configure for one durable direct root through a
     revision-bound explicit property patch, backend history, canonical
-    reprojection, durable selection recovery, and snapshot-only retry. Generic
+    reprojection, optional background, durable selection, and snapshot-only retry. Generic
     move and delete already cover durable Text.
   - [x] Accept the bounded Rich Text M0: OASA owns one direct-root Text's
     formatted CDML 26.07 run patch, canonical authored markup, atomic history,
@@ -2199,7 +2195,7 @@ independent acceptance.
     projections and supplies separate Object > Edit Rich Text with captured
     origin/revision/ID capability, one atomic backend patch, durable selection,
     typed stale/unavailable outcomes, and snapshot-only retry. Family, size,
-    color, rich Plus, atom labels, legacy migration, and broader text grammar
+    color, atom labels, legacy migration, and broader text grammar
     were retained as separate work at this checkpoint.
   - [x] Accept Rich Text root-font M1: the same atomic request now carries
     unique explicit family, size, and color intent while untouched root fields
@@ -2207,20 +2203,20 @@ independent acceptance.
     dialog, applies only authored run styles in disposable projections, and
     inherits refreshed root family, size, and color. Noncanonical persisted
     colors remain visible but preservation-only. Inline fonts, root weight and
-    style, rich Plus, atom labels, legacy migration, and broader text grammar
+    style, atom labels, legacy migration, and broader text grammar
     remain separate work.
-  - [x] Accept the second bounded WP-E1 hypothesis: normal Plus creation
-    commits complete CDML, receives a backend-issued ID, and canonically
-    reprojects. Plain direct-root Plus Configure now patches only portable root
-    size/color through origin-bound backend history, durable selection recovery,
-    and snapshot-only retry. Family, background color, child-font semantics,
-    rich Plus records, and broader operations remain pending.
-  - [x] Accept the third bounded WP-E1 hypothesis: normal Wavy creation and
-    Configure commit complete CDML, record backend history and dirty state,
-    reproject, and use authoritative Save. Independent evidence remains in
+  - [x] Accept the second bounded WP-E1 hypothesis: normal Plus creation sends
+    position intent to OASA, receives a backend-issued ID, and canonically
+    reprojects. Plain direct-root Plus Configure patches child family plus root
+    size/foreground/background through origin-bound history, durable selection,
+    and snapshot-only retry. Retained child size/color never override the root;
+    broader operations remain pending.
+  - [x] Accept the third bounded WP-E1 hypothesis: normal Wavy creation sends
+    endpoints to OASA; creation and Configure record backend history/dirty state,
+    reproject, and use authoritative Save; the accepted evidence remains in
     [wavy_public_tests_final_acceptance_2026_07_28.md](../audits/wavy_public_tests_final_acceptance_2026_07_28.md).
-    Arrow Configure now patches heads, spline, width, and color through the
-    same origin-bound OASA operation family with undo, save, and reopen proof.
+    Arrow patches heads/spline/width/color through the same origin-bound family.
+    Geometric roots share one width/stroke/fill operation with undo/reopen proof.
 - [x] Migrate every release-selected chemistry and worker family.
 - [x] Record the independently accepted WP-F0 capability dispositions before
   M5; close only the required RDKit, rendering, Haworth, PubChem, and

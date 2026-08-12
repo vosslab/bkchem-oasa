@@ -1,4 +1,7 @@
-"""Arrow drawing mode."""
+"""Arrow drawing mode with frontend-only gesture policy."""
+
+# Standard Library
+import math
 
 # PIP3 modules
 import PySide6.QtCore
@@ -8,46 +11,43 @@ import PySide6.QtWidgets
 # local repo modules
 import bkchem_qt.canvas.graphics_retirement
 import bkchem_qt.canvas.items.render_ops_painter
+import bkchem_qt.config.geometry_units
 import bkchem_qt.modes.base_mode
 
 _PREVIEW_PEN_WIDTH = 1.5
 _PREVIEW_PEN_STYLE = PySide6.QtCore.Qt.PenStyle.DashLine
+_ANGLE_STEPS = frozenset({1, 6, 18, 30})
 
 
 #============================================
 class ArrowMode(bkchem_qt.modes.base_mode.BaseMode):
-	"""Mode for drawing reaction arrows.
-
-	Click to set the start point, drag to preview, and release to
-	create the arrow. The preview is shown as a dashed line while
-	dragging.
-
-	Args:
-		view: The ChemView widget that owns this mode.
-		parent: Optional parent QObject.
-	"""
+	"""Create one backend-owned Arrow from a dragged interaction gesture."""
 
 	#============================================
 	def __init__(
-			self,
-			view: PySide6.QtWidgets.QGraphicsView,
+			self, view: PySide6.QtWidgets.QGraphicsView,
 			parent: PySide6.QtCore.QObject | None = None,
 			) -> None:
-		"""Initialize the arrow mode.
-
-		Args:
-			view: The ChemView widget that dispatches events.
-			parent: Optional parent QObject.
-		"""
+		"""Initialize the Arrow gesture state and declared presentation settings."""
 		super().__init__(view, parent)
 		self._name = "Arrow"
 		self._persistent_operation = None
-		# preview line item shown during drag
 		self._preview_line = None
 		self._preview_scene = None
-		# start point in scene coordinates
 		self._start_point = None
+		self._angle_step = 30
+		self._fixed_length = True
+		self._spline = False
+		self._arrow_kind = "normal"
 		self._cursor = PySide6.QtCore.Qt.CursorShape.CrossCursor
+
+	#============================================
+	@property
+	def status_hint(self) -> str:
+		"""Return an affirmative explanation of the current Arrow gesture."""
+		length = "grid length" if self._fixed_length else "drawn length"
+		shape = "spline" if self._spline else "straight"
+		return f"Drag a {shape} {self._arrow_kind} arrow at {self._angle_step} degree steps; {length}"
 
 	#============================================
 	def set_persistent_operation(self, operation: object | None) -> None:
@@ -57,104 +57,121 @@ class ArrowMode(bkchem_qt.modes.base_mode.BaseMode):
 		self._persistent_operation = operation
 
 	#============================================
-	def mouse_press(
-			self,
-			scene_pos: PySide6.QtCore.QPointF,
-			event: object,
-			) -> None:
-		"""Set the arrow start point.
-
-		Args:
-			scene_pos: Position in scene coordinates where the arrow begins.
-			event: The mouse event.
-		"""
-		self._start_point = scene_pos
-		self.status_message.emit("Drag to set arrow endpoint")
+	def on_submode_switch(self, submode_index: int, name: str) -> None:
+		"""Apply one visible Arrow setting to future backend-bound requests."""
+		if submode_index == 0:
+			angle_step = int(name)
+			if angle_step not in _ANGLE_STEPS:
+				raise ValueError("Arrow angle step is unsupported")
+			self._angle_step = angle_step
+		elif submode_index == 1:
+			self._fixed_length = name == "fixed"
+		elif submode_index == 2:
+			if name not in {"anormal", "spline"}:
+				raise ValueError("Arrow shape is unsupported")
+			self._spline = name == "spline"
+		elif submode_index == 3:
+			if name not in {"normal", "electron", "retro", "equilibrium", "equilibrium2"}:
+				raise ValueError("Arrow type is unsupported")
+			self._arrow_kind = name
+		else:
+			raise ValueError("Arrow submode group is unsupported")
+		self._reset_gesture()
+		self.status_message.emit(self.status_hint)
 
 	#============================================
-	def mouse_move(
-			self,
-			scene_pos: PySide6.QtCore.QPointF,
-			event: object,
-			) -> None:
-		"""Update the preview arrow line during drag.
+	def mouse_press(self, scene_pos: PySide6.QtCore.QPointF, event: object) -> None:
+		"""Begin one Arrow drag from a transient scene point."""
+		self._start_point = scene_pos
+		self.status_message.emit("Drag to place the arrow endpoint")
 
-		Creates a dashed line from the start point to the current
-		mouse position to show where the arrow will be placed.
-
-		Args:
-			scene_pos: Current position in scene coordinates.
-			event: The mouse event.
-		"""
+	#============================================
+	def mouse_move(self, scene_pos: PySide6.QtCore.QPointF, event: object) -> None:
+		"""Update a disposable preview using the same interaction constraint."""
 		if self._start_point is None:
 			return
-		# A preview is terminal feedback, never undo-owned graphics.
+		end_point = self._constrained_end(scene_pos)
 		self._retire_preview_line()
 		scene = self._env.scene
 		if scene is None:
 			return
-		# create a new preview line
 		color = bkchem_qt.canvas.items.render_ops_painter.get_canvas_color("preview")
 		pen = PySide6.QtGui.QPen(PySide6.QtGui.QColor(color))
 		pen.setWidthF(_PREVIEW_PEN_WIDTH)
 		pen.setStyle(_PREVIEW_PEN_STYLE)
 		self._preview_line = scene.addLine(
-			self._start_point.x(), self._start_point.y(),
-			scene_pos.x(), scene_pos.y(),
-			pen,
+			self._start_point.x(), self._start_point.y(), end_point.x(), end_point.y(), pen,
 		)
 		self._preview_scene = scene
 
 	#============================================
-	def mouse_release(
-			self,
-			scene_pos: PySide6.QtCore.QPointF,
-			event: object,
-			) -> None:
-		"""Commit a persistent arrow candidate and clean up the preview.
-
-		The live line is transient feedback only.  A session-owned frontend
-		action converts plain coordinates to complete CDML and rebuilds this Qt
-		projection from the accepted backend snapshot.
-
-		Args:
-			scene_pos: End position in scene coordinates.
-			 event: The mouse event.
-		"""
+	def mouse_release(self, scene_pos: PySide6.QtCore.QPointF, event: object) -> None:
+		"""Submit one immutable Arrow intent when its constrained span is nonzero."""
+		start_point = self._start_point
 		self._retire_preview_line()
-		scene = self._env.scene
-		if scene is None:
-			self._start_point = None
-			return
-		message = "Arrow mode active"
-		# only create the arrow if we have a start point and some distance
-		if self._start_point is not None:
-			dx = scene_pos.x() - self._start_point.x()
-			dy = scene_pos.y() - self._start_point.y()
-			# minimum distance threshold to avoid accidental zero-length arrows
-			if (dx * dx + dy * dy) > 25.0:
-				if self._persistent_operation is None:
-					message = "Document cannot accept a persistent edit"
-				else:
-					from bkchem_qt.models import document_session
-					request = document_session.PersistentOperationRequest(
-						"arrow.add", "Arrow",
-						(
-							("start", (self._start_point.x(), self._start_point.y())),
-							("end", (scene_pos.x(), scene_pos.y())),
-						),
-					)
-					outcome = self._persistent_operation(request)
-					message = outcome.message
 		self._start_point = None
-		self.status_message.emit(message)
+		if start_point is None or self._env.scene is None:
+			return
+		end_point = self._constrained_end(scene_pos, start_point)
+		delta_x = end_point.x() - start_point.x()
+		delta_y = end_point.y() - start_point.y()
+		if delta_x * delta_x + delta_y * delta_y <= 25.0:
+			self.status_message.emit("Drag farther to place an arrow")
+			return
+		if self._persistent_operation is None:
+			self.status_message.emit("Document cannot accept a persistent edit")
+			return
+		from bkchem_qt.models import document_session
+		request = document_session.PersistentOperationRequest(
+			"arrow.add", "Add Arrow",
+			(
+				("kind", self._arrow_kind), ("spline", self._spline),
+				("endpoints", ((start_point.x(), start_point.y()), (end_point.x(), end_point.y()))),
+			),
+		)
+		outcome = self._persistent_operation(request)
+		self.status_message.emit(outcome.message)
 
 	#============================================
 	def deactivate(self) -> None:
-		"""Clean up the preview line when leaving arrow mode."""
+		"""Retire all preview state before another mode becomes active."""
+		self._reset_gesture()
+		super().deactivate()
+
+	#============================================
+	def _constrained_end(
+			self, scene_pos: PySide6.QtCore.QPointF,
+			start_point: PySide6.QtCore.QPointF | None = None,
+			) -> PySide6.QtCore.QPointF:
+		"""Return the declared snapped endpoint without mutating persistent state."""
+		start = self._start_point if start_point is None else start_point
+		if start is None:
+			return scene_pos
+		delta_x = scene_pos.x() - start.x()
+		delta_y = scene_pos.y() - start.y()
+		length = math.hypot(delta_x, delta_y)
+		if length == 0.0:
+			return scene_pos
+		angle = math.atan2(delta_y, delta_x)
+		step_radians = math.radians(self._angle_step)
+		angle = round(angle / step_radians) * step_radians
+		if self._fixed_length:
+			scene = self._env.scene
+			if scene is not None and hasattr(scene, "grid_spacing_pt"):
+				length = float(scene.grid_spacing_pt)
+			else:
+				length = bkchem_qt.config.geometry_units.DEFAULT_BOND_LENGTH_PT
+		end_point = PySide6.QtCore.QPointF(
+			start.x() + math.cos(angle) * length,
+			start.y() + math.sin(angle) * length,
+		)
+		return end_point
+
+	#============================================
+	def _reset_gesture(self) -> None:
+		"""Discard transient preview and endpoint state without a backend request."""
 		self._retire_preview_line()
 		self._start_point = None
-		super().deactivate()
 
 	#============================================
 	def _retire_preview_line(self) -> None:
@@ -171,8 +188,7 @@ class ArrowMode(bkchem_qt.modes.base_mode.BaseMode):
 				)
 			else:
 				coordinator.retire_scene_projection_items(
-					preview_scene, [preview_line],
-					reaper=self._graphics_retirement_reaper,
+					preview_scene, [preview_line], reaper=self._graphics_retirement_reaper,
 				)
 			coordinator.raise_if_callback_failed("Arrow preview retirement failed")
 		finally:

@@ -1,4 +1,4 @@
-"""Vector graphics mode for rectangles, ovals, and lines."""
+"""Frontend-only gesture mode for backend-owned geometric presentations."""
 
 # PIP3 modules
 import PySide6.QtCore
@@ -6,58 +6,43 @@ import PySide6.QtGui
 import PySide6.QtWidgets
 
 # local repo modules
-import bkchem_qt.modes.base_mode
 import bkchem_qt.canvas.graphics_retirement
+import bkchem_qt.modes.base_mode
 
-# preview pen style
 _PREVIEW_STYLE = PySide6.QtCore.Qt.PenStyle.DashLine
+_BOUNDED_SHAPES = frozenset({"rect", "square", "oval", "circle"})
+_PATH_SHAPES = frozenset({"polyline", "polygon"})
+_SHAPES = _BOUNDED_SHAPES | _PATH_SHAPES
 
 
 #============================================
 class VectorMode(bkchem_qt.modes.base_mode.BaseMode):
-	"""Mode for drawing vector graphics shapes.
-
-	Supports drawing rectangles, ovals, and lines on the canvas.
-	Click to start a shape, drag to size it, release to finalize.
-	The shape type can be switched via submodes.
-
-	Args:
-		view: The ChemView widget that owns this mode.
-		parent: Optional parent QObject.
-	"""
+	"""Create a typed geometric request from drag or accessible point gestures."""
 
 	#============================================
 	def __init__(
-			self,
-			view: PySide6.QtWidgets.QGraphicsView,
+			self, view: PySide6.QtWidgets.QGraphicsView,
 			parent: PySide6.QtCore.QObject | None = None,
 			) -> None:
-		"""Initialize the vector graphics mode.
-
-		Args:
-			view: The ChemView widget that dispatches events.
-			parent: Optional parent QObject.
-		"""
+		"""Initialize the Vector gesture and preview state."""
 		super().__init__(view, parent)
 		self._name = "Vector"
 		self._cursor = PySide6.QtCore.Qt.CursorShape.CrossCursor
-		# current complete-CDML presentation shape
 		self._shape_type = "rect"
 		self._persistent_operation = None
-		# drag state
 		self._drag_start = None
+		self._path_points = []
 		self._preview_item = None
 		self._preview_scene = None
 
 	#============================================
 	@property
 	def status_hint(self) -> str:
-		"""Return vector mode hint for the status bar.
-
-		Returns:
-			A short description of available interactions.
-		"""
-		return f"Drag to draw {self._shape_type}"
+		"""Describe the next usable Vector interaction in plain language."""
+		if self._shape_type in _PATH_SHAPES:
+			finish = "three" if self._shape_type == "polygon" else "two"
+			return f"Click points for a {self._shape_type}; double-click, Enter, or right-click after {finish} points"
+		return f"Drag to draw a {self._shape_type}"
 
 	#============================================
 	def set_persistent_operation(self, operation: object | None) -> None:
@@ -68,119 +53,188 @@ class VectorMode(bkchem_qt.modes.base_mode.BaseMode):
 
 	#============================================
 	def on_submode_switch(self, submode_index: int, name: str) -> None:
-		"""Switch the active shape type when a submode is selected.
-
-		Args:
-			submode_index: Group index of the changed submode.
-			name: Key string of the newly selected submode.
-		"""
-		# map submode keys to shape types
+		"""Select one declared shape and discard an unfinished prior gesture."""
+		if submode_index != 0:
+			raise ValueError("Vector submode group is unsupported")
 		shape_map = {
-			"rectangle": "rect",
-			"oval": "oval",
-			"polyline": "polyline",
+			"rectangle": "rect", "square": "square", "oval": "oval",
+			"circle": "circle", "polyline": "polyline", "polygon": "polygon",
 		}
-		shape = shape_map[name]
-		self._shape_type = shape
-		self.status_message.emit(f"Vector: {shape}")
+		if name not in shape_map:
+			raise ValueError("Vector shape is unsupported")
+		self._reset_gesture()
+		self._shape_type = shape_map[name]
+		self.status_message.emit(self.status_hint)
 
 	#============================================
-	def mouse_press(
-			self,
-			scene_pos: PySide6.QtCore.QPointF,
-			event: object,
-			) -> None:
-		"""Start drawing a shape at the click position.
-
-		Args:
-			scene_pos: Position in scene coordinates.
-			event: The mouse event.
-		"""
+	def mouse_press(self, scene_pos: PySide6.QtCore.QPointF, event: object) -> None:
+		"""Begin a bounded drag or append one explicit path vertex."""
+		if self._shape_type in _PATH_SHAPES:
+			self._append_path_point(scene_pos)
+			return
 		self._drag_start = scene_pos
 
 	#============================================
-	def mouse_move(
-			self,
-			scene_pos: PySide6.QtCore.QPointF,
-			event: object,
-			) -> None:
-		"""Update the shape preview during drag.
+	def mouse_move(self, scene_pos: PySide6.QtCore.QPointF, event: object) -> None:
+		"""Refresh transient feedback for the active Vector gesture."""
+		if self._shape_type in _PATH_SHAPES:
+			if self._path_points:
+				self._show_path_preview(scene_pos)
+			return
+		if self._drag_start is not None:
+			self._show_bounded_preview(scene_pos)
 
-		Args:
-			scene_pos: Current position in scene coordinates.
-			event: The mouse event.
-		"""
-		if self._drag_start is None:
+	#============================================
+	def mouse_release(self, scene_pos: PySide6.QtCore.QPointF, event: object) -> None:
+		"""Commit a bounded gesture; path gestures finish explicitly elsewhere."""
+		if self._shape_type in _PATH_SHAPES:
+			return
+		start = self._drag_start
+		self._retire_preview_item()
+		self._drag_start = None
+		if start is None:
+			return
+		end = self._constrained_end(start, scene_pos)
+		if abs(end.x() - start.x()) < 5.0 and abs(end.y() - start.y()) < 5.0:
+			self.status_message.emit("Drag farther to draw the shape")
+			return
+		self._submit_points(((start.x(), start.y()), (end.x(), end.y())))
+
+	#============================================
+	def mouse_double_click(self, scene_pos: PySide6.QtCore.QPointF, event: object) -> None:
+		"""Finish an explicit polyline or polygon without adding a duplicate vertex."""
+		if self._shape_type not in _PATH_SHAPES:
+			return
+		self._append_path_point(scene_pos)
+		self._finish_path()
+
+	#============================================
+	def mouse_press3(self, scene_pos: PySide6.QtCore.QPointF, event: object) -> None:
+		"""Finish a valid path or cancel an unfinished path with an actionable hint."""
+		if self._shape_type not in _PATH_SHAPES:
+			return
+		if self._path_is_valid():
+			self._finish_path()
+		else:
+			self._reset_gesture()
+			self.status_message.emit("Path cancelled; click points to begin again")
+
+	#============================================
+	def key_press(self, event: object) -> None:
+		"""Offer keyboard completion and cancellation for multi-point gestures."""
+		if self._shape_type not in _PATH_SHAPES or not hasattr(event, "key"):
+			return
+		key = event.key()
+		if key in {PySide6.QtCore.Qt.Key.Key_Return, PySide6.QtCore.Qt.Key.Key_Enter}:
+			self._finish_path()
+		elif key == PySide6.QtCore.Qt.Key.Key_Escape:
+			self._reset_gesture()
+			self.status_message.emit("Path cancelled; click points to begin again")
+
+	#============================================
+	def deactivate(self) -> None:
+		"""Discard every transient path and preview before another mode activates."""
+		self._reset_gesture()
+		super().deactivate()
+
+	#============================================
+	def _append_path_point(self, scene_pos: PySide6.QtCore.QPointF) -> None:
+		"""Keep a meaningful ordered vertex and show a durable next-step hint."""
+		point = scene_pos.x(), scene_pos.y()
+		if self._path_points and self._path_points[-1] == point:
+			return
+		self._path_points.append(point)
+		self._show_path_preview(scene_pos)
+		self.status_message.emit(self.status_hint)
+
+	#============================================
+	def _finish_path(self) -> None:
+		"""Submit one valid immutable point sequence or keep the gesture editable."""
+		if not self._path_is_valid():
+			minimum = 3 if self._shape_type == "polygon" else 2
+			self.status_message.emit(f"Add {minimum} distinct points to finish the {self._shape_type}")
+			return
+		points = tuple(self._path_points)
+		self._reset_gesture()
+		self._submit_points(points)
+
+	#============================================
+	def _path_is_valid(self) -> bool:
+		"""Return whether the transient path meets the backend's minimum grammar."""
+		minimum = 3 if self._shape_type == "polygon" else 2
+		return len(self._path_points) >= minimum
+
+	#============================================
+	def _submit_points(self, points: tuple[tuple[float, float], ...]) -> None:
+		"""Send only declared geometry intent to the session-owned backend adapter."""
+		if self._persistent_operation is None:
+			self.status_message.emit("Document cannot accept a persistent edit")
+			return
+		from bkchem_qt.models import document_session
+		request = document_session.PersistentOperationRequest(
+			"vector.add", "Add " + self._shape_type.title(),
+			(("kind", self._shape_type), ("points", points)),
+		)
+		outcome = self._persistent_operation(request)
+		self.status_message.emit(outcome.message)
+
+	#============================================
+	def _constrained_end(
+			self, start: PySide6.QtCore.QPointF, end: PySide6.QtCore.QPointF,
+			) -> PySide6.QtCore.QPointF:
+		"""Constrain square and circle drags to equal signed extents."""
+		if self._shape_type not in {"square", "circle"}:
+			return end
+		delta_x = end.x() - start.x()
+		delta_y = end.y() - start.y()
+		side = max(abs(delta_x), abs(delta_y))
+		constrained_x = side if delta_x >= 0.0 else -side
+		constrained_y = side if delta_y >= 0.0 else -side
+		return PySide6.QtCore.QPointF(start.x() + constrained_x, start.y() + constrained_y)
+
+	#============================================
+	def _show_bounded_preview(self, scene_pos: PySide6.QtCore.QPointF) -> None:
+		"""Render one disposable rectangle or oval preview from the drag endpoints."""
+		start = self._drag_start
+		if start is None:
 			return
 		self._retire_preview_item()
 		scene = self._env.scene
 		if scene is None:
 			return
-		# build preview pen
-		pen = PySide6.QtGui.QPen(PySide6.QtGui.QColor(80, 80, 80, 150))
-		pen.setWidthF(1.0)
-		pen.setStyle(_PREVIEW_STYLE)
-		# create shape preview
-		if self._shape_type == "polyline":
-			self._preview_item = scene.addLine(
-				self._drag_start.x(), self._drag_start.y(),
-				scene_pos.x(), scene_pos.y(), pen,
-			)
+		end = self._constrained_end(start, scene_pos)
+		pen = _preview_pen()
+		rectangle = _make_rect(start, end)
+		if self._shape_type in {"oval", "circle"}:
+			self._preview_item = scene.addEllipse(rectangle, pen)
 		else:
-			rect = _make_rect(self._drag_start, scene_pos)
-			if self._shape_type == "oval":
-				self._preview_item = scene.addEllipse(rect, pen)
-			else:
-				self._preview_item = scene.addRect(rect, pen)
+			self._preview_item = scene.addRect(rectangle, pen)
 		self._preview_scene = scene
 
 	#============================================
-	def mouse_release(
-			self,
-			scene_pos: PySide6.QtCore.QPointF,
-			event: object,
-			) -> None:
-		"""Submit one backend-authoritative Vector candidate request.
-
-		Args:
-			scene_pos: End position in scene coordinates.
-			event: The mouse event.
-		"""
+	def _show_path_preview(self, cursor: PySide6.QtCore.QPointF) -> None:
+		"""Render the accumulated vertices and current cursor as disposable feedback."""
 		self._retire_preview_item()
-		if self._env.scene is None:
-			self._drag_start = None
+		scene = self._env.scene
+		if scene is None or not self._path_points:
 			return
-		if self._drag_start is None:
-			return
-		# minimum drag distance
-		dx = abs(scene_pos.x() - self._drag_start.x())
-		dy = abs(scene_pos.y() - self._drag_start.y())
-		if dx < 5.0 and dy < 5.0:
-			self._drag_start = None
-			return
-		if self._persistent_operation is None:
-			message = "Document cannot accept a persistent edit"
-		else:
-			from bkchem_qt.models import document_session
-			request = document_session.PersistentOperationRequest(
-				"vector.add", self._shape_type.title(),
-				(
-					("shape", self._shape_type),
-					("start", (self._drag_start.x(), self._drag_start.y())),
-					("end", (scene_pos.x(), scene_pos.y())),
-				),
-			)
-			outcome = self._persistent_operation(request)
-			message = outcome.message
-		self._drag_start = None
-		self.status_message.emit(message)
+		path = PySide6.QtGui.QPainterPath()
+		first_x, first_y = self._path_points[0]
+		path.moveTo(first_x, first_y)
+		for point_x, point_y in self._path_points[1:]:
+			path.lineTo(point_x, point_y)
+		path.lineTo(cursor.x(), cursor.y())
+		if self._shape_type == "polygon" and len(self._path_points) >= 2:
+			path.lineTo(first_x, first_y)
+		self._preview_item = scene.addPath(path, _preview_pen())
+		self._preview_scene = scene
 
 	#============================================
-	def deactivate(self) -> None:
-		"""Clean up preview when leaving vector mode."""
+	def _reset_gesture(self) -> None:
+		"""Discard all temporary geometry without submitting a mutation."""
 		self._retire_preview_item()
 		self._drag_start = None
-		super().deactivate()
+		self._path_points = []
 
 	#============================================
 	def _retire_preview_item(self) -> None:
@@ -197,8 +251,7 @@ class VectorMode(bkchem_qt.modes.base_mode.BaseMode):
 				)
 			else:
 				coordinator.retire_scene_projection_items(
-					preview_scene, [preview_item],
-					reaper=self._graphics_retirement_reaper,
+					preview_scene, [preview_item], reaper=self._graphics_retirement_reaper,
 				)
 			coordinator.raise_if_callback_failed("Vector preview retirement failed")
 		finally:
@@ -207,18 +260,19 @@ class VectorMode(bkchem_qt.modes.base_mode.BaseMode):
 
 
 #============================================
+def _preview_pen() -> PySide6.QtGui.QPen:
+	"""Create the shared neutral dashed preview pen."""
+	pen = PySide6.QtGui.QPen(PySide6.QtGui.QColor(80, 80, 80, 150))
+	pen.setWidthF(1.0)
+	pen.setStyle(_PREVIEW_STYLE)
+	return pen
+
+
+#============================================
 def _make_rect(
-		p1: PySide6.QtCore.QPointF,
-		p2: PySide6.QtCore.QPointF) -> PySide6.QtCore.QRectF:
-	"""Build a QRectF from two corner points.
-
-	Args:
-		p1: First corner point.
-		p2: Second corner point.
-
-	Returns:
-		Normalized QRectF enclosing both points.
-	"""
+		p1: PySide6.QtCore.QPointF, p2: PySide6.QtCore.QPointF,
+		) -> PySide6.QtCore.QRectF:
+	"""Build the normalized preview rectangle enclosing two scene points."""
 	x1 = min(p1.x(), p2.x())
 	y1 = min(p1.y(), p2.y())
 	x2 = max(p1.x(), p2.x())

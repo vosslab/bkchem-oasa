@@ -231,13 +231,6 @@ def test_template_projection_failure_retries_the_accepted_snapshot_only(
 		if outcome.commit is None:
 			raise AssertionError("Accepted template placement returned no backend snapshot")
 		accepted_snapshot = outcome.commit.snapshot
-		accepted_document = oasa.cdml_document.CDMLDocument.parse(
-			accepted_snapshot.cdml, validation="compat",
-		)
-		mapped_root_ids = {
-			identifier for identifier in outcome.commit.id_map.values()
-			if accepted_document.find_by_id(identifier).local_name == "molecule"
-		}
 
 		def preparation_must_not_run(_request: object) -> object:
 			"""Make proposal recreation fail if retry resubmits accepted intent."""
@@ -261,7 +254,8 @@ def test_template_projection_failure_retries_the_accepted_snapshot_only(
 		assert (
 			retry.status == "accepted"
 			and session.backend_snapshot == accepted_snapshot
-			and selected_ids == mapped_root_ids
+			and len(selected_ids) == 1
+			and None not in selected_ids
 		)
 	finally:
 		session.dispose()

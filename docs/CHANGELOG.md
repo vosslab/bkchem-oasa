@@ -2,7 +2,30 @@
 
 ## 2026-08-11
 
+### Additions and New Features
+
+- Added root-only molecule insertion facts and the immutable OASA projection
+  plan. Synchronized Qt now hydrates that one exact-revision value without
+  parsing canonical CDML.
+- Completed typed Arrow and Vector insertion grammar, direct Text editing,
+  responsive 640/1024/1280 Qt controls, and durable bracket-pair identity.
+  A valid pair is two ordinary marked polylines; OASA observes and patches it
+  atomically, Qt derives only transient pair selection, and retained Tk
+  preserves complete marked pairs without guessing malformed ones.
+- Added the explicit-declaration three-ring Haworth backend assembly API for
+  linear and branched trees. It requires declared rings, links, and faces and
+  makes no topology, numbering, or stereochemical inference. Qt continues to
+  expose only the labelled direct two-ring profile.
+- Replaced the remaining active Haworth connector and label overrides with
+  shared geometry. The seven former special policies no longer control the
+  active render path.
+
 ### Behavior or Interface Changes
+
+- Marked release-selected classic behavior/action parity complete in the
+  roadmap and active ledger. Literal Tk one-for-one parity remains intentionally
+  outside the product target; declared future work now names template atom
+  fusion and a three-ring Qt adapter rather than implying undefined gaps.
 
 - New Qt tabs start in Draw mode, use OASA paper defaults, and frame after
   layout; first Draw creates backend structure. Chemistry Info reads exact OASA
@@ -18,6 +41,18 @@
   graph aliases are gone; dialogs emit detached intent, and deprecated Tk stays.
   Complete topology supplies Qt rendering; carbon glyphs share bond targets.
   Hex-grid/contract laws guard coupling; Arrow Configure now commits through OASA.
+  Geometric Configure shares one OASA width/stroke/fill operation across shapes
+  and lines while preserving opaque children. Plus family/background now use an
+  accessible detached editor, shared projection, and backend history; Text shares fill.
+  Brackets and drawing-object insertion/ordering now send only scalar intent;
+  OASA owns geometry/style, persistent CDML, IDs, ordering, and history.
+  Retained Tk preserves explicit transparency through hardened XML while deprecated.
+- Corrected the Properties dock's document summary so drawing-only documents
+  report their persistent drawing-object count instead of appearing empty.
+- Repaired the documented Qt screenshot launcher so its `devel/` entry point
+  resolves the repository-owned capture tool from any working directory.
+- Stopped the adaptive submode ribbon from feeding its allocated width back as
+  a window minimum, restoring the documented 1280-pixel application layout.
 - Corrected the indentation gate for Python 3.12 multiline f-strings; embedded
   XML and other text tokens are not source-code indentation.
 - Restored registry-aware release tooling after its split: changelog commits
@@ -25,6 +60,26 @@
   suffixes survive, and releases update all package manifests.
 - Added exact non-growth ceilings for oversized active files. Historical
   archives are excluded; current debt may shrink but cannot grow.
+- Made managed screenshot publication atomic: all scenarios stage and validate
+  before the catalog is replaced, so a failed capture keeps the old gallery.
+- Made the glyph-bond one-time gate self-contained. Controlled OASA SVG now
+  carries connector/label and composite-stroke identity, so the current
+  furanose+pyranose corpus validates declared paint relationships without
+  guessing from unrelated wedges or requiring absent archive previews.
+- Refreshed all three managed 1280x800 Qt captures after the responsive and
+  presentation work. The capture gate now consumes the immutable projection
+  plan, frames readable content after normal post-Open callbacks, and visibly
+  exercises a marked bracket pair plus a distinct vector-drawn object.
+- Corrected bracket dragging so a newly clicked pair moves both durable members,
+  and routed bracket backend parsing through the authorized hardened lxml entry.
+
+### Developer Tests and Notes
+
+- Permanent focused tests cover backend authority, typed presentation behavior,
+  bracket identity/remapping, responsive reachable controls, and Haworth
+  structural semantics. Full application, screenshot, installed-wheel, and
+  retained-Tk release probes remain one-time release evidence rather than
+  brittle permanent wiring tests.
 
 ## 2026-08-03
 

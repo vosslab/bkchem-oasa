@@ -19,6 +19,7 @@ import bkchem_qt.main_window
 import bkchem_qt.models.document_session
 import bkchem_qt.models.projection_lifecycle
 import oasa.cdml_document
+import oasa.cdml_xml
 import tests.graphics_test_retirement
 
 
@@ -183,10 +184,31 @@ def test_synchronized_items_paint_portable_batches_without_compatibility_bridge(
 def test_backend_projection_envelope_rejects_missing_backend_fact() -> None:
 	"""A synchronized route rejects an incomplete backend envelope."""
 	backend_document = oasa.cdml_document.CDMLDocument.parse(_ARROW_CDML, validation="strict")
-	with pytest.raises(ValueError, match="seven exact backend facts"):
+	with pytest.raises(ValueError, match="projection plan facts"):
 		dataclasses.replace(
-			_projection_snapshot(backend_document), molecule_render_observation=None,
+			_projection_snapshot(backend_document).plan, molecule_render_observation=None,
 		)
+
+
+#============================================
+def test_synchronized_hydration_consumes_only_the_backend_plan(
+		monkeypatch: pytest.MonkeyPatch,
+		) -> None:
+	"""A complete plan hydrates without invoking a CDML parser."""
+	backend_document = oasa.cdml_document.CDMLDocument.parse(
+		_TWO_ATOM_BOND_CDML, validation="strict",
+	)
+	projection_snapshot = _projection_snapshot(backend_document)
+	def parser_called(*args: object, **kwargs: object) -> object:
+		"""Expose an accidental synchronized parser dependency immediately."""
+		del args, kwargs
+		raise AssertionError("synchronized hydration must use the backend projection plan")
+	monkeypatch.setattr(oasa.cdml_xml, "parse_cdml_dom", parser_called)
+	monkeypatch.setattr(oasa.cdml_document.CDMLDocument, "parse", parser_called)
+	document = bkchem_qt.io.cdml_document_io.hydrate_synchronized_cdml_document(
+		projection_snapshot,
+	)
+	assert len(document.molecules) == 1 and document.molecules[0].compatibility_source_xml is None
 
 
 #============================================
@@ -196,12 +218,13 @@ def test_synchronized_hydration_requires_portable_render_coverage() -> None:
 		_TWO_ATOM_BOND_CDML, validation="strict",
 	)
 	projection_snapshot = _projection_snapshot(backend_document)
-	incomplete = dataclasses.replace(
-		projection_snapshot,
+	incomplete_plan = dataclasses.replace(
+		projection_snapshot.plan,
 		molecule_render_observation=dataclasses.replace(
-			projection_snapshot.molecule_render_observation, batches=(),
+			projection_snapshot.plan.molecule_render_observation, batches=(),
 		),
 	)
+	incomplete = dataclasses.replace(projection_snapshot, plan=incomplete_plan)
 	with pytest.raises(ValueError, match="coverage is incomplete"):
 		bkchem_qt.io.cdml_document_io.hydrate_synchronized_cdml_document(
 			incomplete,
@@ -247,12 +270,13 @@ def test_incomplete_synchronized_render_bundle_fails_before_live_replacement(
 		def incomplete_projection_snapshot() -> object:
 			"""Model one incomplete backend projection envelope."""
 			projection_snapshot = original_projection_snapshot()
-			return dataclasses.replace(
-				projection_snapshot,
+			plan = dataclasses.replace(
+				projection_snapshot.plan,
 				molecule_render_observation=dataclasses.replace(
-					projection_snapshot.molecule_render_observation, batches=(),
+					projection_snapshot.plan.molecule_render_observation, batches=(),
 				),
 			)
+			return dataclasses.replace(projection_snapshot, plan=plan)
 
 		monkeypatch.setattr(
 			session._backend_session, "projection_snapshot", incomplete_projection_snapshot,
@@ -281,7 +305,11 @@ def test_synchronized_preparation_rejects_duplicate_portable_batch(
 	with pytest.raises(ValueError, match="association is ambiguous"):
 		bkchem_qt.io.cdml_document_io.prepare_synchronized_projection(
 			dataclasses.replace(
-				_projection_snapshot(document), molecule_render_observation=duplicate_observation,
+				_projection_snapshot(document),
+				plan=dataclasses.replace(
+					_projection_snapshot(document).plan,
+					molecule_render_observation=duplicate_observation,
+				),
 			),
 		)
 
@@ -299,7 +327,11 @@ def test_synchronized_preparation_rejects_wrong_kind_portable_batch(
 	with pytest.raises(ValueError, match="kind does not match"):
 		bkchem_qt.io.cdml_document_io.prepare_synchronized_projection(
 			dataclasses.replace(
-				_projection_snapshot(document), molecule_render_observation=wrong_kind_observation,
+				_projection_snapshot(document),
+				plan=dataclasses.replace(
+					_projection_snapshot(document).plan,
+					molecule_render_observation=wrong_kind_observation,
+				),
 			),
 		)
 
@@ -317,7 +349,11 @@ def test_synchronized_preparation_rejects_foreign_molecule_portable_batch(
 	with pytest.raises(ValueError, match="belongs to no accepted molecule"):
 		bkchem_qt.io.cdml_document_io.prepare_synchronized_projection(
 			dataclasses.replace(
-				_projection_snapshot(document), molecule_render_observation=foreign_observation,
+				_projection_snapshot(document),
+				plan=dataclasses.replace(
+					_projection_snapshot(document).plan,
+					molecule_render_observation=foreign_observation,
+				),
 			),
 		)
 

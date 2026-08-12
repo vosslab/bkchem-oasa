@@ -55,9 +55,24 @@ validator conformance; see [CDML_FORMAT_SPEC.md](CDML_FORMAT_SPEC.md).
   legacy operation types. Qt items retain no OASA graph or operation-type
   dependency, while preserving their own QObject/QGraphicsItem lifetime and
   transient portable drag geometry.
+- The synchronized hydrator accepts one immutable OASA `CDMLProjectionPlan`.
+  It does not parse canonical CDML or retain a synchronized DOM. A root-only
+  insertion result supplies only durable root-ID facts for selection recovery.
 - Qt creates provisional correlation tokens for candidates when needed, but it
   never allocates durable IDs. Backend acceptance consumes a token; Qt discards
   the accepted candidate and never resubmits that candidate or token.
+- Arrow and Vector modes capture typed scalar intent. Arrow carries its
+  declared kind, spline, and finite points; Vector carries the declared
+  geometric kind and finite points. Qt previews the gesture, while OASA
+  validates geometry and styles, allocates IDs, commits history, and supplies
+  the replacement projection. Direct Text editing uses the same detached,
+  revision-bound Text operation as the Object action.
+- OASA projection facts identify structurally valid bracket pairs. Qt derives
+  pair selection from those facts: selecting, shift-toggling, or rubber-band
+  selecting either member expands the transient selection to both. Configure,
+  movement, deletion, and stack operations expand the pair before one backend
+  request. Qt retains no persistent pair registry and never pairs nearby
+  polylines by geometry.
 - A compatibility projection may use private local linkage for an ID-less
   legacy atom or bond. Child-addressed mutations and durable child-selection
   restoration use only child IDs present in the authoritative backend snapshot.
@@ -170,19 +185,19 @@ replacement rolls back the existing tab if late installation fails. Native
 CDML is the ordinary save target; a non-CDML import remains pathless and dirty
 until saved as native CDML.
 
-For a backend-synchronized session, Qt sends only a revision-bound candidate or
-bounded scalar intent and projects the accepted canonical response. Normal
-Arrow, plain Text, Plus, and Wavy creation plus their supported Configure
-fields are current routes.
+For a backend-synchronized session, Qt sends only bounded revision-bound intent
+and projects the accepted canonical response. Normal Arrow, plain Text, Plus,
+Wavy, and Vector creation sends scalar content and geometry to OASA, never XML.
+Their supported Configure fields and imported geometric stroke/fill also use
+bounded backend patches.
 Presentation-stack Bring to Front, Send to Back, and Swap on Stack are bounded
-complete-candidate routes. Qt submits only a current revision, declared mode,
+backend operations. Qt submits only a current revision, declared mode,
 and durable IDs after every selected scene item proves to be the current
 projection's exact binding for a supported, document-owned presentation root;
 mixed chemistry, marks, handles, unsupported, ID-less, and foreign selections
-are inert. The candidate reorders
-only direct core-or-legacy presentation roots, preserves all other root records
-and opaque content, and treats stale, invalid, or unchanged requests
-atomically. Accepted changes use backend history and canonical reprojection;
+are inert. OASA reorders only direct core presentation roots, preserves every
+other root record and opaque node slot, and treats stale, invalid, or unchanged
+requests atomically. Accepted changes use backend history and reprojection;
 Qt has no local object-stack command fallback.
 The bounded structural Draw route is different: it submits one declared backend
 operation with durable target IDs and scalar positions and bond settings, not a
@@ -313,30 +328,31 @@ history, canonical reprojection, durable atom selection restoration, and
 snapshot-only retry.
 
 Plain Text Configure is a synchronized-session-only detached editor for exactly
-one selected current durable top-level Text. Before opening TextDialog, Qt
-copies the current plain content, family, size, and color, then freezes the
-originating registered session, revision, Text ID, and exact session-bound
-capability. The dialog returns only immutable changed scalar fields, and the
-callback submits that captured intent through `text.properties.patch`; tab
-activation cannot redirect it, and disposal makes a retained capability typed
-unavailable. Accepted changes use backend history, canonical reprojection, and
-durable Text selection recovery. Projection retry uses only the exact accepted
-snapshot and never submits the patch again. Qt owns the dialog and selection
+one selected current durable top-level Text. Before opening TextDialog, Qt copies
+plain content, family, size, foreground, and optional background, then freezes
+the originating session, revision, Text ID, and exact session capability. The
+labeled form exposes a positive Fill background state plus readable swatches.
+It returns only immutable changed scalars; the callback submits captured intent
+through `text.properties.patch`. Tab activation cannot redirect it, and disposal
+makes the capability typed unavailable. Accepted changes use backend history,
+canonical reprojection, and durable selection recovery. Projection retry uses
+only the accepted snapshot and never resubmits. Qt owns dialog and selection
 interaction but creates no local Text property command.
 
 Plain Plus Configure is a synchronized-session-only detached editor for exactly
-one selected current durable top-level Plus. Its helper frame copies only the
-visible root size and color, then freezes the originating session, revision,
-Plus ID, exact capability, and immutable dialog changes. Every selected
-PresentationObject and graphics wrapper leaves scope before submission and
-canonical reprojection. The callback submits once through
-`plus.properties.patch`; tab activation cannot redirect it, and session close
-makes a retained capability typed unavailable. Accepted changes use backend
-history, restore selection by durable Plus ID, and create no Qt undo command.
-Projection recovery uses only the accepted current snapshot. A missing root
-size projects as the historical value 14, while newly created Plus signs keep
-their authored size 18. Family, background color, child-font semantics, rich
-or ambiguous Plus records remain separate slices.
+one selected current durable top-level Plus. Its helper frame copies optional
+child family plus root size, foreground, and background, then freezes the origin
+session, revision, Plus ID, exact capability, and immutable dialog changes. The
+labeled form has a font chooser, positive Fill state, and readable color swatches.
+Every selected PresentationObject and wrapper leaves scope before canonical
+reprojection. The callback submits once through `plus.properties.patch`; tab
+activation cannot redirect it, and close makes the capability typed unavailable.
+Accepted changes use backend history, restore selection by durable Plus ID, and
+create no Qt undo command. Projection recovery uses only the accepted snapshot.
+Missing family inherits OASA's document standard; missing size projects as 14.
+New Plus signs author size 18.
+Root size/color take precedence over retained child size/color, while child
+family applies. Shared TextItem projection renders Plus/Text backgrounds.
 
 Plain Wavy Configure is a synchronized-session-only detached editor for exactly
 one selected current durable top-level `<polyline style="wavy">`. Before opening
@@ -359,6 +375,18 @@ selection recovery without a Qt property command. Tab activation cannot
 retarget the callback, disposal returns typed unavailability, and projection
 retry consumes only the accepted snapshot. Authored points and control points
 never cross back as a frontend reconstruction candidate.
+
+Geometric Configure uses one shared detached form for a selected current
+durable rect, square, oval, circle, polygon, or ordinary polyline. Qt copies
+only visible width, stroke color, and applicable fill state, then captures the
+originating session, revision, durable root ID, and exact capability. The form
+uses constrained width input, labeled text-and-swatch color buttons, and an
+explicit positive Fill shape option; ordinary polylines omit fill. Accept sends
+only changed scalars through the OASA geometric-presentation patch. Cancel,
+semantic no-op, tab activation, disposal, stale revision, and projection retry
+follow the same inert or snapshot-only rules as the other synchronized
+presentation editors. Accepted changes use backend history, canonical
+reprojection, durable selection recovery, and no Qt property command.
 
 Atom Align submits only one exact `horizontal` or `vertical` axis and an
 immutable tuple of durable `(molecule_id, atom_id)` pairs to a session-owned
@@ -477,12 +505,21 @@ tab change, replacement, or disposal is inert. The explicit `legacy_isolated`
 state alone retains the existing Qt-local transform undo path. If installation
 fails after acceptance, retry projects only the exact current snapshot.
 
-Rectangular Bracket creates exactly two top-level `polyline` records through
-one immutable `bracket.add` request carrying normalized finite bounds. Qt owns
-only its selected-atom union or transient drag preview; the session builds the
-complete candidate, and accepted pairs use backend history and canonical
-reprojection without a Qt undo macro. Restored selection contains only the
-previously selected durable atoms, never the new polylines.
+Vector mode sends one immutable `vector.add` request containing only the active
+rect/oval/polyline kind and two scene points. OASA's presentation-insertion
+operation validates the request, normalizes bounded shapes, applies the current
+drawing standard, allocates identity, and commits atomically. Qt owns the
+transient preview and minimum-drag interaction only; it creates no XML,
+provisional ID, persistent model mutation, or Qt undo command. Accepted results
+use backend history and canonical reprojection.
+
+Rectangular and Round Bracket submit one immutable `bracket.add` request with
+style and normalized finite bounds. OASA derives classic proportional geometry,
+inherits the document stroke, allocates two top-level polyline IDs, and commits
+the pair atomically. Qt owns only the selected-atom union or transient drag
+preview. Accepted pairs use backend history and canonical reprojection; restored
+selection contains only previously selected durable atoms. Shared spline-path
+projection renders round control points as curves rather than line segments.
 
 Number and Clear Numbers each submit one revision-bound atom-number intent for
 one direct core atom. Before submission, Qt captures only durable molecule and
@@ -588,8 +625,8 @@ entry or resubmits the consumed placement. Session teardown clears the mode's
 action capability, so a retained callback reports typed unavailability.
 
 Standalone Text creation, direct-root move, direct-root delete, and plain
-Configure are backend-authoritative. Creation uses the complete-candidate
-route; move and delete use the generic durable-root operations; Configure uses
+Configure are backend-authoritative. Creation uses typed scalar insertion;
+move and delete use the generic durable-root operations; Configure uses
 the bounded plain property patch above. Object > Edit Rich Text is a separate
 authored-run operation: it captures one origin session, revision, durable Text
 ID, immutable runs, visible root font values, and callback before its modal
@@ -602,10 +639,10 @@ instructions, and foreign content retain backend raw XML, render recursive
 character data through plain text, and leave rich editing unavailable. Accepted
 reprojection restores durable selection from the backend snapshot; unavailable
 and stale outcomes are typed, and retry never resubmits the accepted patch.
-Plus root size/color, Wavy root width/color, and Arrow head/spline/width/color
-Configure are backend-authoritative through bounded plain patches. Plus family,
-background color, child-font semantics, rich Plus, and other presentation
-operation families retain their current transitional limits.
+Plain Text content/font/background, Plus family/size/foreground/background, Wavy
+width/color, Arrow properties, and geometric stroke/fill Configure are backend-
+authoritative through bounded patches. Rich Plus and other presentation
+families retain their current transitional limits.
 
 Normalize Bond Lengths, Normalize Bond Angles, Clean Geometry, and Snap to Hex
 Grid are backend-authoritative Repair routes. Qt captures the live session,
@@ -810,105 +847,56 @@ dialogs.
 Synchronized CDML hydration has one backend-owned input: a frozen projection
 snapshot envelope containing one canonical snapshot plus presentation, paper,
 fragment, atom-mark, group, molecule-core, and molecule-render facts from
-that exact backend state. Qt consumes the complete backend result as a unit;
-it never combines separately obtained observations with a snapshot. The
-envelope rejects a missing, mistyped, or cross-revision fact before constructing
-a Qt document, graphics item, or scene. The named
-synchronized hydrator and prepared-projection route may inspect the exact CDML
-snapshot only to associate positions and frontend-neutral diagnostics; they do
-not decode a missing molecule through OASA, parse raw presentation content, or
-invoke compatibility item rendering. `DocumentSession` staging/retry and
-snapshot rendering use only that route. Explicit compatibility CDML string and
-file decoders retain standalone raw molecule conversion, source XML,
-presentation parsing, optional coordinate scaling, and local rendering; their
-legacy aliases accept no synchronized observations.
-Both synchronized entry points require complete portable render coverage before
-they produce a Qt document, so native staging cannot defer a compatibility
-renderer fallback until graphics-item construction.
+that exact backend state. Qt consumes it as a unit and rejects missing,
+mistyped, or cross-revision facts before constructing a document or scene.
+The synchronized hydrator may inspect the exact snapshot only for positions and
+plain diagnostics; it neither parses presentation/molecule XML nor invokes a
+compatibility renderer. Staging, retry, and snapshot rendering use that route.
+Standalone compatibility decoders retain raw conversion and local rendering,
+but accept no synchronized observations. Both synchronized entry points require
+complete portable render coverage before they create a Qt document.
 
-Worker retirement is a frontend-only signal and ownership contract. A worker
-progresses from `running` to `delivery-invalidated` when its request token is
-invalidated and `requestInterruption()` is made, then to `retiring` when its
-opaque callable returns, and finally to `finished` through `QThread.finished`.
-The terminal delivery outcomes are `completed`, `failed`, and
-`delivery-cancelled`. `delivery-cancelled` suppresses result and error
-delivery; it does not claim that OASA, RDKit, or transport work was preempted.
-The session-wide import token intentionally means a newer asynchronous import
-supersedes delivery from every earlier asynchronous import family in that
-session. Family-scoped tokens are a separate product decision.
+Worker retirement is frontend-only. An invalidated token requests interruption,
+then transitions through retirement to `QThread.finished`. Terminal outcomes
+are `completed`, `failed`, and `delivery-cancelled`; cancellation suppresses
+delivery but does not claim OASA/RDKit work was preempted. A session-wide import
+token supersedes earlier asynchronous import delivery in that session.
 
-Tab close and same-tab replacement invalidate tokens and transfer every live
-worker plus its GUI-thread relay to MainWindow's retirement ownership. The
-disposed session may therefore return through ordinary event processing while
-native work completes. MainWindow keeps each worker and relay strongly owned
-until its queued `finished` slot releases it exactly once. No stale result,
-error, projection, mutation, or dialog delivery is permitted after that fence.
+Tab close and replacement invalidate tokens and transfer live workers/relays to
+MainWindow retirement ownership. It retains each until its queued `finished`
+slot releases it once; no stale result, error, projection, mutation, or dialog
+delivery crosses that fence.
 
-Application shutdown first obtains all Save, Recovery Export, or Discard
-approvals. It then enters `draining`, invalidates and adopts every live
-worker, and retains the QApplication, MainWindow, and relays until all workers
-have emitted `finished`, after which MainWindow is `ready` to complete session
-and window deletion. When a programmatic `QApplication.quit()` has already
-returned from its outer loop, a nested Qt event-loop drain preserves queued
-completion delivery. Graceful shutdown duration is the remaining native work;
-force termination is outside this contract. Clean Geometry is synchronous by
-current implementation choice; any asynchronous redesign requires separate
-performance evidence.
+Shutdown obtains publication/discard approval, invalidates and adopts workers,
+and retains application, window, and relays until all emit `finished`. A nested
+Qt drain preserves queued completion after programmatic event-loop return.
+Graceful duration is remaining native work; force termination is outside this
+contract. Clean Geometry is currently synchronous.
 
-Before native QObject destruction, disposal disconnects model/item callbacks,
-including callbacks retained by undo commands, while Python wrappers are still
-valid. One Qt-side graphics-retirement coordinator receives either a known-live
-scene or explicit detached roots: the live scene clears its own remaining
-contents once, while detached trees are released child-before-parent. The
-coordinator checks native wrapper validity at that boundary and does not infer
-ownership from an item after retirement may have begun. It then clears undo
-ownership and QObject parent links in a controlled order. Session teardown
-advances monotonically from callback detachment through scene retirement to
-queued QObject roots; Python wrapper references are released only after those
-roots are queued. Session roots are retained until Qt emits `destroyed`,
-avoiding unsafe parent-cascade destruction through stale Shiboken wrappers.
-If explicit retirement of an already-detached root reports a native failure,
-the coordinator transfers that root and its diagnostic to a session record
-before the transition-local coordinator is released. The MainWindow reaper
-then retains that record through its controlled terminal-resolution pass. That
-pass releases an already-invalid wrapper without another native call, and
-otherwise checks validity immediately before the coordinator's explicit native
-deletion boundary. A record remains retained when that boundary reports a
-further failure. This teardown is idempotent. The native-wrapper boundary
-treats Qt's ordinary ``None`` parent result as a terminal traversal outcome,
-not as a valid wrapper; selection queries likewise return no items from an
-invalid scene before making a native call.
+Before QObject destruction, disposal disconnects model/item and undo callbacks
+while wrappers are valid. A graphics-retirement coordinator clears a live scene
+once or releases detached roots child-before-parent, checks native validity,
+clears undo/parent ownership, and queues roots for deletion. Roots and any
+failure diagnostic remain owned until terminal resolution; invalid wrappers are
+released without another native call. This idempotent boundary treats a `None`
+parent as terminal and makes invalid-scene selection empty before native calls.
 
-Temporary export projections follow the same frontend-only ownership behavior:
-their known scene roots and explicitly detached construction roots retire
-child-before-parent through the coordinator, then a temporary-scene reaper
-retains the scene and any failed detached root until ordinary Qt deferred-delete
-delivery confirms resolution. Export output does not depend on that disposable
-projection after painter completion. This graceful path requires a live Qt
-event loop and makes no claim about external termination or interpreter
-finalization.
+Temporary export projections use the same child-before-parent retirement and
+retain failed roots until deferred deletion resolves. Output is independent of
+the disposed projection after painting; this graceful path requires Qt's event
+loop and does not cover external termination or interpreter finalization.
 
-Application termination uses that same ordered boundary even when the Qt event
-loop ends programmatically without delivering a window-close event. After an
-event-loop return, the application asks the MainWindow to obtain the ordinary
-Save, Discard, or Cancel decisions and, once approved, retires every live
-session through its coordinator and reaper before returning to Python. Cancel
-keeps the window live and resumes its event loop. External force termination,
-native aborts, and interpreter finalization remain outside this graceful
-shutdown contract.
+After a programmatic event-loop return, application termination obtains the
+ordinary close decision and retires sessions through the same coordinator.
+Cancel resumes the event loop; force termination and native aborts are outside
+this graceful-shutdown contract.
 
-A controlled frozen-app smoke may request a caller-owned completion receipt.
-The receipt contains only the fixed schema and zero exit code, and is written
-atomically only after QApplication and MainWindow initialization, normal timer
-event-loop exit, and this controlled retirement boundary all succeed. It is
-not written for a failed lifecycle result and it does not conceal a later
-native-process diagnostic. The macOS builder validates two independent launch
-routes. Direct execution uses the offscreen Qt platform and evaluates process
-status, app-owned receipt, and captured fatal diagnostics. Native execution
-uses `/usr/bin/open -n -W`, removes any inherited offscreen override, and
-requires its own app-owned receipt. A pass proves local LaunchServices startup,
-normal event-loop exit, and retirement; it does not claim signing,
-notarization, persistent Finder registration, or DMG delivery.
+A controlled frozen-app smoke writes a caller-owned receipt only after app and
+window initialization, normal timed exit, and orderly retirement. It is absent
+on lifecycle failure and does not hide later native diagnostics. The macOS
+builder checks direct offscreen execution and `/usr/bin/open -n -W` separately;
+a pass proves local startup, exit, and retirement, not signing, notarization,
+Finder registration, or DMG delivery.
 
 ## Close and replacement
 

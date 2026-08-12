@@ -14,6 +14,7 @@ import bkchem_qt.models.molecule_model
 import bkchem_qt.models.atom_model
 import bkchem_qt.models.bond_model
 import bkchem_qt.models.document_object
+import bkchem_qt.models.bracket_pair_selection
 
 #============================================
 class DocumentUndoStack(PySide6.QtGui.QUndoStack):
@@ -570,12 +571,11 @@ class Document(PySide6.QtCore.QObject):
 		if not self.is_current_projection_item(item):
 			return None
 		return self.molecule_for_graphics_item(item)
-
-	#============================================
 	def _on_scene_selection_changed(self) -> None:
-		"""Forward scene selection changes as a Document signal."""
+		"""Expand observed bracket pairs before forwarding the selection change."""
+		if not getattr(self, "_expanding_bracket_selection", False):
+			bkchem_qt.models.bracket_pair_selection.expand_selection(self)
 		self.selection_changed.emit()
-
 	# ------------------------------------------------------------------
 	# Selection queries
 	# ------------------------------------------------------------------

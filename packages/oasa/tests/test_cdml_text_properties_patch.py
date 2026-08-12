@@ -77,12 +77,14 @@ def test_real_patch_preserves_unrelated_and_text_owned_opaque_content() -> None:
 	result = _patch(session, (
 		("text", "  new label  "), ("font_family", " Helvetica "),
 		("font_size", 24), ("font_color", "#A1B2C3"),
+		("background_color", "#FEDCBA"),
 	))
 	after = _dom(result.snapshot.cdml)
 	text = _direct_element(after, "text", "text1")
 	font = _direct_child(text, "font")
 	observed_edit = {
 		"text": _direct_child(text, "ftext").firstChild.data,
+		"background": text.getAttribute("background-color"),
 		"font": (
 			font.getAttribute("family"), font.getAttribute("size"), font.getAttribute("color"),
 		),
@@ -105,7 +107,8 @@ def test_real_patch_preserves_unrelated_and_text_owned_opaque_content() -> None:
 	}
 
 	assert result.changed and observed_edit == {
-		"text": "  new label  ", "font": ("Helvetica", "24", "#a1b2c3"),
+		"text": "  new label  ", "background": "#fedcba",
+		"font": ("Helvetica", "24", "#a1b2c3"),
 	}
 	assert preserved == {
 		"root_order": ("molecule", "before", "text", "after"),
@@ -177,6 +180,7 @@ def test_semantic_noop_returns_current_snapshot_without_revision() -> None:
 	result = _patch(session, (
 		("text", "old label"), ("font_family", "Courier"),
 		("font_size", 11), ("font_color", "#abcdef"),
+		("background_color", "#ffffff"),
 	))
 
 	assert not result.changed and result.commit is None
@@ -189,6 +193,8 @@ def test_semantic_noop_returns_current_snapshot_without_revision() -> None:
 	(("font_family", ""),),
 	(("font_size", 145),),
 	(("font_color", "#abc"),),
+	(("background_color", "#abc"),),
+	(("background_color", "transparent"),),
 	(("text", "one"), ("text", "two")),
 ))
 def test_invalid_scalar_intent_is_typed_and_atomic(
@@ -201,6 +207,23 @@ def test_invalid_scalar_intent_is_typed_and_atomic(
 		_patch(session, changes)
 
 	assert session.snapshot() == before
+
+
+#============================================
+def test_background_compatibility_noop_and_explicit_clear_are_unambiguous() -> None:
+	"""Legacy compact color compares equal while clear persists through reload."""
+	session = oasa.cdml_document.CDMLDocumentSession.load(
+		_CDML.replace('background-color="#ffffff"', 'background-color="#DEF"'),
+	)
+	before = session.snapshot()
+	unchanged = _patch(session, (("background_color", "#ddeeff"),))
+	cleared = _patch(session, (("background_color", None),))
+	reopened = oasa.cdml_document.CDMLDocumentSession.load(cleared.snapshot.cdml)
+	text = _direct_element(_dom(reopened.snapshot().cdml), "text", "text1")
+
+	assert not unchanged.changed and unchanged.snapshot == before
+	assert cleared.changed and text.hasAttribute("background-color")
+	assert text.getAttribute("background-color") == ""
 
 
 #============================================

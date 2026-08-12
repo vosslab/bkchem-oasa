@@ -100,6 +100,13 @@ def collect_svg_lines(svg_root: object) -> list[dict]:
 					"y2": parse_float(node.get("y2"), 0.0),
 					"width": parse_float(node.get("stroke-width"), 1.0),
 					"linecap": str(node.get("stroke-linecap") or "butt").strip().lower(),
+					"op_id": str(node.get("data-oasa-op-id") or "").strip() or None,
+					"attachment_target_id": str(
+						node.get("data-oasa-attachment-target") or ""
+					).strip() or None,
+					"composite_parent_id": str(
+						node.get("data-oasa-composite-parent") or ""
+					).strip() or None,
 				}
 			)
 		for child in list(node):
@@ -130,6 +137,7 @@ def collect_svg_labels(svg_root: object) -> list[dict]:
 				"anchor": str(node.get("text-anchor") or "start"),
 				"font_size": parse_float(node.get("font-size"), 12.0),
 				"font_name": str(node.get("font-family") or "sans-serif"),
+				"op_id": str(node.get("data-oasa-op-id") or "").strip() or None,
 				"is_measurement_label": is_measurement_label(canonical_text),
 			}
 		)

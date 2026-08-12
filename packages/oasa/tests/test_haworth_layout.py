@@ -14,7 +14,11 @@ import oasa.cdml_document
 import oasa.cdml_writer
 import oasa.molecule_lib
 from oasa.haworth import layout as haworth_layout
+from oasa.haworth import renderer as haworth_renderer
+from oasa.haworth import renderer_layout as haworth_renderer_layout
+from oasa.haworth.spec import HaworthSpec
 from oasa.render_lib.data_types import BondRenderContext
+from oasa.render_lib.data_types import make_box_target
 from oasa.render_lib.bond_ops import build_bond_ops
 from oasa import render_ops
 from oasa import render_out
@@ -77,6 +81,104 @@ def test_haworth_furanose_layout_and_tags() -> None:
 	front_types = [b.type for b in result["ring_bonds"] if b.type in ("w", "q")]
 	assert front_types.count("w") == 2
 	assert front_types.count("q") == 1
+
+
+#============================================
+def test_scaled_haworth_label_target_matches_the_painted_scale() -> None:
+	"""A selected smaller label reserves smaller connector and lane geometry."""
+	job = {
+		"vertex": (0.0, 0.0),
+		"dx": 1.0,
+		"dy": 0.0,
+		"length": 20.0,
+		"label": "OH",
+		"anchor": "start",
+		"direction": "up",
+		"font_size": 12.0,
+		"text_scale": 0.9,
+	}
+	scaled_target = haworth_renderer_layout.job_text_target(job, job["length"])
+	full_target = haworth_renderer_layout.job_text_target(
+		{**job, "text_scale": 1.0}, job["length"]
+	)
+	assert scaled_target.box is not None
+	assert full_target.box is not None
+	assert (scaled_target.box[2] - scaled_target.box[0]) < (full_target.box[2] - full_target.box[0])
+
+
+#============================================
+def _simple_layout_job(label: str) -> dict:
+	"""Build one generic simple-label geometry request without ring metadata."""
+	return {
+		"carbon": 1,
+		"direction": "up",
+		"vertex": (0.0, 20.0),
+		"dx": 0.0,
+		"dy": -1.0,
+		"length": 10.0,
+		"label": label,
+		"connector_width": 1.2,
+		"font_size": 12.0,
+		"font_name": "sans-serif",
+		"anchor": "middle",
+		"line_color": "#000",
+		"label_color": "#000",
+	}
+
+
+#============================================
+def test_simple_layout_uses_blocked_geometry_to_choose_a_longer_lane() -> None:
+	"""Any simple label clears a blocked target by choosing the shortest legal lane."""
+	job = _simple_layout_job("QX7")
+	blocked = haworth_renderer_layout.job_text_target(job, job["length"])
+	resolved = haworth_renderer_layout.resolve_hydroxyl_layout_jobs(
+		[job], blocked_targets=(blocked,)
+	)
+	assert resolved[0]["length"] > job["length"]
+
+
+#============================================
+def test_simple_layout_scores_caller_presentations_without_token_policy() -> None:
+	"""Caller-authored text and scale options are selected only by their geometry."""
+	job = _simple_layout_job("ABCDEFGHI")
+	job["label_candidates"] = ("ABCDEFGHI", "Q")
+	job["text_scales"] = (1.0, 0.90)
+	blocked = make_box_target((-30.0, -2.0, 30.0, 11.0))
+	resolved = haworth_renderer_layout.resolve_hydroxyl_layout_jobs(
+		[job], blocked_targets=(blocked,)
+	)
+	assert resolved[0]["label"] == "Q"
+	assert resolved[0]["text_scale"] in (0.90, 1.0)
+
+
+#============================================
+def test_simple_label_selection_matches_vertical_painted_geometry() -> None:
+	"""A vertical presentation candidate stays clear after its final alignment."""
+	spec = HaworthSpec(
+		ring_type="furanose",
+		anomeric="alpha",
+		substituents={
+			"C1_up": "OH", "C1_down": "H",
+			"C2_up": "CH3", "C2_down": "H",
+			"C3_up": "OH", "C3_down": "H",
+			"C4_up": "H", "C4_down": "H",
+		},
+		carbon_count=4,
+		title="generic-placement",
+	)
+	first = haworth_renderer.render(spec)
+	second = haworth_renderer.render(spec)
+	assert first == second
+	haworth_renderer.strict_validate_ops(first, "generic-placement")
+
+
+#============================================
+def test_furanose_branch_labels_use_generic_clear_geometry() -> None:
+	"""A real two-carbon tail has deterministic, non-overlapping label paint."""
+	first = haworth_renderer.render_from_code("ARLRDM", "furanose", "alpha")
+	second = haworth_renderer.render_from_code("ARLRDM", "furanose", "alpha")
+	assert first == second
+	haworth_renderer.strict_validate_ops(first, "ARLRDM")
 
 
 #============================================

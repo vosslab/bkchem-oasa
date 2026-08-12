@@ -436,7 +436,7 @@ def test_direct_glycosidic_haworth_menu_cancel_is_inert(
 		_CancelledDialog,
 	)
 	action = _visible_menu_action(
-		main_window.menuBar(), "Direct Glycosidic Haworth from SMILES...",
+		main_window.menuBar(), "Direct two-ring Haworth from SMILES...",
 	)
 	action.trigger()
 	qapp.processEvents()
@@ -481,7 +481,7 @@ def test_visible_direct_glycosidic_action_commits_once_through_its_worker(
 	)
 	monkeypatch.setattr(origin, "submit_persistent_operation", record_delivery)
 	action = _visible_menu_action(
-		main_window.menuBar(), "Direct Glycosidic Haworth from SMILES...",
+		main_window.menuBar(), "Direct two-ring Haworth from SMILES...",
 	)
 	other = None
 	try:
@@ -531,6 +531,56 @@ def test_visible_direct_glycosidic_action_commits_once_through_its_worker(
 
 	assert result
 	assert back_to_baseline
+
+
+#============================================
+def test_direct_two_ring_haworth_visible_boundary_and_rejection_are_truthful(
+		main_window: object, qtbot: object, monkeypatch: object,
+		) -> None:
+	"""The visible action states the profile and rejects unsupported input cleanly."""
+	session = main_window._active_session
+	before = session.backend_snapshot
+	dialog_text = []
+	warnings = []
+	monkeypatch.setattr(
+		PySide6.QtWidgets.QMessageBox,
+		"warning",
+		lambda _parent, title, text: warnings.append((title, text)),
+	)
+
+	def inspect_and_submit() -> None:
+		"""Read the modal help, then submit one unsupported topology visibly."""
+		dialog = PySide6.QtWidgets.QApplication.activeModalWidget()
+		if not isinstance(dialog, bkchem_qt.actions.haworth_actions.DirectGlycosidicHaworthDialog):
+			raise RuntimeError("Direct two-ring Haworth dialog did not become modal")
+		dialog_text.extend(label.text() for label in dialog.findChildren(
+			PySide6.QtWidgets.QLabel,
+		))
+		_enter_direct_glycosidic_smiles("C1CCCCC1")
+
+	action = _visible_menu_action(
+		main_window.menuBar(), "Direct two-ring Haworth from SMILES...",
+	)
+	PySide6.QtCore.QTimer.singleShot(0, inspect_and_submit)
+	action.trigger()
+	qtbot.waitUntil(lambda: bool(warnings), timeout=2000)
+
+	visible_help = " ".join(dialog_text)
+	positive_help = any(text.startswith("Supported profile:") for text in dialog_text)
+	title, error_text = warnings[0]
+	result = (
+		positive_help
+		and all(term in visible_help for term in (
+			"vertex-disjoint", "direct external oxygen", "1->6 chains",
+			"larger glycans", "stereochemistry",
+		))
+		and title == "Haworth Sugar Error"
+		and error_text.startswith("Supported profile:")
+		and "1->6 chains" in error_text
+		and session.backend_snapshot == before
+	)
+
+	assert result
 
 
 #============================================

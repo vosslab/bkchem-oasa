@@ -54,14 +54,18 @@ class ZoomControls(PySide6.QtWidgets.QWidget):
 
 		# zoom out button
 		self._btn_zoom_out = PySide6.QtWidgets.QPushButton("-")
+		self._btn_zoom_out.setObjectName("zoom-out")
 		self._btn_zoom_out.setFixedWidth(28)
 		self._btn_zoom_out.setToolTip("Zoom out")
+		self._btn_zoom_out.setAccessibleName("Zoom out")
 		self._btn_zoom_out.clicked.connect(self.zoom_out_clicked.emit)
 		layout.addWidget(self._btn_zoom_out)
 
 		# percentage label
 		self._label = PySide6.QtWidgets.QLabel("100%")
+		self._label.setObjectName("current-zoom-percentage")
 		self._label.setMinimumWidth(48)
+		self._label.setAccessibleName("Current zoom percentage")
 		self._label.setAlignment(
 			PySide6.QtCore.Qt.AlignmentFlag.AlignCenter
 		)
@@ -69,26 +73,38 @@ class ZoomControls(PySide6.QtWidgets.QWidget):
 
 		# zoom in button
 		self._btn_zoom_in = PySide6.QtWidgets.QPushButton("+")
+		self._btn_zoom_in.setObjectName("zoom-in")
 		self._btn_zoom_in.setFixedWidth(28)
 		self._btn_zoom_in.setToolTip("Zoom in")
+		self._btn_zoom_in.setAccessibleName("Zoom in")
 		self._btn_zoom_in.clicked.connect(self.zoom_in_clicked.emit)
 		layout.addWidget(self._btn_zoom_in)
 
-		# reset button
-		self._btn_reset = PySide6.QtWidgets.QPushButton("100%")
+		# Compact status-bar actions should size to their labels instead of
+		# inheriting QPushButton's dialog-oriented platform minimum width.
+		self._btn_reset = PySide6.QtWidgets.QToolButton()
+		self._btn_reset.setObjectName("reset-zoom")
+		self._btn_reset.setText("100%")
 		self._btn_reset.setToolTip("Reset zoom to 100%")
+		self._btn_reset.setAccessibleName("Reset zoom")
 		self._btn_reset.clicked.connect(self.reset_zoom_clicked.emit)
 		layout.addWidget(self._btn_reset)
 
 		# page button (zoom to fit paper)
-		self._btn_fit = PySide6.QtWidgets.QPushButton("Page")
+		self._btn_fit = PySide6.QtWidgets.QToolButton()
+		self._btn_fit.setObjectName("zoom-to-page")
+		self._btn_fit.setText("Page")
 		self._btn_fit.setToolTip("Zoom to page")
+		self._btn_fit.setAccessibleName("Zoom to page")
 		self._btn_fit.clicked.connect(self.zoom_to_fit_clicked.emit)
 		layout.addWidget(self._btn_fit)
 
 		# content button
-		self._btn_content = PySide6.QtWidgets.QPushButton("Content")
+		self._btn_content = PySide6.QtWidgets.QToolButton()
+		self._btn_content.setObjectName("zoom-to-page-content")
+		self._btn_content.setText("Content")
 		self._btn_content.setToolTip("Zoom to page content")
+		self._btn_content.setAccessibleName("Zoom to page content")
 		self._btn_content.clicked.connect(
 			self.zoom_to_content_clicked.emit
 		)
@@ -98,11 +114,20 @@ class ZoomControls(PySide6.QtWidgets.QWidget):
 		self._slider = PySide6.QtWidgets.QSlider(
 			PySide6.QtCore.Qt.Orientation.Horizontal
 		)
+		self._slider.setObjectName("zoom-percentage-slider")
 		self._slider.setRange(SLIDER_MIN, SLIDER_MAX)
 		self._slider.setSingleStep(SLIDER_STEP)
 		self._slider.setValue(SLIDER_DEFAULT)
-		self._slider.setFixedWidth(120)
+		# A slider remains available at every supported window width.  Its
+		# useful range is preserved while its track yields the excess width.
+		self._slider.setMinimumWidth(48)
+		self._slider.setMaximumWidth(120)
+		self._slider.setSizePolicy(
+			PySide6.QtWidgets.QSizePolicy.Policy.MinimumExpanding,
+			PySide6.QtWidgets.QSizePolicy.Policy.Fixed,
+		)
 		self._slider.setToolTip("Drag to zoom")
+		self._slider.setAccessibleName("Zoom percentage slider")
 		self._slider.valueChanged.connect(self._on_slider_changed)
 		layout.addWidget(self._slider)
 

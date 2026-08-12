@@ -415,20 +415,98 @@ def test_set_zoom_percent(main_window: object) -> None:
 
 #============================================
 def test_zoom_controls_widget_exists(main_window: object) -> None:
-	"""MainWindow has a _zoom_controls attribute that is a ZoomControls."""
-	assert hasattr(main_window, "_zoom_controls")
-	assert isinstance(
-		main_window._zoom_controls,
+	"""The production status bar contains the reusable zoom interaction."""
+	zoom_controls = main_window.statusBar().findChild(
 		bkchem_qt.widgets.zoom_controls.ZoomControls,
 	)
+	assert isinstance(zoom_controls, bkchem_qt.widgets.zoom_controls.ZoomControls)
 
 
 #============================================
 def test_zoom_controls_label_updates(main_window: object) -> None:
 	"""After zooming in, the zoom controls label no longer reads 100%."""
 	main_window.on_zoom_in()
-	label_text = main_window._zoom_controls._label.text()
+	label = main_window.statusBar().findChild(
+		PySide6.QtWidgets.QLabel, "current-zoom-percentage",
+	)
+	if label is None:
+		raise AssertionError("The current zoom percentage readout is missing.")
+	label_text = label.text()
 	assert label_text != "100%"
+
+
+#============================================
+def _visible_inside(
+		widget: PySide6.QtWidgets.QWidget,
+		container: PySide6.QtWidgets.QWidget,
+		) -> bool:
+	"""Return whether a visible status control fits inside its bar."""
+	widget_rect = PySide6.QtCore.QRect(
+		widget.mapToGlobal(PySide6.QtCore.QPoint()), widget.size()
+	)
+	container_rect = PySide6.QtCore.QRect(
+		container.mapToGlobal(PySide6.QtCore.QPoint()), container.size()
+	)
+	return widget.isVisible() and container_rect.contains(widget_rect)
+
+
+#============================================
+@pytest.mark.parametrize("width", (640, 1024, 1280))
+def test_status_and_zoom_controls_remain_reachable_at_desktop_widths(
+		width: int, main_window: object,
+		) -> None:
+	"""Keep every status and zoom task reachable in the production window."""
+	status_bar = main_window.statusBar()
+	zoom_controls = status_bar.findChild(
+		bkchem_qt.widgets.zoom_controls.ZoomControls,
+	)
+	if zoom_controls is None:
+		raise AssertionError("The production status bar has no zoom controls.")
+	status_bar.set_context_message(
+		"Choose a tool, then click or drag on the drawing canvas."
+	)
+	original_size = main_window.size()
+	try:
+		main_window.resize(width, 480)
+		main_window.show()
+		_flush_events()
+
+		assert main_window.width() == width
+		assert status_bar.visible_message
+		for object_name in ("cursor-coordinates", "active-editing-mode"):
+			readout = status_bar.findChild(
+				PySide6.QtWidgets.QLabel, object_name,
+			)
+			if readout is None:
+				raise AssertionError(f"The {object_name} readout is missing.")
+			assert _visible_inside(readout, status_bar)
+		for object_name in (
+			"zoom-out", "zoom-in", "reset-zoom", "zoom-to-page",
+			"zoom-to-page-content", "zoom-percentage-slider",
+		):
+			control = zoom_controls.findChild(
+				PySide6.QtWidgets.QWidget, object_name,
+			)
+			if control is None:
+				raise AssertionError(f"The {object_name} control is missing.")
+			assert _visible_inside(control, status_bar)
+			assert control.focusPolicy() != PySide6.QtCore.Qt.FocusPolicy.NoFocus
+	finally:
+		main_window.resize(original_size)
+		_flush_events()
+
+
+#============================================
+def test_zoom_control_accessible_names_describe_every_action() -> None:
+	"""Expose unambiguous names for keyboard and assistive-technology users."""
+	zoom_controls = bkchem_qt.widgets.zoom_controls.ZoomControls()
+	for object_name in ("reset-zoom", "zoom-to-page", "zoom-to-page-content"):
+		control = zoom_controls.findChild(
+			PySide6.QtWidgets.QWidget, object_name,
+		)
+		if control is None:
+			raise AssertionError(f"The {object_name} control is missing.")
+		assert control.accessibleName()
 
 
 #============================================

@@ -16,14 +16,17 @@ from oasa.render_lib.data_types import make_attach_constraints
 from oasa.render_lib.data_types import make_box_target
 from oasa.render_lib.data_types import make_circle_target
 from oasa.render_lib.data_types import make_composite_target
+from oasa.render_lib.data_types import make_segment_target
 from oasa.render_lib.attach_resolution import _correct_endpoint_for_alignment
 from oasa.render_lib.attach_resolution import _min_distance_point_to_target_boundary
 from oasa.render_lib.attach_resolution import _perpendicular_distance_to_line
 from oasa.render_lib.attach_resolution import _retreat_to_target_gap
+from oasa.render_lib.attach_resolution import resolve_attach_endpoint
 from oasa.render_lib.bond_ops import _avoid_cross_label_overlaps
 from oasa.render_lib.bond_ops import _clip_to_target
 from oasa.render_lib.bond_ops import _resolve_endpoint_with_constraints
 from oasa.render_lib.bond_ops import build_bond_ops
+from oasa.render_lib.label_geometry import connector_constraints_from_direction
 
 
 #============================================
@@ -599,6 +602,71 @@ def test_make_attach_constraints_passthrough_fields() -> None:
 	assert constraints.direction_policy == "line"
 	assert constraints.alignment_center == center
 	assert constraints.alignment_tolerance == 0.5
+
+
+#============================================
+def test_axis_lock_normalizes_legacy_flag_and_falls_back_when_unreachable() -> None:
+	"""A shared vertical intent locks only targets whose projected span contains it."""
+	box = make_box_target((0.0, 0.0, 10.0, 10.0))
+	locked = resolve_attach_endpoint(
+		bond_start=(5.0, -8.0),
+		target=box,
+		constraints=AttachConstraints(vertical_lock=True),
+	)
+	assert locked == pytest.approx((5.0, 0.0))
+	fallback = resolve_attach_endpoint(
+		bond_start=(14.0, -8.0),
+		target=box,
+		constraints=AttachConstraints(axis_lock="vertical", direction_policy="line"),
+	)
+	assert fallback[0] != pytest.approx(14.0)
+	assert 0.0 <= fallback[0] <= 10.0
+	assert 0.0 <= fallback[1] <= 10.0
+
+
+#============================================
+def test_axis_lock_uses_same_possible_or_fallback_rule_for_circle_and_segment() -> None:
+	"""Circle and segment targets share the box axis-lock feasibility contract."""
+	circle = make_circle_target((0.0, 0.0), 5.0)
+	segment = make_segment_target((0.0, 0.0), (10.0, 10.0))
+	constraints = AttachConstraints(axis_lock="vertical", direction_policy="line")
+	circle_locked = resolve_attach_endpoint(
+		bond_start=(3.0, -8.0), target=circle, constraints=constraints,
+	)
+	assert circle_locked[0] == pytest.approx(3.0)
+	circle_fallback = resolve_attach_endpoint(
+		bond_start=(8.0, -8.0), target=circle, constraints=constraints,
+	)
+	assert circle_fallback[0] != pytest.approx(8.0)
+	segment_locked = resolve_attach_endpoint(
+		bond_start=(5.0, -8.0), target=segment, constraints=constraints,
+	)
+	assert segment_locked == pytest.approx((5.0, 5.0))
+	segment_fallback = resolve_attach_endpoint(
+		bond_start=(14.0, -8.0), target=segment, constraints=constraints,
+	)
+	assert segment_fallback != pytest.approx((14.0, 10.0))
+
+
+#============================================
+def test_lattice_connector_intent_is_explicit_and_ordinary_labels_can_reuse_it() -> None:
+	"""Shared 60-degree intent differs from a free ray and retains a legal gap."""
+	target = make_box_target((8.0, -2.0, 12.0, 12.0))
+	start = (0.0, 0.0)
+	free = resolve_attach_endpoint(
+		bond_start=start,
+		target=target,
+		constraints=AttachConstraints(direction_policy="line"),
+	)
+	lattice_constraints = connector_constraints_from_direction((1.0, 0.4), 12.0)
+	lattice = resolve_attach_endpoint(
+		bond_start=start,
+		target=target,
+		constraints=lattice_constraints,
+	)
+	assert lattice != pytest.approx(free)
+	assert lattice[1] == pytest.approx(0.0)
+	assert lattice_constraints.canonical_angle_step == pytest.approx(60.0)
 
 
 #============================================

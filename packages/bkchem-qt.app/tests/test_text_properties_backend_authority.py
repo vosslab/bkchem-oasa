@@ -4,6 +4,7 @@
 import gc
 
 # PIP3 modules
+import PySide6.QtGui
 import PySide6.QtWidgets
 import pytest
 import shiboken6
@@ -22,7 +23,8 @@ import bkchem_qt.models.projection_lifecycle
 
 _CDML = (
 	'<cdml version="26.07"><molecule id="m1"><atom id="a1" name="C">'
-	'<point x="1cm" y="1cm"/></atom></molecule><text id="text1" keep="yes">'
+	'<point x="1cm" y="1cm"/></atom></molecule>'
+	'<text id="text1" background-color="#DDEEFF" keep="yes">'
 	'<point x="3cm" y="4cm"/><font family="Arial" size="13" color="#112233" '
 	'keep="font"/><ftext>  Original label  </ftext></text></cdml>'
 )
@@ -64,7 +66,9 @@ def _selected_text_ids(session: object) -> set[str]:
 
 
 #============================================
-def _text_facts(cdml_text: str) -> tuple[str, tuple[str, str, str], tuple[str, str]]:
+def _text_facts(
+		cdml_text: str,
+		) -> tuple[str, tuple[str, str, str], tuple[str, str], str]:
 	"""Read durable Text content and properties through hardened CDML helpers."""
 	accepted = oasa.cdml_document.CDMLDocument.parse(cdml_text, validation="compat")
 	document = oasa.safe_xml.parse_dom_from_string(accepted.serialize())
@@ -93,6 +97,7 @@ def _text_facts(cdml_text: str) -> tuple[str, tuple[str, str, str], tuple[str, s
 			plain,
 			(font.getAttribute("family"), font.getAttribute("size"), font.getAttribute("color")),
 			(element.getAttribute("keep"), font.getAttribute("keep")),
+			element.getAttribute("background-color"),
 		)
 	raise AssertionError("Accepted CDML has no durable Text target")
 
@@ -100,17 +105,11 @@ def _text_facts(cdml_text: str) -> tuple[str, tuple[str, str, str], tuple[str, s
 #============================================
 def _accept_text_changes(
 		monkeypatch: pytest.MonkeyPatch, changes: tuple[tuple[str, object], ...],
-		observed: list[tuple[str, str, int, str]] | None = None,
 		activate: object | None = None,
 		) -> None:
 	"""Make TextDialog expose its public values and accept immutable intent."""
-	def accept(dialog: object) -> int:
-		"""Observe initialized values and optionally change the active tab."""
-		if observed is not None:
-			observed.append((
-				dialog.get_text(), dialog.get_font_family(),
-				dialog.get_font_size(), dialog.get_font_color(),
-			))
+	def accept(_dialog: object) -> int:
+		"""Optionally change the active tab before accepting detached intent."""
 		if callable(activate):
 			activate()
 		return PySide6.QtWidgets.QDialog.DialogCode.Accepted
@@ -124,51 +123,48 @@ def _accept_text_changes(
 
 
 #============================================
-def test_text_dialog_reports_only_values_changed_after_widget_initialization(
-		qapp: PySide6.QtWidgets.QApplication,
-		) -> None:
-	"""Qt normalization is baseline state; a user edit reports only its field."""
-	dialog = bkchem_qt.dialogs.text_dialog.TextDialog(
-		"Initial", 999, font_family="Definitely Missing BKChem Test Font",
-	)
-	try:
-		untouched = dialog.changes()
-		dialog._text_edit.setPlainText("Changed")
-
-		assert untouched == ()
-		assert dialog.changes() == (("text", "Changed"),)
-	finally:
-		assert bkchem_qt.main_window.delete_qobject_and_wait(qapp, dialog)
-
-
-#============================================
-def test_object_configure_projects_authoritative_text_values_and_selection(
+def test_object_configure_commits_and_projects_text_background(
 		main_window: bkchem_qt.main_window.MainWindow,
 		monkeypatch: pytest.MonkeyPatch,
 		) -> None:
-	"""Public Configure submits dialog values and selects the fresh Text wrapper."""
+	"""Public Configure commits and projects one Text background change."""
 	session = _install_native_session(main_window)
-	observed = []
 	try:
-		old_document = session.document
-		old_item = _text_item(session)
-		old_item.setSelected(True)
-		_accept_text_changes(monkeypatch, (
-			("text", "Configured label"), ("font_family", "Courier"),
-			("font_size", 20), ("font_color", "#AABBCC"),
-		), observed)
+		_text_item(session).setSelected(True)
+		_accept_text_changes(monkeypatch, (("background_color", "#445566"),))
 		bkchem_qt.actions.object_actions.handle_configure(main_window)
-		# The accepted candidate has returned.  Its projection survives collection
-		# because the installed Document owns active graphics wrappers explicitly.
-		gc.collect()
 		facts = _text_facts(session.backend_snapshot.cdml)
 		current_text = _text_item(session)
 
-		assert observed == [("  Original label  ", "Arial", 13, "#112233")]
+		assert facts[3] == "#445566"
 		assert (
-			facts == ("Configured label", ("Courier", "20", "#aabbcc"), ("yes", "font"))
-			and session.document is not old_document and current_text is not old_item
+			current_text.background_color == PySide6.QtGui.QColor("#445566")
 			and _selected_text_ids(session) == {"text1"}
+		)
+	finally:
+		if session in main_window.sessions:
+			main_window._remove_session(session)
+
+
+#============================================
+def test_double_click_plain_text_uses_the_shared_configure_route(
+		main_window: bkchem_qt.main_window.MainWindow,
+		monkeypatch: pytest.MonkeyPatch,
+		) -> None:
+	"""A direct plain Text edit patches its original root exactly once."""
+	session = _install_native_session(main_window)
+	try:
+		item = _text_item(session)
+		before_revision = session.backend_snapshot.revision
+		_accept_text_changes(monkeypatch, (("text", "Direct label"),))
+		session.mode_manager.set_mode("edit")
+		session.mode_manager.current_mode.mouse_double_click(item.scenePos(), None)
+		facts = _text_facts(session.backend_snapshot.cdml)
+
+		assert (
+			session.backend_snapshot.revision == before_revision + 1
+			and facts[0] == "Direct label"
+			and session.backend_snapshot.cdml.count('<text id="text1"') == 1
 		)
 	finally:
 		if session in main_window.sessions:

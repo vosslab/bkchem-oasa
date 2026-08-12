@@ -18,12 +18,13 @@ class TextDialog(PySide6.QtWidgets.QDialog):
 		parent: Optional parent widget.
 		font_family: Initial font-family name.
 		font_color: Initial six-digit hexadecimal font color.
+		background_color: Optional annotation background color.
 	"""
 
 	#============================================
 	def __init__(self, text: str = "", font_size: int = 12,
 			parent: object | None = None, font_family: str = "Arial",
-			font_color: str = "#000000") -> None:
+			font_color: str = "#000000", background_color: str | None = None) -> None:
 		"""Initialize the text dialog.
 
 		Args:
@@ -32,9 +33,14 @@ class TextDialog(PySide6.QtWidgets.QDialog):
 			parent: Optional parent widget.
 			font_family: Initial font-family name.
 			font_color: Initial six-digit hexadecimal font color.
+			background_color: Optional annotation background color.
 		"""
 		super().__init__(parent)
-		self._color = font_color.lower()
+		self._color = PySide6.QtGui.QColor(font_color).name()
+		self._background_color = PySide6.QtGui.QColor(
+			background_color or "#ffffff",
+		).name()
+		self._background_enabled = background_color is not None
 		self.setWindowTitle("Text Annotation")
 		self.setMinimumWidth(350)
 		self.setMinimumHeight(250)
@@ -72,12 +78,28 @@ class TextDialog(PySide6.QtWidgets.QDialog):
 		self._font_combo.setCurrentFont(PySide6.QtGui.QFont("Arial"))
 		form.addRow("Font family:", self._font_combo)
 
-		# color button
+		# foreground color button
 		self._color_button = PySide6.QtWidgets.QPushButton()
-		self._color_button.setFixedHeight(24)
+		self._color_button.setMinimumHeight(28)
+		self._color_button.setAccessibleName("Text color")
+		self._color_button.setToolTip("Choose the annotation text color")
 		self._color_button.clicked.connect(self._pick_color)
 		self._update_color_button()
-		form.addRow("Color:", self._color_button)
+		form.addRow("Text color:", self._color_button)
+
+		self._background_check = PySide6.QtWidgets.QCheckBox("Fill background")
+		self._background_check.setChecked(self._background_enabled)
+		self._background_check.setAccessibleName("Fill Text background")
+		self._background_check.toggled.connect(self._set_background_enabled)
+		form.addRow("Background:", self._background_check)
+		self._background_button = PySide6.QtWidgets.QPushButton()
+		self._background_button.setMinimumHeight(28)
+		self._background_button.setAccessibleName("Text background color")
+		self._background_button.setToolTip("Choose the annotation background color")
+		self._background_button.clicked.connect(self._pick_background_color)
+		form.addRow("Background color:", self._background_button)
+		self._set_background_enabled(self._background_enabled)
+		self._update_color_button()
 
 		layout.addLayout(form)
 
@@ -86,6 +108,7 @@ class TextDialog(PySide6.QtWidgets.QDialog):
 			PySide6.QtWidgets.QDialogButtonBox.StandardButton.Ok
 			| PySide6.QtWidgets.QDialogButtonBox.StandardButton.Cancel
 		)
+		button_box.button(PySide6.QtWidgets.QDialogButtonBox.StandardButton.Ok).setText("Apply")
 		button_box.accepted.connect(self.accept)
 		button_box.rejected.connect(self.reject)
 		layout.addWidget(button_box)
@@ -101,10 +124,39 @@ class TextDialog(PySide6.QtWidgets.QDialog):
 			self._update_color_button()
 
 	#============================================
+	def _pick_background_color(self) -> None:
+		"""Choose one optional annotation background color."""
+		color = PySide6.QtWidgets.QColorDialog.getColor(
+			PySide6.QtGui.QColor(self._background_color), self, "Text Background Color",
+		)
+		if color.isValid():
+			self._background_color = color.name()
+			self._update_color_button()
+
+	#============================================
+	def _set_background_enabled(self, enabled: bool) -> None:
+		"""Enable color choice only while Fill background is active."""
+		self._background_enabled = enabled
+		if hasattr(self, "_background_button"):
+			self._background_button.setEnabled(enabled)
+
+	#============================================
 	def _update_color_button(self) -> None:
-		"""Set the color button background to the currently selected color."""
-		self._color_button.setStyleSheet(
-			f"background-color: {self._color}; border: 1px solid #888;"
+		"""Show selected colors as readable text and background swatches."""
+		self._style_color_button(self._color_button, self._color)
+		if hasattr(self, "_background_button"):
+			self._style_color_button(self._background_button, self._background_color)
+
+	#============================================
+	def _style_color_button(self, button: object, color: str) -> None:
+		"""Style one color picker with a contrasting textual value."""
+		button.setText(color)
+		foreground = (
+			"#ffffff" if PySide6.QtGui.QColor(color).lightness() < 128 else "#000000"
+		)
+		button.setStyleSheet(
+			f"background-color: {color}; color: {foreground}; "
+			"border: 1px solid #888;",
 		)
 
 	#============================================
@@ -136,6 +188,13 @@ class TextDialog(PySide6.QtWidgets.QDialog):
 		return self._color
 
 	#============================================
+	def get_background_color(self) -> str | None:
+		"""Return the selected background or explicit transparent intent."""
+		if not self._background_enabled:
+			return None
+		return self._background_color
+
+	#============================================
 	def get_values(self) -> dict[str, object]:
 		"""Return every current plain Text property value."""
 		values = {
@@ -143,6 +202,7 @@ class TextDialog(PySide6.QtWidgets.QDialog):
 			"font_family": self.get_font_family(),
 			"font_size": self.get_font_size(),
 			"font_color": self.get_font_color(),
+			"background_color": self.get_background_color(),
 		}
 		return values
 

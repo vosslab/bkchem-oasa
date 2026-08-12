@@ -29,6 +29,7 @@ from oasa.render_lib.data_types import ATTACH_GAP_TARGET
 from oasa.render_lib.data_types import AttachConstraints
 from oasa.render_lib.data_types import LabelAttachContract
 from oasa.render_lib.data_types import LabelAttachPolicy
+from oasa.render_lib.data_types import make_attach_constraints
 from oasa.render_lib.data_types import _normalize_attach_site
 from oasa.render_lib.data_types import _normalize_element_symbol
 from oasa.render_lib.data_types import make_box_target
@@ -52,6 +53,71 @@ def vertex_is_shown(vertex: object) -> object:
 	if vertex.properties_.get("label"):
 		return True
 	return vertex.symbol != "C" or vertex.charge != 0 or vertex.multiplicity != 1
+
+
+#============================================
+def connector_constraints_from_direction(
+		direction: tuple[float, float],
+		font_size: float,
+		target_gap: float = ATTACH_GAP_TARGET) -> AttachConstraints:
+	"""Build shared connector intent from one caller-provided direction.
+
+	A vertical intent is used only for a genuinely vertical direction. Other
+	directions use the 60-degree schematic lattice. The resolver may fall back
+	to an ordinary directional intersection when a locked axis cannot reach its
+	target, so this function never encodes target-specific placement policy.
+	"""
+	dx, dy = direction
+	if abs(dx) <= 1e-9 and abs(dy) > 1e-9:
+		constraints = make_attach_constraints(
+			font_size=font_size,
+			target_gap=target_gap,
+			axis_lock="vertical",
+			direction_policy="line",
+		)
+		return constraints
+	constraints = make_attach_constraints(
+		font_size=font_size,
+		target_gap=target_gap,
+		canonical_angle_step=60.0,
+		direction_policy="line",
+	)
+	return constraints
+
+
+#============================================
+def align_text_origin_to_attach_centerline(
+		text_x: float,
+		text_y: float,
+		text: str,
+		anchor: str,
+		font_size: float,
+		target_center_x: float,
+		attach_atom: str | None = None,
+		attach_element: str | None = None,
+		attach_site: str | None = None,
+		chain_attach_site: str = "core_center",
+		font_name: str = "sans-serif") -> tuple[float, float]:
+	"""Align a label's attachment centerline to a caller-provided x coordinate.
+
+	Both candidate selection and painting use this geometry-only transform, so a
+	chooser never evaluates a different label position from the one rendered.
+	"""
+	attach_contract = label_attach_contract_from_text_origin(
+		text_x=text_x,
+		text_y=text_y,
+		text=text,
+		anchor=anchor,
+		font_size=font_size,
+		line_width=0.0,
+		attach_atom=attach_atom,
+		attach_element=attach_element,
+		attach_site=attach_site,
+		chain_attach_site=chain_attach_site,
+		font_name=font_name,
+	)
+	center_x, _center_y = attach_contract.attach_target.centroid()
+	return (text_x + (target_center_x - center_x), text_y)
 
 
 #============================================

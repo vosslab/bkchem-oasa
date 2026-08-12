@@ -19,6 +19,7 @@ import oasa.render_lib.data_types
 
 import bkchem_qt.bridge.oasa_bridge
 import bkchem_qt.models.document
+import bkchem_qt.models.bracket_pair_selection
 import bkchem_qt.models.document_object
 import bkchem_qt.models.fragment_model
 import bkchem_qt.models.group_model
@@ -291,8 +292,7 @@ def decode_compatibility_cdml_string(
 		) -> bkchem_qt.models.document.Document:
 	"""Decode standalone or legacy CDML through the local compatibility route."""
 	return _hydrate_cdml_document(
-		text, bond_length_pt, preserve_coordinates, True,
-		None, None, None, None, None, None, None,
+		text, bond_length_pt, preserve_coordinates,
 	)
 
 
@@ -300,36 +300,121 @@ def decode_compatibility_cdml_string(
 def hydrate_synchronized_cdml_document(
 		projection_snapshot: oasa.cdml_document.CDMLProjectionSnapshot,
 		) -> bkchem_qt.models.document.Document:
-	"""Hydrate a Qt document from all facts of one authoritative revision."""
+	"""Hydrate a Qt document from one backend plan without parsing CDML."""
 	if type(projection_snapshot) is not oasa.cdml_document.CDMLProjectionSnapshot:
 		raise ValueError("synchronized hydration requires one backend projection envelope")
+	plan = projection_snapshot.plan
+	if type(plan) is not oasa.cdml_document.CDMLProjectionPlan:
+		raise ValueError("synchronized hydration requires one backend projection plan")
+	if plan.revision != projection_snapshot.snapshot.revision:
+		raise ValueError("synchronized projection plan revision must match its snapshot")
 	_require_complete_molecule_render_batches(
-		projection_snapshot.molecule_core_observation,
-		projection_snapshot.molecule_render_observation,
+		plan.molecule_core_observation, plan.molecule_render_observation,
 	)
-	return _hydrate_cdml_document(
-		projection_snapshot.snapshot.cdml, None, True, False,
-		projection_snapshot.presentation_description, projection_snapshot.paper_layout,
-		projection_snapshot.fragment_metadata, projection_snapshot.atom_mark_observation,
-		projection_snapshot.group_observation, projection_snapshot.molecule_core_observation,
-		projection_snapshot.molecule_render_observation,
+	return _hydrate_synchronized_projection_plan(plan)
+
+
+#============================================
+def _hydrate_synchronized_projection_plan(
+		plan: oasa.cdml_document.CDMLProjectionPlan,
+		) -> bkchem_qt.models.document.Document:
+	"""Build disposable Qt wrappers from one immutable OASA projection plan."""
+	document = bkchem_qt.models.document.Document()
+	state = {"unsupported": []}
+	presentation_by_position = {
+		record.source_position: record for record in plan.presentation_description.records
+	}
+	presentation_issues = {}
+	for issue in plan.presentation_description.issues:
+		presentation_issues.setdefault(issue.source_position, []).append(issue)
+	fragments_by_molecule = {}
+	for record in plan.fragment_metadata.records:
+		fragments_by_molecule.setdefault(record.molecule_source_position, []).append(record)
+	groups_by_molecule = {}
+	for record in plan.group_observation.records:
+		groups_by_molecule.setdefault(record.molecule_source_position, []).append(record)
+	marks_by_molecule = {}
+	for record in plan.atom_mark_observation.records:
+		marks_by_molecule.setdefault(record.molecule_source_position, []).append(record)
+	core_by_position = {
+		record.source_position: record for record in plan.molecule_core_observation.records
+	}
+	core_issues = {}
+	for issue in plan.molecule_core_observation.issues:
+		core_issues.setdefault(issue.molecule_source_position, []).append(issue)
+	render_by_molecule = {}
+	for batch in plan.molecule_render_observation.batches:
+		render_by_molecule.setdefault(batch.molecule_source_position, []).append(batch)
+
+	for root in plan.roots:
+		for issue in presentation_issues.get(root.source_position, ()):
+			state["unsupported"].append(_unsupported_from_presentation_issue(issue))
+		if root.tag == "molecule":
+			for issue in core_issues.get(root.source_position, ()):
+				state["unsupported"].append(bkchem_qt.models.document_object.UnsupportedContent(
+					issue.kind, None, "/cdml/molecule[%d]/%s[%d]" % (
+						root.source_position, issue.kind, issue.source_position,
+					), issue.reason, "",
+				))
+			core = core_by_position.get(root.source_position)
+			if core is None:
+				state["unsupported"].append(bkchem_qt.models.document_object.UnsupportedContent(
+					"molecule", root.identifier,
+					"/cdml/molecule[%d]" % root.source_position,
+					root.reason or "molecule could not be projected", "",
+				))
+				continue
+			molecule = _hydrate_molecule_core_observation(core)
+			_install_molecule_render_batches(
+				molecule, render_by_molecule.get(root.source_position, ()),
+			)
+			_hydrate_fragment_metadata(
+				molecule, fragments_by_molecule.get(root.source_position, ()),
+			)
+			_hydrate_group_observation(
+				molecule, state["unsupported"], root.source_position,
+				groups_by_molecule.get(root.source_position, ()),
+			)
+			document.add_molecule(molecule, mark_dirty=False)
+			_hydrate_atom_mark_observation(
+				document, _core_atoms_by_source_position(molecule), state["unsupported"],
+				root.source_position, marks_by_molecule.get(root.source_position, ()),
+			)
+			continue
+		if root.tag in _DRAWING_TAGS:
+			record = presentation_by_position.get(root.source_position)
+			if record is not None:
+				document.add_presentation_object(
+					_presentation_from_description(record), mark_dirty=False,
+				)
+
+	paper = bkchem_qt.models.document_object.PaperModel(
+		attributes=dict(plan.paper_layout.effective_paper_attributes),
+		viewport_attributes=dict(plan.paper_layout.viewport_attributes),
 	)
+	document.set_cdml_state(
+		bkchem_qt.models.document_object.CdmlEnvelope(), paper, state["unsupported"],
+	)
+	bkchem_qt.models.bracket_pair_selection.set_facts(document, tuple(
+		(
+			record.pair_id, tuple(record.member_ids), record.style,
+			record.line_width, record.line_color,
+		)
+		for record in plan.presentation_description.bracket_pairs
+	))
+	document.mark_clean()
+	return document
 
 
 #============================================
 def _hydrate_cdml_document(
 		text: str, bond_length_pt: float | None, preserve_coordinates: bool,
-		compatibility_mode: bool,
-		presentation_description: oasa.cdml_document.CDMLPresentationDescription | None,
-		paper_layout: oasa.cdml_document.CDMLPaperLayout | None,
-		fragment_metadata: oasa.cdml_document.CDMLFragmentMetadata | None,
-		atom_mark_observation: oasa.cdml_document.CDMLAtomMarkObservation | None,
-		group_observation: oasa.cdml_document.CDMLGroupObservation | None,
-		molecule_core_observation: oasa.cdml_document.CDMLMoleculeCoreObservation | None,
-		molecule_render_observation: oasa.cdml_document.CDMLMoleculeRenderObservation | None,
 		) -> bkchem_qt.models.document.Document:
-	"""Associate source positions with either compatibility or synchronized facts."""
-	dom_doc = oasa.safe_xml.parse_dom_from_string(text)
+	"""Decode one compatibility document through the lxml-hardened parser path."""
+	try:
+		dom_doc = oasa.cdml_xml.parse_cdml_dom(text.encode("utf-8"))
+	except (UnicodeError, oasa.cdml_xml.CDMLXMLParseError) as error:
+		raise ValueError(f"CDML compatibility decode failed: {error}") from error
 	root = dom_doc.documentElement
 	if root is None or _local_name(root) != "cdml":
 		raise ValueError("CDML document must have a <cdml> root element")
@@ -344,70 +429,14 @@ def _hydrate_cdml_document(
 		"unsupported": [],
 		"trailing": [],
 	}
-	presentation_by_position = (
-		{record.source_position: record for record in presentation_description.records}
-		if presentation_description is not None else {}
-	)
-	presentation_issues_by_position = {}
-	if presentation_description is not None:
-		for issue in presentation_description.issues:
-			presentation_issues_by_position.setdefault(issue.source_position, []).append(issue)
-	fragment_records_by_molecule = {}
-	if fragment_metadata is not None:
-		for record in fragment_metadata.records:
-			fragment_records_by_molecule.setdefault(
-				record.molecule_source_position, [],
-			).append(record)
-	mark_records_by_position = {}
-	if atom_mark_observation is not None:
-		for record in atom_mark_observation.records:
-			mark_records_by_position[(
-				record.molecule_source_position, record.atom_source_position,
-				record.mark_source_position,
-			)] = record
-	group_records_by_position = {}
-	if group_observation is not None:
-		for record in group_observation.records:
-			group_records_by_position[(record.molecule_source_position, record.group_source_position)] = record
-	molecule_core_by_position = {}
-	render_batches_by_molecule = {}
-	if molecule_render_observation is not None:
-		for batch in molecule_render_observation.batches:
-			render_batches_by_molecule.setdefault(batch.molecule_source_position, []).append(batch)
-	molecule_core_issues_by_molecule = {}
-	if molecule_core_observation is not None:
-		for record in molecule_core_observation.records:
-			molecule_core_by_position[record.source_position] = record
-		for issue in molecule_core_observation.issues:
-			molecule_core_issues_by_molecule.setdefault(issue.molecule_source_position, []).append(issue)
-
 	for child_position, child in enumerate(_element_children(root), start=1):
 		tag = _local_name(child)
-		for issue in presentation_issues_by_position.get(child_position, ()):
-			state["unsupported"].append(_unsupported_from_presentation_issue(issue))
 		if tag in _HEADER_TAGS and _is_direct_core_cdml_child(child):
-			if paper_layout is not None:
-				continue
 			header = _raw_xml(child)
 			header_elements[tag].append(header)
 			continue
 		if tag == "molecule":
-			for issue in molecule_core_issues_by_molecule.get(child_position, ()):
-				state["unsupported"].append(bkchem_qt.models.document_object.UnsupportedContent(
-					issue.kind, None, "/cdml/molecule[%d]/%s[%d]" % (
-						child_position, issue.kind, issue.source_position,
-					), issue.reason, "",
-				))
-			core_record = molecule_core_by_position.get(child_position)
-			mol_model = (
-				_hydrate_molecule_core_observation(core_record)
-				if core_record is not None else (
-					_decode_compatibility_molecule(child, bond_length_pt, preserve_coordinates)
-					if compatibility_mode else None
-				)
-			)
-			if core_record is not None and molecule_render_observation is not None:
-				_install_molecule_render_batches(mol_model, render_batches_by_molecule.get(child_position, ()))
+			mol_model = _decode_compatibility_molecule(child, bond_length_pt, preserve_coordinates)
 			if mol_model is None:
 				unsupported = _unsupported(
 						child, "molecule could not be decoded",
@@ -425,67 +454,32 @@ def _hydrate_cdml_document(
 			# Import into a detached DOM so inherited namespace declarations stay
 			# on the retained fragment instead of being stripped against ``root``.
 			source_el = _import_raw(dom.Document(), _raw_xml(child))
-			if core_record is None:
-				_normalize_loaded_source_ids(mol_model, source_el)
-				_load_atom_number_fields(mol_model, source_el)
-			if compatibility_mode:
-				mol_model.compatibility_source_xml = _raw_xml(source_el)
-			if fragment_metadata is None:
-				_parse_fragments(mol_model, source_el, state["unsupported"], child_position)
-			else:
-				_hydrate_fragment_metadata(
-					mol_model, fragment_records_by_molecule.get(child_position, ()),
-				)
-			if group_observation is None:
-				_parse_groups(mol_model, source_el, state["unsupported"], child_position)
-			else:
-				_hydrate_group_observation(
-					mol_model, source_el, state["unsupported"], child_position,
-					group_records_by_position,
-				)
+			_normalize_loaded_source_ids(mol_model, source_el)
+			_load_atom_number_fields(mol_model, source_el)
+			mol_model.compatibility_source_xml = _raw_xml(source_el)
+			_parse_fragments(mol_model, source_el, state["unsupported"], child_position)
+			_parse_groups(mol_model, source_el, state["unsupported"], child_position)
 			document.add_molecule(mol_model, mark_dirty=False)
 			atom_lookup: dict[str, object] = {}
 			for atom_model in mol_model.atoms:
 				atom_id = atom_model.atom_id
 				if atom_id:
 					atom_lookup[str(atom_id)] = atom_model
-			if atom_mark_observation is None:
-				_parse_marks(
-						document, source_el, atom_lookup, state["unsupported"], child_position,
-						)
-			else:
-				_hydrate_atom_mark_observation(
-					document, source_el, _core_atoms_by_source_position(mol_model),
-					state["unsupported"], child_position,
-					mark_records_by_position,
-				)
+			_parse_marks(document, source_el, atom_lookup, state["unsupported"], child_position)
 			_report_unrendered_molecule_children(
 					source_el, state["unsupported"], child_position,
 				)
 			continue
 		if tag in _DRAWING_TAGS:
-			if presentation_description is None:
-				document.add_presentation_object(
-						_presentation(child, supported=True), mark_dirty=False,
-					)
-			else:
-				record = presentation_by_position.get(child_position)
-				if record is not None:
-					document.add_presentation_object(
-							_presentation_from_description(record), mark_dirty=False,
-						)
+			document.add_presentation_object(
+					_presentation(child, supported=True), mark_dirty=False,
+				)
 			continue
 		if tag == "reaction":
-			if paper_layout is not None:
-				continue
 			state["reactions"].append(_reaction(child))
 			continue
 		if tag == "external-data":
-			if paper_layout is not None:
-				continue
 			state["external_data"].append(_raw_xml(child))
-			continue
-		if presentation_description is not None:
 			continue
 		unsupported = _unsupported(
 				child, "unsupported top-level CDML element",
@@ -496,33 +490,26 @@ def _hydrate_cdml_document(
 				_presentation(child, supported=False), mark_dirty=False,
 				)
 
-	if paper_layout is not None:
-		state["paper"] = bkchem_qt.models.document_object.PaperModel(
-			attributes=dict(paper_layout.effective_paper_attributes),
-			viewport_attributes=dict(paper_layout.viewport_attributes),
-		)
-		envelope = bkchem_qt.models.document_object.CdmlEnvelope()
-	else:
-		info_xml = header_elements["info"]
-		metadata_xml = header_elements["metadata"]
-		standard_xml = header_elements["standard"]
-		paper_xml = header_elements["paper"][0] if header_elements["paper"] else None
-		viewport_xml = header_elements["viewport"][0] if header_elements["viewport"] else None
-		paper_el = _import_raw(dom_doc, paper_xml) if paper_xml else None
-		viewport_el = _import_raw(dom_doc, viewport_xml) if viewport_xml else None
-		state["paper"] = bkchem_qt.models.document_object.PaperModel(
+	info_xml = header_elements["info"]
+	metadata_xml = header_elements["metadata"]
+	standard_xml = header_elements["standard"]
+	paper_xml = header_elements["paper"][0] if header_elements["paper"] else None
+	viewport_xml = header_elements["viewport"][0] if header_elements["viewport"] else None
+	paper_el = _import_raw(dom_doc, paper_xml) if paper_xml else None
+	viewport_el = _import_raw(dom_doc, viewport_xml) if viewport_xml else None
+	state["paper"] = bkchem_qt.models.document_object.PaperModel(
 			attributes=_attributes(paper_el), viewport_attributes=_attributes(viewport_el),
 			raw_xml=paper_xml, viewport_raw_xml=viewport_xml,
 		)
-		extra_headers = []
-		for tag in ("paper", "viewport"):
-			extra_headers.extend(header_elements[tag][1:])
-		envelope = bkchem_qt.models.document_object.CdmlEnvelope(
-			root_attributes=_all_attributes(root),
-			info_xml=info_xml, metadata_xml=metadata_xml, standard_xml=standard_xml,
-			extra_header_xml=extra_headers, reactions=state["reactions"],
-			external_data_xml=state["external_data"], trailing_xml=state["trailing"],
-		)
+	extra_headers = []
+	for tag in ("paper", "viewport"):
+		extra_headers.extend(header_elements[tag][1:])
+	envelope = bkchem_qt.models.document_object.CdmlEnvelope(
+		root_attributes=_all_attributes(root),
+		info_xml=info_xml, metadata_xml=metadata_xml, standard_xml=standard_xml,
+		extra_header_xml=extra_headers, reactions=state["reactions"],
+		external_data_xml=state["external_data"], trailing_xml=state["trailing"],
+	)
 	state["envelope"] = envelope
 	document.set_cdml_state(envelope, state["paper"], state["unsupported"])
 	document.mark_clean()
@@ -709,6 +696,7 @@ def _presentation_from_description(
 		font_attributes=dict(record.font_attributes),
 		supported=record.disposition in {"editable", "display-only"},
 		editable=record.disposition == "editable",
+		effective_font_family=record.effective_font_family,
 	)
 
 
@@ -806,40 +794,32 @@ def _parse_marks(
 
 #============================================
 def _hydrate_atom_mark_observation(
-		document: bkchem_qt.models.document.Document, molecule_el: dom.Element,
+		document: bkchem_qt.models.document.Document,
 		atoms_by_source_position: dict[int, object], unsupported: list,
-		molecule_position: int, records_by_position: dict,
+		molecule_position: int,
+		records: tuple[oasa.cdml_document.CDMLAtomMarkObservationRecord, ...] | list,
 		) -> None:
-	"""Hydrate backend mark facts by their root-scoped source association."""
-	for atom_position, atom_el in enumerate(_element_children(molecule_el), 1):
-		if _local_name(atom_el) != "atom":
-			continue
-		atom_model = atoms_by_source_position.get(atom_position)
-		for mark_position, mark_el in enumerate(list(_element_children(atom_el)), 1):
-			if _local_name(mark_el) != "mark":
-				continue
-			record = records_by_position.get((
-				molecule_position, atom_position, mark_position,
+	"""Hydrate backend mark facts without retaining a source XML element."""
+	for record in records:
+		atom_model = atoms_by_source_position.get(record.atom_source_position)
+		if record.mark_type is not None and atom_model is not None:
+			mark = bkchem_qt.models.document_object.AtomMarkModel(
+				atom_model, {"type": record.mark_type}, raw_xml=None,
+				supported=record.mark_type in _SUPPORTED_MARK_TYPES,
+				matching_mark_index=record.same_type_ordinal,
+				rendering_facts=(
+					record.angle_degrees, record.radial_offset_pt, record.size_pt,
+					record.draw_circle, record.line_width_pt,
+				),
+			)
+			document.add_mark(mark, mark_dirty=False)
+		if record.disposition != "editable":
+			unsupported.append(bkchem_qt.models.document_object.UnsupportedContent(
+				"mark", None,
+				"/cdml/molecule[%d]/atom[%d]/mark[%d]" % (
+					molecule_position, record.atom_source_position, record.mark_source_position,
+				), record.reason or "atom mark is display-only", "",
 			))
-			if record is not None and record.mark_type is not None and atom_model is not None:
-				mark = bkchem_qt.models.document_object.AtomMarkModel(
-					atom_model, {"type": record.mark_type}, raw_xml=None,
-					supported=record.mark_type in _SUPPORTED_MARK_TYPES,
-					matching_mark_index=record.same_type_ordinal,
-					rendering_facts=(
-						record.angle_degrees, record.radial_offset_pt, record.size_pt,
-						record.draw_circle, record.line_width_pt,
-					),
-				)
-				document.add_mark(mark, mark_dirty=False)
-			if record is not None and record.disposition != "editable":
-				unsupported.append(bkchem_qt.models.document_object.UnsupportedContent(
-					"mark", None,
-					"/cdml/molecule[%d]/atom[%d]/mark[%d]" % (
-						molecule_position, atom_position, mark_position,
-					), record.reason or "atom mark is display-only", "",
-				))
-			atom_el.removeChild(mark_el)
 
 
 #============================================
@@ -926,18 +906,12 @@ def _remove_fragment_source_children(molecule_el: dom.Element) -> None:
 
 #============================================
 def _hydrate_group_observation(
-		mol_model: bkchem_qt.models.molecule_model.MoleculeModel,
-		molecule_el: dom.Element, unsupported: list, molecule_position: int,
-		records_by_position: dict,
+		mol_model: bkchem_qt.models.molecule_model.MoleculeModel, unsupported: list,
+		molecule_position: int,
+		records: tuple[oasa.cdml_document.CDMLGroupObservationRecord, ...] | list,
 		) -> None:
-	"""Hydrate groups from OASA facts using only transient source XML."""
-	group_ids = set()
-	for group_position, group_el in enumerate(list(_element_children(molecule_el)), 1):
-		if _local_name(group_el) != "group":
-			continue
-		if group_el.getAttribute("id"):
-			group_ids.add(group_el.getAttribute("id"))
-		record = records_by_position.get((molecule_position, group_position))
+	"""Hydrate groups from OASA facts without retaining source XML."""
+	for record in records:
 		if record is not None and record.x_pt is not None and record.y_pt is not None:
 			font_attributes = tuple((key, value) for key, value in (
 				("family", record.font_family),
@@ -953,15 +927,9 @@ def _hydrate_group_observation(
 		if record is not None and record.disposition != "selectable":
 			unsupported.append(bkchem_qt.models.document_object.UnsupportedContent(
 				"group", None, "/cdml/molecule[%d]/group[%d]" % (
-					molecule_position, group_position,
+					molecule_position, record.group_source_position,
 				), record.reason or "group is display-only", "",
 			))
-		molecule_el.removeChild(group_el)
-	for bond_el in tuple(_element_children(molecule_el)):
-		if _local_name(bond_el) == "bond" and (
-			bond_el.getAttribute("start") in group_ids or bond_el.getAttribute("end") in group_ids
-		):
-			molecule_el.removeChild(bond_el)
 
 
 #============================================

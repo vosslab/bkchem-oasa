@@ -130,7 +130,7 @@ def _installed_origin(module: object, package_name: str) -> str:
 def _arrow_identifier(snapshot: oasa.cdml_document.CDMLSnapshot) -> str:
 	"""Read one durable editable Arrow from backend-owned projection facts."""
 	backend = oasa.cdml_document.CDMLDocumentSession.load(snapshot.cdml)
-	description = backend.projection_snapshot().presentation_description
+	description = backend.projection_snapshot().plan.presentation_description
 	for record in description.records:
 		if record.kind == "arrow" and record.disposition == "editable":
 			if record.identifier is None:

@@ -579,6 +579,14 @@ class polyline( vector_graphics_item, container, line_colored):
                                          ('width', str( self.line_width)),
                                          ('spline', str( int( self.spline))),
                                          ))
+    # Core CDML bracket relationships live on ordinary polylines.  Retain the
+    # live root ID so a retained-Tk save cannot leave their relationship
+    # pointing at an already-replaced source ID.
+    pack.setAttribute( 'id', self.id)
+    if hasattr( self, '_cdml_bracket_pair'):
+      pack.setAttribute( 'bracket_pair', self._cdml_bracket_pair)
+    if hasattr( self, '_cdml_bracket_side'):
+      pack.setAttribute( 'bracket_side', self._cdml_bracket_side)
     for p in self.points:
       pack.appendChild( p.get_package( doc))
     return pack
@@ -586,6 +594,15 @@ class polyline( vector_graphics_item, container, line_colored):
 
   def read_package( self, pack: object) -> object:
     """reads the dom element pack and sets internal state according to it"""
+    # Keep only the explicitly documented bracket relationship facts.  Tk
+    # continues to edit each polyline independently; finalization remaps a
+    # complete marked pair after its normal fresh-ID allocation.
+    if pack.hasAttribute( 'id'):
+      self._cdml_source_id = pack.getAttribute( 'id')
+    if pack.hasAttribute( 'bracket_pair'):
+      self._cdml_bracket_pair = pack.getAttribute( 'bracket_pair')
+    if pack.hasAttribute( 'bracket_side'):
+      self._cdml_bracket_side = pack.getAttribute( 'bracket_side')
     self.points = []
     for p in pack.getElementsByTagName( 'point'):
       self.points.append( classes.point( self.paper, arrow=self, package=p))

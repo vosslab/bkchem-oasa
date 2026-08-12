@@ -12,14 +12,14 @@ import PySide6.QtWidgets
 # local repo modules
 import bkchem_qt.modes.base_mode
 import bkchem_qt.canvas.document_projection
-import bkchem_qt.canvas.items.atom_item
-import bkchem_qt.canvas.items.bond_item
 import bkchem_qt.canvas.items.mark_item
 import bkchem_qt.canvas.graphics_retirement
 from bkchem_qt.canvas.items import render_ops_painter
 import bkchem_qt.undo.commands
 import bkchem_qt.actions.context_menu
 import bkchem_qt.actions.property_editing
+import bkchem_qt.modes.edit_item_interaction
+import bkchem_qt.models.bracket_pair_selection
 
 # minimum drag distance in pixels before a move begins
 _DRAG_THRESHOLD = 3.0
@@ -228,16 +228,22 @@ class EditMode(bkchem_qt.modes.base_mode.BaseMode):
 				self._capture_drag_start_state(clicked_item=item)
 			elif shift_held:
 				# toggle selection on shift-click
-				item.setSelected(not item.isSelected())
+				if not bkchem_qt.models.bracket_pair_selection.toggle_selection(
+						self._env.document, item,
+					):
+					item.setSelected(not item.isSelected())
 			else:
 				# clear selection and select this item
 				scene.clearSelection()
 				item.setSelected(True)
+				bkchem_qt.models.bracket_pair_selection.expand_selection(self._env.document)
 				# prepare for potential drag
 				self._dragging = True
 				self._drag_start = scene_pos
 				self._drag_last = scene_pos
-				self._moved_items = [item]
+				# Pair selection expands before a drag begins.  Capture the final
+				# selection so one gesture submits both durable bracket roots.
+				self._moved_items = scene.selectedItems()
 				self._capture_drag_start_state(clicked_item=item)
 		else:
 			# click on empty space: clear selection and start rubber band
@@ -267,7 +273,10 @@ class EditMode(bkchem_qt.modes.base_mode.BaseMode):
 			dx = scene_pos.x() - self._drag_last.x()
 			dy = scene_pos.y() - self._drag_last.y()
 			# axis-lock: Ctrl constrains to vertical, Shift to horizontal
-			modifiers = event.modifiers() if event is not None else PySide6.QtCore.Qt.KeyboardModifier.NoModifier
+			modifiers = (
+				event.modifiers() if event is not None
+				else PySide6.QtCore.Qt.KeyboardModifier.NoModifier
+			)
 			if modifiers & PySide6.QtCore.Qt.KeyboardModifier.ControlModifier:
 				dx = 0
 			if modifiers & PySide6.QtCore.Qt.KeyboardModifier.ShiftModifier:
@@ -424,30 +433,14 @@ class EditMode(bkchem_qt.modes.base_mode.BaseMode):
 	def mouse_double_click(
 			self, scene_pos: PySide6.QtCore.QPointF, event: object,
 			) -> None:
-		"""Open a detached property dialog for an eligible item under the cursor.
-
-		Eligible atoms open AtomDialog and eligible bonds open BondDialog. An
-		ineligible durable ID or unavailable synchronized capability is inert before
-		dialog or commit routing. After the dialog captures its target and
-		capability, a revision that becomes stale reaches the backend as a typed
-		atomic rejection and leaves the authoritative snapshot, projection, history,
-		and dirty state unchanged. A changed accepted synchronized edit submits one
-		exact-session backend patch and installs its canonical reprojection; backend
-		history owns undo and dirty state. An accepted canonical no-op creates no
-		history and keeps the installed projection. Intentionally isolated documents
-		retain local ChangePropertyCommand undo.
-
-		Args:
-			scene_pos: Position in scene coordinates.
-			event: The mouse event.
-		"""
+		"""Route an eligible projected item to its detached property editor."""
 		item = self._item_at(scene_pos)
 		if item is None:
 			return
-		if isinstance(item, bkchem_qt.canvas.items.atom_item.AtomItem):
-			self._edit_atom_properties(item)
-		elif isinstance(item, bkchem_qt.canvas.items.bond_item.BondItem):
-			self._edit_bond_properties(item)
+		bkchem_qt.modes.edit_item_interaction.open_item_editor(
+			item, self._edit_atom_properties, self._edit_bond_properties,
+			self._env.scene, self._env.window,
+		)
 
 	# ------------------------------------------------------------------
 	# Keyboard event handlers
@@ -1420,6 +1413,7 @@ class EditMode(bkchem_qt.modes.base_mode.BaseMode):
 				item.setSelected(True)
 			elif self._is_presentation_item(item):
 				item.setSelected(True)
+		bkchem_qt.models.bracket_pair_selection.expand_selection(self._env.document)
 
 	#============================================
 	def _cancel_rubber_band(self) -> None:

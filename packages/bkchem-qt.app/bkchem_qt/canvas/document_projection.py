@@ -19,6 +19,7 @@ import bkchem_qt.canvas.items.graphics_item
 import bkchem_qt.canvas.items.mark_item
 import bkchem_qt.canvas.items.text_item
 import bkchem_qt.canvas.graphics_retirement
+import bkchem_qt.canvas.spline_path
 
 
 #============================================
@@ -84,7 +85,6 @@ def _points(model: object) -> list[PySide6.QtCore.QPointF]:
 		converted.append(PySide6.QtCore.QPointF(x, y))
 	return converted
 
-
 #============================================
 def _bounds(model: object) -> PySide6.QtCore.QRectF:
 	"""Return model bounds or compatible legacy x/y/width/height attributes."""
@@ -145,13 +145,14 @@ def _refresh_presentation(item: PySide6.QtWidgets.QGraphicsItem,
 		font = item.font()
 		font_attributes = model.font_attributes
 		family = font_attributes.get("family")
+		if model.kind == "plus":
+			family = model.effective_font_family
 		if family is not None:
 			font.setFamily(family)
-		size = font_attributes.get("size")
-		if size is None:
-			size = attributes.get("font_size")
-		if size is None and model.kind == "plus":
-			size = "14"
+		size = (
+			attributes.get("font_size", "14") if model.kind == "plus"
+			else font_attributes.get("size", attributes.get("font_size"))
+		)
 		if size is not None:
 			if model.kind == "text" and (
 				type(size) is not str or not size.isdecimal()
@@ -167,13 +168,14 @@ def _refresh_presentation(item: PySide6.QtWidgets.QGraphicsItem,
 				points[0].y() - bounds.height() / 2.0,
 			)
 			item.setPos(position)
-		color = font_attributes.get("color")
-		if color is None:
-			color = _color(attributes)
-		if color is None and model.kind == "plus":
-			color = "#000000"
+		color = (
+			attributes.get("color", "#000000") if model.kind == "plus"
+			else font_attributes.get("color", _color(attributes))
+		)
 		if color is not None:
 			item.set_color(color)
+		background = attributes.get("background-color", attributes.get("area_color"))
+		item.set_background_color(background)
 		if model.kind == "text" and model.formatted_text_runs is not None:
 			item.set_formatted_text_runs(model.formatted_text_runs)
 		else:
@@ -191,16 +193,12 @@ def _refresh_presentation(item: PySide6.QtWidgets.QGraphicsItem,
 		item.setBrush(_brush(attributes))
 		return
 	if isinstance(item, PySide6.QtWidgets.QGraphicsPathItem):
-		path = PySide6.QtGui.QPainterPath()
 		points = _points(model)
-		if points:
-			path.moveTo(points[0])
-			for point in points[1:]:
-				path.lineTo(point)
+		spline = attributes.get("spline", "no") in ("yes", "true", "1")
+		path = bkchem_qt.canvas.spline_path.presentation_path(points, spline)
 		item.setPath(path)
 		item.setPen(_pen(attributes))
 		item.setBrush(_brush(attributes))
-
 
 #============================================
 class _ProjectionBinding(PySide6.QtCore.QObject):

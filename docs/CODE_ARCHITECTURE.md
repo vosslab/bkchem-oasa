@@ -35,9 +35,19 @@ current implementation; it does not add another contract.
   opaque CDML in source order, validate candidates in detached state, commit
   atomically, maintain history and saved baseline, and publish immutable
   snapshots and projection observations.
-- `packages/oasa/oasa/cdml_presentation_properties.py`
-  extends that stable document surface with focused direct-root presentation
-  patches; Arrow Configure changes scalar intent without exposing the DOM.
+- `packages/oasa/oasa/cdml_presentation_insert.py`,
+  `packages/oasa/oasa/cdml_presentation_properties.py`, and
+  `packages/oasa/oasa/cdml_bracket.py` extend that stable document surface with
+  focused presentation operations. Geometric/Bracket insertion and Configure
+  patches accept plain intent without exposing the DOM.
+- `cdml_molecule_insertion.py` returns root-only durable insertion facts;
+  `cdml_projection_plan.py` publishes the immutable exact-revision plan that
+  synchronized frontends hydrate. `cdml_bracket_pair.py` recognizes only
+  structurally complete bracket pairs and supports their atomic shared patch.
+- `haworth/assembly.py` provides a separate explicit three-ring backend API.
+  Its callers declare durable atoms, ring membership, linkages, and faces; it
+  does not infer topology, numbering, or stereochemistry. The current Qt UI
+  remains the separately bounded direct two-ring route.
 - [packages/oasa/oasa/cdml_conformance.py](../packages/oasa/oasa/cdml_conformance.py),
   [packages/oasa/oasa/cdml_xml.py](../packages/oasa/oasa/cdml_xml.py), and
   [packages/oasa/oasa/cdml_writer.py](../packages/oasa/oasa/cdml_writer.py)
@@ -69,13 +79,20 @@ current implementation; it does not add another contract.
   and [packages/bkchem-qt.app/bkchem_qt/canvas/molecule_projection.py](../packages/bkchem-qt.app/bkchem_qt/canvas/molecule_projection.py)
   and [packages/bkchem-qt.app/bkchem_qt/canvas/graphics_retirement.py](../packages/bkchem-qt.app/bkchem_qt/canvas/graphics_retirement.py)
   create, replace, and retire scene items. Models, graphics items, and their
-  QObject lifetimes are presentation-only and replaceable.
+  QObject lifetimes are presentation-only and replaceable. Shared spline-path
+  construction keeps Arrow and polyline curves geometrically consistent.
 - [packages/bkchem-qt.app/bkchem_qt/actions/](../packages/bkchem-qt.app/bkchem_qt/actions/),
   [packages/bkchem-qt.app/bkchem_qt/modes/](../packages/bkchem-qt.app/bkchem_qt/modes/),
   and [packages/bkchem-qt.app/bkchem_qt/dialogs/](../packages/bkchem-qt.app/bkchem_qt/dialogs/)
   capture user intent.
   Persistent actions use the session adapter; Qt retains only the temporary
   preview and user-visible failure handling.
+- Geometric property dialogs expose constrained width and labeled stroke/fill
+  controls. They return detached scalar changes; the captured session adapter
+  owns submission, history, reprojection, and durable selection recovery.
+- The responsive shell keeps all modes reachable: compact menu at 640 and
+  1024 pixels, full mode toolbar at 1280 pixels, and bounded status/zoom
+  controls at all three widths. This is presentation layout, not persistence.
 
 ## Data flow
 
@@ -110,9 +127,8 @@ current implementation; it does not add another contract.
   and [packages/bkchem-qt.app/bkchem_qt/bridge/worker.py](../packages/bkchem-qt.app/bkchem_qt/bridge/worker.py)
   adapt OASA public data and pure preparation results for Qt. They do not
   establish another persistent document store.
-- [packages/bkchem-qt.app/bkchem_qt/io/cdml_candidate.py](../packages/bkchem-qt.app/bkchem_qt/io/cdml_candidate.py)
-  is transitional candidate construction for action families not yet expressed
-  as a bounded operation. Its output still commits through OASA.
+- Synchronized presentation creation and stack ordering send typed scalar intent
+  to OASA; no Qt module constructs persistent presentation XML.
 - [packages/bkchem-app/](../packages/bkchem-app/) retains the deprecated Tk
   code, templates, addons, and focused tests for behavioral comparison. Its
   package metadata and module code remain source material, not current

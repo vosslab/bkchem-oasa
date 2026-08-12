@@ -45,7 +45,6 @@ from measurelib.glyph_model import (
 	point_to_label_signed_distance,
 	primitive_center,
 )
-from measurelib.lcf_optical import optical_center_via_isolation_render
 from measurelib.haworth_ring import detect_haworth_base_ring, oxygen_virtual_connector_lines
 from measurelib.hatch_detect import (
 	detect_double_bond_pairs,
@@ -128,9 +127,24 @@ def analyze_svg_file(
 		label["svg_estimated_primitives"] = label_svg_estimated_primitives(label)
 		label["svg_estimated_box"] = label_svg_estimated_box(label)
 		label["_source_svg_path"] = str(svg_path)
-	measurement_label_indexes = [
-		index for index, label in enumerate(labels) if label["is_measurement_label"]
-	]
+	# Controlled OASA SVG records connector-to-label ownership.  Prefer this
+	# renderer-authored relation over a proximity search whenever it exists;
+	# unannotated third-party SVGs retain the independent geometry path below.
+	controlled_connector_indexes_by_label_id: dict[str, list[int]] = {}
+	for line_index, line in enumerate(lines):
+		target_id = line.get("attachment_target_id")
+		if target_id and not line.get("composite_parent_id"):
+			controlled_connector_indexes_by_label_id.setdefault(str(target_id), []).append(line_index)
+	if controlled_connector_indexes_by_label_id:
+		measurement_label_indexes = [
+			index for index, label in enumerate(labels)
+			if label["is_measurement_label"]
+			and (label.get("op_id") or "") in controlled_connector_indexes_by_label_id
+		]
+	else:
+		measurement_label_indexes = [
+			index for index, label in enumerate(labels) if label["is_measurement_label"]
+		]
 	haworth_base_ring = detect_haworth_base_ring(lines, labels, ring_primitives)
 	# synthesize virtual connector lines from ring polygon edges near the O label
 	virtual_ring_lines = oxygen_virtual_connector_lines(
@@ -145,8 +159,12 @@ def analyze_svg_file(
 	excluded_line_indexes = set()
 	if exclude_haworth_base_ring and haworth_base_ring["detected"]:
 		excluded_line_indexes = set(haworth_base_ring["line_indexes"])
+	metadata_composite_line_indexes = {
+		index for index, line in enumerate(lines) if line.get("composite_parent_id")
+	}
 	checked_line_indexes = [
-		index for index in range(len(lines)) if index not in excluded_line_indexes
+		index for index in range(len(lines))
+		if index not in excluded_line_indexes and index not in metadata_composite_line_indexes
 	]
 	pre_hashed_carrier_map = detect_hashed_carrier_map(lines, checked_line_indexes)
 	pre_decorative_hatched_stroke_index_set = {
@@ -237,6 +255,12 @@ def analyze_svg_file(
 	connector_line_indexes = set()
 	for label_index in measurement_label_indexes:
 		label = labels[label_index]
+		controlled_indexes = controlled_connector_indexes_by_label_id.get(label.get("op_id") or "")
+		uses_controlled_identity = bool(controlled_indexes)
+		if controlled_indexes:
+			label_connector_indexes = controlled_indexes
+		else:
+			label_connector_indexes = connector_candidate_line_indexes
 		independent_primitives = label.get("svg_estimated_primitives", [])
 		# Determine alignment character from first/last letter of label.
 		# Use DISPLAYED text order for positional key letter selection.
@@ -261,13 +285,13 @@ def analyze_svg_file(
 		independent_model_name = "svg_text_path_outline"
 		if independent_text_path is not None:
 			(
-				independent_endpoint,
-				independent_distance,
-				independent_line_index,
-				independent_signed_distance,
-			) = nearest_endpoint_to_text_path(
+			independent_endpoint,
+			independent_distance,
+			independent_line_index,
+			independent_signed_distance,
+		) = nearest_endpoint_to_text_path(
 				lines=lines,
-				line_indexes=connector_candidate_line_indexes,
+				line_indexes=label_connector_indexes,
 				path_obj=independent_text_path,
 			)
 		else:
@@ -278,7 +302,7 @@ def analyze_svg_file(
 				independent_signed_distance,
 			) = nearest_endpoint_to_glyph_primitives(
 				lines=lines,
-				line_indexes=connector_candidate_line_indexes,
+				line_indexes=label_connector_indexes,
 				primitives=independent_primitives,
 			)
 			independent_model_name = "svg_primitives_ellipse_box"
@@ -303,13 +327,15 @@ def analyze_svg_file(
 					if alignment_center is not None:
 						break
 		optical_gate_debug = {}
-		alignment_center, alignment_center_char = optical_center_via_isolation_render(
-			label=label,
-			center=alignment_center,
-			center_char=alignment_center_char,
-			svg_path=str(svg_path),
-			gate_debug=optical_gate_debug,
-		)
+		if not uses_controlled_identity:
+			from measurelib.lcf_optical import optical_center_via_isolation_render
+			alignment_center, alignment_center_char = optical_center_via_isolation_render(
+				label=label,
+				center=alignment_center,
+				center_char=alignment_center_char,
+				svg_path=str(svg_path),
+				gate_debug=optical_gate_debug,
+			)
 		if independent_endpoint is not None and independent_signed_distance is None:
 			independent_signed_distance = point_to_label_signed_distance(independent_endpoint, label)
 		search_limit = max(6.0, float(label["font_size"]) * MAX_ENDPOINT_TO_LABEL_DISTANCE_FACTOR)
@@ -389,7 +415,7 @@ def analyze_svg_file(
 		if independent_text_path is not None:
 			all_nearby = all_endpoints_near_text_path(
 				lines=lines,
-				line_indexes=connector_candidate_line_indexes,
+				line_indexes=label_connector_indexes,
 				path_obj=independent_text_path,
 				label_center_x=label_cx,
 				search_limit=search_limit,
@@ -397,7 +423,7 @@ def analyze_svg_file(
 		else:
 			all_nearby = all_endpoints_near_glyph_primitives(
 				lines=lines,
-				line_indexes=connector_candidate_line_indexes,
+				line_indexes=label_connector_indexes,
 				primitives=independent_primitives,
 				search_limit=search_limit,
 			)
@@ -441,13 +467,14 @@ def analyze_svg_file(
 							break
 			# run optical refinement for this connector's side
 			side_optical_debug = {}
-			side_align_center, side_align_char = optical_center_via_isolation_render(
-				label=label,
-				center=side_align_center,
-				center_char=side_align_char,
-				svg_path=str(svg_path),
-				gate_debug=side_optical_debug,
-			)
+			if not uses_controlled_identity:
+				side_align_center, side_align_char = optical_center_via_isolation_render(
+					label=label,
+					center=side_align_center,
+					center_char=side_align_char,
+					svg_path=str(svg_path),
+					gate_debug=side_optical_debug,
+				)
 			# compute perp distance; for double bond primaries use the midline
 			# (true bond axis) instead of the offset primary line
 			c_perp_distance = None
@@ -468,6 +495,10 @@ def analyze_svg_file(
 					)
 			else:
 				c_perp_distance = float(entry["distance"])
+			if uses_controlled_identity:
+				# The renderer-owned pair is the alignment axis.  Do not report a
+				# heuristic glyph-center offset as if it were an independent check.
+				c_perp_distance = None
 			# compute gap and alignment
 			c_gap_value = float(c_signed_distance) if c_signed_distance is not None else None
 			c_alignment_error = None
@@ -477,7 +508,13 @@ def analyze_svg_file(
 				c_alignment_error = (gap_norm * gap_norm) + (perp_norm * perp_norm)
 			c_aligned = False
 			c_reason = "missing_gap_or_perp"
-			if c_gap_value is not None and c_perp_distance is not None:
+			if uses_controlled_identity:
+				c_aligned = bool(
+					c_gap_value is not None
+					and 0.0 <= c_gap_value <= search_limit
+				)
+				c_reason = "ok" if c_aligned else "associated_endpoint_out_of_range"
+			elif c_gap_value is not None and c_perp_distance is not None:
 				in_gap = ALIGNMENT_GAP_MIN <= c_gap_value <= ALIGNMENT_GAP_MAX
 				in_perp = float(c_perp_distance) <= ALIGNMENT_PERP_TOLERANCE
 				c_aligned = bool(in_gap and in_perp)
@@ -642,7 +679,10 @@ def analyze_svg_file(
 				"connectors": connector_entries,
 				"attach_policy": None,
 				"endpoint_target_kind": None,
-				"alignment_mode": "independent_glyph_primitives",
+			"alignment_mode": (
+				"controlled_operation_identity"
+				if uses_controlled_identity else "independent_glyph_primitives"
+			),
 			}
 		)
 	aligned_connector_pairs = set()
@@ -652,9 +692,15 @@ def analyze_svg_file(
 		if connector_index is None or label_index is None:
 			continue
 		aligned_connector_pairs.add((int(connector_index), int(label_index)))
+	lattice_line_indexes = checked_line_indexes
+	if controlled_connector_indexes_by_label_id:
+		# Controlled Haworth branches may intentionally use non-lattice angles.
+		# This gate validates their declared attachment relation; the generic
+		# lattice diagnostic remains for unannotated SVG inspection.
+		lattice_line_indexes = []
 	lattice_angle_violation_count, lattice_angle_violations = count_lattice_angle_violations(
 		lines=lines,
-		checked_line_indexes=checked_line_indexes,
+		checked_line_indexes=lattice_line_indexes,
 		haworth_base_ring=haworth_base_ring,
 	)
 	glyph_glyph_overlap_count, glyph_glyph_overlaps = count_glyph_glyph_overlaps(

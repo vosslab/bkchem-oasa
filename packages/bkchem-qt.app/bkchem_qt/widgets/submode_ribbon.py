@@ -46,6 +46,10 @@ class SubModeRibbon(PySide6.QtWidgets.QWidget):
 			parent: Optional parent widget.
 		"""
 		super().__init__(parent)
+		self.setSizePolicy(
+			PySide6.QtWidgets.QSizePolicy.Policy.Ignored,
+			PySide6.QtWidgets.QSizePolicy.Policy.Preferred,
+		)
 		self._layout = PySide6.QtWidgets.QHBoxLayout(self)
 		self._layout.setContentsMargins(4, 2, 4, 2)
 		self._layout.setSpacing(6)

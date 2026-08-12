@@ -38,6 +38,7 @@ class TextItem(PySide6.QtWidgets.QGraphicsTextItem):
 		"""
 		super().__init__(text, parent)
 		self._hovered = False
+		self._background_color = None
 		# set default font
 		font = PySide6.QtGui.QFont(_DEFAULT_FONT_FAMILY, _DEFAULT_FONT_SIZE)
 		self.setFont(font)
@@ -113,6 +114,26 @@ class TextItem(PySide6.QtWidgets.QGraphicsTextItem):
 		"""
 		self.setDefaultTextColor(PySide6.QtGui.QColor(color))
 
+	#============================================
+	def set_background_color(self, color: str | None) -> None:
+		"""Set an optional persistent background swatch behind the text bounds."""
+		new_color = None
+		if color not in (None, "", "none"):
+			candidate = PySide6.QtGui.QColor(color)
+			if candidate.isValid():
+				new_color = candidate
+		if new_color != self._background_color:
+			self._background_color = new_color
+			self.update()
+
+	#============================================
+	@property
+	def background_color(self) -> PySide6.QtGui.QColor | None:
+		"""Return a detached copy of the current optional background color."""
+		if self._background_color is None:
+			return None
+		return PySide6.QtGui.QColor(self._background_color)
+
 	# ------------------------------------------------------------------
 	# Hover events
 	# ------------------------------------------------------------------
@@ -148,6 +169,8 @@ class TextItem(PySide6.QtWidgets.QGraphicsTextItem):
 			option: Style options.
 			widget: Target widget (unused).
 		"""
+		if self._background_color is not None:
+			painter.fillRect(self.boundingRect(), self._background_color)
 		# draw highlight rectangle behind the text
 		if self.isSelected():
 			pen = PySide6.QtGui.QPen(PySide6.QtGui.QColor(render_ops_painter.get_canvas_color("selection")))

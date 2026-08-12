@@ -147,10 +147,55 @@ class PaperCDMLMixin:
 			os = self.stack
 		else:
 			os = apply_to
+		source_ids = {}
+		duplicate_source_ids = set()
 		for o in os:
 			o.generate_id()
+			if hasattr( o, '_cdml_source_id'):
+				source_id = o._cdml_source_id
+				if source_id:
+					if source_id in source_ids:
+						duplicate_source_ids.add( source_id)
+					else:
+						source_ids[source_id] = o.id
 			if isinstance( o, BkMolecule):
 				[ch.generate_id() for ch in o.children]
+		for source_id in duplicate_source_ids:
+			del source_ids[source_id]
+		self._remap_complete_bracket_pairs( os, source_ids)
+
+
+	#============================================
+	def _remap_complete_bracket_pairs(
+			self, objects: object, source_ids: dict[str, str],
+			) -> None:
+		"""Rewrite one complete copied bracket pair to its newly allocated left ID."""
+		members_by_pair = {}
+		for obj in objects:
+			if not hasattr( obj, '_cdml_bracket_pair'):
+				continue
+			if not hasattr( obj, '_cdml_bracket_side'):
+				continue
+			if not hasattr( obj, '_cdml_source_id'):
+				continue
+			pair_id = obj._cdml_bracket_pair
+			if pair_id:
+				members_by_pair.setdefault( pair_id, []).append( obj)
+		for pair_id, members in members_by_pair.items():
+			if pair_id not in source_ids or len( members) != 2:
+				continue
+			left_members = [member for member in members if member._cdml_bracket_side == 'left']
+			right_members = [member for member in members if member._cdml_bracket_side == 'right']
+			if len( left_members) != 1 or len( right_members) != 1:
+				continue
+			left_member = left_members[0]
+			if left_member._cdml_source_id != pair_id:
+				continue
+			if right_members[0]._cdml_source_id == pair_id:
+				continue
+			new_pair_id = source_ids[pair_id]
+			for member in members:
+				member._cdml_bracket_pair = new_pair_id
 
 
 	def get_package( self) -> object:

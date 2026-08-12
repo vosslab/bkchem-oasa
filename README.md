@@ -48,7 +48,7 @@ persistent drawing objects and verified Haworth chemistry. Refresh the complete
 managed screenshot catalog from the repository root with:
 
 ```sh
-source source_me.sh && ./take_qt_screenshot.sh --kill-after 3
+source source_me.sh && ./devel/take_qt_screenshot.sh --kill-after 3
 ```
 
 ## Quick start

@@ -338,16 +338,33 @@ def test_insertion_label_is_nonpersistent_operation_metadata() -> None:
 
 #============================================
 def test_insert_molecules_rewrites_bond_endpoints_and_returns_durable_mapping() -> None:
-	"""A proposal bond follows allocated atom IDs without retaining provisional tokens."""
+	"""A proposal exposes root-only and declaration-level durable mappings."""
 	session = cdml_document.CDMLDocumentSession.load(BASE_CDML)
-	commit = session.insert_molecules(_request(session.revision, _proposal("mapping")))
-	root = _parse_xml(commit.cdml)
+	result = session.insert_molecules(
+		_request(session.revision, _proposal("mapping", molecule_count=2)),
+	)
+	root = _parse_xml(result.cdml)
 	bond = next(element for element in root.iter() if element.tag.rsplit("}", 1)[-1] == "bond")
 	assert (bond.attrib["start"], bond.attrib["end"]) == (
-		commit.id_map["__bkchem_new__mapping_a1a"],
-		commit.id_map["__bkchem_new__mapping_a1b"],
+		result.id_map["__bkchem_new__mapping_a1a"],
+		result.id_map["__bkchem_new__mapping_a1b"],
 	)
-	assert all(not identifier.startswith("__bkchem_new__") for identifier in commit.id_map.values())
+	assert result.root_id_map == {
+		"__bkchem_new__mapping_m1": result.id_map["__bkchem_new__mapping_m1"],
+		"__bkchem_new__mapping_m2": result.id_map["__bkchem_new__mapping_m2"],
+	}
+	direct_molecule_ids = {
+		element.attrib["id"]
+		for element in root
+		if element.tag.rsplit("}", 1)[-1] == "molecule"
+	}
+	assert set(result.root_id_map.values()) <= direct_molecule_ids
+	assert all(
+		not identifier.startswith("__bkchem_new__")
+		for identifier in result.id_map.values()
+	)
+	with pytest.raises(TypeError):
+		result.root_id_map["invalid"] = "invalid"
 
 
 #============================================

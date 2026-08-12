@@ -169,13 +169,13 @@ modes:
         default: 0
       - group_label: Length
         options:
-          - {key: fixed, name: fixed length}
-          - {key: freestyle}
+          - {key: fixed, name: fixed grid length, tooltip: use the scene grid spacing}
+          - {key: freestyle, tooltip: keep the length of the drag}
         default: 0
       - group_label: Shape
         options:
-          - {key: anormal, name: normal, size: large}
-          - {key: spline, size: large}
+          - {key: anormal, name: straight, size: large}
+          - {key: spline, name: spline, tooltip: create a curved arrow, size: large}
         default: 0
       - group_label: Arrow Type
         options:
@@ -207,6 +207,7 @@ modes:
       - group_label: Bracket Style
         options:
           - {key: rectangularbracket, name: Rectangular, size: large}
+          - {key: roundbracket, name: Round, size: large}
         default: 0
 
   rotate:
@@ -240,8 +241,11 @@ modes:
       - group_label: Shape
         options:
           - {key: rectangle, size: large}
+          - {key: square, size: large}
           - {key: oval, size: large}
+          - {key: circle, size: large}
           - {key: polyline, size: large}
+          - {key: polygon, size: large}
         default: 0
 
   repair:

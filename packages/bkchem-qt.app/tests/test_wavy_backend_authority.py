@@ -2,18 +2,17 @@
 
 # Standard Library
 import pathlib
-import xml.dom.minidom
 
 # PIP3 modules
 import pytest
 import PySide6.QtCore
 
 # local repo modules
-import bkchem_qt.io.cdml_candidate
 import bkchem_qt.main_window
 import bkchem_qt.models.document_session
 import bkchem_qt.modes.misc_mode
 import oasa.cdml_document
+import oasa.cdml_presentation_insert
 import oasa.cdml_writer
 import oasa.safe_xml
 
@@ -26,16 +25,16 @@ id="text_1"><bk:ftext>yield</bk:ftext></bk:text><vendor:note keep="yes">opaque
 
 
 #============================================
-def _direct_elements(root: xml.dom.minidom.Element) -> list[xml.dom.minidom.Element]:
+def _direct_elements(root: object) -> list[object]:
 	"""Return direct element children in source order."""
-	return [child for child in root.childNodes if isinstance(child, xml.dom.minidom.Element)]
+	return [child for child in root.childNodes if child.nodeType == child.ELEMENT_NODE]
 
 
 #============================================
 def _element_by_semantics(
-		root: xml.dom.minidom.Element, namespace: str, local_name: str,
+		root: object, namespace: str, local_name: str,
 		object_id: str | None = None,
-		) -> xml.dom.minidom.Element | None:
+		) -> object | None:
 	"""Return one direct record selected by namespace, local name, and durable ID."""
 	for element in _direct_elements(root):
 		if element.namespaceURI != namespace or element.localName != local_name:
@@ -46,22 +45,22 @@ def _element_by_semantics(
 
 
 #============================================
-def _direct_child(element: xml.dom.minidom.Element, name: str) -> xml.dom.minidom.Element:
+def _direct_child(element: object, name: str) -> object:
 	"""Return one direct child by local name."""
 	return next(child for child in _direct_elements(element) if child.localName == name)
 
 
 #============================================
-def _direct_text(element: xml.dom.minidom.Element) -> str:
+def _direct_text(element: object) -> str:
 	"""Return direct text content without surrounding fixture whitespace."""
 	return "".join(
 		child.data for child in element.childNodes
-		if child.nodeType == xml.dom.Node.TEXT_NODE
+		if child.nodeType == child.TEXT_NODE
 	).strip()
 
 
 #============================================
-def _scene_points(element: xml.dom.minidom.Element) -> tuple[tuple[float, float], ...]:
+def _scene_points(element: object) -> tuple[tuple[float, float], ...]:
 	"""Recover CDML centimetre coordinates as scene points."""
 	return tuple(
 		(
@@ -100,16 +99,15 @@ def _has_wavy_bend(points: tuple[tuple[float, float], ...]) -> bool:
 
 #============================================
 def _mixed_candidate() -> tuple[str, str]:
-	"""Return canonical CDML and the backend-assigned durable Wavy ID."""
-	token = "__bkchem_new__wavy-candidate"
+	"""Return canonical CDML and the OASA-assigned durable Wavy ID."""
 	session = oasa.cdml_document.CDMLDocumentSession.load(_MIXED_CDML)
-	commit = session.commit(
-		expected_revision=0,
-		complete_cdml=bkchem_qt.io.cdml_candidate.append_wavy_candidate(
-			session.snapshot().cdml, token, ((0.0, 0.0), (36.0, 4.0), (72.0, 0.0)),
+	result = oasa.cdml_presentation_insert.insert_wavy(
+		session,
+		oasa.cdml_presentation_insert.CDMLWavyInsertRequest(
+			session.revision, (0.0, 0.0), (72.0, 0.0),
 		),
 	)
-	return commit.cdml, commit.id_map[token]
+	return result.snapshot.cdml, result.presentation_ids[0]
 
 
 #============================================
@@ -270,25 +268,26 @@ def test_wavy_candidate_preserves_opaque_namespace_text() -> None:
 
 
 #============================================
-def test_wavy_candidate_assigns_durable_identity_and_defaults() -> None:
-	"""A candidate receives the backend identity and canonical Wavy defaults."""
+def test_wavy_insertion_assigns_durable_identity_and_defaults() -> None:
+	"""Insertion receives the backend identity and canonical Wavy defaults."""
 	cdml, durable_id = _mixed_candidate()
 	canonical = _canonical_wavy_semantics(cdml, durable_id)
 	if canonical is None:
 		raise RuntimeError("Canonical CDML omitted the accepted Wavy record")
 
-	assert canonical[:3] == ("polyline", durable_id, ("#000000", "1.5", "no", "wavy"))
+	assert canonical[:3] == ("polyline", durable_id, ("#000000", "1", "no", "wavy"))
 
 
 #============================================
 def test_wavy_candidate_preserves_requested_geometry() -> None:
-	"""A canonical Wavy candidate retains its requested endpoint geometry."""
+	"""A canonical Wavy insertion retains endpoints and derives a visible bend."""
 	cdml, durable_id = _mixed_candidate()
 	canonical = _canonical_wavy_semantics(cdml, durable_id)
 	if canonical is None:
 		raise RuntimeError("Canonical CDML omitted the accepted Wavy geometry")
 
-	assert _points_match(canonical[3], ((0.0, 0.0), (36.0, 4.0), (72.0, 0.0)))
+	assert _points_match((canonical[3][0], canonical[3][-1]), ((0.0, 0.0), (72.0, 0.0)))
+	assert _has_wavy_bend(canonical[3])
 
 
 #============================================
@@ -324,31 +323,6 @@ def test_wavy_targeted_creation_request_preserves_registered_authority(
 		frozenset({("polyline", "polyline_1")}),
 	) == "rejected"
 	assert session.backend_snapshot == before_snapshot
-
-
-#============================================
-def test_wavy_validation_precedes_candidate_building(
-		main_window: bkchem_qt.main_window.MainWindow,
-		monkeypatch: pytest.MonkeyPatch,
-		) -> None:
-	"""Invalid Wavy geometry reaches no candidate builder."""
-	session = _live_session(main_window)
-	builder_called = False
-	original = bkchem_qt.io.cdml_candidate.append_wavy_candidate
-
-	def capture(
-			complete_cdml: str, provisional_id: str,
-			points: tuple[tuple[float, float], ...],
-			) -> str:
-		"""Record whether validated input reaches the candidate builder."""
-		nonlocal builder_called
-		builder_called = True
-		return original(complete_cdml, provisional_id, points)
-
-	monkeypatch.setattr(bkchem_qt.io.cdml_candidate, "append_wavy_candidate", capture)
-
-	assert _submit_status(session, (("start", (-1e308, 0.0)), ("end", (1e308, 0.0)))) == "rejected"
-	assert builder_called is False
 
 
 #============================================

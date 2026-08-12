@@ -4,9 +4,15 @@
 import PySide6.QtCore
 import PySide6.QtWidgets
 
-# -- minimum label widths in pixels --
-MIN_COORDS_WIDTH = 180
-MIN_MODE_WIDTH = 140
+# -- label widths in pixels --
+#
+# Permanent status widgets must be allowed to yield space to the zoom controls
+# when a window is narrow.  Their text remains available through the tooltip
+# and accessibility API if the painted label is clipped by Qt.
+MIN_COORDS_WIDTH = 110
+MIN_MODE_WIDTH = 120
+PREFERRED_COORDS_WIDTH = 180
+PREFERRED_MODE_WIDTH = 140
 
 
 #============================================
@@ -27,6 +33,11 @@ class StatusBar(PySide6.QtWidgets.QStatusBar):
 
 		# stretch message label on the left for status messages
 		self._message_label = PySide6.QtWidgets.QLabel("")
+		self._message_label.setMinimumWidth(0)
+		self._message_label.setSizePolicy(
+			PySide6.QtWidgets.QSizePolicy.Policy.Ignored,
+			PySide6.QtWidgets.QSizePolicy.Policy.Preferred,
+		)
 		self.addWidget(self._message_label, 1)
 		self._context_message = ""
 		self._transient_message = ""
@@ -36,11 +47,27 @@ class StatusBar(PySide6.QtWidgets.QStatusBar):
 
 		# coordinate display label
 		self._coords_label = PySide6.QtWidgets.QLabel(self.tr("X: 0.0  Y: 0.0"))
+		self._coords_label.setObjectName("cursor-coordinates")
 		self._coords_label.setMinimumWidth(MIN_COORDS_WIDTH)
+		self._coords_label.setMaximumWidth(PREFERRED_COORDS_WIDTH)
+		self._coords_label.setSizePolicy(
+			PySide6.QtWidgets.QSizePolicy.Policy.Preferred,
+			PySide6.QtWidgets.QSizePolicy.Policy.Preferred,
+		)
+		self._coords_label.setAccessibleName(self.tr("Cursor coordinates"))
+		self._coords_label.setToolTip(self._coords_label.text())
 
 		# active mode label
 		self._mode_label = PySide6.QtWidgets.QLabel(self.tr("Mode: Select"))
+		self._mode_label.setObjectName("active-editing-mode")
 		self._mode_label.setMinimumWidth(MIN_MODE_WIDTH)
+		self._mode_label.setMaximumWidth(PREFERRED_MODE_WIDTH)
+		self._mode_label.setSizePolicy(
+			PySide6.QtWidgets.QSizePolicy.Policy.Preferred,
+			PySide6.QtWidgets.QSizePolicy.Policy.Preferred,
+		)
+		self._mode_label.setAccessibleName(self.tr("Active editing mode"))
+		self._mode_label.setToolTip(self._mode_label.text())
 
 		# add as permanent widgets so they stay visible at all times
 		self.addPermanentWidget(self._coords_label)
@@ -56,6 +83,7 @@ class StatusBar(PySide6.QtWidgets.QStatusBar):
 		"""
 		text = f"X: {x:.1f}  Y: {y:.1f}"
 		self._coords_label.setText(text)
+		self._coords_label.setToolTip(text)
 
 	#============================================
 	@property
@@ -120,3 +148,4 @@ class StatusBar(PySide6.QtWidgets.QStatusBar):
 		"""
 		text = f"Mode: {name}"
 		self._mode_label.setText(text)
+		self._mode_label.setToolTip(text)

@@ -233,6 +233,20 @@ def test_stale_request_and_invalid_later_geometry_cannot_commit_earlier_root() -
 
 
 #============================================
+def test_backend_rejects_nonroot_identifier_without_frontend_classification() -> None:
+	"""OASA rejects a nested ID without requiring frontend CDML classification."""
+	session = oasa.cdml_document.CDMLDocumentSession.load(_CDML)
+	before = session.snapshot()
+	request = oasa.cdml_document.CDMLTopLevelTransformRequest(
+		session.revision, "mirror-horizontal", ("a",),
+	)
+	with pytest.raises(oasa.cdml_document.CDMLTopLevelTransformError):
+		session.apply_top_level_transform(request)
+
+	assert session.snapshot() == before
+
+
+#============================================
 def test_align_overflow_from_finite_coordinates_is_an_atomic_failure() -> None:
 	"""Finite authored coordinates that overflow alignment retain exact session state."""
 	cdml = (

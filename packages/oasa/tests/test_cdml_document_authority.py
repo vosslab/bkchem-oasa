@@ -2,6 +2,7 @@
 
 # Standard Library
 import ast
+import dataclasses
 import pathlib
 import re
 
@@ -568,6 +569,21 @@ def test_prefixed_core_and_vendor_local_name_collisions_have_distinct_opacity() 
 	core_arrow, vendor_arrow = document.objects()
 	assert not core_arrow.opaque
 	assert vendor_arrow.opaque
+
+
+#============================================
+def test_projection_plan_rejects_incoherent_or_lookalike_backend_facts() -> None:
+	"""A synchronized envelope accepts only complete ordered OASA observations."""
+	document = cdml_document.CDMLDocument.parse(
+		'<cdml><arrow id="arrow_1"><point x="1cm" y="1cm"/>'
+		'<point x="2cm" y="1cm"/></arrow></cdml>', validation="strict",
+	)
+	snapshot = cdml_document.CDMLSnapshot(4, document.serialize(), False)
+	plan = cdml_document.CDMLDocument.projection_snapshot(snapshot).plan
+	with pytest.raises(ValueError, match="complete ordered direct-root"):
+		dataclasses.replace(plan, roots=(plan.roots[0], plan.roots[0]))
+	with pytest.raises(ValueError, match="exact immutable observations"):
+		dataclasses.replace(plan, paper_layout=object())
 
 
 #============================================

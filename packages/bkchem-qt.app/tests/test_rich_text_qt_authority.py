@@ -210,16 +210,52 @@ def test_rich_projection_refresh_uses_the_current_root_font() -> None:
 
 
 #============================================
-def test_configure_directs_selected_rich_text_to_the_rich_action(
+def test_configure_routes_selected_rich_text_to_the_shared_rich_editor(
 		main_window: bkchem_qt.main_window.MainWindow, tmp_path: pathlib.Path,
+		monkeypatch: pytest.MonkeyPatch,
 		) -> None:
-	"""Configure does not open the intentionally plain-only Text dialog for authored runs."""
+	"""Configure uses the same rich editor resolver as the explicit action."""
 	session = _open_native_session(main_window, tmp_path, _AUTHORED_CDML)
 	try:
+		before = session.backend_snapshot
 		_text_item(session).setSelected(True)
+		monkeypatch.setattr(
+			bkchem_qt.dialogs.rich_text_dialog.RichTextDialog, "exec",
+			lambda _dialog: PySide6.QtWidgets.QDialog.DialogCode.Rejected,
+		)
 		bkchem_qt.actions.object_actions.handle_configure(main_window)
 
-		assert "Edit Rich Text" in main_window.statusBar().currentMessage()
+		assert session.backend_snapshot == before
+	finally:
+		_close_session(main_window, session)
+
+
+#============================================
+def test_double_click_rich_text_uses_the_shared_captured_editor(
+		main_window: bkchem_qt.main_window.MainWindow, tmp_path: pathlib.Path,
+		monkeypatch: pytest.MonkeyPatch,
+		) -> None:
+	"""A direct rich Text double-click commits once without creating another root."""
+	session = _open_native_session(main_window, tmp_path, _AUTHORED_CDML)
+	try:
+		item = _text_item(session)
+		before_revision = session.backend_snapshot.revision
+		monkeypatch.setattr(
+			bkchem_qt.dialogs.rich_text_dialog.RichTextDialog, "exec",
+			lambda _dialog: PySide6.QtWidgets.QDialog.DialogCode.Accepted,
+		)
+		monkeypatch.setattr(
+			bkchem_qt.dialogs.rich_text_dialog.RichTextDialog, "get_runs",
+			lambda _dialog: (("Direct", ("b",)),),
+		)
+		session.mode_manager.set_mode("edit")
+		session.mode_manager.current_mode.mouse_double_click(item.scenePos(), None)
+
+		assert (
+			session.backend_snapshot.revision == before_revision + 1
+			and session.backend_snapshot.cdml.count('<text id="text1"') == 1
+			and "&lt;b&gt;Direct&lt;/b&gt;" in session.backend_snapshot.cdml
+		)
 	finally:
 		_close_session(main_window, session)
 

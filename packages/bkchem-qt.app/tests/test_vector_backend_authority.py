@@ -2,13 +2,12 @@
 
 # Standard Library
 import math
-import xml.dom.minidom
 
 # PIP3 modules
 import PySide6.QtCore
+import PySide6.QtGui
 
 # local repo modules
-import bkchem_qt.io.cdml_candidate
 import bkchem_qt.main_window
 import bkchem_qt.models.document_session
 import bkchem_qt.modes.vector_mode
@@ -24,7 +23,10 @@ def _new_session(
 	"""Open and return one fresh public document session."""
 	if not main_window.on_new():
 		raise RuntimeError("Public New did not create a Vector test session")
-	return next(session for session in main_window.sessions if session.document is main_window.document)
+	return next(
+		session for session in main_window.sessions
+		if session.document is main_window.document
+	)
 
 
 #============================================
@@ -62,6 +64,23 @@ def _drag_vector(
 
 
 #============================================
+def _finish_vector_path(
+		session: bkchem_qt.models.document_session.DocumentSession,
+		points: tuple[tuple[float, float], ...],
+		) -> None:
+	"""Dispatch one public multi-click path and finish it with Enter."""
+	for point in points:
+		session.mode_manager.mouse_press(PySide6.QtCore.QPointF(*point), object())
+	session.mode_manager.key_press(
+		PySide6.QtGui.QKeyEvent(
+			PySide6.QtCore.QEvent.Type.KeyPress,
+			PySide6.QtCore.Qt.Key.Key_Return,
+			PySide6.QtCore.Qt.KeyboardModifier.NoModifier,
+		),
+	)
+
+
+#============================================
 def _canonical_vector(
 		cdml: str, kind: str,
 		) -> tuple[str, tuple[float, ...] | tuple[tuple[float, float], ...]] | None:
@@ -69,14 +88,14 @@ def _canonical_vector(
 	oasa.cdml_document.CDMLDocument.parse(cdml, validation="compat")
 	root = oasa.safe_xml.parse_dom_from_string(cdml).documentElement
 	for child in root.childNodes:
-		if not isinstance(child, xml.dom.minidom.Element) or child.localName != kind:
+		if child.nodeType != child.ELEMENT_NODE or child.localName != kind:
 			continue
 		if kind == "polyline":
 			points = tuple(
 				(float(point.getAttribute("x")[:-2]) * oasa.cdml_writer.POINTS_PER_CM,
 					float(point.getAttribute("y")[:-2]) * oasa.cdml_writer.POINTS_PER_CM)
 				for point in child.childNodes
-				if isinstance(point, xml.dom.minidom.Element) and point.localName == "point"
+				if point.nodeType == point.ELEMENT_NODE and point.localName == "point"
 			)
 		else:
 			points = tuple(
@@ -99,7 +118,7 @@ def _points_match(actual: tuple, expected: tuple) -> bool:
 def test_vector_modes_create_canonical_backend_records(
 		main_window: bkchem_qt.main_window.MainWindow,
 		) -> None:
-	"""Rectangle, Oval, and Polyline gestures create canonical durable records."""
+	"""Drag and multi-click gestures create canonical durable Vector records."""
 	session = _new_session(main_window)
 	try:
 		_select_vector(session, "rectangle")
@@ -109,7 +128,7 @@ def test_vector_modes_create_canonical_backend_records(
 		_drag_vector(session, PySide6.QtCore.QPointF(20.0, 40.0), PySide6.QtCore.QPointF(70.0, 80.0))
 		oval = _canonical_vector(session.backend_snapshot.cdml, "oval")
 		_select_vector(session, "polyline")
-		_drag_vector(session, PySide6.QtCore.QPointF(5.0, 10.0), PySide6.QtCore.QPointF(65.0, 35.0))
+		_finish_vector_path(session, ((5.0, 10.0), (65.0, 35.0)))
 		polyline = _canonical_vector(session.backend_snapshot.cdml, "polyline")
 		while session.can_undo_backend:
 			main_window.on_undo()
@@ -171,8 +190,8 @@ def test_vector_short_and_invalid_requests_are_atomic(
 		_drag_vector(session, PySide6.QtCore.QPointF(10.0, 10.0), PySide6.QtCore.QPointF(14.0, 14.0))
 		short_after = session.backend_snapshot
 		request = bkchem_qt.models.document_session.PersistentOperationRequest(
-			"vector.add", "Vector", (("shape", "rect"), ("start", (0.0, 0.0)),
-			("end", (math.nan, 10.0))),
+			"vector.add", "Vector",
+			(("kind", "rect"), ("points", ((0.0, 0.0), (math.nan, 10.0)))),
 		)
 		outcome = session.submit_persistent_operation(request)
 		invalid_after = session.backend_snapshot
@@ -185,32 +204,107 @@ def test_vector_short_and_invalid_requests_are_atomic(
 
 
 #============================================
-def test_vector_candidate_preserves_opaque_root_order_and_maps_issued_id() -> None:
-	"""One complete candidate retains opaque root content and replaces its token."""
-	source = (
-		'<c:cdml xmlns:c="http://www.freesoftware.fsf.org/bkchem/cdml" '
-		'xmlns:x="urn:example:opaque" version="0.15"><!--keep-->'
-		'<x:note keep="yes"/><c:text id="text_1"><c:ftext>note</c:ftext></c:text></c:cdml>'
-	)
-	backend = oasa.cdml_document.CDMLDocumentSession.load(source)
-	before = backend.snapshot()
-	token = "__bkchem_new__vector-r0-1"
-	commit = backend.commit(
-		expected_revision=before.revision,
-		complete_cdml=bkchem_qt.io.cdml_candidate.append_vector_candidate(
-			before.cdml, token, "rect", (0.0, 0.0), (36.0, 18.0),
-		),
-	)
-	oasa.cdml_document.CDMLDocument.parse(commit.cdml, validation="compat")
-	root = oasa.safe_xml.parse_dom_from_string(commit.cdml).documentElement
-	elements = [
-		child for child in root.childNodes
-		if isinstance(child, xml.dom.minidom.Element)
-	]
-	comments = [
-		child.data for child in root.childNodes
-		if child.nodeType == xml.dom.minidom.Node.COMMENT_NODE
-	]
+def test_vector_path_gesture_preserves_every_authored_vertex(
+		main_window: bkchem_qt.main_window.MainWindow,
+		) -> None:
+	"""A multi-click polyline sends its complete ordered path as immutable intent."""
+	session = _new_session(main_window)
+	try:
+		mode = _select_vector(session, "polyline")
+		requests = []
 
-	assert [element.localName for element in elements] == ["note", "text", "rect"]
-	assert comments == ["keep"] and commit.id_map[token] == elements[-1].getAttribute("id") and token not in commit.cdml
+		class RecordedOutcome:
+			"""Provide the normal status value required by the mode callback."""
+
+			message = "Polyline created"
+
+		def record(request: object) -> RecordedOutcome:
+			"""Retain the declared operation without owning any CDML construction."""
+			requests.append(request)
+			return RecordedOutcome()
+
+		mode.set_persistent_operation(record)
+		for point in ((10.0, 10.0), (40.0, 15.0), (55.0, 45.0)):
+			session.mode_manager.mouse_press(PySide6.QtCore.QPointF(*point), object())
+		session.mode_manager.key_press(
+			PySide6.QtGui.QKeyEvent(
+				PySide6.QtCore.QEvent.Type.KeyPress,
+				PySide6.QtCore.Qt.Key.Key_Return,
+				PySide6.QtCore.Qt.KeyboardModifier.NoModifier,
+			),
+		)
+		payload = dict(requests[0].payload)
+	finally:
+		_close_clean_session(main_window, session)
+
+	assert payload == {
+		"kind": "polyline", "points": ((10.0, 10.0), (40.0, 15.0), (55.0, 45.0)),
+	}
+
+
+#============================================
+def test_square_drag_submits_equal_extents(
+		main_window: bkchem_qt.main_window.MainWindow,
+		) -> None:
+	"""A square drag preserves direction while submitting equal horizontal and vertical extents."""
+	session = _new_session(main_window)
+	try:
+		mode = _select_vector(session, "square")
+		requests = []
+
+		class RecordedOutcome:
+			"""Provide the normal status value required by the mode callback."""
+
+			message = "Square created"
+
+		def record(request: object) -> RecordedOutcome:
+			"""Retain the backend-bound semantic request."""
+			requests.append(request)
+			return RecordedOutcome()
+
+		mode.set_persistent_operation(record)
+		_drag_vector(
+			session, PySide6.QtCore.QPointF(60.0, 20.0),
+			PySide6.QtCore.QPointF(20.0, 30.0),
+		)
+		start, end = dict(requests[0].payload)["points"]
+	finally:
+		_close_clean_session(main_window, session)
+
+	assert (end[0] - start[0], end[1] - start[1]) == (-40.0, 40.0)
+
+
+#============================================
+def test_vector_polygon_escape_discards_transient_vertices(
+		main_window: bkchem_qt.main_window.MainWindow,
+		) -> None:
+	"""Escape retires an unfinished polygon without sending a document mutation."""
+	session = _new_session(main_window)
+	try:
+		mode = _select_vector(session, "polygon")
+		requests = []
+
+		class RecordedOutcome:
+			"""Provide the normal status value required by the mode callback."""
+
+			message = "Polygon created"
+
+		def record(request: object) -> RecordedOutcome:
+			"""Record a request if cancellation accidentally creates one."""
+			requests.append(request)
+			return RecordedOutcome()
+
+		mode.set_persistent_operation(record)
+		session.mode_manager.mouse_press(PySide6.QtCore.QPointF(10.0, 10.0), object())
+		session.mode_manager.mouse_press(PySide6.QtCore.QPointF(40.0, 15.0), object())
+		session.mode_manager.key_press(
+			PySide6.QtGui.QKeyEvent(
+				PySide6.QtCore.QEvent.Type.KeyPress,
+				PySide6.QtCore.Qt.Key.Key_Escape,
+				PySide6.QtCore.Qt.KeyboardModifier.NoModifier,
+			),
+		)
+	finally:
+		_close_clean_session(main_window, session)
+
+	assert requests == []

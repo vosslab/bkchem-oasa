@@ -111,12 +111,20 @@ Build a renderer-independent input-SVG checker that can flag bond/glyph issues a
   - fixture centerline checks intentionally tighter and catch residual drift.
 
 ## Practical Current State
-- The pipeline is now much more diagnosable than before:
-  - per-label gate-debug counters,
-  - explicit curved/stem target handling,
-  - independent alignment vs gap metrics,
-  - fixture harness with required-failure accounting.
-- Remaining blocker is no longer point-count starvation; it is center-reference accuracy under strict expected centerline checks.
+- Controlled OASA SVG exports retain stable operation IDs, declared
+  connector-to-label ownership, and composite-stroke ownership.
+- The default one-time command renders a bounded current furanose+pyranose
+  corpus through lxml, then validates each declared visible connector reaches
+  its own glyph without overlap. It does not need an archive preview corpus.
+- This identity gate deliberately does not reuse a heuristic glyph-center or
+  lattice-angle threshold for Haworth branches. Those remain diagnostics for
+  unannotated third-party SVGs, where no renderer-owned relation exists.
+- The permanent tests use small lxml SVGs to prove a declared association wins
+  over an unrelated nearby line and that a declared distant endpoint fails.
+
+```bash
+source source_me.sh && python3 tools/measure_glyph_bond_alignment.py --fail-on-miss
+```
 
 ## Recommended Next Direction
 - Move to full-image pixel reference for centerline truth (not local subpath-only), using existing render path where available.

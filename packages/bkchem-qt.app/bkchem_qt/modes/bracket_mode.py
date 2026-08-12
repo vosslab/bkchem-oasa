@@ -1,4 +1,4 @@
-"""Transient rectangular-bracket gesture for backend-owned CDML."""
+"""Transient rectangular/round bracket gesture for backend-owned CDML."""
 
 # PIP3 modules
 import PySide6.QtCore
@@ -12,11 +12,12 @@ import bkchem_qt.modes.base_mode
 
 
 _BRACKET_MARGIN = 6.0
+_BRACKET_STYLES = {"rectangularbracket": "rectangular", "roundbracket": "round"}
 
 
 #============================================
 class BracketMode(bkchem_qt.modes.base_mode.BaseMode):
-	"""Create one backend-authoritative rectangular bracket pair.
+	"""Create one backend-authoritative rectangular or round bracket pair.
 
 	Qt owns only the drag preview and selected-atom geometry lookup.  The live
 	session owns the revision-bound immutable operation and canonical reproject.
@@ -31,6 +32,7 @@ class BracketMode(bkchem_qt.modes.base_mode.BaseMode):
 		self._name = "Bracket"
 		self._cursor = PySide6.QtCore.Qt.CursorShape.CrossCursor
 		self._persistent_operation = None
+		self._style = "rectangular"
 		self._drag_start = None
 		self._preview_rect = None
 		self._preview_scene = None
@@ -38,8 +40,17 @@ class BracketMode(bkchem_qt.modes.base_mode.BaseMode):
 	#============================================
 	@property
 	def status_hint(self) -> str:
-		"""Return the one supported rectangular-bracket interaction hint."""
-		return "Click to bracket selected atoms | Drag to draw bracket region"
+		"""Return the active bracket style and its two supported gestures."""
+		return f"{self._style.title()} | Click selected atoms or drag a region"
+
+	#============================================
+	def on_submode_switch(self, submode_index: int, name: str) -> None:
+		"""Select one declared backend bracket style from the ribbon."""
+		if submode_index != 0 or name not in _BRACKET_STYLES:
+			self.status_message.emit("Unsupported bracket style")
+			return
+		self._style = _BRACKET_STYLES[name]
+		self.status_message.emit(self.status_hint)
 
 	#============================================
 	def set_persistent_operation(self, operation: object | None) -> None:
@@ -111,7 +122,8 @@ class BracketMode(bkchem_qt.modes.base_mode.BaseMode):
 			return
 		from bkchem_qt.models.document_session import PersistentOperationRequest
 		outcome = self._persistent_operation(PersistentOperationRequest(
-			"bracket.add", "Add Brackets", (("bounds", bounds),),
+			"bracket.add", "Add Brackets",
+			(("style", self._style), ("bounds", bounds)),
 		))
 		self.status_message.emit(outcome.message)
 

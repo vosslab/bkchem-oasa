@@ -4,11 +4,20 @@
 import bkchem_qt.dialogs.atom_dialog
 import bkchem_qt.dialogs.arrow_dialog
 import bkchem_qt.dialogs.bond_dialog
+import bkchem_qt.dialogs.geometric_properties_dialog
 import bkchem_qt.dialogs.plus_dialog
 import bkchem_qt.dialogs.text_dialog
 import bkchem_qt.dialogs.wavy_dialog
 import bkchem_qt.io.cdml_inspection
+import bkchem_qt.models.bracket_pair_selection
 import bkchem_qt.undo.commands
+
+
+_GEOMETRIC_KINDS = frozenset({"rect", "square", "oval", "circle", "polygon", "polyline"})
+_GEOMETRIC_TITLES = {
+	"rect": "Rectangle", "square": "Square", "oval": "Oval", "circle": "Circle",
+	"polygon": "Polygon", "polyline": "Polyline",
+}
 
 
 #============================================
@@ -141,7 +150,7 @@ def _presentation_properties_submission(
 
 #============================================
 def _single_selected_presentation(
-		parent: object, kind: str, *, style: str | None = None,
+		parent: object, kind: str | frozenset[str], *, style: str | None = None,
 		) -> object | None:
 	"""Return one exact current editable presentation root of the requested kind."""
 	window, _view = _owning_window_and_view(parent)
@@ -153,8 +162,9 @@ def _single_selected_presentation(
 	if len(presentations) != 1 or len(presentation_ids) != 1:
 		return None
 	model = presentations[0]
+	kinds = frozenset({kind}) if type(kind) is str else kind
 	if (
-		model.kind != kind or not model.editable
+		model.kind not in kinds or not model.editable
 		or model.object_id != presentation_ids[0]
 		or style is not None and model.attributes.get("style") != style
 	):
@@ -200,6 +210,72 @@ def has_single_selected_arrow(parent: object) -> bool:
 
 
 #============================================
+def _single_selected_geometric(parent: object) -> object | None:
+	"""Return one ordinary shape or line handled by the shared appearance patch."""
+	model = _single_selected_presentation(parent, _GEOMETRIC_KINDS)
+	if model is not None and (
+		model.kind != "polyline" or model.attributes.get("style") != "wavy"
+	):
+		return model
+	return None
+
+
+#============================================
+def has_single_selected_geometric(parent: object) -> bool:
+	"""Report geometric Configure eligibility without retaining its QObject."""
+	return _single_selected_geometric(parent) is not None
+
+
+#============================================
+def _selected_bracket_pair(parent: object) -> tuple[object, ...] | None:
+	"""Return one wholly selected current bracket pair observation."""
+	window, _view = _owning_window_and_view(parent)
+	document = getattr(window, "document", None)
+	if document is None:
+		return None
+	return bkchem_qt.models.bracket_pair_selection.selected_pair(document)
+
+
+#============================================
+def has_selected_bracket_pair(parent: object) -> bool:
+	"""Report whether Configure can edit exactly one observed bracket pair."""
+	return _selected_bracket_pair(parent) is not None
+
+
+#============================================
+def capture_selected_bracket_properties(
+		parent: object,
+		) -> tuple[int, object, str, tuple[tuple[str, object], ...]] | None:
+	"""Capture detached pair appearance intent from plain projection facts."""
+	pair = _selected_bracket_pair(parent)
+	if pair is None:
+		return None
+	pair_id, _member_ids, _style, width, color = pair
+	window, view = _owning_window_and_view(parent)
+	capture = getattr(window, "capture_bracket_properties_for_view", None)
+	if not callable(capture):
+		return None
+	synchronized = capture(view, pair_id)
+	if (
+		synchronized is None or type(synchronized) is not tuple or len(synchronized) != 2
+		or type(synchronized[0]) is not int or not callable(synchronized[1])
+	):
+		return None
+	# Imported disagreement is intentionally represented as an unchanged baseline;
+	# users may positively choose a value, but merely opening/accepting is inert.
+	dialog = bkchem_qt.dialogs.geometric_properties_dialog.GeometricPropertiesDialog(
+		title="Bracket appearance", line_width=width if width is not None else 1.0,
+		line_color=color if color is not None else "#000000", area_color=None,
+		fillable=False, parent=parent,
+	)
+	expected_revision, submit = synchronized
+	changes = ()
+	if dialog.exec() == dialog.DialogCode.Accepted:
+		changes = dialog.changes()
+	return expected_revision, submit, pair_id, changes
+
+
+#============================================
 def capture_selected_plus_properties(
 		parent: object,
 		) -> tuple[int, object, str, tuple[tuple[str, object], ...]] | None:
@@ -219,7 +295,12 @@ def capture_selected_plus_properties(
 	attributes = plus_model.attributes
 	font_size = int(attributes.get("font_size", "14"))
 	color = attributes.get("color", "#000000")
-	dialog = bkchem_qt.dialogs.plus_dialog.PlusDialog(font_size, color, parent)
+	background_color = attributes.get("background-color") or None
+	font_family = plus_model.effective_font_family or "helvetica"
+	dialog = bkchem_qt.dialogs.plus_dialog.PlusDialog(
+		font_size, color, parent, background_color=background_color,
+		font_family=font_family,
+	)
 	expected_revision, submit, plus_id = synchronized
 	changes = ()
 	if dialog.exec() == dialog.DialogCode.Accepted:
@@ -281,6 +362,37 @@ def capture_selected_arrow_properties(
 
 
 #============================================
+def capture_selected_geometric_properties(
+		parent: object,
+		) -> tuple[int, object, str, tuple[tuple[str, object], ...]] | None:
+	"""Capture one shape/line appearance dialog as detached scalar intent."""
+	model = _single_selected_geometric(parent)
+	if model is None:
+		return None
+	synchronized = _presentation_properties_submission(
+		parent, model, "capture_geometric_properties_for_view",
+	)
+	if synchronized is None:
+		return None
+	attributes = model.attributes
+	line_color = attributes.get("line_color", attributes.get("color", "#000000"))
+	fillable = model.kind != "polyline"
+	area_color = attributes.get("area_color", attributes.get("background-color"))
+	if area_color in ("", "none") or not fillable:
+		area_color = None
+	dialog = bkchem_qt.dialogs.geometric_properties_dialog.GeometricPropertiesDialog(
+		title=_GEOMETRIC_TITLES[model.kind],
+		line_width=float(attributes.get("width", "1")), line_color=line_color,
+		area_color=area_color, fillable=fillable, parent=parent,
+	)
+	expected_revision, submit, presentation_id = synchronized
+	changes = ()
+	if dialog.exec() == dialog.DialogCode.Accepted:
+		changes = dialog.changes()
+	return expected_revision, submit, presentation_id, changes
+
+
+#============================================
 def _plain_text_values(text_model: object) -> dict[str, object] | None:
 	"""Copy current Text projection values into detached plain dialog scalars."""
 	fragment = text_model.xml_ftext
@@ -299,6 +411,7 @@ def _plain_text_values(text_model: object) -> dict[str, object] | None:
 		"font_color": font.get(
 			"color", attributes.get("line_color", attributes.get("color", "#000000")),
 		),
+		"background_color": attributes.get("background-color") or None,
 	}
 	return values
 
@@ -447,7 +560,7 @@ def edit_text_properties(text_model: object, parent: object) -> bool:
 	dialog = bkchem_qt.dialogs.text_dialog.TextDialog(
 		text=initial["text"], font_size=initial["font_size"],
 		parent=parent, font_family=initial["font_family"],
-		font_color=initial["font_color"],
+		font_color=initial["font_color"], background_color=initial["background_color"],
 	)
 	if dialog.exec() != dialog.DialogCode.Accepted:
 		return False

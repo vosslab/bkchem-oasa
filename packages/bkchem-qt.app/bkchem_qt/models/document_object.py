@@ -99,6 +99,7 @@ class PresentationObject(PySide6.QtCore.QObject):
 			supported: bool = True,
 			parent: PySide6.QtCore.QObject | None = None,
 			editable: bool | None = None,
+			effective_font_family: str | None = None,
 			) -> None:
 		"""Initialize a CDML presentation object.
 
@@ -115,6 +116,7 @@ class PresentationObject(PySide6.QtCore.QObject):
 			supported: Whether the object has a Qt projection.
 			parent: Optional QObject owner.
 			editable: Whether persistent Qt actions may target the projection.
+			effective_font_family: Backend-resolved family without changing authored XML.
 		"""
 		super().__init__(parent)
 		self._kind = str(kind)
@@ -128,6 +130,7 @@ class PresentationObject(PySide6.QtCore.QObject):
 		self._raw_xml = raw_xml
 		self._supported = bool(supported)
 		self._editable = self._supported if editable is None else bool(editable) and self._supported
+		self._effective_font_family = effective_font_family
 
 	#============================================
 	@property
@@ -192,6 +195,12 @@ class PresentationObject(PySide6.QtCore.QObject):
 	def font_attributes(self) -> dict[str, str]:
 		"""Return a copy of font attributes."""
 		return dict(self._font_attributes)
+
+	#============================================
+	@property
+	def effective_font_family(self) -> str | None:
+		"""Return the backend-resolved family for presentation."""
+		return self._effective_font_family
 
 	#============================================
 	@property

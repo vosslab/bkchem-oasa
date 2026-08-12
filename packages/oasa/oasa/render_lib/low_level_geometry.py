@@ -387,7 +387,8 @@ def directional_attach_edge_intersection(
 		bond_start: object,
 		attach_bbox: object,
 		attach_target: object,
-		direction_policy: object = "auto") -> object:
+		direction_policy: object = "auto",
+		canonical_angle_step: object = None) -> object:
 	"""Return directional token-edge endpoint from bond_start toward attach_target.
 
 	Horizontal-dominant approaches terminate on left/right token edges, while
@@ -404,9 +405,9 @@ def directional_attach_edge_intersection(
 	abs_dy = abs(dy)
 	if abs_dx <= 1e-12 and abs_dy <= 1e-12:
 		return (target_x, target_y)
-	if direction_policy == "line":
-		return _clip_line_to_box((start_x, start_y), (target_x, target_y), (x1, y1, x2, y2))
-	lattice_step = _lattice_step_for_direction_policy(direction_policy)
+	lattice_step = canonical_angle_step
+	if lattice_step is None:
+		lattice_step = _lattice_step_for_direction_policy(direction_policy)
 	if lattice_step is not None:
 		snapped_direction = _snapped_direction_unit(dx, dy, lattice_step)
 		if snapped_direction is not None:
@@ -417,6 +418,8 @@ def directional_attach_edge_intersection(
 			)
 			if hit is not None:
 				return hit
+	if direction_policy == "line":
+		return _clip_line_to_box((start_x, start_y), (target_x, target_y), (x1, y1, x2, y2))
 	mode = _resolve_direction_mode(direction_policy, abs_dx, abs_dy)
 	if mode == "side":
 		if abs_dx <= 1e-12:

@@ -73,7 +73,8 @@ def test_bring_to_front_uses_backend_history_and_canonical_reprojection(
 	)
 	assert "id=\"mol-1\"" in after.cdml and "<external-data>" in after.cdml
 	assert main_window.can_save_authoritatively() and session.document.undo_stack.count() == 0
-	assert session.undo_backend().status == "accepted" and session.backend_snapshot.cdml == before.cdml
+	assert session.undo_backend().status == "accepted"
+	assert session.backend_snapshot.cdml == before.cdml
 	assert session.redo_backend().status == "accepted" and session.backend_snapshot.cdml == after.cdml
 
 

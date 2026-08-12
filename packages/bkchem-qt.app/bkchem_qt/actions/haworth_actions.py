@@ -13,6 +13,12 @@ import bkchem_qt.models.document_session
 from bkchem_qt.actions.action_registry import MenuAction
 
 
+DIRECT_TWO_RING_HAWORTH_PROFILE = (
+	"exactly two vertex-disjoint 5- or 6-member C/O rings joined by one "
+	"direct external oxygen"
+)
+
+
 #============================================
 class HaworthInsertDialog(PySide6.QtWidgets.QDialog):
 	"""Collect one monosaccharide Haworth insertion request."""
@@ -54,7 +60,7 @@ class HaworthInsertDialog(PySide6.QtWidgets.QDialog):
 
 #============================================
 class DirectGlycosidicHaworthDialog(PySide6.QtWidgets.QDialog):
-	"""Collect a structural SMILES for one supported direct glycosidic layout."""
+	"""Collect a structural SMILES for the bounded direct two-ring profile."""
 
 	#============================================
 	def __init__(self, parent: object) -> None:
@@ -64,13 +70,17 @@ class DirectGlycosidicHaworthDialog(PySide6.QtWidgets.QDialog):
 		alpha/beta/tetrahedral stereochemistry beyond the supplied structure.
 		"""
 		super().__init__(parent)
-		self.setWindowTitle("Direct Glycosidic Haworth")
+		self.setWindowTitle("Direct two-ring Haworth")
 		form = PySide6.QtWidgets.QFormLayout(self)
 		self._smiles = PySide6.QtWidgets.QLineEdit(self)
-		self._smiles.setPlaceholderText("Structural SMILES for two directly linked sugar rings")
+		self._smiles.setPlaceholderText(
+			"Structural SMILES for two direct C/O sugar rings linked by one oxygen",
+		)
 		form.addRow("SMILES:", self._smiles)
 		help_text = PySide6.QtWidgets.QLabel(
-			"Creates a two-ring Haworth drawing for a supported direct glycosidic structure.",
+			f"Supported profile: {DIRECT_TWO_RING_HAWORTH_PROFILE}. "
+			"Does not infer 1->6 chains or larger glycans, and does not "
+			"reconstruct stereochemistry.",
 			self,
 		)
 		help_text.setWordWrap(True)
@@ -210,7 +220,12 @@ class _HaworthPreparedResultRelay(PySide6.QtCore.QObject):
 def _show_haworth_error(app: object, message: str) -> None:
 	"""Report an invalid sugar code or unrepresentable layout without mutation."""
 	PySide6.QtWidgets.QMessageBox.warning(
-		app, "Haworth Sugar Error", "Could not insert Haworth sugar:\n%s" % message,
+		app,
+		"Haworth Sugar Error",
+		f"Supported profile: {DIRECT_TWO_RING_HAWORTH_PROFILE}. "
+		"This request could not be inserted because it does not infer 1->6 chains, "
+		"larger glycans, or stereochemistry.\n\n"
+		f"Reason: {message}",
 	)
 
 
@@ -283,7 +298,7 @@ def _start_verified_sucrose_insert(app: object) -> None:
 
 #============================================
 def _start_direct_glycosidic_haworth_insert(app: object, smiles: str) -> None:
-	"""Prepare one captured-session direct glycosidic Haworth insertion."""
+	"""Prepare one captured-session direct two-ring Haworth insertion."""
 	target = app._active_session
 	try:
 		bond_length_pt, insertion_anchor = _capture_haworth_geometry(target)
@@ -309,7 +324,7 @@ def _start_direct_glycosidic_haworth_insert(app: object, smiles: str) -> None:
 	worker.error.connect(relay.on_error, connection)
 	worker.finished.connect(relay.on_thread_finished, connection)
 	target.track_import_worker(worker)
-	app.statusBar().showMessage("Preparing direct glycosidic Haworth drawing...", 0)
+	app.statusBar().showMessage("Preparing direct two-ring Haworth drawing...", 0)
 	worker.start()
 
 
@@ -334,7 +349,7 @@ def insert_verified_sucrose_haworth(app: object) -> None:
 
 #============================================
 def insert_direct_glycosidic_haworth(app: object) -> None:
-	"""Prompt for a supported two-ring direct glycosidic structural SMILES."""
+	"""Prompt for a SMILES within the supported direct two-ring profile."""
 	dialog = DirectGlycosidicHaworthDialog(app)
 	if dialog.exec() != PySide6.QtWidgets.QDialog.DialogCode.Accepted:
 		return
@@ -366,8 +381,8 @@ def register_haworth_actions(registry: object, app: object) -> None:
 	))
 	registry.register(MenuAction(
 		id="insert.direct_glycosidic_haworth",
-		label_key="Direct Glycosidic Haworth from SMILES...",
-		help_key="Insert a supported two-ring direct glycosidic Haworth drawing",
+		label_key="Direct two-ring Haworth from SMILES...",
+		help_key="Insert two direct C/O rings joined by one external oxygen",
 		accelerator=None,
 		handler=lambda: insert_direct_glycosidic_haworth(app),
 		enabled_when=None,

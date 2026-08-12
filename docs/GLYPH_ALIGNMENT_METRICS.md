@@ -12,6 +12,12 @@ diagnostic SVG overlays.
 | `perp` | Perpendicular offset | Sideways distance from glyph center to the bond line |
 | `err` | Alignment error | Value used for the pass/fail decision (currently equals `perp`) |
 
+Controlled OASA SVG exports use a separate identity gate. A connector declares
+the exact label operation it serves, so the gate checks that endpoint reaches
+that glyph neighborhood without penetrating it. It does not treat an optical
+glyph-center estimate as pass/fail evidence. The metrics below remain the
+independent diagnostic path for unannotated SVG input.
+
 ## Diagram
 
 The ASCII diagram below shows a bond approaching the letter "O" in a label

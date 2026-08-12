@@ -14,6 +14,11 @@ algorithm via the bridge module
 RDKit is a required dependency declared in
 [pyproject.toml](../packages/oasa/pyproject.toml).
 
+This general coordinate API is distinct from `oasa.haworth.assembly`.
+The Haworth assembly API deterministically places an explicitly declared
+three-ring drawing tree; it does not infer a carbohydrate graph or replace the
+RDKit bridge for ordinary molecule coordinate generation.
+
 ---
 
 ## Public API

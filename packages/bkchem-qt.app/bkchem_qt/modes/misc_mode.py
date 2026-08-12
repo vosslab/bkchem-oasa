@@ -9,7 +9,7 @@ import PySide6.QtWidgets
 import bkchem_qt.canvas.graphics_retirement
 import bkchem_qt.modes.base_mode
 import bkchem_qt.canvas.items.atom_item
-import bkchem_qt.wavy_geometry
+import oasa.cdml_presentation_insert
 
 
 _PREVIEW_PEN_STYLE = PySide6.QtCore.Qt.PenStyle.DashLine
@@ -152,7 +152,7 @@ class MiscMode(bkchem_qt.modes.base_mode.BaseMode):
 		if scene is None:
 			return
 		try:
-			points = bkchem_qt.wavy_geometry.wavy_points(
+			points = oasa.cdml_presentation_insert.wavy_points(
 				(self._wavy_start.x(), self._wavy_start.y()),
 				(scene_pos.x(), scene_pos.y()),
 			)
@@ -179,7 +179,7 @@ class MiscMode(bkchem_qt.modes.base_mode.BaseMode):
 		if start is None:
 			return
 		try:
-			points = bkchem_qt.wavy_geometry.wavy_points(
+			points = oasa.cdml_presentation_insert.wavy_points(
 				(start.x(), start.y()),
 				(scene_pos.x(), scene_pos.y()),
 			)

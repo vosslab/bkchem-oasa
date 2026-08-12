@@ -67,10 +67,13 @@ def test_direct_hydration_rejects_mixed_observation_revisions(qapp: object) -> N
 		"<atom id='b' name='O'><point x='1cm' y='0cm'/></atom><bond id='e' start='a' end='b' type='n1'/></molecule></cdml>", validation="compat",
 	)
 	with pytest.raises(ValueError):
-		oasa.cdml_document.CDMLProjectionSnapshot(
-			oasa.cdml_document.CDMLSnapshot(0, document.serialize(), False),
+		plan = oasa.cdml_document.CDMLProjectionPlan(
+			0, (),
 			document.presentation_description(0), document.paper_layout(0),
 			document.fragment_metadata(0), document.atom_mark_observation(0),
 			document.group_observation(0), document.molecule_core_observation(0),
 			dataclasses.replace(document.molecule_render_observation(0), revision=1),
+		)
+		oasa.cdml_document.CDMLProjectionSnapshot(
+			oasa.cdml_document.CDMLSnapshot(0, document.serialize(), False), plan,
 		)

@@ -13,6 +13,13 @@ import bkchem_qt.undo.commands
 
 
 #============================================
+def _count_label(count: int, singular: str) -> str:
+	"""Return one readable count without placeholder plural notation."""
+	label = singular if count == 1 else singular + "s"
+	return f"{count} {label}"
+
+
+#============================================
 class PropertyDock(PySide6.QtWidgets.QDockWidget):
 	"""Dock widget showing editable properties for the selected scene item.
 
@@ -96,12 +103,19 @@ class PropertyDock(PySide6.QtWidgets.QDockWidget):
 		layout.setContentsMargins(8, 8, 8, 8)
 		# document summary label
 		self._info_label = PySide6.QtWidgets.QLabel("No selection")
+		self._info_label.setObjectName("document-summary")
 		self._info_label.setWordWrap(True)
 		self._info_label.setAlignment(PySide6.QtCore.Qt.AlignmentFlag.AlignTop)
 		layout.addWidget(self._info_label)
 		layout.addStretch()
 		# page index 0
 		self._stack.addWidget(panel)
+
+	#============================================
+	@property
+	def summary_text(self) -> str:
+		"""Return the currently visible document summary."""
+		return self._info_label.text()
 
 	#============================================
 	def _build_atom_panel(self) -> None:
@@ -216,14 +230,22 @@ class PropertyDock(PySide6.QtWidgets.QDockWidget):
 	def _show_info_panel(self) -> None:
 		"""Switch to the document info panel and update the summary text."""
 		self._current_item = None
-		# count molecules and total atoms across the document
 		molecules = self._document.molecules
 		n_molecules = len(molecules)
 		n_atoms = sum(len(mol.atoms) for mol in molecules)
-		if n_molecules == 0:
-			text = "Empty document"
+		n_presentations = len(self._document.presentation_objects)
+		if n_molecules == 0 and n_presentations == 0:
+			text = "No drawable objects"
 		else:
-			text = f"{n_molecules} molecule(s), {n_atoms} atom(s)"
+			parts = []
+			if n_molecules:
+				parts.extend((
+					_count_label(n_molecules, "molecule"),
+					_count_label(n_atoms, "atom"),
+				))
+			if n_presentations:
+				parts.append(_count_label(n_presentations, "drawing object"))
+			text = ", ".join(parts)
 		self._info_label.setText(text)
 		self._stack.setCurrentIndex(0)
 

@@ -5,6 +5,7 @@
 """Schematic Haworth renderer producing shared render_ops primitives."""
 
 # Standard Library
+import dataclasses
 import math
 import re
 
@@ -21,9 +22,10 @@ from oasa.render_lib.data_types import _coerce_attach_target
 from oasa.render_lib.data_types import make_attach_constraints
 from oasa.render_lib.data_types import make_circle_target
 from oasa.render_lib.label_geometry import default_label_attach_policy
+from oasa.render_lib.label_geometry import align_text_origin_to_attach_centerline
+from oasa.render_lib.label_geometry import connector_constraints_from_direction
 from oasa.render_lib.label_geometry import label_allowed_target_from_text_origin
 from oasa.render_lib.label_geometry import label_attach_contract_from_text_origin
-from oasa.render_lib.label_geometry import label_attach_target_from_text_origin
 from oasa.render_lib.label_geometry import label_target_from_text_origin
 from oasa.render_lib.label_geometry import resolve_label_connector_endpoint_from_text_origin
 from oasa.render_lib.attach_resolution import resolve_attach_endpoint
@@ -31,6 +33,8 @@ from oasa.render_lib.attach_resolution import retreat_endpoint_until_legal
 from oasa.render_lib.attach_resolution import validate_attachment_paint
 from oasa.render_lib.bond_ops import _hashed_ops
 from oasa.render_lib.bond_ops import _rounded_wedge_ops
+from oasa.render_lib.branch_layout import branch_fan_layout
+from oasa.render_lib.label_layout import label_target_overlap_score
 from oasa.haworth import spec as _spec
 from oasa.haworth.spec import HaworthSpec
 from oasa.haworth import renderer_geometry as _geom
@@ -42,7 +46,6 @@ from oasa.haworth.renderer_config import (
 	RING_RENDER_CONFIG,
 	CARBON_NUMBER_VERTEX_WEIGHT,
 	OXYGEN_COLOR,
-	FURANOSE_TOP_UP_CLEARANCE_FACTOR,
 )
 
 # Use a tight epsilon for retreat binary-search convergence. The strict
@@ -614,12 +617,6 @@ def render(
 	)
 
 	slot_map = carbon_slot_map(spec)
-	slot_to_carbon = {slot: int(carbon_key[1:]) for carbon_key, slot in slot_map.items()}
-	left_top_carbon = slot_to_carbon.get("ML")
-	left_top_up_label = "H"
-	if left_top_carbon is not None:
-		left_top_up_label = spec.substituents.get(f"C{left_top_carbon}_up", "H")
-	left_top_is_chain_like = _text.is_chain_like_label(left_top_up_label)
 	default_sub_length = bond_length * 0.45
 	connector_width = back_thickness
 	simple_jobs = []
@@ -640,39 +637,7 @@ def render(
 			raw_dx, raw_dy = slot_label_cfg[slot][dir_key]
 			dx, dy = _geom.normalize_vector(raw_dx, raw_dy)
 			anchor = slot_label_cfg[slot]["anchor"]
-			label_policy = default_label_attach_policy(
-				text=str(label),
-				chain_attach_site="core_center",
-			)
-			is_first_hydroxyl = (
-				label_policy.attach_element == "O"
-				and label_policy.attach_atom == "first"
-			)
-			if (
-					spec.ring_type == "pyranose"
-					and direction == "up"
-					and is_first_hydroxyl
-					and slot in ("BL", "BR")
-			):
-				# Interior pyranose hydroxyl labels should face ring center.
-				anchor = "start" if slot == "BL" else "end"
 			effective_length = sub_length
-			if spec.ring_type == "furanose" and direction == "up" and slot in ("ML", "MR"):
-				# When MR carries a simple hydroxyl and ML carries a chain-like
-				# tail, the clearance override would push MR OH too high and
-				# collide with the ML CH2OH text.  Skip clearance in that case.
-				skip_clearance = (
-					slot == "MR"
-					and left_top_is_chain_like
-					and is_first_hydroxyl
-					and down_label == "H"
-				)
-				if not skip_clearance:
-					oxygen_top = oy - (font_size * 0.65)
-					target_y = oxygen_top - (font_size * FURANOSE_TOP_UP_CLEARANCE_FACTOR)
-					min_length = max(0.0, vertex[1] - target_y)
-					if min_length > effective_length:
-						effective_length = min_length
 			if (
 					spec.ring_type == "furanose"
 					and _text.is_two_carbon_tail_label(label)
@@ -759,6 +724,8 @@ def render(
 					"dy": dy,
 					"length": effective_length,
 					"label": label,
+					"label_candidates": _simple_label_presentations(label),
+					"text_scales": _simple_label_scales(label),
 					"connector_width": connector_width,
 					"font_size": font_size,
 					"font_name": font_name,
@@ -769,12 +736,14 @@ def render(
 				}
 			)
 
-	for job in _layout.resolve_hydroxyl_layout_jobs(simple_jobs, blocked_polygons=ring_block_polygons):
+	for job in _layout.resolve_hydroxyl_layout_jobs(
+			simple_jobs,
+			blocked_targets=(oxygen_label_target,),
+			blocked_polygons=ring_block_polygons,
+	):
 		_add_simple_label_ops(
 			ops=ops,
 			carbon=job["carbon"],
-			ring_type=job["ring_type"],
-			slot=job["slot"],
 			direction=job["direction"],
 			vertex=job["vertex"],
 			dx=job["dx"],
@@ -791,48 +760,23 @@ def render(
 			label_color=job["label_color"],
 		)
 	for job in two_carbon_tail_jobs:
-		# Use fragment layout for branched two-carbon tails
-		tail_fragment = _fragment.layout_fragment(
-			label="CH(OH)CH2OH",
-			bond_length=job["segment_length"],
-			attachment_point=job["vertex"],
-			direction=(job["dx"], job["dy"]),
-			up_or_down=job["direction"],
+		_add_furanose_two_carbon_tail_ops(
+			ops=ops,
+			carbon=job["carbon"],
+			slot=job["slot"],
+			direction=job["direction"],
+			vertex=job["vertex"],
 			ring_center=job["ring_center"],
+			dx=job["dx"],
+			dy=job["dy"],
+			segment_length=job["segment_length"],
+			connector_width=job["connector_width"],
+			font_size=job["font_size"],
+			font_name=job["font_name"],
+			anchor=job["anchor"],
+			line_color=job["line_color"],
+			label_color=job["label_color"],
 		)
-		if tail_fragment is not None:
-			_add_fragment_ops(
-				ops=ops,
-				fragment=tail_fragment,
-				carbon=job["carbon"],
-				direction=job["direction"],
-				vertex=job["vertex"],
-				connector_width=job["connector_width"],
-				font_size=job["font_size"],
-				font_name=job["font_name"],
-				anchor=job["anchor"],
-				line_color=job["line_color"],
-				label_color=job["label_color"],
-			)
-		else:
-			# Fallback to legacy two-carbon tail rendering
-			_add_furanose_two_carbon_tail_ops(
-				ops=ops,
-				carbon=job["carbon"],
-				slot=job["slot"],
-				direction=job["direction"],
-				vertex=job["vertex"],
-				ring_center=job["ring_center"],
-				dx=job["dx"],
-				dy=job["dy"],
-				segment_length=job["segment_length"],
-				connector_width=job["connector_width"],
-				font_size=job["font_size"],
-				font_name=job["font_name"],
-				anchor=job["anchor"],
-				line_color=job["line_color"],
-				label_color=job["label_color"],
-			)
 
 	if show_carbon_numbers:
 		center_x = sum(point[0] for point in coords) / len(coords)
@@ -864,7 +808,42 @@ def render(
 			)
 	if debug_attach_overlay:
 		_append_attach_debug_overlay_ops(ops)
-	return render_ops.sort_ops(ops)
+	return _with_svg_attachment_metadata(ops)
+
+
+#============================================
+def _with_svg_attachment_metadata(ops: list) -> list:
+	"""Declare each rendered connector's label and composite-stroke ownership.
+
+	The operation IDs already identify the Haworth presentation roles.  Carrying
+	the relationship into controlled SVG prevents downstream inspection tools
+	from guessing which nearby label or hatch belongs to a connector.
+	"""
+	label_ids = {
+		op.op_id for op in ops
+		if isinstance(op, render_ops.TextOp) and op.op_id
+	}
+	annotated = []
+	for op in ops:
+		if not isinstance(op, render_ops.LineOp) or not op.op_id:
+			annotated.append(op)
+			continue
+		attachment_target_id = None
+		composite_parent_id = None
+		if op.op_id.endswith("_connector"):
+			candidate = op.op_id.removesuffix("_connector") + "_label"
+			if candidate in label_ids:
+				attachment_target_id = candidate
+		else:
+			match = re.match(r"^(.*_connector)_hatch[0-9]+$", op.op_id)
+			if match:
+				composite_parent_id = match.group(1)
+		annotated.append(dataclasses.replace(
+			op,
+			attachment_target_id=attachment_target_id,
+			composite_parent_id=composite_parent_id,
+		))
+	return render_ops.sort_ops(annotated)
 
 
 #============================================
@@ -882,11 +861,25 @@ def _ring_carbons(spec: HaworthSpec) -> list[int]:
 
 
 #============================================
+def _simple_label_presentations(label: str) -> tuple[str, ...]:
+	"""Return caller-owned equivalent text presentations for one group."""
+	if label in ("CH3", "H3C"):
+		return ("CH3", "H3C")
+	return (label,)
+
+
+#============================================
+def _simple_label_scales(label: str) -> tuple[float, ...]:
+	"""Return readable caller-authorized scales for one group presentation."""
+	if label in ("CH3", "H3C"):
+		return (1.0, 0.90)
+	return (1.0,)
+
+
+#============================================
 def _add_simple_label_ops(
 		ops: list,
 		carbon: int,
-		ring_type: str,
-		slot: str,
 		direction: str,
 		vertex: tuple[float, float],
 		dx: float,
@@ -912,33 +905,15 @@ def _add_simple_label_ops(
 	else:
 		text = _text.format_label_text(label, anchor=anchor)
 	draw_font_size = font_size * text_scale
-	anchor_x = _text.anchor_x_offset(text, anchor, font_size)
+	anchor_x = _text.anchor_x_offset(text, anchor, draw_font_size)
 	text_x = end_point[0] + anchor_x
-	text_y = end_point[1] + _text.baseline_shift(direction, font_size, text)
-	text, text_x, text_y, draw_font_size = _resolve_methyl_label_collision(
-		ops=ops,
-		end_point=end_point,
-		direction=direction,
-		anchor=anchor,
-		font_name=font_name,
-		text=text,
-		text_x=text_x,
-		text_y=text_y,
-		layout_font_size=font_size,
-		draw_font_size=draw_font_size,
-	)
-	force_vertical_chain = (
-		ring_type == "furanose"
-		and direction == "up"
-		and slot == "ML"
-		and is_chain_like_label
-	)
+	text_y = end_point[1] + _text.baseline_shift(direction, draw_font_size, text)
 	nominal_vertical_direction = abs(dx) <= 1e-9 and abs(dy) > 1e-9
 	# Carbon element and site for text positioning/alignment (not bond trimming).
 	align_attach_element = "C" if is_chain_like_label else None
 	align_attach_site = "core_center" if is_chain_like_label else None
 	if nominal_vertical_direction:
-		text_x, text_y = _align_text_origin_to_attach_centerline(
+		text_x, text_y = align_text_origin_to_attach_centerline(
 			text_x=text_x,
 			text_y=text_y,
 			text=text,
@@ -951,39 +926,11 @@ def _add_simple_label_ops(
 			chain_attach_site="core_center",
 			font_name=font_name,
 		)
-	if force_vertical_chain:
-		# Align vertical chain-like carbon connectors to the carbon core centerline.
-		core_target = label_attach_target_from_text_origin(
-			text_x=text_x,
-			text_y=text_y,
-			text=text,
-			anchor=anchor,
-			font_size=draw_font_size,
-			attach_atom=attach_atom,
-			attach_element="C",
-			attach_site="core_center",
-			font_name=font_name,
-		)
-		core_center_x, _core_center_y = core_target.centroid()
-		text_x += vertex[0] - core_center_x
-	is_hydroxyl_label = _text.is_hydroxyl_render_text(text)
-	force_vertical = force_vertical_chain or nominal_vertical_direction
-	constraints = make_attach_constraints(
-		font_size=font_size, target_gap=ATTACH_GAP_TARGET, direction_policy="auto")
-	if is_hydroxyl_label:
-		constraints = make_attach_constraints(
-			font_size=font_size,
-			target_gap=ATTACH_GAP_TARGET,
-			direction_policy="line",
-			vertical_lock=nominal_vertical_direction or slot in ("BR", "BL", "TL"),
-		)
-	elif force_vertical:
-		constraints = make_attach_constraints(
-			font_size=font_size,
-			target_gap=ATTACH_GAP_TARGET,
-			direction_policy="line",
-			vertical_lock=True,
-		)
+	constraints = connector_constraints_from_direction(
+		direction=(dx, dy),
+		font_size=font_size,
+		target_gap=ATTACH_GAP_TARGET,
+	)
 	connector_end, _contract = resolve_label_connector_endpoint_from_text_origin(
 		bond_start=vertex,
 		text_x=text_x,
@@ -1048,118 +995,6 @@ def _hydroxyl_connector_radius(font_size: float, connector_width: float) -> floa
 
 
 #============================================
-def _box_overlap_area(
-		box_a: tuple[float, float, float, float],
-		box_b: tuple[float, float, float, float]) -> float:
-	"""Return overlap area for two axis-aligned boxes."""
-	ax1, ay1, ax2, ay2 = box_a
-	bx1, by1, bx2, by2 = box_b
-	overlap_w = min(ax2, bx2) - max(ax1, bx1)
-	overlap_h = min(ay2, by2) - max(ay1, by1)
-	if overlap_w <= 0.0 or overlap_h <= 0.0:
-		return 0.0
-	return overlap_w * overlap_h
-
-
-#============================================
-def _label_overlap_area_against_existing(
-		ops: list,
-		text_x: float,
-		text_y: float,
-		text: str,
-		anchor: str,
-		font_size: float,
-		font_name: str) -> float:
-	"""Return max overlap area between candidate label and existing labels."""
-	candidate_target = label_target_from_text_origin(
-		text_x=text_x,
-		text_y=text_y,
-		text=text,
-		anchor=anchor,
-		font_size=font_size,
-		font_name=font_name,
-	)
-	max_area = 0.0
-	for op in ops:
-		if not isinstance(op, render_ops.TextOp):
-			continue
-		existing_target = label_target_from_text_origin(
-			text_x=op.x,
-			text_y=op.y,
-			text=op.text,
-			anchor=op.anchor,
-			font_size=op.font_size,
-			font_name=op.font_name,
-		)
-		max_area = max(max_area, _box_overlap_area(candidate_target.box, existing_target.box))
-	return max_area
-
-
-#============================================
-def _resolve_methyl_label_collision(
-		ops: list,
-		end_point: tuple[float, float],
-		direction: str,
-		anchor: str,
-		font_name: str,
-		text: str,
-		text_x: float,
-		text_y: float,
-		layout_font_size: float,
-		draw_font_size: float) -> tuple[str, float, float, float]:
-	"""Resolve CH3-vs-neighbor label overlap with deterministic local fallbacks."""
-	canonical_ch3 = _text.apply_subscript_markup("CH3")
-	canonical_h3c = _text.apply_subscript_markup("H3C")
-	if text != canonical_ch3:
-		return (text, text_x, text_y, draw_font_size)
-	base_font_size = draw_font_size
-	# Mid-lane methyl labels are easier to read at 90% while preserving CH3
-	# ordering; keep this deterministic and avoid shrinking below 90%.
-	if anchor == "middle":
-		min_methyl_size = layout_font_size * 0.90
-		if draw_font_size > min_methyl_size:
-			base_font_size = min_methyl_size
-			text_x = end_point[0] + _text.anchor_x_offset(canonical_ch3, anchor, base_font_size)
-			text_y = end_point[1] + _text.baseline_shift(direction, base_font_size, canonical_ch3)
-			draw_font_size = base_font_size
-	current_overlap = _label_overlap_area_against_existing(
-		ops=ops,
-		text_x=text_x,
-		text_y=text_y,
-		text=text,
-		anchor=anchor,
-		font_size=draw_font_size,
-		font_name=font_name,
-	)
-	if current_overlap <= STRICT_OVERLAP_EPSILON:
-		return (text, text_x, text_y, draw_font_size)
-	min_font_size = base_font_size
-	candidates = [
-		(canonical_ch3, max(min_font_size, draw_font_size * 0.90)),
-		(canonical_h3c, max(min_font_size, draw_font_size)),
-		(canonical_h3c, max(min_font_size, draw_font_size * 0.90)),
-	]
-	best = (text, text_x, text_y, draw_font_size, current_overlap)
-	for candidate_text, candidate_font_size in candidates:
-		candidate_x = end_point[0] + _text.anchor_x_offset(candidate_text, anchor, candidate_font_size)
-		candidate_y = end_point[1] + _text.baseline_shift(direction, candidate_font_size, candidate_text)
-		overlap_area = _label_overlap_area_against_existing(
-			ops=ops,
-			text_x=candidate_x,
-			text_y=candidate_y,
-			text=candidate_text,
-			anchor=anchor,
-			font_size=candidate_font_size,
-			font_name=font_name,
-		)
-		if overlap_area < best[4]:
-			best = (candidate_text, candidate_x, candidate_y, candidate_font_size, overlap_area)
-		if overlap_area <= STRICT_OVERLAP_EPSILON:
-			return (candidate_text, candidate_x, candidate_y, candidate_font_size)
-	return (best[0], best[1], best[2], best[3])
-
-
-
 #============================================
 def _upward_hydroxyl_nudge_offsets(
 		anchor: str,
@@ -1205,40 +1040,6 @@ def _text_origin_for_hydroxyl_oxygen_center(
 		oxygen_center[0] - base_center[0],
 		oxygen_center[1] - base_center[1],
 	)
-
-
-#============================================
-def _align_text_origin_to_attach_centerline(
-		text_x: float,
-		text_y: float,
-		text: str,
-		anchor: str,
-		font_size: float,
-		target_center_x: float,
-		attach_atom: str | None = None,
-		attach_element: str | None = None,
-		attach_site: str | None = None,
-		chain_attach_site: str = "core_center",
-		font_name: str = "sans-serif") -> tuple[float, float]:
-	"""Shift text origin so runtime attach target centerline lands on target x."""
-	attach_contract = label_attach_contract_from_text_origin(
-		text_x=text_x,
-		text_y=text_y,
-		text=text,
-		anchor=anchor,
-		font_size=font_size,
-		line_width=0.0,
-		attach_atom=attach_atom,
-		attach_element=attach_element,
-		attach_site=attach_site,
-		chain_attach_site=chain_attach_site,
-		font_name=font_name,
-	)
-	# Use attach_target (the specific attachment atom box) for text
-	# positioning, not endpoint_target (which may be the full label box
-	# under label_box mode).
-	center_x, _center_y = attach_contract.attach_target.centroid()
-	return (text_x + (target_center_x - center_x), text_y)
 
 
 #============================================
@@ -1654,37 +1455,65 @@ def _add_furanose_two_carbon_tail_ops(
 			op_id=f"C{carbon}_{direction}_chain1_connector",
 		)
 	)
-	tail_profile = _furanose_two_carbon_tail_profile(
-		direction=direction,
-		vertex=vertex,
-		ring_center=ring_center,
-		dx=dx,
-		dy=dy,
+	def _branch_label_score(points: tuple[tuple[float, float], ...]) -> float:
+		"""Score caller-authored tail label geometry without sugar-specific rules."""
+		ho_end, ch2_end = points
+		ho_anchor = "end" if ho_end[0] < branch_point[0] else "start"
+		ch2_anchor = "end" if ch2_end[0] < branch_point[0] else "start"
+		ch2_direction = "up" if ch2_end[1] < branch_point[1] else "down"
+		ho_text = _text.format_label_text("OH", anchor=ho_anchor)
+		ho_x, ho_y = _text_origin_for_hydroxyl_oxygen_center(
+			text=ho_text,
+			anchor=ho_anchor,
+			font_size=font_size,
+			oxygen_center=ho_end,
+		)
+		ch2_text = _text.apply_subscript_markup("CH2OH") if direction == "up" else (
+			_text.format_chain_label_text("CH2OH", anchor=ch2_anchor)
+		)
+		ch2_x = ch2_end[0] + _text.anchor_x_offset(ch2_text, ch2_anchor, font_size)
+		ch2_y = ch2_end[1] + _text.baseline_shift(ch2_direction, font_size, ch2_text)
+		targets = (
+			label_target_from_text_origin(
+				text_x=ho_x, text_y=ho_y, text=ho_text, anchor=ho_anchor,
+				font_size=font_size, font_name=font_name,
+			),
+			label_target_from_text_origin(
+				text_x=ch2_x, text_y=ch2_y, text=ch2_text, anchor=ch2_anchor,
+				font_size=font_size, font_name=font_name,
+			),
+		)
+		overlap = label_target_overlap_score(targets)
+		distance_score = sum(
+			math.hypot(point[0] - ring_center[0], point[1] - ring_center[1])
+			for point in points
+		)
+		return (overlap * 1000000.0) - distance_score
+
+	# The caller supplies chemical arm order and styles. The shared fan chooses
+	# an explicitly offered frame and scale by generic text-target geometry.
+	branch_points = branch_fan_layout(
+		origin=branch_point,
+		stem_unit=(dx, dy),
+		branch_angles=(-60.0, 60.0),
+		lengths=(branch_standoff, branch_standoff),
+		reflection_options=(-1, 1),
+		collision_score=_branch_label_score,
+		length_scale_options=((1.0, 1.0), (0.8, 1.4), (1.4, 0.8)),
 	)
-	ho_dx, ho_dy = tail_profile["ho_vector"]
-	ch2_dx, ch2_dy = tail_profile["ch2_vector"]
-	ho_length = branch_standoff * tail_profile["ho_length_factor"]
-	ch2_length = branch_standoff * tail_profile["ch2_length_factor"]
-	ho_anchor = tail_profile["ho_anchor"]
-	ch2_anchor = tail_profile["ch2_anchor"]
-	ch2_direction = tail_profile["ch2_text_direction"]
-	ch2_canonical_text = bool(tail_profile.get("ch2_canonical_text", False))
-	ho_style = "hashed" if tail_profile["hashed_branch"] == "ho" else "solid"
-	ch2_style = "hashed" if tail_profile["hashed_branch"] == "ch2" else "solid"
+	ho_end, ch2_end = branch_points
+	ho_anchor = "end" if ho_end[0] < branch_point[0] else "start"
+	ch2_anchor = "end" if ch2_end[0] < branch_point[0] else "start"
+	ch2_direction = "up" if ch2_end[1] < branch_point[1] else "down"
+	ch2_canonical_text = direction == "up"
+	ho_style = "solid" if direction == "up" else "hashed"
+	ch2_style = "hashed" if direction == "up" else "solid"
 	ho_resolver_width = connector_width
 	ch2_resolver_width = connector_width
 	if ho_style == "hashed":
 		ho_resolver_width = max(0.18, connector_width * 0.22)
 	if ch2_style == "hashed":
 		ch2_resolver_width = max(0.18, connector_width * 0.22)
-	ho_end = (
-		branch_point[0] + (ho_dx * ho_length),
-		branch_point[1] + (ho_dy * ho_length),
-	)
-	ch2_end = (
-		branch_point[0] + (ch2_dx * ch2_length),
-		branch_point[1] + (ch2_dy * ch2_length),
-	)
 	ho_text = _text.format_label_text("OH", anchor=ho_anchor)
 	ho_x, ho_y = _text_origin_for_hydroxyl_oxygen_center(
 		text=ho_text,

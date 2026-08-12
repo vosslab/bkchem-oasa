@@ -8,9 +8,9 @@ import pytest
 import bkchem_qt.canvas.items.atom_item
 import bkchem_qt.config.drawing_standard_preferences
 import bkchem_qt.dialogs.drawing_standard_dialog
-import bkchem_qt.io.cdml_candidate
 import bkchem_qt.models.document_session
 import oasa.cdml_document
+import oasa.cdml_presentation_insert
 import oasa.cdml_standard
 import oasa.safe_xml
 
@@ -142,7 +142,7 @@ def _element_by_id(cdml: str, identifier: str) -> object:
 
 
 #============================================
-def test_new_presentation_candidates_use_present_document_defaults() -> None:
+def test_new_presentations_use_present_document_defaults() -> None:
 	"""New artwork authors the current standard instead of hard-coded Qt colors."""
 	base = (
 		'<cdml version="26.07"><standard line_width="2.5px" font_size="17" '
@@ -150,27 +150,32 @@ def test_new_presentation_candidates_use_present_document_defaults() -> None:
 		'</cdml>'
 	)
 	backend = oasa.cdml_document.CDMLDocumentSession.load(base)
-	standard = backend.drawing_standard(
-		oasa.cdml_standard.CDMLDrawingStandardQuery(backend.revision),
+	arrow_result = oasa.cdml_presentation_insert.insert_arrow(
+		backend,
+		oasa.cdml_presentation_insert.CDMLArrowInsertRequest(
+			backend.revision, "normal", False, ((0.0, 0.0), (20.0, 0.0)),
+		),
 	)
 	arrow = _element_by_id(
-		bkchem_qt.io.cdml_candidate.append_arrow_candidate(
-			base, "__bkchem_qt_new_arrow_1", (0.0, 0.0), (20.0, 0.0), standard,
+		arrow_result.snapshot.cdml, arrow_result.presentation_ids[0],
+	)
+	text_result = oasa.cdml_presentation_insert.insert_text(
+		backend,
+		oasa.cdml_presentation_insert.CDMLTextInsertRequest(
+			backend.revision, (0.0, 0.0), "Note",
 		),
-		"__bkchem_qt_new_arrow_1",
 	)
 	text = _element_by_id(
-		bkchem_qt.io.cdml_candidate.append_text_candidate(
-			base, "__bkchem_qt_new_text_1", (0.0, 0.0), "Note", standard,
+		text_result.snapshot.cdml, text_result.presentation_ids[0],
+	)
+	vector_result = oasa.cdml_presentation_insert.insert_geometric(
+		backend,
+		oasa.cdml_presentation_insert.CDMLGeometricInsertRequest(
+			backend.revision, "rect", ((0.0, 0.0), (20.0, 20.0)),
 		),
-		"__bkchem_qt_new_text_1",
 	)
 	vector = _element_by_id(
-		bkchem_qt.io.cdml_candidate.append_vector_candidate(
-			base, "__bkchem_qt_new_vector_1", "rect", (0.0, 0.0), (20.0, 20.0),
-			standard,
-		),
-		"__bkchem_qt_new_vector_1",
+		vector_result.snapshot.cdml, vector_result.presentation_ids[0],
 	)
 
 	assert (arrow.getAttribute("width"), arrow.getAttribute("color")) == (

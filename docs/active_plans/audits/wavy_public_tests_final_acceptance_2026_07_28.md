@@ -49,9 +49,9 @@ the accepted Wavy tests.
 - `MiscMode.mouse_release()` drops transient preview/start state, validates
   geometry, and submits immutable `wavy.add`; it has no Qt-local persistent
   fallback.
-- `DocumentSession._build_wavy_candidate()` rejects targeted/nonconforming
-  requests before candidate construction, derives bounded Qt-free geometry,
-  rejects zero-length gestures, then appends a complete-CDML candidate.
+- `DocumentSession` rejects targeted or malformed requests, then submits only
+  immutable endpoints. OASA derives bounded geometry, rejects zero-length
+  gestures, authors the Wavy CDML, and commits it atomically.
 - Accepted mutation goes through `submit_persistent_operation()`: OASA commits
   the complete CDML, backend history records the revision, and the canonical
   snapshot is reprojected. Undo/redo tests observe the backend-driven

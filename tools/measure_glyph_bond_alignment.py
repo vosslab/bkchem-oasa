@@ -31,6 +31,7 @@ __all__ = [
 	"DOUBLE_BOND_LENGTH_RATIO_MIN", "DOUBLE_BOND_PARALLEL_TOLERANCE_DEGREES",
 	"DOUBLE_BOND_PERP_DISTANCE_MAX", "DOUBLE_BOND_PERP_DISTANCE_MIN",
 	"DEFAULT_DIAGNOSTIC_SVG_DIR",
+	"DEFAULT_CURRENT_RUNTIME_DIR",
 	"DEFAULT_INPUT_GLOB", "DEFAULT_JSON_REPORT", "DEFAULT_TEXT_REPORT",
 	"GLYPH_BOX_OVERLAP_EPSILON", "GLYPH_CURVED_CHAR_SET", "GLYPH_STEM_CHAR_SET",
 	"HASHED_CARRIER_MAX_WIDTH", "HASHED_CARRIER_MIN_LENGTH",
@@ -166,6 +167,7 @@ from measurelib.constants import (
 	DOUBLE_BOND_PERP_DISTANCE_MAX,
 	DOUBLE_BOND_PERP_DISTANCE_MIN,
 	DEFAULT_DIAGNOSTIC_SVG_DIR,
+	DEFAULT_CURRENT_RUNTIME_DIR,
 	DEFAULT_INPUT_GLOB,
 	DEFAULT_JSON_REPORT,
 	DEFAULT_TEXT_REPORT,
@@ -285,9 +287,6 @@ from measurelib.glyph_model import (
 	point_to_label_signed_distance,
 	point_to_text_path_signed_distance,
 	primitive_center,
-)
-from measurelib.lcf_optical import (
-	optical_center_via_isolation_render,
 )
 from measurelib.haworth_ring import (
 	canonical_cycle_key,
@@ -423,6 +422,14 @@ _path_line_segments = path_line_segments
 _point_to_label_signed_distance = point_to_label_signed_distance
 _point_to_text_path_signed_distance = point_to_text_path_signed_distance
 _primitive_center = primitive_center
+#============================================
+def optical_center_via_isolation_render(*args: object, **kwargs: object) -> object:
+	"""Load the optional optical diagnostic only when an external caller needs it."""
+	from measurelib.lcf_optical import optical_center_via_isolation_render as optical_measure
+	result = optical_measure(*args, **kwargs)
+	return result
+
+
 _optical_center_via_isolation_render = optical_center_via_isolation_render
 _canonical_cycle_key = canonical_cycle_key
 _clustered_endpoint_graph = clustered_endpoint_graph
@@ -474,7 +481,10 @@ def parse_args() -> argparse.Namespace:
 		dest="input_glob",
 		type=str,
 		default=DEFAULT_INPUT_GLOB,
-		help="Glob pattern for SVG files to analyze.",
+		help=(
+			"Glob pattern for existing SVG files. Omit it to render the bounded "
+			"current Haworth corpus through OASA's controlled lxml SVG writer."
+		),
 	)
 	parser.add_argument(
 		"-j",
@@ -581,6 +591,37 @@ def get_repo_root() -> pathlib.Path:
 
 
 #============================================
+def generate_current_haworth_corpus(repo_root: pathlib.Path) -> list[pathlib.Path]:
+	"""Render the bounded current Haworth gate corpus through controlled lxml SVG."""
+	from lxml import etree
+	from oasa import render_ops
+	from oasa.haworth import renderer
+
+	output_dir = repo_root / DEFAULT_CURRENT_RUNTIME_DIR
+	output_dir.mkdir(parents=True, exist_ok=True)
+	paths = []
+	for ring_type in ("furanose", "pyranose"):
+		ops = renderer.render_from_code("ARLRDM", ring_type, "alpha")
+		root = etree.Element(
+			"{http://www.w3.org/2000/svg}svg",
+			nsmap={None: "http://www.w3.org/2000/svg"},
+			attrib={
+				"version": "1.1",
+				"width": "260",
+				"height": "260",
+				"viewBox": "-90 -90 180 180",
+				"preserveAspectRatio": "xMidYMid meet",
+			},
+		)
+		group = etree.SubElement(root, "{http://www.w3.org/2000/svg}g")
+		render_ops.ops_to_lxml_svg(group, ops)
+		path = output_dir / f"ARLRDM_{ring_type}_alpha.svg"
+		path.write_bytes(etree.tostring(root, encoding="utf-8", xml_declaration=True))
+		paths.append(path)
+	return paths
+
+
+#============================================
 def print_summary(file_summary: dict, file_top_misses: list[dict]) -> None:
 	"""Print concise alignment summary to stdout."""
 	alignment_pct = file_summary["alignment_rate"] * 100.0
@@ -670,7 +711,12 @@ def main() -> None:
 	"""Run SVG alignment measurement and write reports."""
 	args = parse_args()
 	repo_root = get_repo_root()
-	svg_paths = resolve_svg_paths(repo_root, args.input_glob)
+	if args.input_glob:
+		svg_paths = resolve_svg_paths(repo_root, args.input_glob)
+		input_description = args.input_glob
+	else:
+		svg_paths = generate_current_haworth_corpus(repo_root)
+		input_description = f"controlled current runtime: {DEFAULT_CURRENT_RUNTIME_DIR}"
 	if not svg_paths:
 		raise RuntimeError(f"No SVG files matched input_glob: {args.input_glob!r}")
 	diagnostic_svg_dir = pathlib.Path(args.diagnostic_svg_dir)
@@ -692,7 +738,7 @@ def main() -> None:
 	json_report = {
 		"schema_version": 2,
 		"generated_at": datetime.datetime.now().isoformat(timespec="seconds"),
-		"input_glob": args.input_glob,
+		"input_glob": input_description,
 		"alignment_center_mode": "optical",
 		"exclude_haworth_base_ring": bool(args.exclude_haworth_base_ring),
 		"bond_glyph_gap_tolerance": float(args.bond_glyph_gap_tolerance),
@@ -708,7 +754,7 @@ def main() -> None:
 	file_text_report = text_report(
 		summary=file_summary,
 		top_misses=file_top_misses,
-		input_glob=args.input_glob,
+		input_glob=input_description,
 		exclude_haworth_base_ring=bool(args.exclude_haworth_base_ring),
 	)
 	json_report_path = pathlib.Path(args.json_report)

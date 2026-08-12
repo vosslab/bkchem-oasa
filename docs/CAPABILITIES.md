@@ -39,11 +39,21 @@ transaction. Hydrogens remain implicit in this editable molecular view.
 | --- | --- |
 | Native document | Open, edit, save, reopen, and recover complete CDML 26.07 documents. |
 | Molecular editing | Draw atoms and bonds, use templates, edit supported chemistry, and repair geometry. |
-| Drawing objects | Persist arrows, rich text, plus signs, brackets, vectors, marks, groups, ordering, and document/personal drawing styles with selected or all-object application. |
+| Drawing objects | Persist arrows, rich text, plus signs, rectangular/round brackets, vectors, marks, groups, and ordering; configure geometric stroke/fill, Text backgrounds, and Plus font/background through backend history; apply document/personal drawing styles to selected or all objects. |
 | History | Apply persistent edits as atomic backend commits with undo, redo, dirty state, and saved-baseline tracking. |
 | Chemistry helpers | Import SMILES/InChI, export selected structures as SMILES/InChI/InChIKey, generate coordinates, insert Haworth sugars, and perform PubChem lookup. |
 | Import and export | Import documented chemistry formats or classic CD-SVG, and export SVG, PNG, and PDF snapshots. |
 | Application | Run the supported PySide6 desktop editor from a source or pip installation. |
+
+Bracket identity is durable CDML on two ordinary polylines. Selecting either
+member in Qt selects the pair transiently; backend Configure changes both
+members atomically. The retained Tk frontend preserves complete marked pairs
+for compatibility, but Qt remains the delivered interface.
+
+The delivered Haworth UI is labelled Direct two-ring Haworth: two C/O rings,
+one direct oxygen bridge, and no stereochemical claim. OASA also provides an
+explicit-declaration three-ring backend API, but no Qt authoring adapter is
+claimed here.
 
 The exact file-format boundaries are listed in
 [SUPPORTED_FORMATS.md](SUPPORTED_FORMATS.md). [USAGE.md](USAGE.md) covers the
@@ -56,17 +66,19 @@ defines why the visible Qt scene remains replaceable.
 Regenerate all three managed 1280x800 PNGs from the repository root:
 
 ```sh
-source source_me.sh && ./take_qt_screenshot.sh --kill-after 3
+source source_me.sh && ./devel/take_qt_screenshot.sh --kill-after 3
 ```
 
 Each scenario runs in a fresh bounded Qt process, opens complete CDML through the
 public `MainWindow` path, verifies the backend snapshot, captures only the
 application window, and retires its projection through the production lifetime
-boundary. Capture one scenario to a preview under the retained repository
+boundary. The complete catalog stages and validates every image before
+publication; a failed capture leaves the prior gallery coherent rather than
+publishing a partial set. Capture one scenario to a preview under the retained repository
 `tmp/` tree with:
 
 ```sh
-source source_me.sh && ./take_qt_screenshot.sh \
+source source_me.sh && ./devel/take_qt_screenshot.sh \
   --scenario haworth --output tmp/haworth-preview.png --kill-after 3
 ```
 

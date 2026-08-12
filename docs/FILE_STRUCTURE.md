@@ -35,6 +35,11 @@ bkchem-oasa/
 packages/oasa/
 +- oasa/                    backend library source
 |  +- cdml_document.py      complete-CDML session and operations
+|  +- cdml_bracket.py       rectangular/round bracket insertion
+|  +- cdml_bracket_pair.py  bracket-pair observation and atomic patch eligibility
+|  +- cdml_molecule_insertion.py  root-only molecule insertion facts
+|  +- cdml_projection_plan.py  immutable synchronized projection facts
+|  +- cdml_presentation_insert.py  direct-root presentation insertion
 |  +- cdml_presentation_properties.py  focused presentation-root patches
 |  +- codecs/               molecule-format codecs
 |  +- graph/                graph primitives and backends
@@ -49,8 +54,17 @@ packages/oasa/
   is the persistent-document authority. It owns snapshots, revisioned atomic
   operations, history, saved baseline, durable identities, and typed failures.
 - `packages/oasa/oasa/cdml_presentation_properties.py`
-  owns bounded direct-root presentation property patches without frontend or
-  toolkit dependencies.
+  owns bounded Arrow and shared geometric-root property patches without
+  frontend or toolkit dependencies.
+- `packages/oasa/oasa/cdml_presentation_insert.py` owns typed geometric intent,
+  drawing-standard application, durable IDs, and atomic direct-root insertion.
+- `packages/oasa/oasa/cdml_bracket.py` owns bracket style, proportional
+  control-point geometry, standard-derived strokes, and atomic pair insertion.
+- `packages/oasa/oasa/cdml_bracket_pair.py` defines durable pair identity from
+  two marked ordinary polylines; malformed and unmarked polylines are not
+  inferred as pairs.
+- `packages/oasa/oasa/cdml_projection_plan.py` is the frontend-neutral,
+  exact-revision hydration value. Synchronized Qt never parses canonical CDML.
 - [packages/oasa/oasa/cdml_xml.py](../packages/oasa/oasa/cdml_xml.py) and
   [packages/oasa/oasa/cdml_writer.py](../packages/oasa/oasa/cdml_writer.py)
   provide hardened CDML parsing and controlled output.
@@ -83,6 +97,15 @@ packages/bkchem-qt.app/
 `- pyproject.toml           bkchem-qt package and console script
 ```
 
+The dialogs folder includes the detached geometric width/stroke/fill form;
+session adapters, rather than widgets or projected models, own its commit.
+Drawing modes submit scalar insertion intent; persistent XML construction and
+presentation-stack ordering remain in OASA.
+
+The Qt shell uses responsive mode and status widgets. At 640 and 1024 pixels
+the mode chooser is compact; at 1280 pixels it is a full toolbar. The same
+registered actions remain reachable at every supported width.
+
 - [packages/bkchem-qt.app/pyproject.toml](../packages/bkchem-qt.app/pyproject.toml)
   defines the `bkchem-qt` console entry point and packages the Qt runtime
   resources.
@@ -96,7 +119,8 @@ packages/bkchem-qt.app/
 - [packages/bkchem-qt.app/bkchem_qt/canvas/document_projection.py](../packages/bkchem-qt.app/bkchem_qt/canvas/document_projection.py)
   and [packages/bkchem-qt.app/bkchem_qt/canvas/molecule_projection.py](../packages/bkchem-qt.app/bkchem_qt/canvas/molecule_projection.py)
   and [packages/bkchem-qt.app/bkchem_qt/canvas/graphics_retirement.py](../packages/bkchem-qt.app/bkchem_qt/canvas/graphics_retirement.py)
-  build and dispose Qt scene objects on the frontend side of the boundary.
+  build and dispose Qt scene objects on the frontend side of the boundary;
+  `canvas/spline_path.py` supplies shared Arrow/polyline curve construction.
 
 ### Deprecated Tk BKChem source
 
@@ -116,7 +140,9 @@ packages/bkchem-app/
 [packages/bkchem-app/](../packages/bkchem-app/) is a deprecated but retained
 frontend. It supplies legacy behavior and fixtures and may receive bounded
 contract or regression fixes. It is not the current release packaging target;
-new user-facing delivery work belongs on the Qt path.
+new user-facing delivery work belongs on the Qt path. It preserves a complete
+marked bracket pair during compatibility load/paste; malformed or unmarked
+polylines stay independent rather than being guessed into a pair.
 
 ## Documentation map
 

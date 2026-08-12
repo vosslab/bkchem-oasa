@@ -106,6 +106,17 @@ def test_qt_gui_launch_smoke(qapp: object, main_window: object) -> None:
 
 
 #============================================
+def test_qt_main_window_accepts_documentation_width(
+		qapp: object, main_window: object,
+		) -> None:
+	"""Adaptive ribbons do not force the application wider than 1280 pixels."""
+	main_window.resize(1280, 800)
+	main_window.show()
+	qapp.processEvents()
+	assert main_window.width() == 1280
+
+
+#============================================
 def test_qt_new_document_starts_with_page_in_view(
 		qapp: object, main_window: object,
 		) -> None:
@@ -247,23 +258,34 @@ def test_qt_status_bar_coords_smoke(qapp: object, main_window: object) -> None:
 	"""Verify that status bar labels update with coords, zoom, and mode."""
 	main_window.show()
 	qapp.processEvents()
+	status_bar = main_window.statusBar()
 	# update coordinates
-	main_window._status_bar.update_coords(123.4, 567.8)
-	coords_text = main_window._status_bar._coords_label.text()
+	status_bar.update_coords(123.4, 567.8)
+	coords_label = status_bar.findChild(
+		PySide6.QtWidgets.QLabel, "cursor-coordinates",
+	)
+	if coords_label is None:
+		raise AssertionError("The cursor-coordinate readout is missing.")
+	coords_text = coords_label.text()
 	assert "123.4" in coords_text, f"coords label should contain '123.4', got: {coords_text}"
 	assert "567.8" in coords_text, f"coords label should contain '567.8', got: {coords_text}"
 	main_window._mode_manager.set_mode("edit")
 	current_mode = main_window._mode_manager.current_mode
 	expected_hint = current_mode.status_hint
-	assert main_window._status_bar.context_message == expected_hint
+	assert status_bar.context_message == expected_hint
 	# transient outcomes should reveal the persistent mode hint again afterward
-	main_window._status_bar.show_message("Test message", timeout=0)
-	assert main_window._status_bar.currentMessage() == "Test message"
-	assert main_window._status_bar.visible_message == "Test message"
-	main_window._status_bar.clearMessage()
-	assert main_window._status_bar.context_message == expected_hint
-	assert main_window._status_bar.visible_message == expected_hint
-	mode_text = main_window._status_bar._mode_label.text()
+	status_bar.show_message("Test message", timeout=0)
+	assert status_bar.currentMessage() == "Test message"
+	assert status_bar.visible_message == "Test message"
+	status_bar.clearMessage()
+	assert status_bar.context_message == expected_hint
+	assert status_bar.visible_message == expected_hint
+	mode_label = status_bar.findChild(
+		PySide6.QtWidgets.QLabel, "active-editing-mode",
+	)
+	if mode_label is None:
+		raise AssertionError("The active-mode readout is missing.")
+	mode_text = mode_label.text()
 	assert current_mode.name.lower() in mode_text.lower()
 	# take screenshot for visual review
 	qapp.processEvents()

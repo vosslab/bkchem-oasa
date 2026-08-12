@@ -120,19 +120,14 @@ def test_transform_selection_rejects_idless_persistent_root(main_window: object)
 
 #============================================
 def test_transform_rejects_valid_id_with_wrong_root_kind(main_window: object) -> None:
-	"""A mismatched root kind rejects before the backend executor can run."""
+	"""OASA rejects a durable nonroot ID without session-side CDML inspection."""
 	session = _new_session(main_window)
 	_install(session)
 	assert session.replace_projection_from_backend_snapshot(session.backend_snapshot)
 	try:
 		before = session.backend_snapshot
-		def fail_executor(request: object) -> object:
-			"""Make any unexpected executor invocation fail this test immediately."""
-			raise AssertionError("wrong root kind reached the backend executor")
-
-		session._backend_session.apply_top_level_transform = fail_executor
 		outcome = session.submit_top_level_transform(
-			before.revision, "mirror-horizontal", (("molecule", "arrow1"),),
+			before.revision, "mirror-horizontal", (("molecule", "point1"),),
 		)
 		assert outcome.failure_kind == "validation"
 		assert (

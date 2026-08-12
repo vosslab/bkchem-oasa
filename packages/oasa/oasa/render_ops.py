@@ -43,6 +43,8 @@ class LineOp:
 	color: object | None = None
 	z: int = 0
 	op_id: str | None = None
+	attachment_target_id: str | None = None
+	composite_parent_id: str | None = None
 
 
 #============================================
@@ -413,6 +415,13 @@ def _emit_svg_operations(
 	the mechanics for creating an element or a text-only element below a parent.
 	"""
 	for op in sort_ops(ops):
+		metadata = ()
+		if op.op_id:
+			metadata += (("data-oasa-op-id", op.op_id),)
+		if isinstance(op, LineOp) and op.attachment_target_id:
+			metadata += (("data-oasa-attachment-target", op.attachment_target_id),)
+		if isinstance(op, LineOp) and op.composite_parent_id:
+			metadata += (("data-oasa-composite-parent", op.composite_parent_id),)
 		if isinstance(op, LineOp):
 			color = color_to_hex(op.color) or "#000"
 			attrs = (( 'x1', str(op.p1[0])),
@@ -421,6 +430,7 @@ def _emit_svg_operations(
 					( 'y2', str(op.p2[1])),
 					( 'stroke-width', str(op.width)),
 					( 'stroke', color))
+			attrs += metadata
 			if op.cap:
 				attrs += (( 'stroke-linecap', op.cap),)
 			if op.join:
@@ -432,6 +442,7 @@ def _emit_svg_operations(
 			fill = color_to_hex(op.fill) or "none"
 			attrs = (( 'points', points_text),
 					( 'fill', fill))
+			attrs += metadata
 			stroke = color_to_hex(op.stroke)
 			if stroke:
 				attrs += (( 'stroke', stroke),
@@ -446,6 +457,7 @@ def _emit_svg_operations(
 					( 'cy', str(op.center[1])),
 					( 'r', str(op.radius)),
 					( 'fill', fill))
+			attrs += metadata
 			stroke = color_to_hex(op.stroke)
 			if stroke:
 				attrs += (( 'stroke', stroke),
@@ -476,6 +488,7 @@ def _emit_svg_operations(
 			fill = color_to_hex(op.fill) or "none"
 			attrs = (( 'd', " ".join(d_parts)),
 					( 'fill', fill))
+			attrs += metadata
 			stroke = color_to_hex(op.stroke)
 			if stroke:
 				attrs += (( 'stroke', stroke),
@@ -500,6 +513,7 @@ def _emit_svg_operations(
 				("fill", fill),
 				("stroke", "none"),
 			)
+			attrs += metadata
 			if op.weight and op.weight != "normal":
 				attrs += (("font-weight", op.weight),)
 			if len(segments) == 1 and not segments[0][1]:

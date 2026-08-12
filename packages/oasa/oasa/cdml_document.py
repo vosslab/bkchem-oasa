@@ -18,8 +18,11 @@ import types
 # local repo modules
 import oasa.bond_semantics
 import oasa.cdml_bond_io
+import oasa.cdml_bracket_pair
 import oasa.cdml_ftext
 import oasa.cdml_molecule_summary
+import oasa.cdml_presentation_facts
+import oasa.cdml_projection_plan
 import oasa.cdml_standard
 import oasa.cdml_writer
 import oasa.cdml_xml
@@ -81,7 +84,6 @@ _ATOM_MARK_SCALAR_DELTAS = {
 
 
 paper_catalog = oasa.cdml_standard.paper_catalog
-
 class CDMLDocumentError(ValueError):
 	"""Base error for a complete CDML document operation."""
 
@@ -526,45 +528,6 @@ class CDMLAtomChemistryFactsQuery:
 	"""One read-only complete direct-graph chemistry observation at one revision."""
 
 	expected_revision: int
-
-
-@dataclasses.dataclass(frozen=True)
-class CDMLPresentationIssue:
-	"""Plain diagnostic for a direct root unavailable to the projection."""
-
-	source_position: int
-	tag: str
-	namespace_uri: str | None
-	path: str
-	identifier: str | None
-	disposition: str
-	reason: str
-
-
-@dataclasses.dataclass(frozen=True)
-class CDMLPresentationRecord:
-	"""Qt-free, immutable description of one direct-root presentation record."""
-
-	source_position: int
-	identifier: str | None
-	kind: str
-	attributes: tuple[tuple[str, str], ...]
-	points: tuple[tuple[float, float, float | None], ...]
-	bounds: tuple[float, float, float, float] | None
-	font_attributes: tuple[tuple[str, str], ...]
-	display_text: str
-	ftext_runs: tuple[tuple[str, tuple[str, ...]], ...] | None
-	disposition: str
-	reason: str | None
-
-
-@dataclasses.dataclass(frozen=True)
-class CDMLPresentationDescription:
-	"""Revision-bound plain projection facts for the direct-root presentation stack."""
-
-	revision: int
-	records: tuple[CDMLPresentationRecord, ...]
-	issues: tuple[CDMLPresentationIssue, ...]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -1017,36 +980,13 @@ class CDMLSnapshot:
 	is_dirty: bool
 
 
-@dataclasses.dataclass(frozen=True)
-class CDMLProjectionSnapshot:
-	"""One atomic backend projection envelope for one canonical snapshot."""
-
-	snapshot: CDMLSnapshot
-	presentation_description: CDMLPresentationDescription
-	paper_layout: CDMLPaperLayout
-	fragment_metadata: CDMLFragmentMetadata
-	atom_mark_observation: CDMLAtomMarkObservation
-	group_observation: CDMLGroupObservation
-	molecule_core_observation: CDMLMoleculeCoreObservation
-	molecule_render_observation: CDMLMoleculeRenderObservation
-
-	def __post_init__(self) -> None:
-		"""Require exact backend values for one snapshot revision."""
-		if type(self.snapshot) is not CDMLSnapshot:
-			raise ValueError("projection envelope requires an exact backend snapshot")
-		observations = (
-			(self.presentation_description, CDMLPresentationDescription),
-			(self.paper_layout, CDMLPaperLayout),
-			(self.fragment_metadata, CDMLFragmentMetadata),
-			(self.atom_mark_observation, CDMLAtomMarkObservation),
-			(self.group_observation, CDMLGroupObservation),
-			(self.molecule_core_observation, CDMLMoleculeCoreObservation),
-			(self.molecule_render_observation, CDMLMoleculeRenderObservation),
-		)
-		if not all(type(value) is value_type for value, value_type in observations):
-			raise ValueError("projection envelope requires all seven exact backend facts")
-		if any(value.revision != self.snapshot.revision for value, _value_type in observations):
-			raise ValueError("projection envelope facts must match the backend snapshot revision")
+CDMLProjectionPlan = oasa.cdml_projection_plan.CDMLProjectionPlan
+CDMLProjectionRoot = oasa.cdml_projection_plan.CDMLProjectionRoot
+CDMLProjectionSnapshot = oasa.cdml_projection_plan.CDMLProjectionSnapshot
+CDMLBracketPairRecord = oasa.cdml_projection_plan.CDMLBracketPairRecord
+CDMLPresentationDescription = oasa.cdml_presentation_facts.CDMLPresentationDescription
+CDMLPresentationIssue = oasa.cdml_presentation_facts.CDMLPresentationIssue
+CDMLPresentationRecord = oasa.cdml_presentation_facts.CDMLPresentationRecord
 
 
 @dataclasses.dataclass(frozen=True)
@@ -1543,7 +1483,9 @@ def _presentation_description(
 		"polygon": frozenset({"point"}),
 		"polyline": frozenset({"point"}),
 	}
+	opaque_child_names = frozenset({"rect", "square", "oval", "circle", "polygon", "polyline"})
 	root = document._dom_document.documentElement
+	standard = oasa.cdml_standard.observe(root, revision)
 	for source_position, element in enumerate(_element_children(root), 1):
 		name = _local_name(element)
 		identifier = element.getAttribute("id") or None
@@ -1564,9 +1506,10 @@ def _presentation_description(
 		try:
 			compatibility_reason = None
 			direct_children = _element_children(element)
+			# Geometric scalar edits preserve foreign direct children as opaque data.
 			if any(
-				not _is_cdml_element(child)
-				or _local_name(child) not in allowed_children[name]
+				(_local_name(child) not in allowed_children[name]
+				if _is_cdml_element(child) else name not in opaque_child_names)
 				for child in direct_children
 			):
 				compatibility_reason = (
@@ -1620,6 +1563,11 @@ def _presentation_description(
 					compatibility_reason = str(error)
 			elif ftext is not None:
 				compatibility_reason = "ftext contains preservation-only direct markup"
+			effective_family = None
+			if name in {"plus", "text"}:
+				effective_family = (
+					(font.getAttribute("family").strip() if font else None) or standard.font_family
+				)
 			if compatibility_reason is not None:
 				issues.append(CDMLPresentationIssue(
 					source_position, name, getattr(element, "namespaceURI", None), path, identifier,
@@ -1627,7 +1575,8 @@ def _presentation_description(
 				))
 			records.append(CDMLPresentationRecord(
 				source_position, identifier, name, _presentation_attributes(element), tuple(points), bounds,
-				_presentation_attributes(font) if font is not None else (), display_text, runs,
+				_presentation_attributes(font) if font is not None else (),
+				effective_family, display_text, runs,
 				"editable" if identifier is not None and compatibility_reason is None else "display-only",
 				compatibility_reason,
 			))
@@ -1636,7 +1585,10 @@ def _presentation_description(
 				source_position, name, getattr(element, "namespaceURI", None), path, identifier,
 				"unsupported", str(error),
 			))
-	return CDMLPresentationDescription(revision, tuple(records), tuple(issues))
+	bracket_pairs = oasa.cdml_bracket_pair.observe_bracket_pairs(
+		tuple(_element_children(root)), _is_cdml_element, _local_name,
+	)
+	return CDMLPresentationDescription(revision, tuple(records), tuple(issues), bracket_pairs)
 
 
 #============================================
@@ -2949,6 +2901,9 @@ def _prepare_top_level_fragment(
 		) -> tuple:
 	"""Validate, privately tokenise, and translate one detached insertion fragment."""
 	roots = _validate_top_level_fragment(fragment)
+	bracket_members = oasa.cdml_bracket_pair.valid_bracket_members(
+		tuple(roots), _is_cdml_element, _local_name,
+	)
 	for element in roots:
 		_translate_top_level_geometry(element, dx, dy)
 	definitions = []
@@ -2985,6 +2940,10 @@ def _prepare_top_level_fragment(
 		if source_id:
 			token_by_source_id[source_id] = token
 		element.setAttribute("id", token)
+	for left, right in bracket_members:
+		pair_token = token_by_source_id[left.getAttribute("bracket_pair")]
+		left.setAttribute("bracket_pair", pair_token)
+		right.setAttribute("bracket_pair", pair_token)
 	for root_element in roots:
 		for element in _descendant_elements(root_element):
 			for attribute in _insertion_references(element):
@@ -4346,55 +4305,39 @@ def _validate_text_properties_patch(
 		) -> tuple[str, tuple[tuple[str, object], ...]]:
 	"""Validate one immutable plain Text intent before authoritative lookup."""
 	if type(request) is not CDMLTextPropertiesPatch:
-		raise CDMLTextPropertiesPatchError(
-			"Text properties requires an exact Text properties patch",
-		)
+		raise CDMLTextPropertiesPatchError("Text properties requires an exact patch")
 	if type(request.expected_revision) is not int:
-		raise CDMLTextPropertiesPatchError(
-			"Text properties expected_revision must be an int",
-		)
+		raise CDMLTextPropertiesPatchError("Text expected_revision must be an int")
 	if type(request.text_id) is not str or not request.text_id.strip():
-		raise CDMLTextPropertiesPatchError(
-			"Text properties text_id must contain a non-whitespace character",
-		)
+		raise CDMLTextPropertiesPatchError("Text text_id must be nonblank")
 	if type(request.changes) is not tuple:
-		raise CDMLTextPropertiesPatchError(
-			"Text properties changes must be an immutable tuple",
-		)
+		raise CDMLTextPropertiesPatchError("Text changes must be an immutable tuple")
 	validated = []
 	seen = set()
 	for change in request.changes:
 		if type(change) is not tuple or len(change) != 2:
-			raise CDMLTextPropertiesPatchError(
-				"Text properties changes must be field/value pairs",
-			)
+			raise CDMLTextPropertiesPatchError("Text changes must be field/value pairs")
 		field_name, value = change
 		if type(field_name) is not str or field_name not in (
-				"text", "font_family", "font_size", "font_color",
+				"text", "font_family", "font_size", "font_color", "background_color",
 			):
-			raise CDMLTextPropertiesPatchError(
-				"Text properties field must be a supported string",
-			)
+			raise CDMLTextPropertiesPatchError("Text properties field is unsupported")
 		if field_name in seen:
 			raise CDMLTextPropertiesPatchError("Text properties fields must be unique")
 		seen.add(field_name)
 		if field_name in ("text", "font_family"):
 			if type(value) is not str or not value.strip():
-				raise CDMLTextPropertiesPatchError(
-					"Text properties %s must be a nonblank string" % field_name,
-				)
+				raise CDMLTextPropertiesPatchError(f"Text {field_name} must be nonblank")
 			if field_name == "font_family":
 				value = value.strip()
 		elif field_name == "font_size":
 			if type(value) is not int or not 4 <= value <= 144:
-				raise CDMLTextPropertiesPatchError(
-					"Text properties font_size must be an int from 4 to 144",
-				)
+				raise CDMLTextPropertiesPatchError("Text font_size must be 4 through 144")
+		elif field_name == "background_color" and value is None:
+			pass
 		else:
 			if type(value) is not str or re.fullmatch(r"#[0-9A-Fa-f]{6}", value) is None:
-				raise CDMLTextPropertiesPatchError(
-					"Text properties font_color must be a six-digit hex color",
-				)
+				raise CDMLTextPropertiesPatchError("Text colors require six hex digits")
 			value = value.lower()
 		validated.append((field_name, value))
 	return request.text_id, tuple(validated)
@@ -4619,45 +4562,39 @@ def _validate_plus_properties_patch(
 		) -> tuple[str, tuple[tuple[str, object], ...]]:
 	"""Validate one immutable plain Plus intent before authoritative lookup."""
 	if type(request) is not CDMLPlusPropertiesPatch:
-		raise CDMLPlusPropertiesPatchError(
-			"Plus properties requires an exact Plus properties patch",
-		)
+		raise CDMLPlusPropertiesPatchError("Plus properties requires an exact patch")
 	if type(request.expected_revision) is not int:
-		raise CDMLPlusPropertiesPatchError(
-			"Plus properties expected_revision must be an int",
-		)
+		raise CDMLPlusPropertiesPatchError("Plus expected_revision must be an int")
 	if type(request.plus_id) is not str or not request.plus_id.strip():
-		raise CDMLPlusPropertiesPatchError(
-			"Plus properties plus_id must contain a non-whitespace character",
-		)
+		raise CDMLPlusPropertiesPatchError("Plus plus_id must be nonblank")
 	if type(request.changes) is not tuple:
-		raise CDMLPlusPropertiesPatchError(
-			"Plus properties changes must be an immutable tuple",
-		)
+		raise CDMLPlusPropertiesPatchError("Plus changes must be an immutable tuple")
 	validated = []
 	seen = set()
 	for change in request.changes:
 		if type(change) is not tuple or len(change) != 2:
-			raise CDMLPlusPropertiesPatchError(
-				"Plus properties changes must be field/value pairs",
-			)
+			raise CDMLPlusPropertiesPatchError("Plus changes must be field/value pairs")
 		field_name, value = change
-		if type(field_name) is not str or field_name not in ("font_size", "color"):
-			raise CDMLPlusPropertiesPatchError(
-				"Plus properties field must be font_size or color",
-			)
+		if type(field_name) is not str or field_name not in (
+			"font_family", "font_size", "color", "background_color",
+		):
+			raise CDMLPlusPropertiesPatchError("Plus properties field is unsupported")
 		if field_name in seen:
 			raise CDMLPlusPropertiesPatchError("Plus properties fields must be unique")
 		seen.add(field_name)
-		if field_name == "font_size":
+		if field_name == "font_family":
+			if type(value) is not str or not value.strip():
+				raise CDMLPlusPropertiesPatchError("Plus font_family must be nonblank")
+			value = value.strip()
+		elif field_name == "font_size":
 			if type(value) is not int or not 4 <= value <= 144:
-				raise CDMLPlusPropertiesPatchError(
-					"Plus properties font_size must be an int from 4 to 144",
-				)
+				raise CDMLPlusPropertiesPatchError("Plus font_size must be 4 through 144")
+		elif field_name == "background_color" and value is None:
+			pass
 		else:
 			if type(value) is not str or re.fullmatch(r"#[0-9A-Fa-f]{6}", value) is None:
 				raise CDMLPlusPropertiesPatchError(
-					"Plus properties color must be a six-digit hex color",
+					"Plus properties colors must use six hexadecimal digits",
 				)
 			value = value.lower()
 		validated.append((field_name, value))
@@ -4697,9 +4634,7 @@ def _editable_plus_children(plus: object) -> object | None:
 		if child.nodeType in (child.COMMENT_NODE, child.PROCESSING_INSTRUCTION_NODE):
 			continue
 		if child.nodeType != child.ELEMENT_NODE:
-			raise CDMLPlusPropertiesPatchError(
-				"Plus properties target has unsupported direct content",
-			)
+			raise CDMLPlusPropertiesPatchError("Plus target has unsupported direct content")
 		# Namespace-owned extension children remain opaque preservation content.
 		if not _is_cdml_element(child):
 			continue
@@ -4709,28 +4644,38 @@ def _editable_plus_children(plus: object) -> object | None:
 		elif child_name == "font":
 			fonts.append(child)
 		else:
-			raise CDMLPlusPropertiesPatchError(
-				"Plus properties target has unsupported direct core content",
-			)
+			raise CDMLPlusPropertiesPatchError("Plus target has unsupported core content")
 	if len(points) != 1:
-		raise CDMLPlusPropertiesPatchError(
-			"Plus properties target requires exactly one direct core point",
-		)
+		raise CDMLPlusPropertiesPatchError("Plus target requires one direct core point")
 	if len(fonts) > 1:
-		raise CDMLPlusPropertiesPatchError(
-			"Plus properties target has multiple direct core fonts",
-		)
-	font = fonts[0] if fonts else None
-	if font is not None and (font.hasAttribute("size") or font.hasAttribute("color")):
-		raise CDMLPlusPropertiesPatchError(
-			"Plus properties target font overrides the editable root size or color",
-		)
-	return font
+		raise CDMLPlusPropertiesPatchError("Plus target has multiple direct core fonts")
+	return fonts[0] if fonts else None
 
 
 #============================================
-def _plus_property_values(plus: object) -> tuple[int, str]:
-	"""Return semantic root size and color using historical visible defaults."""
+def _optional_background_color(
+		element: object, error_type: type[CDMLValidationError], description: str,
+		) -> str | None:
+	"""Return compatible optional root background semantics."""
+	if not element.hasAttribute("background-color") or not element.getAttribute("background-color"):
+		return None
+	value = element.getAttribute("background-color")
+	if re.fullmatch(r"#[0-9A-Fa-f]{3}(?:[0-9A-Fa-f]{3})?", value) is None:
+		raise error_type(f"{description} background color must be hexadecimal")
+	digits = value[1:]
+	if len(digits) == 3:
+		digits = "".join(character * 2 for character in digits)
+	return "#" + digits.lower()
+
+
+#============================================
+def _plus_property_values(
+		plus: object, font: object | None,
+		) -> tuple[str | None, int, str, str | None]:
+	"""Return authored family plus semantic root size, foreground, and background."""
+	font_family = None
+	if font is not None and font.hasAttribute("family"):
+		font_family = font.getAttribute("family").strip() or None
 	font_size = 14
 	if plus.hasAttribute("font_size"):
 		font_size_text = plus.getAttribute("font_size")
@@ -4751,7 +4696,8 @@ def _plus_property_values(plus: object) -> tuple[int, str]:
 				"Plus properties target color must be a six-digit hex color",
 			)
 		color = color.lower()
-	return font_size, color
+	background_color = _optional_background_color(plus, CDMLPlusPropertiesPatchError, "Plus target")
+	return font_family, font_size, color, background_color
 
 
 #============================================
@@ -4760,33 +4706,21 @@ def _validate_wavy_properties_patch(
 		) -> tuple[str, tuple[tuple[str, object], ...]]:
 	"""Validate one immutable Wavy root-property intent before lookup."""
 	if type(request) is not CDMLWavyPropertiesPatch:
-		raise CDMLWavyPropertiesPatchError(
-			"Wavy properties requires an exact Wavy properties patch",
-		)
+		raise CDMLWavyPropertiesPatchError("Wavy properties requires an exact patch")
 	if type(request.expected_revision) is not int:
-		raise CDMLWavyPropertiesPatchError(
-			"Wavy properties expected_revision must be an int",
-		)
+		raise CDMLWavyPropertiesPatchError("Wavy expected_revision must be an int")
 	if type(request.wavy_id) is not str or not request.wavy_id.strip():
-		raise CDMLWavyPropertiesPatchError(
-			"Wavy properties wavy_id must contain a non-whitespace character",
-		)
+		raise CDMLWavyPropertiesPatchError("Wavy wavy_id must be nonblank")
 	if type(request.changes) is not tuple:
-		raise CDMLWavyPropertiesPatchError(
-			"Wavy properties changes must be an immutable tuple",
-		)
+		raise CDMLWavyPropertiesPatchError("Wavy changes must be an immutable tuple")
 	validated = []
 	seen = set()
 	for change in request.changes:
 		if type(change) is not tuple or len(change) != 2:
-			raise CDMLWavyPropertiesPatchError(
-				"Wavy properties changes must be field/value pairs",
-			)
+			raise CDMLWavyPropertiesPatchError("Wavy changes must be field/value pairs")
 		field_name, value = change
 		if type(field_name) is not str or field_name not in ("width", "line_color"):
-			raise CDMLWavyPropertiesPatchError(
-				"Wavy properties field must be width or line_color",
-			)
+			raise CDMLWavyPropertiesPatchError("Wavy field must be width or line_color")
 		if field_name in seen:
 			raise CDMLWavyPropertiesPatchError("Wavy properties fields must be unique")
 		seen.add(field_name)
@@ -4795,15 +4729,11 @@ def _validate_wavy_properties_patch(
 				type(value) is bool or not isinstance(value, numbers.Real)
 				or not math.isfinite(value) or not 0.1 <= value <= 20
 			):
-				raise CDMLWavyPropertiesPatchError(
-					"Wavy properties width must be a finite number from 0.1 to 20",
-				)
+				raise CDMLWavyPropertiesPatchError("Wavy width must be finite from 0.1 to 20")
 			value = float(value)
 		else:
 			if type(value) is not str or re.fullmatch(r"#[0-9A-Fa-f]{6}", value) is None:
-				raise CDMLWavyPropertiesPatchError(
-					"Wavy properties line_color must be a six-digit hex color",
-				)
+				raise CDMLWavyPropertiesPatchError("Wavy line_color must be six-digit hex")
 			value = value.lower()
 		validated.append((field_name, value))
 	return request.wavy_id, tuple(validated)
@@ -5606,8 +5536,40 @@ def _has_direct_bond(molecule: object, first_atom_id: str, second_atom_id: str) 
 			return True
 	return False
 
-
-#============================================
+def _projection_plan(document: "CDMLDocument", revision: int) -> CDMLProjectionPlan:
+	"""Collect synchronized facts from one backend DOM revision."""
+	presentation = _presentation_description(document, revision)
+	paper = _paper_layout(document, revision)
+	fragments = _fragment_metadata(document, revision)
+	marks = _atom_mark_observation(document, revision)
+	groups = _group_observation(document, revision)
+	molecule_core = _molecule_core_observation(document, revision)
+	molecule_render = _molecule_render_observation(document, revision)
+	presentation_by_position = {record.source_position: record for record in presentation.records}
+	presentation_issues = {issue.source_position: issue for issue in presentation.issues}
+	molecules_by_position = {record.source_position: record for record in molecule_core.records}
+	roots = []
+	root = document._dom_document.documentElement
+	for source_position, element in enumerate(_element_children(root), 1):
+		tag = _local_name(element)
+		identifier = element.getAttribute("id") or None
+		record = presentation_by_position.get(source_position)
+		issue = presentation_issues.get(source_position)
+		molecule = molecules_by_position.get(source_position)
+		if record is not None:
+			roots.append(CDMLProjectionRoot(source_position, tag, identifier, record.disposition, record.reason))
+		elif molecule is not None:
+			roots.append(CDMLProjectionRoot(source_position, tag, identifier, "editable" if molecule.addressable else "display-only", molecule.reason))
+		elif tag in {"paper", "viewport", "info", "metadata", "standard"}:
+			roots.append(CDMLProjectionRoot(source_position, tag, identifier, "header", None))
+		else:
+			reason = issue.reason if issue is not None else "direct root is not projected"
+			roots.append(CDMLProjectionRoot(source_position, tag, identifier, "display-only", reason))
+	plan = CDMLProjectionPlan(
+		revision, tuple(roots), presentation, paper, fragments, marks, groups,
+		molecule_core, molecule_render,
+	)
+	return plan
 class CDMLDocument:
 	"""A complete, DOM-backed CDML document with ordered opaque preservation."""
 
@@ -5642,16 +5604,8 @@ class CDMLDocument:
 		if type(snapshot) is not CDMLSnapshot:
 			raise CDMLValidationError("projection snapshot requires an exact backend snapshot")
 		document = cls.parse(snapshot.cdml, validation="compat")
-		return CDMLProjectionSnapshot(
-			snapshot=snapshot,
-			presentation_description=document.presentation_description(snapshot.revision),
-			paper_layout=document.paper_layout(snapshot.revision),
-			fragment_metadata=document.fragment_metadata(snapshot.revision),
-			atom_mark_observation=document.atom_mark_observation(snapshot.revision),
-			group_observation=document.group_observation(snapshot.revision),
-			molecule_core_observation=document.molecule_core_observation(snapshot.revision),
-			molecule_render_observation=document.molecule_render_observation(snapshot.revision),
-		)
+		plan = _projection_plan(document, snapshot.revision)
+		return CDMLProjectionSnapshot(snapshot, plan)
 
 	#============================================
 	def serialize(self, *, mode: str = "preserve") -> str:
@@ -5854,7 +5808,11 @@ class CDMLDocument:
 	#============================================
 	def _commit_candidate_ids(self) -> dict[str, str]:
 		"""Replace valid transaction-only IDs and known refs in this detached DOM."""
-		elements = _descendant_elements(self._dom_document.documentElement)
+		root = self._dom_document.documentElement
+		bracket_members = oasa.cdml_bracket_pair.valid_bracket_members(
+			tuple(_element_children(root)), _is_cdml_element, _local_name,
+		)
+		elements = _descendant_elements(root)
 		used_ids = set()
 		seen_source_ids = set()
 		provisional_nodes = []
@@ -5882,6 +5840,13 @@ class CDMLDocument:
 			id_map[token] = assigned_id
 		for token, element in provisional_nodes:
 			element.setAttribute("id", id_map[token])
+		for left, right in bracket_members:
+			pair_reference = left.getAttribute("bracket_pair")
+			if pair_reference not in id_map:
+				continue
+			pair_id = id_map[pair_reference]
+			left.setAttribute("bracket_pair", pair_id)
+			right.setAttribute("bracket_pair", pair_id)
 		for element in elements:
 			for attribute_name in _known_reference_attributes(element):
 				reference = element.getAttribute(attribute_name)
@@ -6304,16 +6269,8 @@ class CDMLDocumentSession:
 	def projection_snapshot(self) -> CDMLProjectionSnapshot:
 		"""Return every projection fact atomically for the current snapshot."""
 		snapshot = self.snapshot()
-		return CDMLProjectionSnapshot(
-			snapshot=snapshot,
-			presentation_description=_presentation_description(self._document, self._revision),
-			paper_layout=_paper_layout(self._document, self._revision),
-			fragment_metadata=_fragment_metadata(self._document, self._revision),
-			atom_mark_observation=_atom_mark_observation(self._document, self._revision),
-			group_observation=_group_observation(self._document, self._revision),
-			molecule_core_observation=_molecule_core_observation(self._document, self._revision),
-			molecule_render_observation=_molecule_render_observation(self._document, self._revision),
-		)
+		plan = _projection_plan(self._document, self._revision)
+		return CDMLProjectionSnapshot(snapshot, plan)
 
 	#============================================
 	def presentation_description(
@@ -6468,7 +6425,9 @@ class CDMLDocumentSession:
 		return commit
 
 	#============================================
-	def insert_molecules(self, request: CDMLMoleculeInsertionRequest) -> CDMLCommit:
+	def insert_molecules(
+			self, request: CDMLMoleculeInsertionRequest,
+			) -> "oasa.cdml_molecule_insertion.CDMLMoleculeInsertionResult":
 		"""Append a detached molecule-only proposal through the complete commit path.
 
 		The optional request label is operation metadata only.  It never enters the
@@ -6479,6 +6438,7 @@ class CDMLDocumentSession:
 		self._check_expected_revision(request.expected_revision)
 		proposal = CDMLDocument.parse(request.proposal_cdml, validation="compat")
 		molecules = _proposal_molecules(proposal)
+		provisional_root_ids = tuple(molecule.getAttribute("id") for molecule in molecules)
 		candidate = CDMLDocument.parse(self.snapshot().cdml, validation="compat")
 		candidate_root = candidate._dom_document.documentElement
 		proposal_root = proposal._dom_document.documentElement
@@ -6486,9 +6446,17 @@ class CDMLDocumentSession:
 			imported_molecule = candidate._dom_document.importNode(molecule, deep=True)
 			_copy_proposal_namespace_declarations(proposal_root, imported_molecule)
 			candidate_root.appendChild(imported_molecule)
-		return self.commit(
+		commit = self.commit(
 			expected_revision=request.expected_revision,
 			complete_cdml=candidate.serialize(),
+		)
+		import oasa.cdml_molecule_insertion
+		return oasa.cdml_molecule_insertion.CDMLMoleculeInsertionResult(
+			commit=commit,
+			root_id_map={
+				provisional_id: commit.id_map[provisional_id]
+				for provisional_id in provisional_root_ids
+			},
 		)
 
 	#============================================
@@ -6762,10 +6730,19 @@ class CDMLDocumentSession:
 		_editable_text_children(text)
 		if not changes:
 			return CDMLTextPropertiesPatchResult(self.snapshot(), False, None)
+		change_map = dict(changes)
+		if (
+			"background_color" in change_map
+			and change_map["background_color"] == _optional_background_color(
+				text, CDMLTextPropertiesPatchError, "Text properties target",
+			)
+		):
+			del change_map["background_color"]
+		if not change_map:
+			return CDMLTextPropertiesPatchResult(self.snapshot(), False, None)
 		candidate = CDMLDocument.parse(self._document.serialize(), validation="compat")
 		candidate_text = _direct_root_text(candidate, text_id)
 		font, ftext = _editable_text_children(candidate_text)
-		change_map = dict(changes)
 		if "text" in change_map:
 			text_nodes = tuple(
 				child for child in ftext.childNodes
@@ -6794,6 +6771,10 @@ class CDMLDocumentSession:
 				font.setAttribute("size", str(change_map["font_size"]))
 			if "font_color" in change_map:
 				font.setAttribute("color", change_map["font_color"])
+		if "background_color" in change_map:
+			candidate_text.setAttribute(
+				"background-color", change_map["background_color"] or "",
+			)
 		candidate.validate(validation="strict")
 		candidate_cdml = candidate.serialize()
 		if candidate_cdml == self._document.serialize():
@@ -6877,23 +6858,39 @@ class CDMLDocumentSession:
 		plus_id, changes = _validate_plus_properties_patch(request)
 		self._check_expected_revision(request.expected_revision)
 		plus = _direct_root_plus(self._document, plus_id)
-		_editable_plus_children(plus)
-		current_font_size, current_color = _plus_property_values(plus)
+		font = _editable_plus_children(plus)
+		current_family, current_size, current_color, current_background = (
+			_plus_property_values(plus, font)
+		)
 		if not changes:
 			return CDMLPlusPropertiesPatchResult(self.snapshot(), False, None)
 		change_map = dict(changes)
 		if (
-			("font_size" not in change_map or change_map["font_size"] == current_font_size)
+			("font_family" not in change_map or change_map["font_family"] == current_family)
+			and ("font_size" not in change_map or change_map["font_size"] == current_size)
 			and ("color" not in change_map or change_map["color"] == current_color)
+			and (
+				"background_color" not in change_map
+				or change_map["background_color"] == current_background
+			)
 		):
 			return CDMLPlusPropertiesPatchResult(self.snapshot(), False, None)
 		candidate = CDMLDocument.parse(self._document.serialize(), validation="compat")
 		candidate_plus = _direct_root_plus(candidate, plus_id)
-		_editable_plus_children(candidate_plus)
+		candidate_font = _editable_plus_children(candidate_plus)
+		if "font_family" in change_map:
+			if candidate_font is None:
+				candidate_font = _new_core_element(candidate, candidate_plus, "font")
+				candidate_plus.appendChild(candidate_font)
+			candidate_font.setAttribute("family", change_map["font_family"])
 		if "font_size" in change_map:
 			candidate_plus.setAttribute("font_size", str(change_map["font_size"]))
 		if "color" in change_map:
 			candidate_plus.setAttribute("color", change_map["color"])
+		if "background_color" in change_map:
+			candidate_plus.setAttribute(
+				"background-color", change_map["background_color"] or "",
+			)
 		candidate.validate(validation="strict")
 		candidate_cdml = candidate.serialize()
 		if candidate_cdml == self._document.serialize():

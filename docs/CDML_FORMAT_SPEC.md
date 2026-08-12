@@ -920,11 +920,11 @@ A plus sign between reactants/products.
 | Attribute | Type | Default | Notes |
 |-----------|------|---------|-------|
 | `id` | ID | -- | |
-| `font_size` | int | `14` | |
-| `color` | hex color | `"#000"` | Only written when not default |
+| `font_size` | int | `14` | Root-authoritative for Plus |
+| `color` | hex color | `"#000"` | Root-authoritative; omitted when black |
 | `background-color` | hex color | `"#ffffff"` | Only written when not default |
 
-Children: exactly one direct `<point>`, optional `<font>`.
+Children: one direct `<point>` and optional `<font>`; only its family applies to Plus.
 
 ### `<text>` (standalone, top-level)
 
@@ -1029,58 +1029,6 @@ element grammar, require writer output, or make content editable. A proposal
 becomes authored CDML only after a versioned specification, preservation and
 projection disposition, and implementation evidence.
 
-### Candidate `attach_atom` design
-
-If adopted in a future version, this candidate optional attribute would store
-attachment intent for multi-atom labels.
-
-| Attribute | Type | Default | Applies to |
-|-----------|------|---------|------------|
-| `attach_atom` | enum | Candidate default: `"first"` | Candidate label-bearing clipping element |
-
-Candidate values would be `"first"` or `"last"`.
-
-**Candidate stored meaning:**
-- Attachment intent, not coordinates.
-- Renderers would derive connector geometry from text layout (`label_bbox()` /
-  `label_attach_bbox()`) and line-rectangle intersection.
-
-**Candidate location:**
-- On the CDML element that would represent the label participating in connector
-  clipping.
-- For ordinary molecules: on label-bearing vertex elements (`<atom>`,
-  `<group>`, or `<text>`) when the displayed label would be multi-atom.
-- For Haworth substituents: on the label-bearing node that would be generated
-  for the substituent label in CDML data.
-
-**Candidate semantics:**
-- `"first"` would attach to the first atom token in label text (for example
-  the `C` in `CH2OH`).
-- `"last"` would attach to the last atom token in label text (for example the
-  `O` in `CH2OH`).
-- `first`/`last` would be defined by token order in text, not screen direction,
-  not mirroring, and not coordinate-system orientation.
-- Tokenization would be renderer-defined and would need to be stable.
-- Minimum candidate tokenization rule for interoperability: atom tokens would
-  be element symbols (uppercase letter with optional lowercase letter).
-- Digits, charge markers (`+`/`-`), and text markup would be treated as
-  decorations attached to atom tokens, not standalone attachable atom tokens.
-
-**Candidate writer policy:**
-- Writers would not write it for single-atom labels where attachment is
-  unambiguous (`O`, `N`, `Cl`, etc.).
-- Writers would write it for multi-atom labels where attachment intent matters
-  (`CH2OH`, `OAc`, `NHCH3`, and similar).
-- Omission would mean `"first"`.
-- Writers could choose to emit only non-default `"last"` to reduce diff noise.
-- Writers could optionally emit it only when attachment intent was explicitly edited
-  by a user workflow.
-
-**Compatibility hypothesis:**
-- If adopted, the additive attribute would require a versioned compatibility
-  and preservation decision before writers emit it.
-- Existing readers and documents have no `attach_atom` requirement.
-
 ### Deferred document concepts
 
 `bracket`, `vector`, visual `layer`, visual `page`, visual grouping, and
@@ -1090,10 +1038,16 @@ container. The direct-child sequence is the only established document-order
 mechanism; it does not imply an unimplemented layer or grouping model.
 
 Legacy or extension `<bracket>` and `<vector>` content is preserve-only opaque
-content in 26.07, so it has durable round-trip support while editable typed
-bracket/vector grammar remains separately versioned. It does not receive
-provisional-ID allocation. The established bracket tool persists its artwork
-as top-level `<polyline>` records rather than a first-class `<bracket>` record.
+content in 26.07 and receives no provisional IDs. The current Vector tool
+instead authors established top-level `<rect>`, `<oval>`, or `<polyline>` through
+an OASA operation. Rectangular/round brackets persist as paired top-level
+polylines; round pairs use `spline="yes"`, not `<bracket>`. A newly authored
+pair has `bracket_pair` on both polylines, equal to the left polyline's durable
+ID, plus exactly one `bracket_side="left"` and one `bracket_side="right"`.
+These attributes are ordinary persistent pair identity, not a container or
+layout inference hint. A complete pair keeps its relationship through ID
+remapping on fragment insertion and retained-Tk compatibility load/paste;
+lone, malformed, duplicate, and unmarked polylines remain independent.
 
 ---
 

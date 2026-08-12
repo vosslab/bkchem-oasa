@@ -25,6 +25,7 @@ import bkchem_qt.setup.mode_setup
 import bkchem_qt.setup.toolbar_setup
 import bkchem_qt.actions.file_actions
 import bkchem_qt.actions.options_actions
+import bkchem_qt.actions.presentation_property_capture
 import bkchem_qt.canvas.document_projection
 import bkchem_qt.canvas.graphics_retirement
 import bkchem_qt.canvas.molecule_projection
@@ -508,50 +509,13 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 		return session.backend_snapshot.revision, self.text_properties_capability_for(session)
 
 	#============================================
-	def _presentation_properties_capability_for(
-			self, session: bkchem_qt.models.document_session.DocumentSession,
-			kind: str,
-			) -> object:
-		"""Freeze one direct-root presentation patch onto a registered tab."""
-		if not isinstance(session, bkchem_qt.models.document_session.DocumentSession):
-			raise TypeError("Presentation properties capability requires a DocumentSession")
-		if session.is_disposed or session not in self._sessions:
-			raise ValueError("Presentation properties requires a live registered session")
-		submitters = {
-			"plus": session.submit_plus_properties_patch,
-			"wavy": session.submit_wavy_properties_patch,
-			"arrow": session.submit_arrow_properties_patch,
-		}
-		if kind not in submitters:
-			raise ValueError("Presentation properties kind is unsupported")
-		submitter = submitters[kind]
-		def submit(
-				expected_revision: int, identifier: str,
-				changes: tuple[tuple[str, object], ...],
-				) -> bkchem_qt.models.document_session.PersistentActionOutcome:
-			"""Submit only while the exact captured session remains registered."""
-			if session.is_disposed or session not in self._sessions:
-				return bkchem_qt.models.document_session.PersistentActionOutcome(
-					"unavailable", "Document cannot accept a persistent edit", None, False,
-				)
-			return submitter(expected_revision, identifier, changes)
-		return submit
-
-	#============================================
 	def _capture_presentation_properties_for_view(
 			self, view: object, identifier: str, kind: str,
 			) -> tuple[int, object] | None:
 		"""Capture one revision and exact-tab presentation callback for one intent."""
 		session = self._sessions_by_view.get(view)
-		if (
-			session is None or session.is_disposed or session.document is None
-			or not session.can_commit_persistent_action
-			or not isinstance(identifier, str) or not identifier
-		):
-			return None
-		return (
-			session.backend_snapshot.revision,
-			self._presentation_properties_capability_for(session, kind),
+		return bkchem_qt.actions.presentation_property_capture.capture_presentation_properties(
+			session, self._sessions, identifier, kind,
 		)
 
 	#============================================
@@ -571,6 +535,21 @@ class MainWindow(PySide6.QtWidgets.QMainWindow):
 			arrow_id: str) -> tuple[int, object] | None:
 		"""Capture one exact-tab Arrow callback."""
 		return self._capture_presentation_properties_for_view(view, arrow_id, "arrow")
+
+	#============================================
+	def capture_geometric_properties_for_view(self, view: object,
+			root_id: str) -> tuple[int, object] | None:
+		"""Capture one exact-tab geometric appearance callback."""
+		return self._capture_presentation_properties_for_view(view, root_id, "geometric")
+
+	#============================================
+	def capture_bracket_properties_for_view(self, view: object,
+			pair_id: str) -> tuple[int, object] | None:
+		"""Capture one exact-tab atomic bracket appearance callback."""
+		session = self._sessions_by_view.get(view)
+		return bkchem_qt.actions.presentation_property_capture.capture_bracket_properties(
+			session, self._sessions, pair_id,
+		)
 
 	#============================================
 	def _bind_property_dock(

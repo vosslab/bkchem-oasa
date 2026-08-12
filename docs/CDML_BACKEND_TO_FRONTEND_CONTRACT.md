@@ -4,12 +4,8 @@ This is the stable behavioral boundary between the CDML backend and a frontend.
 It defines observable persistence behavior, not a particular language,
 UI-toolkit, or scene-graph implementation.
 
-It is not the CDML element grammar, version registry, schema, or validator.
-Those format concerns are defined by
-[CDML_FORMAT_SPEC.md](CDML_FORMAT_SPEC.md); this document defines only how a
-complete CDML value crosses the backend/frontend transaction boundary. Declared
-bounded operations may carry durable IDs and scalar intent, but canonical CDML
-remains the sole persistent document boundary.
+Format grammar lives in [CDML_FORMAT_SPEC.md](CDML_FORMAT_SPEC.md); this
+document covers transaction behavior and canonical CDML persistence.
 
 ## Authority and boundary
 
@@ -26,6 +22,9 @@ remains the sole persistent document boundary.
 - CDML is the sole persistent frontend/backend boundary. Requests and results
   use complete CDML, scalar values, and immutable backend-owned values. They
   do not expose frontend objects, callbacks, graphics, or lifetime state.
+- Root-only insertion facts are immutable backend results.  A molecule
+  insertion exposes only the durable IDs of the newly inserted direct roots;
+  it does not expose descendant DOM, graph, or frontend projection objects.
 - A backend round trip preserves complete persistent content. A frontend never
   repairs a backend response by merging state retained from an older
   projection.
@@ -101,7 +100,8 @@ The read-only direct-root presentation description is a revision-bound backend
 observation. Its immutable plain records cover arrow, plus, Text, rect, square,
 oval, circle, polygon, and polyline (including wavy style), in authoritative
 source order. Records carry scalar attributes, finite PostScript scene points,
-normalized bounds, safe display text, and supported authored ftext runs. A
+normalized bounds, authored font attributes, standard-resolved family, safe
+display text, and supported authored ftext runs. A
 durable record is `editable`; an ID-less compatible record is `display-only`.
 A compatible presentation root with preservation-only child content produces
 a safe display-only record plus a plain diagnostic. A frontend may render that
@@ -137,6 +137,21 @@ presentation proposal. The proposal records applicable values as ordinary
 explicit CDML attributes; the frontend never infers or reparses the retained
 `standard` XML.
 
+`CDMLProjectionPlan` is the synchronized projection boundary.  It is one
+immutable, exact-revision backend value containing the canonical snapshot,
+ordered root facts, and all matching projection observations.  A synchronized
+frontend hydrates only from that plan.  It does not parse CDML, construct a
+DOM, or combine separately obtained facts while replacing a projection.
+
+The typed presentation insertion grammar keeps interaction flexible without
+making XML a frontend concern.  Arrow requests name one of the supported arrow
+kinds, an ordered finite point sequence, spline intent, and endpoints.  Vector
+requests name a supported geometric kind and its finite points; rectangles,
+squares, ovals, circles, polygons, and ordinary polylines retain their distinct
+geometry rules.  Plain Text requests carry only position and text.  Frontends
+may preview or edit Text directly, but accepted changes use the revision-bound
+backend Text operation and canonical reprojection.
+
 ## Snapshots, values, and failures
 
 The backend exposes these behavioral operations:
@@ -153,14 +168,18 @@ The backend exposes these behavioral operations:
 | Inspect user template | Exact serialized complete template CDML | Immutable plain inspection with optional nonblank molecule display name | Typed ineligible template or parse failure |
 | Insert user template | Expected revision, exact serialized complete template CDML, finite scene-point anchor, optional display label | Immutable accepted snapshot and ID mapping for one detached inserted molecule | Invalid template, validation, or revision conflict |
 | Insert top level | Expected revision, complete CDML fragment, finite scene-point translation, optional display label | Immutable accepted snapshot and old-to-new durable-ID mapping | Parse, validation, or revision conflict |
+| Insert brackets | Expected revision, exact rectangular/round style, finite normalized bounds | Immutable accepted snapshot and durable pair, left, and right polyline IDs | Invalid request, style, bounds, standard, validation, or revision conflict |
+| Insert presentation | Expected revision plus exact Arrow endpoints, Text position/content, Plus position, geometric kind/endpoints, or Wavy endpoints | Immutable accepted snapshot and allocated presentation ID | Invalid request, variant, geometry, standard, validation, or revision conflict |
 | Edit structure | Expected revision; one of `create-bonded-pair`, `extend-atom`, `join-atoms`, or `apply-bond-tool`; direct editable durable targets where applicable; finite scalar positions and bond settings | Immutable accepted canonical snapshot and created or updated durable IDs | Invalid input, target, topology, bond setting, or revision conflict |
 | Set atom element | Expected revision, direct-root molecule ID, direct core atom ID, and a different exact supported element symbol | Immutable accepted canonical snapshot | Invalid request, target, element symbol, same symbol, or revision conflict |
 | Patch atom properties | Expected revision, direct-root molecule ID, direct core atom ID, and unique explicit field/value pairs for atom chemistry and presentation scalars | Immutable accepted snapshot, or unchanged current snapshot for a canonical no-op | Invalid request, repeated field, target, direct font ambiguity, scalar value, or revision conflict |
-| Patch plain Text properties | Expected revision, one durable direct-root core Text ID, and unique explicit changes for text, font family, font size, or six-digit font color | Immutable accepted snapshot, or unchanged current snapshot for a semantic no-op | Invalid request, repeated field, target or direct-child ambiguity, rich ftext, scalar value, or revision conflict |
+| Patch plain Text properties | Expected revision, one durable direct-root core Text ID, and unique explicit changes for text, font family, font size, six-digit font color, or optional six-digit background | Immutable accepted snapshot, or unchanged current snapshot for a semantic no-op | Invalid request, repeated field, target or direct-child ambiguity, rich ftext, scalar value, or revision conflict |
 | Patch rich Text | Expected revision, one durable direct-root core Text ID, immutable CDML 26.07 formatted text runs, and unique explicit optional root `font_family`, `font_size`, or `font_color` changes | Immutable accepted snapshot, or unchanged current snapshot for normalized runs plus every requested canonical root-font value | Invalid request, repeated field, target ambiguity, preservation-only ftext, unsupported markup, font scalar, blank content, or revision conflict |
-| Patch plain Plus properties | Expected revision, one durable direct-root core Plus ID, and unique explicit changes for root font size or six-digit root color | Immutable accepted snapshot, or unchanged current snapshot for a semantic no-op | Invalid request, repeated field, target or direct-child ambiguity, overriding child font, scalar value, or revision conflict |
+| Patch plain Plus properties | Expected revision, one durable direct-root core Plus ID, and unique explicit changes for child font family, root font size, six-digit root color, or optional six-digit background | Immutable accepted snapshot, or unchanged current snapshot for a semantic no-op | Invalid request, repeated field, target or direct-child ambiguity, scalar value, or revision conflict |
 | Patch plain Wavy properties | Expected revision, one durable direct-root core `<polyline style="wavy">` ID, and unique explicit width or six-digit line color changes | Immutable accepted snapshot, or unchanged current snapshot for a semantic no-op | Invalid request, repeated field, target or point ambiguity, scalar value, malformed Wavy content, or revision conflict |
 | Patch Arrow properties | Expected revision, one durable editable direct-root core Arrow ID, and unique explicit start-head, end-head, spline, width, or six-digit color changes | Immutable accepted snapshot, or unchanged current snapshot for a semantic no-op | Invalid request, repeated field, target or presentation ambiguity, scalar value, malformed Arrow content, or revision conflict |
+| Patch bracket-pair properties | Expected revision, one structurally valid durable pair ID and unique explicit common width or six-digit color changes | Immutable accepted snapshot, or unchanged current snapshot for a semantic no-op | Invalid request, malformed pair, repeated field, scalar value, or revision conflict |
+| Patch geometric presentation properties | Expected revision, one durable editable direct-root rect, square, oval, circle, polygon, or ordinary polyline ID, and unique explicit width, stroke color, or applicable fill-color changes | Immutable accepted snapshot, or unchanged current snapshot for a semantic no-op | Invalid request, repeated or inapplicable field, target or presentation ambiguity, scalar value, specialized Wavy target, or revision conflict |
 | Create fragment metadata | Expected revision, one direct-root molecule ID, nonblank name, exact `explicit` or `implicit` type, and ordered duplicate-free direct atom/bond IDs | Immutable accepted snapshot and backend-allocated fragment ID | Invalid request, member, endpoint, target, or revision conflict |
 | Delete fragment metadata | Expected revision, one direct-root molecule ID, and one durable ordinary-fragment ID | Immutable accepted snapshot | Invalid request, preservation-only fragment grammar, target, or revision conflict |
 | Observe fragment metadata | Exact expected revision | Immutable ordinary-fragment facts and display-only diagnostics | Invalid query or revision conflict |
@@ -202,6 +221,15 @@ frontend accepts this result as a unit, rejects a malformed or incoherent
 result before it constructs a projection, and never combines a snapshot from
 one backend result with observations from another.
 
+Bracket-pair observation is part of that projection result.  A valid pair is
+exactly two direct core polylines with distinct durable IDs, the same
+`bracket_pair` value, and one `bracket_side="left"` and one
+`bracket_side="right"`; the pair value is the left polyline ID.  OASA alone
+recognizes the pair and applies shared appearance edits atomically.  Pair
+membership remains ordinary durable CDML data, while selection, shift-toggle,
+rubber-band expansion, and handles are transient frontend semantics.  No
+frontend infers a pair by proximity or stores a second persistent registry.
+
 Insert molecules is a bounded composition operation. Its proposal is a complete
 CDML document with one or more direct top-level molecule elements and no other
 direct persistent object. The backend appends detached proposal molecules after
@@ -209,13 +237,13 @@ the current document's direct children in proposal order, then follows the same
 atomic complete-candidate rules as Commit. The optional display label is scalar
 operation metadata only and is never persistent CDML.
 
-Rectangular Bracket uses the ordinary complete-candidate Commit operation. A
-client supplies one revision-bound candidate containing two new direct
-top-level `polyline` records; the backend validates, allocates durable IDs for
-both provisional records, and accepts or rejects the whole candidate atomically.
-The pair has no backend-specific wrapper, attachment, or container semantics:
-all surviving CDML records, comments, and opaque extension content remain the
-backend-owned document state.
+Insert presentation accepts only one exact revision-bound Arrow, plain Text,
+Plus, geometric, or Wavy request. Requests contain scalar content and finite
+scene points, never XML. OASA owns geometry, drawing-standard styling, CDML
+grammar, ID allocation, and atomic commit. The frontend owns only tool,
+gesture, and preview state. Existing records, comments, namespaces, order, and
+opaque extensions remain backend-owned; results expose durable IDs without a
+frontend provisional token or complete-CDML candidate.
 
 Set paper properties is a revision-bound backend patch whose immutable request
 carries only explicitly changed paper fields. The backend validates the authored
@@ -431,25 +459,25 @@ separate standalone compatibility-loading path retains its legacy XML behavior.
 Patch plain Text properties is a revision-bound backend operation for one
 durable direct-root core `<text>`. Its immutable request carries one expected
 revision, the Text ID, and unique explicit changes from `text`, `font_family`,
-`font_size`, and `font_color`. Text must contain a non-whitespace character and
-retains its exact submitted spacing; family becomes a nonblank stripped string,
-size is an integer from 4 through 144, and a six-digit hexadecimal color becomes
-lowercase. The backend validates the complete request and authoritative target before
-detached mutation. The editable core grammar has exactly one
+`font_size`, `font_color`, or optional `background_color`. Text must contain a
+non-whitespace character and retains exact spacing; family becomes a nonblank
+stripped string, size is an integer from 4 through 144, and submitted colors are
+six-digit hexadecimal values that become lowercase. Background also accepts no
+fill; compact backgrounds normalize. After validation, the grammar has one
 direct point and ftext plus at most one direct font; namespace-owned extension
 children remain opaque. Multiple direct fonts or ftexts, missing core children,
 unsupported direct core content, and legacy rich ftext with element children
 or modern escaped `sub`, `sup`, `b`, or `i` formatting markup are typed atomic
 failures. Literal comparison symbols remain ordinary editable character data.
 
-An accepted patch changes only requested ftext character data or named font
-attributes. Ftext comments and processing instructions, every Text attribute,
-point content, unknown font attributes, extension content, unrelated root
-records, namespaces, and complete source order remain persistent. A requested
-font property creates one core font immediately before ftext when absent. An
-empty or semantically equal patch returns the exact current snapshot without a
-revision or history entry. Every validation, target, rich-text, and revision
-failure leaves snapshot, saved baseline, and retained history unchanged.
+An accepted patch changes only requested ftext data, named font attributes, or
+root background. No background writes an explicit empty `background-color` so
+document defaults cannot reappear. Ftext comments and processing instructions,
+other Text attributes, point content, unknown font attributes, extensions,
+unrelated roots, namespaces, and source order remain persistent. A requested
+font field creates one core font immediately before ftext when absent. Empty or
+equal intent returns the exact current snapshot without history. Every failure
+leaves snapshot, saved baseline, and retained history unchanged.
 
 Patch rich Text is a separate revision-bound backend operation for one durable
 direct-root core `<text>`. Its immutable request contains an expected revision,
@@ -477,24 +505,20 @@ escaping. All untouched Text/root attributes, point content, unmentioned font
 content, comments, processing instructions, extensions, record order, saved
 baseline, and retained history remain backend-owned; every failure is atomic.
 
-Patch plain Plus properties is a revision-bound backend operation for one
-durable direct-root core `<plus>`. Its immutable request carries one expected
-revision, the Plus ID, and unique explicit changes from root `font_size` and
-`color`. Size is an exact integer from 4 through 144; color is an exact
-six-digit hexadecimal value and becomes lowercase. An absent root size or
-color has the historical visible meaning 14 or black for semantic no-op
-comparison only. New Plus creation continues to author size 18.
+Patch plain Plus properties addresses one durable direct-root core `<plus>`.
+Its revision-bound request accepts unique child `font_family` or root
+`font_size`, `color`, and optional `background_color` changes. Family is
+nonblank; size is 4 through 144; submitted six-digit colors become lowercase.
+Absent family inherits the effective standard; absent size/color means
+14/black. One point and at most one font form the editable grammar. Child
+family is effective, while retained child size/color never override the root.
+Only named fields change; no-op and failure paths are atomic and history-free.
 
-The editable core grammar has exactly one direct point and at most one direct
-font. Namespace-owned extension children remain opaque. Missing or repeated
-points, repeated fonts, unsupported direct core children, non-whitespace
-direct character data, and a direct core font carrying `size` or `color` are
-typed preservation-only failures because that child font would override the
-portable root values. A family-only font remains untouched. Acceptance changes
-only requested root attributes and preserves every other Plus attribute,
-point and extension node, namespace, unrelated record, and source position.
-Empty or semantically equal intent returns the exact current snapshot without
-history; every rejection is atomic.
+Insert brackets accepts one exact revision, rectangular/round style, and finite
+normalized scene bounds. OASA derives classic proportional control points,
+uses the effective drawing-standard stroke, and atomically appends two ordinary
+top-level polylines with allocated IDs. Round pairs author `spline="yes"`;
+rectangular pairs author `no`. Existing content/order remain unchanged.
 
 Patch plain Wavy properties is a revision-bound backend operation for one
 durable direct-root core `<polyline style="wavy">`. Its immutable request carries
@@ -515,25 +539,29 @@ including missing-default and lexical width/color variants. Every grammar,
 target, scalar, or revision failure is typed and atomic: it preserves the
 snapshot, saved baseline, retained history, and opaque content.
 
-Patch Arrow properties is a revision-bound backend operation for one durable
-editable direct-root core `<arrow>`. Its immutable request carries one expected
-revision, the Arrow ID, and unique explicit `start_head`, `end_head`, `spline`,
-`line_width`, or `color` changes. Head and spline intent is exactly boolean and
-serializes as `yes` or `no`. Width is a non-boolean finite number from 0.1
-through 20 and serializes with `%g`; color is an exact six-digit hexadecimal
-value and becomes lowercase. Missing start, end, spline, width, and color have
-the visible meanings false, true, false, 1.0, and black for semantic comparison
-only. Compatible historical yes/no spellings and lexical width/color variants
-participate in that comparison without normalizing untouched content.
+Patch Arrow properties is revision-bound for one unique durable editable
+direct-root core `<arrow>`. Its request carries one expected revision, Arrow ID,
+and unique explicit `start_head`, `end_head`, `spline`, `line_width`, or `color`
+changes. Booleans serialize as `yes` or `no`; width is finite from 0.1 through
+20 and serializes with `%g`; six-digit color becomes lowercase. Missing values
+mean false, true, false, 1.0, and black for semantic comparison only. Historical
+spellings participate without normalizing untouched content. Acceptance changes
+only requested root attributes and preserves points, control-point order, type,
+shape, length, unmentioned attributes, comments, processing instructions,
+namespaces, unrelated records, and source position. Empty or semantically equal
+intent is history-free; every failure is typed and atomic.
 
-The target must be the unique editable Arrow in the exact-revision presentation
-observation: it has a durable ID, at least two finite direct core points, and no
-preservation-only direct child content. Acceptance changes only the requested
-root attributes. Authored point and control-point order, type, shape, length,
-unmentioned attributes, comments, processing instructions, namespaces,
-unrelated records, and source position remain backend-owned. Empty or
-semantically equal intent creates no revision. Every request, target, scalar,
-candidate-validation, or revision failure is typed and atomic.
+Patch geometric presentation properties is the shared revision-bound appearance
+operation for rect, square, oval, circle, polygon, and ordinary polyline roots.
+The request has one revision, durable ID, and unique explicit width, stroke, or
+fill changes. Width is finite from 0.1 through 20; submitted colors use six-digit
+hexadecimal. Closed shapes allow color or no-fill; ordinary polylines allow only
+stroke fields. Visible three-digit legacy colors compare as six-digit values.
+Explicit stroke writes `line_color` while preserving legacy `color`; no-fill
+writes `area_color="none"` so a retained legacy background cannot reappear.
+Specialized Wavy remains on its dedicated operation. Acceptance preserves
+geometry, attributes, extensions, comments, processing instructions, namespaces,
+unrelated roots, and order. Equal intent is history-free; failures are atomic.
 
 Apply atom mark is a revision-bound backend operation for one direct core
 `<atom>`. Its immutable request names a direct-root molecule ID, direct atom
@@ -952,43 +980,20 @@ or graphics wrapper as persistent input. SVG, PNG, PDF, cropped SVG, and
 selected SVG therefore all describe the same captured revision; later scene or
 selection changes cannot alter the artifact.
 
-An unrenderable retained persistent object remains preserved in the snapshot.
-Its omission is reported as a typed warning, rather than a claim that the
-visual artifact fully rendered every persistent CDML record. Visual export
-does not commit, mark saved, consume a candidate token, change history, or
-modify the saved baseline. A terminal or unreadable session reports a typed
-unavailable failure and never falls back to a retained frontend projection.
-An artifact is successful only after its disposable render projection reaches
-its terminal retirement phase. A retirement failure returns a typed render
-failure with plain cleanup diagnostics and publishes no artifact. If rendering
-already failed, that primary typed failure remains the result and carries the
-cleanup diagnostic as additional detail.
+An unrenderable retained object produces a typed warning. Export never commits,
+marks saved, consumes a token, or falls back to a retained frontend projection.
+It publishes only after disposable render retirement; failure returns a typed
+render failure with any cleanup diagnostic.
 
 ## Projection rules
 
-Frontends rebuild a projection from the accepted canonical snapshot as an
-all-or-nothing operation. A rebuilt projection may reuse stable IDs for
-selection, but not persistent objects, raw XML, or wrapper identities from the
-previous projection. Failure leaves backend authority unchanged and requires
-exact-snapshot reprojection or an explicitly unavailable frontend state.
+Frontends rebuild all-or-nothing from the accepted snapshot. They may reuse
+stable selection IDs, never old persistent objects, XML, or wrappers; failure
+requires exact-snapshot reprojection or an unavailable frontend state. Complete
+routes accept complete CDML; bounded routes accept documented IDs and scalars,
+produce canonical CDML internally, and keep previews transient.
 
-Complete-CDML routes accept complete CDML rather than frontend-specific partial
-state. Declared bounded operations accept only their documented durable IDs and
-scalar values, then produce complete canonical CDML internally. A preview is
-not persistent and no frontend-owned object becomes authoritative before a
-successful commit.
-
-Direct atom marks use a separate exact-revision observation. The backend returns only
-plain durable molecule/atom addresses when actionable, source positions,
-same-type removal ordinals, display-only diagnostics, and normalized finite
-rendering facts. The backend retains every mark XML node and preservation
-content; synchronized frontends retain neither raw mark XML nor arbitrary mark
-attributes after hydration. Legacy `atom_number` marks remain compatibility
-diagnostics for the separate atom-number operation.
-
-## Compatibility evidence
-
-Legacy artifacts, coordinate conversions, and historical frontend behavior are
-compatibility evidence only. They do not assign persistent authority, permit
-frontend re-merging, require a legacy frontend, or alter the frontend-neutral
-transaction boundary above.
+Direct atom-mark observations expose only actionable plain addresses, source
+positions, removal ordinals, diagnostics, and finite rendering facts. Raw mark
+XML remains backend-owned; legacy `atom_number` is a separate compatibility
+diagnostic.

@@ -1,17 +1,14 @@
 """Focused backend-authority checks for plain Text creation."""
 
-# Standard Library
-import xml.dom.minidom
-
 # PIP3 modules
 import pytest
 
 # local repo modules
-import bkchem_qt.io.cdml_candidate
 import bkchem_qt.main_window
 import bkchem_qt.models.document_session
 import bkchem_qt.models.projection_lifecycle
 import oasa.cdml_document
+import oasa.cdml_presentation_insert
 import oasa.cdml_writer
 import oasa.safe_xml
 
@@ -40,26 +37,26 @@ def _projection_unavailable(snapshot: object) -> object:
 	)
 
 
-def _direct_elements(root: xml.dom.minidom.Element) -> list[xml.dom.minidom.Element]:
+def _direct_elements(root: object) -> list[object]:
 	"""Return direct element children in source order."""
 	children = [
 		child for child in root.childNodes
-		if isinstance(child, xml.dom.minidom.Element)
+		if child.nodeType == child.ELEMENT_NODE
 	]
 	return children
 
 
 #============================================
 def _text_child(
-		element: xml.dom.minidom.Element, name: str,
-		) -> xml.dom.minidom.Element:
+		element: object, name: str,
+		) -> object:
 	"""Return one direct named child from a CDML text element."""
 	child = next(child for child in _direct_elements(element) if child.localName == name)
 	return child
 
 
 #============================================
-def _text_value(element: xml.dom.minidom.Element) -> str:
+def _text_value(element: object) -> str:
 	"""Return one ftext node's semantic plain content."""
 	ftext = _text_child(element, "ftext")
 	value = "".join(child.data for child in ftext.childNodes if child.nodeType == child.TEXT_NODE)
@@ -67,14 +64,16 @@ def _text_value(element: xml.dom.minidom.Element) -> str:
 
 
 #============================================
-def test_text_candidate_preserves_existing_mixed_cdml() -> None:
-	"""A text candidate retains ordered typed and opaque sibling semantics."""
+def test_text_insertion_preserves_existing_mixed_cdml() -> None:
+	"""Text insertion retains ordered typed and opaque sibling semantics."""
 	session = oasa.cdml_document.CDMLDocumentSession.load(_MIXED_CDML)
-	candidate = bkchem_qt.io.cdml_candidate.append_text_candidate(
-		session.snapshot().cdml, "__bkchem_new__text-r0-1", (72.0, 36.0), "A & B",
+	result = oasa.cdml_presentation_insert.insert_text(
+		session,
+		oasa.cdml_presentation_insert.CDMLTextInsertRequest(
+			session.revision, (72.0, 36.0), "A & B",
+		),
 	)
-	commit = session.commit(expected_revision=0, complete_cdml=candidate)
-	root = oasa.safe_xml.parse_dom_from_string(commit.cdml).documentElement
+	root = oasa.safe_xml.parse_dom_from_string(result.snapshot.cdml).documentElement
 	elements = _direct_elements(root)
 	vendor_note = elements[2]
 	vendor_child = _direct_elements(vendor_note)[0]
@@ -109,15 +108,16 @@ def test_text_candidate_preserves_existing_mixed_cdml() -> None:
 
 
 #============================================
-def test_text_candidate_uses_backend_id_and_canonical_plain_defaults() -> None:
+def test_text_insertion_uses_backend_id_and_canonical_plain_defaults() -> None:
 	"""The accepted Text has a durable ID and semantic default presentation."""
-	token = "__bkchem_new__text-r0-1"
 	session = oasa.cdml_document.CDMLDocumentSession.load(_MIXED_CDML)
-	candidate = bkchem_qt.io.cdml_candidate.append_text_candidate(
-		session.snapshot().cdml, token, (72.0, 36.0), "A & B",
+	result = oasa.cdml_presentation_insert.insert_text(
+		session,
+		oasa.cdml_presentation_insert.CDMLTextInsertRequest(
+			session.revision, (72.0, 36.0), "A & B",
+		),
 	)
-	commit = session.commit(expected_revision=0, complete_cdml=candidate)
-	root = oasa.safe_xml.parse_dom_from_string(commit.cdml).documentElement
+	root = oasa.safe_xml.parse_dom_from_string(result.snapshot.cdml).documentElement
 	new_text = _direct_elements(root)[-1]
 	point = _text_child(new_text, "point")
 	font = _text_child(new_text, "font")
@@ -126,7 +126,7 @@ def test_text_candidate_uses_backend_id_and_canonical_plain_defaults() -> None:
 		float(point.getAttribute("y")[:-2]) * oasa.cdml_writer.POINTS_PER_CM,
 	)
 
-	assert new_text.getAttribute("id") == commit.id_map[token]
+	assert new_text.getAttribute("id") == result.presentation_ids[0]
 	assert (
 		{
 			"content": _text_value(new_text),
@@ -137,7 +137,7 @@ def test_text_candidate_uses_backend_id_and_canonical_plain_defaults() -> None:
 		}
 		== {
 			"content": "A & B",
-			"font": {"family": "Arial", "size": "14", "color": "#000000"},
+			"font": {"family": "helvetica", "size": "12", "color": "#000000"},
 		}
 		and projected_point == pytest.approx((72.0, 36.0), abs=0.02)
 	)
@@ -170,38 +170,23 @@ def test_text_request_rejects_malformed_payload_without_backend_mutation(
 #============================================
 def test_accepted_text_projection_retry_uses_current_snapshot_once(
 		main_window: bkchem_qt.main_window.MainWindow,
-		monkeypatch: pytest.MonkeyPatch,
 		) -> None:
 	"""An accepted Text commit retries its canonical snapshot without resubmitting."""
 	main_window._on_new()
 	session = main_window._active_session
 	restore_delivery = lambda snapshot: main_window._replace_session_projection(session, snapshot)
-	calls = []
-	original = bkchem_qt.io.cdml_candidate.append_text_candidate
 	removed = False
 
-	def capture_candidate(
-			complete_cdml: str, provisional_id: str,
-			position: tuple[float, float], text: str,
-			drawing_standard: object | None = None,
-			) -> str:
-		"""Record one candidate build while preserving the production builder."""
-		calls.append(provisional_id)
-		return original(
-			complete_cdml, provisional_id, position, text, drawing_standard,
-		)
-
 	try:
-		monkeypatch.setattr(
-			bkchem_qt.io.cdml_candidate, "append_text_candidate", capture_candidate,
-		)
 		_install_projection_port(session, _projection_unavailable)
 		request = bkchem_qt.models.document_session.PersistentOperationRequest(
 			"text.add", "Text", (("text", "Retry me"), ("position", (18.0, 24.0))),
 		)
 		accepted = session.submit_persistent_operation(request)
+		accepted_revision = session.backend_snapshot.revision
 		_install_projection_port(session, restore_delivery)
 		retry = session.retry_current_backend_projection()
+		retried_revision = session.backend_snapshot.revision
 		root = oasa.safe_xml.parse_dom_from_string(
 			session.backend_snapshot.cdml,
 		).documentElement
@@ -214,4 +199,5 @@ def test_accepted_text_projection_retry_uses_current_snapshot_once(
 	assert (accepted.status, accepted.submitted, retry.status) == (
 		"unavailable", True, "accepted",
 	)
-	assert len(calls) == 1 and _text_value(texts[-1]) == "Retry me" and removed
+	assert accepted_revision == retried_revision == 1
+	assert _text_value(texts[-1]) == "Retry me" and removed

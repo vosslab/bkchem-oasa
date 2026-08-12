@@ -9,6 +9,7 @@ import PySide6.QtGui
 import PySide6.QtWidgets
 
 # local repo modules
+import bkchem_qt.canvas.spline_path
 import bkchem_qt.canvas.items.render_ops_painter
 
 # -- visual constants --
@@ -147,37 +148,10 @@ class ArrowItem(PySide6.QtWidgets.QGraphicsItem):
 	#============================================
 	def _axis_path(self) -> PySide6.QtGui.QPainterPath:
 		"""Return the one geometric path used for line, curve, and hit testing."""
-		path = PySide6.QtGui.QPainterPath(self._start)
-		if not self._spline or not self._control_points:
-			path.lineTo(self._end)
-		elif len(self._control_points) == 1:
-			path.quadTo(self._control_points[0], self._end)
-		elif len(self._control_points) == 2:
-			path.cubicTo(
-				self._control_points[0], self._control_points[1], self._end,
-			)
-		else:
-			self._append_smooth_multi_control_path(path)
-		return path
-
-	#============================================
-	def _append_smooth_multi_control_path(
-			self, path: PySide6.QtGui.QPainterPath,
-			) -> None:
-		"""Append a deterministic smooth quadratic path for three or more controls.
-
-		Adjacent control-point midpoints join successive quadratic segments with
-		matching tangents, so imported multi-control arrows remain continuous.
-		"""
-		for index in range(len(self._control_points) - 1):
-			control = self._control_points[index]
-			next_control = self._control_points[index + 1]
-			midpoint = PySide6.QtCore.QPointF(
-				(control.x() + next_control.x()) / 2.0,
-				(control.y() + next_control.y()) / 2.0,
-			)
-			path.quadTo(control, midpoint)
-		path.quadTo(self._control_points[-1], self._end)
+		controls = tuple(self._control_points) if self._spline else ()
+		return bkchem_qt.canvas.spline_path.curve_path(
+			self._start, controls, self._end,
+		)
 
 	#============================================
 	def _interaction_path(self) -> PySide6.QtGui.QPainterPath:

@@ -1,6 +1,7 @@
 """Per-tab ownership and teardown boundary for BKChem Qt documents."""
 
 # Standard Library
+import collections.abc
 import errno
 import dataclasses
 import math
@@ -18,17 +19,18 @@ import bkchem_qt.setup.mode_setup
 import bkchem_qt.canvas.document_projection
 import bkchem_qt.canvas.graphics_retirement
 import bkchem_qt.config.drawing_standard_preferences as drawing_standard_preferences
-import bkchem_qt.io.cdml_candidate
 import bkchem_qt.io.user_template_catalog
 import bkchem_qt.models.backend_revision_history
 import bkchem_qt.models.document
 import bkchem_qt.models.document_header_operations
 import bkchem_qt.models.projection_lifecycle
 import bkchem_qt.undo.commands
-import bkchem_qt.wavy_geometry
+import oasa.cdml_bracket
 import oasa.cdml_document
 import oasa.cdml_ftext
+import oasa.cdml_molecule_insertion
 import oasa.cdml_molecule_summary
+import oasa.cdml_presentation_insert
 import oasa.cdml_presentation_properties
 import oasa.cdml_render
 import oasa.cdml_standard
@@ -500,6 +502,7 @@ def build_presentation_properties_patch_request(
 		"plus": ("plus.properties.patch", "Edit Plus Properties", "plus_id"),
 		"wavy": ("wavy.properties.patch", "Edit Wavy Properties", "wavy_id"),
 		"arrow": ("arrow.properties.patch", "Edit Arrow Properties", "arrow_id"),
+		"geometric": ("geometric.properties.patch", "Edit Geometric Properties", "presentation_id"),
 	}[kind]
 	return PersistentOperationRequest(
 		operation_key, label,
@@ -509,6 +512,21 @@ def build_presentation_properties_patch_request(
 			("changes", changes),
 		),
 		frozenset({("presentation", identifier)}),
+	)
+
+
+#============================================
+def build_bracket_properties_patch_request(
+		expected_revision: int, pair_id: str, changes: tuple[tuple[str, object], ...],
+		) -> PersistentOperationRequest:
+	"""Build one immutable, pair-addressed bracket appearance request."""
+	return PersistentOperationRequest(
+		"bracket.properties.patch", "Edit Bracket Appearance",
+		(
+			("expected_revision", expected_revision), ("pair_id", pair_id),
+			("changes", changes),
+		),
+		frozenset({("bracket-pair", pair_id)}),
 	)
 
 #============================================
@@ -735,8 +753,7 @@ def build_top_level_transform_request(
 	"""Build one immutable mixed direct-root transform request.
 
 	The backend request contains durable root IDs plus only the documented scalar
-	intent for its mode. The paired root kinds stay at the frontend boundary
-	solely to restore the selected roots after canonical reprojection.
+	intent for its mode. OASA is the sole authority for direct-root validation.
 	"""
 	allowed_modes = {
 		"align-top", "align-bottom", "align-left", "align-right",
@@ -1105,12 +1122,13 @@ class DocumentSession(PySide6.QtCore.QObject):
 			self._user_template_mode_descriptors,
 		) = _freeze_user_template_catalog(user_template_catalog)
 		self._operation_dispatcher = {
-			"arrow.add": self._build_arrow_candidate,
-			"text.add": self._build_text_candidate,
-			"plus.add": self._build_plus_candidate,
-			"vector.add": self._build_vector_candidate,
-			"bracket.add": self._build_bracket_candidate,
-			"wavy.add": self._build_wavy_candidate,
+			"arrow.add": self._build_arrow_insert,
+			"text.add": self._build_text_insert,
+			"plus.add": self._build_plus_insert,
+			"vector.add": self._build_vector_insert,
+			"bracket.add": self._build_bracket_insert,
+			"bracket.properties.patch": self._build_bracket_properties_patch,
+			"wavy.add": self._build_wavy_insert,
 			"molecule.insert": self._build_molecule_insertion,
 			"template.insert": self._build_template_insertion,
 			"biotemplate.insert": self._build_biomolecule_template_insertion,
@@ -1129,6 +1147,7 @@ class DocumentSession(PySide6.QtCore.QObject):
 			"plus.properties.patch": self._build_presentation_properties_patch,
 			"wavy.properties.patch": self._build_presentation_properties_patch,
 			"arrow.properties.patch": self._build_presentation_properties_patch,
+			"geometric.properties.patch": self._build_presentation_properties_patch,
 			"fragment.create": self._build_fragment_create,
 			"fragment.delete": self._build_fragment_delete,
 			"group.expand.implicit": self._build_implicit_group_expand,
@@ -1147,6 +1166,10 @@ class DocumentSession(PySide6.QtCore.QObject):
 		}
 		self._operation_commit_executors = {
 			"complete-candidate": self._commit_complete_candidate,
+			"bracket-insert": self._commit_bracket_insert,
+			"bracket-properties-patch": self._commit_bracket_properties_patch,
+			"presentation-insert": self._commit_presentation_insert,
+			"presentation-reorder": self._commit_presentation_reorder,
 			"molecule-insertion": self._commit_molecule_insertion,
 			"user-template-insertion": self._commit_user_template_insertion,
 			"geometry-repair": self._commit_geometry_repair,
@@ -1684,60 +1707,6 @@ class DocumentSession(PySide6.QtCore.QObject):
 		return available
 
 	#============================================
-	def _next_arrow_provisional_id(self, revision: int) -> str:
-		"""Allocate a frontend-only correlation token for one candidate arrow."""
-		self._provisional_action_sequence += 1
-		token = "__bkchem_new__arrow-r%s-%s" % (
-			revision, self._provisional_action_sequence,
-		)
-		return token
-
-	#============================================
-	def _next_text_provisional_id(self, revision: int) -> str:
-		"""Allocate a frontend-only correlation token for one candidate text."""
-		self._provisional_action_sequence += 1
-		token = "__bkchem_new__text-r%s-%s" % (
-			revision, self._provisional_action_sequence,
-		)
-		return token
-
-	#============================================
-	def _next_plus_provisional_id(self, revision: int) -> str:
-		"""Allocate a frontend-only correlation token for one candidate Plus."""
-		self._provisional_action_sequence += 1
-		token = "__bkchem_new__plus-r%s-%s" % (
-			revision, self._provisional_action_sequence,
-		)
-		return token
-
-	#============================================
-	def _next_vector_provisional_id(self, revision: int) -> str:
-		"""Allocate a frontend-only correlation token for one candidate Vector."""
-		self._provisional_action_sequence += 1
-		token = "__bkchem_new__vector-r%s-%s" % (
-			revision, self._provisional_action_sequence,
-		)
-		return token
-
-	#============================================
-	def _next_bracket_provisional_ids(self, revision: int) -> tuple[str, str]:
-		"""Allocate two distinct frontend-only tokens for one bracket pair."""
-		self._provisional_action_sequence += 1
-		stem = "__bkchem_new__bracket-r%s-%s" % (
-			revision, self._provisional_action_sequence,
-		)
-		return stem + "-left", stem + "-right"
-
-	#============================================
-	def _next_wavy_provisional_id(self, revision: int) -> str:
-		"""Allocate a frontend-only correlation token for one candidate Wavy."""
-		self._provisional_action_sequence += 1
-		token = "__bkchem_new__wavy-r%s-%s" % (
-			revision, self._provisional_action_sequence,
-		)
-		return token
-
-	#============================================
 	def _next_template_token_stem(self, revision: int) -> str:
 		"""Allocate one session-local provisional stem for OASA template preparation."""
 		self._provisional_action_sequence += 1
@@ -1756,10 +1725,13 @@ class DocumentSession(PySide6.QtCore.QObject):
 	def commit_arrow(
 			self, start: tuple[float, float], end: tuple[float, float],
 			) -> PersistentActionOutcome:
-		"""Adapt the established Arrow route to the generic request boundary."""
+		"""Offer the established convenience route with normal straight semantics."""
 		request = PersistentOperationRequest(
 			"arrow.add", "Arrow",
-			(("start", tuple(start)), ("end", tuple(end))),
+			(
+				("kind", "normal"), ("spline", False),
+				("endpoints", (tuple(start), tuple(end))),
+			),
 		)
 		return self.submit_persistent_operation(request)
 
@@ -1961,34 +1933,47 @@ class DocumentSession(PySide6.QtCore.QObject):
 			changes: tuple[tuple[str, object], ...],
 			) -> PersistentActionOutcome:
 		"""Submit one revision-bound durable plain Plus patch through this session."""
-		self._require_live_persistent_operation()
-		request = build_presentation_properties_patch_request(
-			"plus", expected_revision, plus_id, changes,
-		)
-		return self.submit_persistent_operation(request)
-
+		return self._submit_presentation_patch("plus", expected_revision, plus_id, changes)
 	#============================================
 	def submit_wavy_properties_patch(
 			self, expected_revision: int, wavy_id: str,
 			changes: tuple[tuple[str, object], ...],
 			) -> PersistentActionOutcome:
 		"""Submit one revision-bound durable plain Wavy patch through this session."""
-		self._require_live_persistent_operation()
-		request = build_presentation_properties_patch_request(
-			"wavy", expected_revision, wavy_id, changes,
-		)
-		return self.submit_persistent_operation(request)
-
+		return self._submit_presentation_patch("wavy", expected_revision, wavy_id, changes)
 	#============================================
 	def submit_arrow_properties_patch(
 			self, expected_revision: int, arrow_id: str,
 			changes: tuple[tuple[str, object], ...],
 			) -> PersistentActionOutcome:
 		"""Submit one revision-bound durable Arrow patch through this session."""
+		return self._submit_presentation_patch("arrow", expected_revision, arrow_id, changes)
+	#============================================
+	def submit_geometric_properties_patch(
+			self, expected_revision: int, root_id: str,
+			changes: tuple[tuple[str, object], ...],
+			) -> PersistentActionOutcome:
+		"""Submit one revision-bound geometric appearance patch through this session."""
+		return self._submit_presentation_patch("geometric", expected_revision, root_id, changes)
+
+	#============================================
+	def submit_bracket_properties_patch(
+			self, expected_revision: int, pair_id: str,
+			changes: tuple[tuple[str, object], ...],
+			) -> PersistentActionOutcome:
+		"""Submit one revision-bound atomic bracket-pair appearance patch."""
 		self._require_live_persistent_operation()
-		request = build_presentation_properties_patch_request(
-			"arrow", expected_revision, arrow_id, changes,
-		)
+		return self.submit_persistent_operation(build_bracket_properties_patch_request(
+			expected_revision, pair_id, changes,
+		))
+	#============================================
+	def _submit_presentation_patch(
+			self, kind: str, expected_revision: int, root_id: str,
+			changes: tuple[tuple[str, object], ...],
+			) -> PersistentActionOutcome:
+		"""Submit one operation from the durable presentation property family."""
+		self._require_live_persistent_operation()
+		request = build_presentation_properties_patch_request(kind, expected_revision, root_id, changes)
 		return self.submit_persistent_operation(request)
 
 	#============================================
@@ -2075,7 +2060,9 @@ class DocumentSession(PySide6.QtCore.QObject):
 				"rejected", str(exc), None, False, None, "validation",
 			)
 		structural_result = None
-		if isinstance(
+		if type(execution_result) is oasa.cdml_molecule_insertion.CDMLMoleculeInsertionResult:
+			commit = execution_result.commit
+		elif isinstance(
 				execution_result,
 				(
 					oasa.cdml_document.CDMLGeometryRepairResult,
@@ -2091,7 +2078,11 @@ class DocumentSession(PySide6.QtCore.QObject):
 					oasa.cdml_document.CDMLRichTextPatchResult,
 					oasa.cdml_document.CDMLPlusPropertiesPatchResult,
 					oasa.cdml_document.CDMLWavyPropertiesPatchResult,
+					oasa.cdml_presentation_insert.CDMLPresentationInsertResult,
+					oasa.cdml_presentation_insert.CDMLPresentationReorderResult,
 					oasa.cdml_presentation_properties.CDMLArrowPropertiesPatchResult,
+					oasa.cdml_presentation_properties.CDMLGeometricPropertiesPatchResult,
+					oasa.cdml_bracket.CDMLBracketPropertiesPatchResult,
 					oasa.cdml_document.CDMLAtomMarkOperationResult,
 					oasa.cdml_document.CDMLTopLevelTransformResult,
 					oasa.cdml_document.CDMLLinearFormConvertResult,
@@ -2131,7 +2122,14 @@ class DocumentSession(PySide6.QtCore.QObject):
 				("atom", execution_result.replacement_atom_id),
 			}), None
 		else:
-			selection_keys, selection_error = self._durable_selection_keys(prepared, commit)
+			root_id_map = (
+				execution_result.root_id_map
+				if type(execution_result) is oasa.cdml_molecule_insertion.CDMLMoleculeInsertionResult
+				else None
+			)
+			selection_keys, selection_error = self._durable_selection_keys(
+				prepared, commit, root_id_map,
+			)
 		return self._project_accepted_commit(
 			commit, "%s accepted" % request.label, structural_result, selection_keys,
 			selection_error,
@@ -2188,159 +2186,143 @@ class DocumentSession(PySide6.QtCore.QObject):
 		return self._project_accepted_commit(commit, "Pasted")
 
 	#============================================
-	def _build_arrow_candidate(
+	def _build_arrow_insert(
 			self, snapshot: oasa.cdml_document.CDMLSnapshot,
 			request: PersistentOperationRequest,
 		) -> _PreparedPersistentOperation:
-		"""Build the complete CDML candidate owned by the Arrow dispatcher key."""
+		"""Bind one plain Arrow gesture to OASA presentation insertion."""
+		if request.target_keys:
+			raise ValueError("Arrow creation does not accept persistent targets")
 		payload = dict(request.payload)
-		start = payload["start"]
-		end = payload["end"]
-		if not isinstance(start, tuple) or not isinstance(end, tuple):
-			raise ValueError("Arrow coordinates must be immutable coordinate tuples")
-		candidate = bkchem_qt.io.cdml_candidate.append_arrow_candidate(
-			snapshot.cdml, self._next_arrow_provisional_id(snapshot.revision),
-			start, end, self.drawing_standard(),
+		if set(payload) != {"kind", "spline", "endpoints"}:
+			raise ValueError("Arrow payload must contain kind, spline, and endpoints")
+		insert_request = oasa.cdml_presentation_insert.CDMLArrowInsertRequest(
+			snapshot.revision, payload["kind"], payload["spline"], payload["endpoints"],
 		)
-		return self._prepare_complete_candidate(snapshot.revision, candidate)
+		return _PreparedPersistentOperation(
+			"presentation-insert", snapshot.revision, insert_request,
+		)
 
 	#============================================
-	def _build_text_candidate(
+	def _build_text_insert(
 			self, snapshot: oasa.cdml_document.CDMLSnapshot,
 			request: PersistentOperationRequest,
 		) -> _PreparedPersistentOperation:
-		"""Build the complete CDML candidate owned by the Text dispatcher key."""
+		"""Bind one plain Text gesture to OASA presentation insertion."""
+		if request.target_keys:
+			raise ValueError("Text creation does not accept persistent targets")
 		payload = dict(request.payload)
 		if set(payload) != {"text", "position"}:
 			raise ValueError("Text payload must contain exactly text and position")
-		text = payload["text"]
-		position = payload["position"]
-		if not isinstance(text, str) or not text or text != text.strip():
-			raise ValueError("Text must be a nonblank stripped string")
-		if not isinstance(position, tuple) or len(position) != 2:
-			raise ValueError("Text position must be a two-coordinate immutable tuple")
-		if any(
-				isinstance(value, bool)
-				or not isinstance(value, numbers.Real)
-				or not math.isfinite(value)
-				for value in position
-				):
-			raise ValueError("Text position coordinates must be finite real numbers")
-		candidate = bkchem_qt.io.cdml_candidate.append_text_candidate(
-			snapshot.cdml, self._next_text_provisional_id(snapshot.revision),
-			position, text, self.drawing_standard(),
+		insert_request = oasa.cdml_presentation_insert.CDMLTextInsertRequest(
+			snapshot.revision, payload["position"], payload["text"],
 		)
-		return self._prepare_complete_candidate(snapshot.revision, candidate)
+		return _PreparedPersistentOperation(
+			"presentation-insert", snapshot.revision, insert_request,
+		)
 
 	#============================================
-	def _build_plus_candidate(
+	def _build_plus_insert(
 			self, snapshot: oasa.cdml_document.CDMLSnapshot,
 			request: PersistentOperationRequest,
 		) -> _PreparedPersistentOperation:
-		"""Build the complete CDML candidate owned by the Plus dispatcher key."""
+		"""Bind one plain Plus gesture to OASA presentation insertion."""
+		if request.target_keys:
+			raise ValueError("Plus creation does not accept persistent targets")
 		payload = dict(request.payload)
 		if set(payload) != {"position"}:
 			raise ValueError("Plus payload must contain exactly position")
-		position = payload["position"]
-		if not isinstance(position, tuple) or len(position) != 2:
-			raise ValueError("Plus position must be a two-coordinate immutable tuple")
-		if any(
-				isinstance(value, bool)
-				or not isinstance(value, numbers.Real)
-				or not math.isfinite(value)
-				for value in position
-				):
-			raise ValueError("Plus position coordinates must be finite real numbers")
-		candidate = bkchem_qt.io.cdml_candidate.append_plus_candidate(
-			snapshot.cdml, self._next_plus_provisional_id(snapshot.revision),
-			position, self.drawing_standard(),
+		insert_request = oasa.cdml_presentation_insert.CDMLPlusInsertRequest(
+			snapshot.revision, payload["position"],
 		)
-		return self._prepare_complete_candidate(snapshot.revision, candidate)
+		return _PreparedPersistentOperation(
+			"presentation-insert", snapshot.revision, insert_request,
+		)
 
 	#============================================
-	def _build_vector_candidate(
+	def _build_vector_insert(
 			self, snapshot: oasa.cdml_document.CDMLSnapshot,
 			request: PersistentOperationRequest,
 		) -> _PreparedPersistentOperation:
-		"""Build one validated complete-CDML candidate for a Vector gesture."""
+		"""Bind one plain Vector gesture to OASA's presentation insertion family."""
 		if request.target_keys:
 			raise ValueError("Vector creation does not accept persistent targets")
 		payload = dict(request.payload)
-		if set(payload) != {"shape", "start", "end"}:
-			raise ValueError("Vector payload must contain exactly shape, start, and end")
-		shape = payload["shape"]
-		start = payload["start"]
-		end = payload["end"]
-		if shape not in {"rect", "oval", "polyline"}:
-			raise ValueError("Vector shape is unsupported")
-		for name, point in (("start", start), ("end", end)):
-			if type(point) is not tuple or len(point) != 2:
-				raise ValueError("Vector %s must be a two-coordinate immutable tuple" % name)
-			if any(
-					isinstance(value, bool)
-					or not isinstance(value, numbers.Real)
-					or not math.isfinite(value)
-					for value in point
-				):
-				raise ValueError("Vector %s coordinates must be finite real numbers" % name)
-		provisional_id = self._next_vector_provisional_id(snapshot.revision)
-		candidate = bkchem_qt.io.cdml_candidate.append_vector_candidate(
-			snapshot.cdml, provisional_id, shape, start, end, self.drawing_standard(),
+		if set(payload) != {"kind", "points"}:
+			raise ValueError("Vector payload must contain exactly kind and points")
+		insert_request = oasa.cdml_presentation_insert.CDMLGeometricInsertRequest(
+			expected_revision=snapshot.revision,
+			kind=payload["kind"], points=payload["points"],
 		)
-		return self._prepare_complete_candidate(snapshot.revision, candidate)
+		return _PreparedPersistentOperation(
+			"presentation-insert", snapshot.revision, insert_request,
+		)
 
 	#============================================
-	def _build_bracket_candidate(
+	def _build_bracket_insert(
 			self, snapshot: oasa.cdml_document.CDMLSnapshot,
 			request: PersistentOperationRequest,
-		) -> _PreparedPersistentOperation:
-		"""Build one atomic complete-CDML rectangular bracket candidate."""
+			) -> _PreparedPersistentOperation:
+		"""Bind one plain bracket gesture to OASA's insertion operation."""
 		if request.target_keys:
 			raise ValueError("Bracket creation does not accept persistent targets")
 		payload = dict(request.payload)
-		if set(payload) != {"bounds"}:
-			raise ValueError("Bracket payload must contain exactly bounds")
-		bounds = payload["bounds"]
-		if type(bounds) is not tuple or len(bounds) != 4:
-			raise ValueError("Bracket bounds must be an immutable four-coordinate tuple")
-		if any(
-				isinstance(value, bool)
-				or not isinstance(value, numbers.Real)
-				or not math.isfinite(value)
-				for value in bounds
-			):
-			raise ValueError("Bracket bounds must contain finite real numbers")
-		left, top, right, bottom = bounds
-		if not left < right or not top < bottom:
-			raise ValueError("Bracket bounds must have strict left-right and top-bottom order")
-		candidate = bkchem_qt.io.cdml_candidate.append_rectangular_bracket_candidate(
-			snapshot.cdml, self._next_bracket_provisional_ids(snapshot.revision),
-			bounds, self.drawing_standard(),
+		if set(payload) != {"style", "bounds"}:
+			raise ValueError("Bracket payload must contain exactly style and bounds")
+		insert_request = oasa.cdml_bracket.CDMLBracketInsertRequest(
+			expected_revision=snapshot.revision,
+			style=payload["style"], bounds=payload["bounds"],
 		)
-		prepared = self._prepare_complete_candidate(snapshot.revision, candidate)
-		return dataclasses.replace(prepared, preserve_existing_selection=True)
+		return _PreparedPersistentOperation(
+			"bracket-insert", snapshot.revision, insert_request,
+			preserve_existing_selection=True,
+		)
 
 	#============================================
-	def _build_wavy_candidate(
+	def _build_bracket_properties_patch(
+			self, snapshot: oasa.cdml_document.CDMLSnapshot,
+			request: PersistentOperationRequest,
+			) -> _PreparedPersistentOperation:
+		"""Bind one pair-addressed appearance intent to OASA's atomic patch."""
+		payload = dict(request.payload)
+		if set(payload) != {"expected_revision", "pair_id", "changes"}:
+			raise ValueError("Bracket appearance payload has unsupported fields")
+		if type(payload["expected_revision"]) is not int:
+			raise ValueError("Bracket appearance expected_revision must be an integer")
+		if payload["expected_revision"] != snapshot.revision:
+			raise oasa.cdml_document.CDMLRevisionConflictError(
+				"Bracket appearance expected revision does not match the current snapshot",
+			)
+		pair_id = payload["pair_id"]
+		if type(pair_id) is not str or not pair_id.strip():
+			raise ValueError("Bracket appearance pair_id must contain a non-whitespace character")
+		if type(payload["changes"]) is not tuple:
+			raise ValueError("Bracket appearance changes must be an immutable tuple")
+		if request.target_keys != frozenset({("bracket-pair", pair_id)}):
+			raise ValueError("Bracket appearance target keys do not match its durable pair")
+		patch = oasa.cdml_bracket.CDMLBracketPropertiesPatch(**payload)
+		return _PreparedPersistentOperation(
+			"bracket-properties-patch", patch.expected_revision, patch,
+			frozenset({("bracket-pair", pair_id)}),
+		)
+
+	#============================================
+	def _build_wavy_insert(
 			self, snapshot: oasa.cdml_document.CDMLSnapshot,
 			request: PersistentOperationRequest,
 		) -> _PreparedPersistentOperation:
-		"""Build one validated complete-CDML candidate for a Wavy gesture."""
+		"""Bind one Wavy endpoint gesture to OASA presentation insertion."""
 		if request.target_keys:
 			raise ValueError("Wavy creation does not accept persistent targets")
 		payload = dict(request.payload)
 		if set(payload) != {"start", "end"}:
 			raise ValueError("Wavy payload must contain exactly start and end")
-		start = payload["start"]
-		end = payload["end"]
-		points = bkchem_qt.wavy_geometry.wavy_points(start, end)
-		if len(points) < 2:
-			raise ValueError("Wavy gesture must have nonzero length")
-		candidate = bkchem_qt.io.cdml_candidate.append_wavy_candidate(
-			snapshot.cdml, self._next_wavy_provisional_id(snapshot.revision),
-			points, self.drawing_standard(),
+		insert_request = oasa.cdml_presentation_insert.CDMLWavyInsertRequest(
+			snapshot.revision, payload["start"], payload["end"],
 		)
-		return self._prepare_complete_candidate(snapshot.revision, candidate)
+		return _PreparedPersistentOperation(
+			"presentation-insert", snapshot.revision, insert_request,
+		)
 
 	#============================================
 	def _build_paper_properties_patch(
@@ -2377,41 +2359,32 @@ class DocumentSession(PySide6.QtCore.QObject):
 			self, snapshot: oasa.cdml_document.CDMLSnapshot,
 			request: PersistentOperationRequest,
 			) -> _PreparedPersistentOperation:
-		"""Validate a revision-bound presentation-only root reorder candidate."""
+		"""Bind durable stack intent to OASA's presentation reorder operation."""
 		payload = dict(request.payload)
 		if set(payload) != {"expected_revision", "mode", "root_ids"}:
 			raise ValueError("Presentation stack payload has unsupported fields")
 		expected_revision = payload["expected_revision"]
 		mode = payload["mode"]
 		root_ids = payload["root_ids"]
-		if type(expected_revision) is not int:
-			raise ValueError("Presentation stack expected_revision must be an integer")
-		if expected_revision != snapshot.revision:
-			raise oasa.cdml_document.CDMLRevisionConflictError(
-				"Presentation stack expected revision does not match the current snapshot",
-			)
-		if mode not in {"bring-to-front", "send-back", "swap-at-slots"}:
-			raise ValueError("Presentation stack mode is unsupported")
-		if not isinstance(root_ids, tuple) or not root_ids:
+		if type(root_ids) is not tuple or not root_ids:
 			raise ValueError("Presentation stack root_ids must be a nonempty immutable tuple")
 		if any(
-				not isinstance(identifier, str) or not identifier.strip()
+				type(identifier) is not str or not identifier.strip()
 				for identifier in root_ids
 			):
 			raise ValueError("Presentation stack root IDs must be nonblank strings")
-		if len(set(root_ids)) != len(root_ids):
-			raise ValueError("Presentation stack root IDs must be unique")
-		if mode == "swap-at-slots" and len(root_ids) < 2:
-			raise ValueError("Presentation stack swap requires at least two roots")
 		expected_targets = frozenset(
 			("presentation", identifier) for identifier in root_ids
 		)
 		if request.target_keys != expected_targets:
 			raise ValueError("Presentation stack target keys must match root IDs")
-		candidate = bkchem_qt.io.cdml_candidate.reorder_presentation_roots_candidate(
-			snapshot.cdml, root_ids, mode,
+		reorder_request = oasa.cdml_presentation_insert.CDMLPresentationReorderRequest(
+			expected_revision, mode, root_ids,
 		)
-		return self._prepare_complete_candidate(expected_revision, candidate)
+		return _PreparedPersistentOperation(
+			"presentation-reorder", snapshot.revision, reorder_request,
+			request.target_keys,
+		)
 
 	#============================================
 	def _build_molecule_insertion(
@@ -2696,7 +2669,10 @@ class DocumentSession(PySide6.QtCore.QObject):
 				for target in atom_targets
 			):
 			raise ValueError("Selection translation atom targets must be durable ID pairs")
-		if any(type(identifier) is not str or not identifier.strip() for identifier in presentation_root_ids):
+		if any(
+			type(identifier) is not str or not identifier.strip()
+			for identifier in presentation_root_ids
+			):
 			raise ValueError("Selection translation presentation IDs must be nonblank strings")
 		expected_target_keys = (
 			frozenset(("molecule", molecule_id) for molecule_id, _atom_id in atom_targets)
@@ -3053,6 +3029,10 @@ class DocumentSession(PySide6.QtCore.QObject):
 			"arrow.properties.patch": (
 				"Arrow", "arrow_id",
 				oasa.cdml_presentation_properties.CDMLArrowPropertiesPatch,
+			),
+			"geometric.properties.patch": (
+				"Geometric", "presentation_id",
+				oasa.cdml_presentation_properties.CDMLGeometricPropertiesPatch,
 			),
 		}
 		if request.operation_key not in specifications:
@@ -3465,29 +3445,8 @@ class DocumentSession(PySide6.QtCore.QObject):
 			(kind, identifier)
 			for kind, identifier in request.target_keys
 			if kind in {"molecule", "presentation"} and identifier in root_ids
-		) or {identifier for _kind, identifier in request.target_keys} != set(root_ids):
+		):
 			raise ValueError("Top-level transform target keys must match root IDs")
-		canonical_document = oasa.cdml_document.CDMLDocument.parse(
-			snapshot.cdml, validation="compat",
-		)
-		presentation_names = {
-			"arrow", "text", "plus", "rect", "square", "oval", "circle",
-			"polygon", "polyline",
-		}
-		canonical_root_keys = frozenset(
-			("molecule", record.identifier)
-			if record.local_name == "molecule"
-			else ("presentation", record.identifier)
-			for record in canonical_document.objects()
-			if record.identifier is not None and (
-				record.local_name == "molecule"
-				or record.local_name in presentation_names
-			)
-		)
-		if request.target_keys - canonical_root_keys:
-			raise ValueError(
-				"Top-level transform target keys must match authoritative root kinds",
-			)
 		transform_request = oasa.cdml_document.CDMLTopLevelTransformRequest(**payload)
 		return _PreparedPersistentOperation(
 			"top-level-transform", transform_request.expected_revision, transform_request,
@@ -3497,7 +3456,7 @@ class DocumentSession(PySide6.QtCore.QObject):
 	#============================================
 	def _commit_complete_candidate(
 			self, prepared: _PreparedPersistentOperation,
-			) -> oasa.cdml_document.CDMLCommit:
+			) -> oasa.cdml_molecule_insertion.CDMLMoleculeInsertionResult:
 		"""Execute one validated complete-CDML operation through OASA."""
 		if not isinstance(prepared.value, str):
 			raise ValueError("Complete CDML operation requires a string candidate")
@@ -3508,6 +3467,48 @@ class DocumentSession(PySide6.QtCore.QObject):
 		return commit
 
 	#============================================
+	def _commit_bracket_insert(
+			self, prepared: _PreparedPersistentOperation,
+			) -> oasa.cdml_document.CDMLCommit:
+		"""Execute one frontend-neutral bracket insertion through OASA."""
+		if type(prepared.value) is not oasa.cdml_bracket.CDMLBracketInsertRequest:
+			raise ValueError("Bracket insertion requires an exact request")
+		return oasa.cdml_bracket.insert_brackets(self._backend_session, prepared.value)
+
+	#============================================
+	def _commit_presentation_insert(
+			self, prepared: _PreparedPersistentOperation,
+			) -> oasa.cdml_presentation_insert.CDMLPresentationInsertResult:
+		"""Execute one frontend-neutral presentation insertion through OASA."""
+		inserters = {
+			oasa.cdml_presentation_insert.CDMLArrowInsertRequest:
+				oasa.cdml_presentation_insert.insert_arrow,
+			oasa.cdml_presentation_insert.CDMLTextInsertRequest:
+				oasa.cdml_presentation_insert.insert_text,
+			oasa.cdml_presentation_insert.CDMLPlusInsertRequest:
+				oasa.cdml_presentation_insert.insert_plus,
+			oasa.cdml_presentation_insert.CDMLGeometricInsertRequest:
+				oasa.cdml_presentation_insert.insert_geometric,
+			oasa.cdml_presentation_insert.CDMLWavyInsertRequest:
+				oasa.cdml_presentation_insert.insert_wavy,
+		}
+		inserter = inserters.get(type(prepared.value))
+		if inserter is None:
+			raise ValueError("Presentation insertion requires an exact supported request")
+		return inserter(self._backend_session, prepared.value)
+
+	#============================================
+	def _commit_presentation_reorder(
+			self, prepared: _PreparedPersistentOperation,
+			) -> oasa.cdml_presentation_insert.CDMLPresentationReorderResult:
+		"""Execute one frontend-neutral presentation stack reorder through OASA."""
+		if type(prepared.value) is not oasa.cdml_presentation_insert.CDMLPresentationReorderRequest:
+			raise ValueError("Presentation reorder requires an exact request")
+		return oasa.cdml_presentation_insert.reorder_presentations(
+			self._backend_session, prepared.value,
+		)
+
+	#============================================
 	def _commit_molecule_insertion(
 			self, prepared: _PreparedPersistentOperation,
 			) -> oasa.cdml_document.CDMLCommit:
@@ -3516,8 +3517,7 @@ class DocumentSession(PySide6.QtCore.QObject):
 				prepared.value, oasa.cdml_document.CDMLMoleculeInsertionRequest,
 			):
 			raise ValueError("Molecule insertion requires a molecule insertion request")
-		commit = self._backend_session.insert_molecules(prepared.value)
-		return commit
+		return self._backend_session.insert_molecules(prepared.value)
 
 	#============================================
 	def _commit_user_template_insertion(
@@ -3658,7 +3658,22 @@ class DocumentSession(PySide6.QtCore.QObject):
 			return oasa.cdml_presentation_properties.patch_arrow_properties(
 				self._backend_session, prepared.value,
 			)
+		if type(prepared.value) is oasa.cdml_presentation_properties.CDMLGeometricPropertiesPatch:
+			return oasa.cdml_presentation_properties.patch_geometric_properties(
+				self._backend_session, prepared.value,
+			)
 		raise ValueError("Presentation properties requires a supported exact patch")
+
+	#============================================
+	def _commit_bracket_properties_patch(
+			self, prepared: _PreparedPersistentOperation,
+			) -> oasa.cdml_bracket.CDMLBracketPropertiesPatchResult:
+		"""Execute one backend-owned atomic bracket-pair appearance patch."""
+		if type(prepared.value) is not oasa.cdml_bracket.CDMLBracketPropertiesPatch:
+			raise ValueError("Bracket appearance requires an exact bracket patch")
+		return oasa.cdml_bracket.patch_bracket_properties(
+			self._backend_session, prepared.value,
+		)
 
 	#============================================
 	def _commit_fragment_create(
@@ -3780,15 +3795,19 @@ class DocumentSession(PySide6.QtCore.QObject):
 	def _durable_selection_keys(
 			self, prepared: _PreparedPersistentOperation,
 			commit: oasa.cdml_document.CDMLCommit,
+			molecule_root_id_map: collections.abc.Mapping[str, str] | None = None,
 			) -> tuple[frozenset[tuple[str, str]], str | None]:
 		"""Translate optional proposal tokens only to accepted direct-root records."""
 		if not prepared.provisional_selection_keys:
 			return frozenset(), None
 		if prepared.executor_key in (
-			"atom-align", "atom-translate", "selection-translate", "atom-rotate", "bond-order-edit", "bond-type-edit",
+			"atom-align", "atom-translate", "selection-translate", "atom-rotate",
+			"bond-order-edit", "bond-type-edit",
 			"bond-properties-patch", "atom-properties-patch", "text-properties-patch",
 			"rich-text-patch",
 			"presentation-properties-patch",
+			"bracket-properties-patch",
+			"presentation-reorder",
 			"atom-mark-operation",
 			"fragment-create", "fragment-delete",
 			"linear-form-convert",
@@ -3797,26 +3816,18 @@ class DocumentSession(PySide6.QtCore.QObject):
 			# These direct-core edits preserve durable IDs; retain only their immutable
 			# target selections across the replacement projection.
 			return prepared.provisional_selection_keys, None
-		canonical_document = oasa.cdml_document.CDMLDocument.parse(
-			commit.snapshot.cdml, validation="compat",
-		)
-		direct_root_keys = frozenset(
-			(record.local_name, record.identifier)
-			for record in canonical_document.objects()
-			if record.identifier is not None
-		)
+		if molecule_root_id_map is None:
+			return frozenset(), (
+				"Persistent edit was accepted but selection correlation is unavailable"
+			)
 		selection_keys = []
 		for kind, identifier in prepared.provisional_selection_keys:
-			if identifier not in commit.id_map:
+			if kind != "molecule" or identifier not in molecule_root_id_map:
 				return frozenset(), (
 					"Persistent edit was accepted but selection correlation is unavailable"
 				)
-			durable_identifier = commit.id_map[identifier]
+			durable_identifier = molecule_root_id_map[identifier]
 			if not isinstance(durable_identifier, str) or not durable_identifier:
-				return frozenset(), (
-					"Persistent edit was accepted but selection correlation is unavailable"
-				)
-			if (kind, durable_identifier) not in direct_root_keys:
 				return frozenset(), (
 					"Persistent edit was accepted but selection correlation is unavailable"
 				)

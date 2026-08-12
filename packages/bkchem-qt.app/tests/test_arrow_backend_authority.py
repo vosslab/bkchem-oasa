@@ -1,16 +1,19 @@
 """Fast protocol checks for the backend-owned Arrow Mode slice."""
 
+# Standard Library
+import math
+
 # PIP3 modules
 import pytest
 import PySide6.QtCore
 
 # local repo modules
-import bkchem_qt.io.cdml_candidate
 import bkchem_qt.main_window
 import bkchem_qt.models.backend_revision_history
 import bkchem_qt.models.document_session
 import bkchem_qt.models.projection_lifecycle
 import oasa.cdml_document
+import oasa.cdml_presentation_insert
 import oasa.safe_xml
 
 
@@ -73,24 +76,19 @@ def _projection_raises(_snapshot: object) -> bkchem_qt.models.projection_lifecyc
 
 
 #============================================
-def _invalid_arrow_candidate(*_args: object) -> str:
-	"""Model a typed candidate rejection before the backend sees a mutation."""
-	raise ValueError("invalid arrow")
-
-
-#============================================
 def test_backend_commit_preserves_opaque_content_semantically() -> None:
 	"""OASA keeps an opaque extension record while accepting an arrow."""
 	session = oasa.cdml_document.CDMLDocumentSession.load(
 		'<c:cdml xmlns:c="http://www.freesoftware.fsf.org/bkchem/cdml" '
 		'xmlns:x="urn:extension" version="0.15"><x:note keep="yes"/></c:cdml>',
 	)
-	candidate = bkchem_qt.io.cdml_candidate.append_arrow_candidate(
-		session.snapshot().cdml,
-		"__bkchem_new__arrow-r0-1", (0.0, 0.0), (72.0, 0.0),
+	result = oasa.cdml_presentation_insert.insert_arrow(
+		session,
+		oasa.cdml_presentation_insert.CDMLArrowInsertRequest(
+			session.revision, "normal", False, ((0.0, 0.0), (72.0, 0.0)),
+		),
 	)
-	commit = session.commit(expected_revision=0, complete_cdml=candidate)
-	note = oasa.safe_xml.parse_dom_from_string(commit.cdml).getElementsByTagNameNS(
+	note = oasa.safe_xml.parse_dom_from_string(result.snapshot.cdml).getElementsByTagNameNS(
 		"urn:extension", "note",
 	)[0]
 
@@ -100,34 +98,15 @@ def test_backend_commit_preserves_opaque_content_semantically() -> None:
 #============================================
 def test_registered_arrow_projection_uses_oasa_durable_id(
 		main_window: bkchem_qt.main_window.MainWindow,
-		monkeypatch: pytest.MonkeyPatch,
 		) -> None:
-	"""The real projection receives OASA's mapped ID, never the Qt token."""
+	"""The real projection receives OASA's durable identity without a Qt token."""
 	session = main_window._active_session
-	original_append = bkchem_qt.io.cdml_candidate.append_arrow_candidate
-	provisional_ids = []
-
-	def capture_candidate(
-			complete_cdml: str, provisional_id: str,
-			start: tuple[float, float], end: tuple[float, float],
-			drawing_standard: object | None = None,
-			) -> str:
-		"""Capture the frontend-only token passed into the real candidate builder."""
-		provisional_ids.append(provisional_id)
-		return original_append(
-			complete_cdml, provisional_id, start, end, drawing_standard,
-		)
-
-	monkeypatch.setattr(bkchem_qt.io.cdml_candidate, "append_arrow_candidate", capture_candidate)
 	outcome = session.commit_arrow((0.0, 0.0), (40.0, 0.0))
 	projected_arrow = session.document.presentation_objects[-1]
 
 	assert outcome.status == "accepted" and outcome.commit is not None
-	durable_id = outcome.commit.id_map[provisional_ids[0]]
-	assert (
-		projected_arrow.object_id,
-		provisional_ids[0] in outcome.commit.cdml,
-	) == (durable_id, False)
+	assert projected_arrow.object_id in outcome.commit.id_map.values()
+	assert "__bkchem_new__" not in outcome.commit.cdml
 
 
 #============================================
@@ -161,20 +140,90 @@ def test_arrow_mode_same_point_release_is_a_noop(
 
 
 #============================================
-def test_typed_candidate_rejection_keeps_the_backend_snapshot(
+def test_arrow_submodes_shape_one_immutable_gesture_request(
 		main_window: bkchem_qt.main_window.MainWindow,
-		monkeypatch: pytest.MonkeyPatch,
 		) -> None:
-	"""A rejected candidate leaves the visible projection and navigation intact."""
+	"""Visible Arrow choices become declared backend intent, not ribbon decoration."""
+	main_window._on_new()
+	session = main_window._active_session
+	session.mode_manager.set_mode("arrow")
+	mode = session.mode_manager.current_mode
+	requests = []
+
+	class RecordedOutcome:
+		"""Provide the ordinary status text consumed by a mode callback."""
+
+		message = "Arrow created"
+
+	def record(request: object) -> RecordedOutcome:
+		"""Keep the mode's opaque immutable request for semantic inspection."""
+		requests.append(request)
+		return RecordedOutcome()
+
+	mode.set_persistent_operation(record)
+	mode.set_submode("6")
+	mode.set_submode("freestyle")
+	mode.set_submode("spline")
+	mode.set_submode("equilibrium")
+	session.mode_manager.mouse_press(PySide6.QtCore.QPointF(0.0, 0.0), object())
+	session.mode_manager.mouse_release(PySide6.QtCore.QPointF(30.0, 10.0), object())
+	request = requests[0]
+	payload = dict(request.payload)
+	end_x, end_y = payload["endpoints"][1]
+	angle = round(math.degrees(math.atan2(end_y, end_x)))
+
+	assert (payload["kind"], payload["spline"], angle) == ("equilibrium", True, 18)
+
+
+#============================================
+def test_fixed_arrow_uses_scene_grid_length(
+		main_window: bkchem_qt.main_window.MainWindow,
+		) -> None:
+	"""Fixed-length Arrow creation uses the active scene's canonical grid spacing."""
+	main_window._on_new()
+	session = main_window._active_session
+	session.mode_manager.set_mode("arrow")
+	mode = session.mode_manager.current_mode
+	requests = []
+
+	class RecordedOutcome:
+		"""Provide the normal user-facing callback result."""
+
+		message = "Arrow created"
+
+	def record(request: object) -> RecordedOutcome:
+		"""Retain one immutable request without constructing presentation XML."""
+		requests.append(request)
+		return RecordedOutcome()
+
+	mode.set_persistent_operation(record)
+	mode.set_submode("fixed")
+	session.scene.set_grid_spacing_pt(42.0)
+	session.mode_manager.mouse_press(PySide6.QtCore.QPointF(10.0, 10.0), object())
+	session.mode_manager.mouse_release(PySide6.QtCore.QPointF(100.0, 10.0), object())
+	payload = dict(requests[0].payload)
+	start, end = payload["endpoints"]
+
+	assert abs(end[0] - start[0]) == 42.0 and end[1] == start[1]
+
+
+#============================================
+def test_typed_arrow_rejection_keeps_the_backend_snapshot(
+		main_window: bkchem_qt.main_window.MainWindow,
+		) -> None:
+	"""A rejected Arrow intent leaves projection and backend navigation intact."""
 	main_window._on_new()
 	session = main_window._active_session
 	accepted = session.commit_arrow((0.0, 0.0), (40.0, 0.0))
 	projected_arrow = session.document.presentation_objects[-1]
-	monkeypatch.setattr(
-		bkchem_qt.io.cdml_candidate, "append_arrow_candidate",
-		_invalid_arrow_candidate,
+	request = bkchem_qt.models.document_session.PersistentOperationRequest(
+		"arrow.add", "Arrow",
+		(
+			("kind", "normal"), ("spline", False),
+			("endpoints", ((40.0, 0.0), (float("nan"), 0.0))),
+		),
 	)
-	outcome = session.commit_arrow((40.0, 0.0), (80.0, 0.0))
+	outcome = session.submit_persistent_operation(request)
 
 	assert (accepted.status, outcome.status) == ("accepted", "rejected")
 	assert (
@@ -328,7 +377,10 @@ def test_captured_non_mode_capability_uses_its_original_registered_session(
 	main_window._on_new()
 	request = bkchem_qt.models.document_session.PersistentOperationRequest(
 		"arrow.add", "Arrow",
-		(("start", (0.0, 0.0)), ("end", (40.0, 0.0))),
+		(
+			("kind", "normal"), ("spline", False),
+			("endpoints", ((0.0, 0.0), (40.0, 0.0))),
+		),
 	)
 	outcome = capability(request)
 
@@ -349,7 +401,10 @@ def test_closed_non_mode_capability_is_unavailable_before_submission(
 	main_window.close_session_at(main_window._sessions.index(session))
 	request = bkchem_qt.models.document_session.PersistentOperationRequest(
 		"arrow.add", "Arrow",
-		(("start", (0.0, 0.0)), ("end", (40.0, 0.0))),
+		(
+			("kind", "normal"), ("spline", False),
+			("endpoints", ((0.0, 0.0), (40.0, 0.0))),
+		),
 	)
 	outcome = capability(request)
 

@@ -3,13 +3,16 @@
 
 # Standard Library
 import argparse
+import collections.abc
 import dataclasses
 import json
 import math
 import os
 import pathlib
+import shutil
 import subprocess
 import sys
+import tempfile
 
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -18,6 +21,7 @@ os.environ.setdefault("QT_SCALE_FACTOR", "1")
 
 # PIP3 modules
 import PySide6.QtCore
+import PySide6.QtGui
 import PySide6.QtWidgets
 
 # local repo modules
@@ -57,7 +61,7 @@ _SCENARIOS = (
 	CaptureScenario(
 		"drawing-objects", "bkchem_qt_drawing_objects.png",
 		frozenset(("arrow", "oval", "plus", "polygon", "polyline", "rect", "text")),
-		("persistent_objects_title", "left_bracket", "right_bracket"), 0,
+		("persistent_objects_title", "left_bracket", "right_bracket", "vector_shape"), 0,
 	),
 	CaptureScenario(
 		"haworth", "bkchem_qt_verified_sucrose_haworth.png",
@@ -131,18 +135,25 @@ _DRAWING_OBJECTS_CDML = """\
   <point x="66.0cm" y="48.3cm"/><point x="65.2cm" y="50.5cm"/>
   <point x="62.8cm" y="50.5cm"/>
  </polygon>
- <polyline id="left_bracket" width="2" line_color="#173b6c">
+ <polyline id="left_bracket" bracket_pair="left_bracket" bracket_side="left"
+   spline="no" width="2" line_color="#173b6c">
   <point x="68.0cm" y="46.4cm"/><point x="67.3cm" y="46.4cm"/>
   <point x="67.3cm" y="50.5cm"/><point x="68.0cm" y="50.5cm"/>
  </polyline>
- <polyline id="right_bracket" width="2" line_color="#173b6c">
+ <polyline id="right_bracket" bracket_pair="left_bracket" bracket_side="right"
+   spline="no" width="2" line_color="#173b6c">
   <point x="73.0cm" y="46.4cm"/><point x="73.7cm" y="46.4cm"/>
   <point x="73.7cm" y="50.5cm"/><point x="73.0cm" y="50.5cm"/>
  </polyline>
  <text id="bracket_text"><point x="68.4cm" y="47.7cm"/>
   <font family="Arial" size="14" color="#173b6c"/><ftext>CH2-CH2</ftext></text>
- <text id="vector_label"><point x="74.7cm" y="48.0cm"/>
+ <text id="vector_label"><point x="74.7cm" y="47.2cm"/>
   <font family="Arial" size="10" color="#3e4a5b"/><ftext>Vectors</ftext></text>
+ <polyline id="vector_shape" spline="no" width="2" line_color="#b24b32">
+	<point x="74.8cm" y="48.2cm"/><point x="76.8cm" y="49.7cm"/>
+	<point x="76.1cm" y="49.5cm"/><point x="76.8cm" y="49.7cm"/>
+	<point x="76.5cm" y="49.0cm"/>
+ </polyline>
 </cdml>
 """
 
@@ -340,7 +351,7 @@ class QtCdmlCapture:
 		backend = oasa.cdml_document.CDMLDocumentSession.load(session.backend_snapshot.cdml)
 		kinds = {
 			record.kind
-			for record in backend.projection_snapshot().presentation_description.records
+			for record in backend.projection_snapshot().plan.presentation_description.records
 		}
 		if not self._scenario.required_presentation_kinds.issubset(kinds):
 			raise CaptureFailure(
@@ -360,6 +371,11 @@ class QtCdmlCapture:
 		"""Atomically replace the managed PNG after the projection has painted."""
 		try:
 			self._phase = "grabbing-widget"
+			# MainWindow performs its normal post-Open page framing through the Qt
+			# event queue.  Apply the documentation framing after those lifecycle
+			# callbacks so the capture proves readable content rather than a tiny
+			# page overview.  This calls the same public Content action users have.
+			self._window.on_zoom_to_content()
 			pixmap = self._window.grab()
 			if pixmap.isNull():
 				raise CaptureFailure("QWidget.grab returned an empty screenshot")
@@ -449,6 +465,64 @@ def _write_receipt(path: pathlib.Path, payload: dict[str, object]) -> None:
 
 
 #============================================
+def _validate_catalog_artifact(path: pathlib.Path) -> None:
+	"""Confirm a staged catalog artifact is a managed-size PNG before publication."""
+	if not path.is_file():
+		raise CaptureFailure(f"catalog staging did not produce {path.name}")
+	if path.stat().st_size > 1024 * 1024:
+		raise CaptureFailure(f"catalog artifact exceeds the 1 MiB target: {path.name}")
+	reader = PySide6.QtGui.QImageReader(str(path))
+	if bytes(reader.format()).lower() != b"png":
+		raise CaptureFailure(f"catalog artifact is not PNG data: {path.name}")
+	image = reader.read()
+	if image.isNull() or image.size() != WINDOW_SIZE:
+		raise CaptureFailure(f"catalog artifact is not a {WINDOW_SIZE.width()}x{WINDOW_SIZE.height()} PNG: {path.name}")
+
+
+#============================================
+def _publish_catalog(
+		staging_root: pathlib.Path, screenshot_root: pathlib.Path,
+		scenarios: tuple[CaptureScenario, ...] = _SCENARIOS,
+		replace_path: collections.abc.Callable[[pathlib.Path, pathlib.Path], None] = os.replace,
+		) -> None:
+	"""Publish a complete validated catalog and restore the prior gallery on failure.
+
+	A filesystem cannot replace several independent PNG paths in one operation. This
+	publisher therefore validates every staged image before touching the gallery, keeps
+	private copies of the prior files, and restores those copies if a later replacement
+	fails. A successful run is coherent; a failed run leaves the previously published
+	catalog intact.
+	"""
+	staged_paths = [staging_root / scenario.output_name for scenario in scenarios]
+	for staged_path in staged_paths:
+		_validate_catalog_artifact(staged_path)
+	backup_root = staging_root / "prior-gallery"
+	backup_root.mkdir(parents=True, exist_ok=True)
+	previous_paths: dict[pathlib.Path, pathlib.Path | None] = {}
+	for scenario in scenarios:
+		final_path = screenshot_root / scenario.output_name
+		if final_path.exists():
+			backup_path = backup_root / scenario.output_name
+			shutil.copy2(final_path, backup_path)
+			previous_paths[final_path] = backup_path
+		else:
+			previous_paths[final_path] = None
+	try:
+		for scenario in scenarios:
+			final_path = screenshot_root / scenario.output_name
+			final_path.parent.mkdir(parents=True, exist_ok=True)
+			replace_path(staging_root / scenario.output_name, final_path)
+	except OSError:
+		for final_path, backup_path in previous_paths.items():
+			if backup_path is None:
+				if final_path.exists():
+					final_path.unlink()
+			else:
+				os.replace(backup_path, final_path)
+		raise
+
+
+#============================================
 def _capture_one(
 		scenario: CaptureScenario, output_path: pathlib.Path,
 		deadline_seconds: float,
@@ -484,13 +558,15 @@ def _capture_one(
 def _capture_catalog(
 		deadline_seconds: float, receipt_path: pathlib.Path | None,
 		) -> int:
-	"""Capture each scenario in a fresh bounded process and aggregate results."""
+	"""Capture a complete catalog privately, then publish one coherent generation."""
 	results = []
+	TMP_ROOT.mkdir(parents=True, exist_ok=True)
+	staging_root = pathlib.Path(tempfile.mkdtemp(prefix="catalog-", dir=TMP_ROOT))
 	for scenario in _SCENARIOS:
 		command = (
 			sys.executable, str(pathlib.Path(__file__).resolve()),
 			"--scenario", scenario.key,
-			"--output", str(SCREENSHOT_ROOT / scenario.output_name),
+			"--output", str(staging_root / scenario.output_name),
 			"--kill-after", str(deadline_seconds),
 		)
 		try:
@@ -521,12 +597,22 @@ def _capture_catalog(
 		results.append(payload)
 		if completed.returncode != 0:
 			break
+	completed = len(results) == len(_SCENARIOS) and all(
+		result.get("exit_code") == 0 for result in results
+	)
+	publication_diagnostic = "catalog scenarios did not all complete"
+	if completed:
+		try:
+			_publish_catalog(staging_root, SCREENSHOT_ROOT)
+			publication_diagnostic = "validated catalog generation published"
+		except (CaptureFailure, OSError) as error:
+			completed = False
+			publication_diagnostic = f"catalog publication kept the prior gallery: {error}"
 	payload = {
+		"diagnostic": publication_diagnostic,
 		"results": results,
 		"schema": "bkchem-qt-documentation-screenshot-catalog-1",
-		"status": "completed" if len(results) == len(_SCENARIOS) and all(
-			result.get("exit_code") == 0 for result in results
-		) else "failed",
+		"status": "completed" if completed else "failed",
 	}
 	if receipt_path is not None:
 		_write_receipt(receipt_path, payload)

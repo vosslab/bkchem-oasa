@@ -80,9 +80,10 @@ def setup_toolbars(
 			mode_toolbar.add_mode(entry, label, tooltip=tooltip, icon=icon)
 
 	mode_toolbar.set_active_mode("edit")
+	mode_toolbar.add_compact_chooser()
 
 	# add separator then Undo/Redo action buttons
-	mode_toolbar.add_separator_marker()
+	mode_toolbar.add_separator_marker(collapse_in_compact=False)
 	undo_action = mode_toolbar.add_action_button(
 		"undo", "Undo", tooltip="Undo last action",
 		callback=window.on_undo,

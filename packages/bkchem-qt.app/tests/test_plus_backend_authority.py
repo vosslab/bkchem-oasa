@@ -1,17 +1,14 @@
 """Focused backend-authority checks for creation-only Plus placement."""
 
-# Standard Library
-import xml.dom.minidom
-
 # PIP3 modules
 import pytest
 import PySide6.QtCore
 
 # local repo modules
-import bkchem_qt.io.cdml_candidate
 import bkchem_qt.main_window
 import bkchem_qt.models.document_session
 import oasa.cdml_document
+import oasa.cdml_presentation_insert
 import oasa.cdml_writer
 import oasa.safe_xml
 
@@ -24,26 +21,26 @@ id="text_1"><bk:ftext>yield</bk:ftext></bk:text><vendor:note keep="yes">opaque
 
 
 #============================================
-def _direct_elements(root: xml.dom.minidom.Element) -> list[xml.dom.minidom.Element]:
+def _direct_elements(root: object) -> list[object]:
 	"""Return direct element children in source order."""
 	children = [
 		child for child in root.childNodes
-		if isinstance(child, xml.dom.minidom.Element)
+		if child.nodeType == child.ELEMENT_NODE
 	]
 	return children
 
 
 #============================================
 def _direct_child(
-		element: xml.dom.minidom.Element, name: str,
-		) -> xml.dom.minidom.Element:
+		element: object, name: str,
+		) -> object:
 	"""Return one direct child with the requested local name."""
 	child = next(child for child in _direct_elements(element) if child.localName == name)
 	return child
 
 
 #============================================
-def _text_value(element: xml.dom.minidom.Element) -> str:
+def _text_value(element: object) -> str:
 	"""Return direct formatted-text content for one text record."""
 	ftext = _direct_child(element, "ftext")
 	value = "".join(
@@ -53,7 +50,7 @@ def _text_value(element: xml.dom.minidom.Element) -> str:
 
 
 #============================================
-def _direct_text(element: xml.dom.minidom.Element) -> str:
+def _direct_text(element: object) -> str:
 	"""Return direct text while retaining nested opaque elements separately."""
 	value = "".join(
 		child.data for child in element.childNodes if child.nodeType == child.TEXT_NODE
@@ -78,16 +75,17 @@ def _submit_rejected_plus_request(
 
 
 #============================================
-def test_plus_candidate_preserves_mixed_cdml_and_uses_backend_identity() -> None:
-	"""A Plus candidate preserves old semantics and appends one durable record."""
-	token = "__bkchem_new__plus-r0-1"
+def test_plus_insertion_preserves_mixed_cdml_and_uses_backend_identity() -> None:
+	"""Plus insertion preserves old semantics and appends one durable record."""
 	session = oasa.cdml_document.CDMLDocumentSession.load(_MIXED_CDML)
-	candidate = bkchem_qt.io.cdml_candidate.append_plus_candidate(
-		session.snapshot().cdml, token, (72.0, 36.0),
+	result = oasa.cdml_presentation_insert.insert_plus(
+		session,
+		oasa.cdml_presentation_insert.CDMLPlusInsertRequest(
+			session.revision, (72.0, 36.0),
+		),
 	)
-	commit = session.commit(expected_revision=0, complete_cdml=candidate)
 	elements = _direct_elements(
-		oasa.safe_xml.parse_dom_from_string(commit.cdml).documentElement,
+		oasa.safe_xml.parse_dom_from_string(result.snapshot.cdml).documentElement,
 	)
 	vendor_note = elements[2]
 	vendor_child = _direct_elements(vendor_note)[0]
@@ -128,7 +126,7 @@ def test_plus_candidate_preserves_mixed_cdml_and_uses_backend_identity() -> None
 		},
 		"center": center,
 	} == {
-		"durable_id": commit.id_map[token],
+		"durable_id": result.presentation_ids[0],
 		"defaults": {"font_size": "18", "color": "#000000"},
 		"center": pytest.approx((72.0, 36.0), abs=0.02),
 	}

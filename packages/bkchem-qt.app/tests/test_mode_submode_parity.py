@@ -75,6 +75,20 @@ def test_biotemplate_mode_has_categories(main_window: object) -> None:
 
 
 #============================================
+def test_bracket_mode_exposes_both_classic_styles(main_window: object) -> None:
+	"""The bracket ribbon declares rectangular and round backend styles."""
+	mode_manager = main_window._mode_manager
+	mode_manager.set_mode("bracket")
+	mode = mode_manager.current_mode
+	if mode is None:
+		raise AssertionError("bracket mode should be active")
+
+	assert mode.submodes == [["rectangularbracket", "roundbracket"]]
+	mode.set_submode("roundbracket")
+	assert mode.status_hint.startswith("Round")
+
+
+#============================================
 def test_mode_toolbar_single_checked_action(main_window: object) -> None:
 	"""Mode toolbar should keep exactly one checkable mode active."""
 	mode_manager = main_window._mode_manager
